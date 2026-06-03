@@ -81,7 +81,6 @@ export async function createLeadActivity(formData: FormData) {
 export async function updateLead(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
-
   const leadId = getString(formData, "lead_id");
   const fullName = getString(formData, "full_name");
   const whatsappNumber = getString(formData, "whatsapp_number");
@@ -105,6 +104,14 @@ export async function updateLead(formData: FormData) {
       `/leads/${leadId}/edit?error=${encodeURIComponent("Nama wajib diisi")}`,
     );
   }
+
+  const { data: existingLead } = await supabase
+  .from("leads")
+  .select("status, full_name")
+  .eq("id", leadId)
+  .eq("organization_id", profile.organization_id)
+  .is("deleted_at", null)
+  .maybeSingle();
 
   const { data: updatedLead, error } = await supabase
     .from("leads")
@@ -138,7 +145,21 @@ export async function updateLead(formData: FormData) {
   if (!updatedLead) {
     redirect("/leads?error=Lead tidak ditemukan");
   }
-
+  if (updatedLead) {
+    const statusChanged =
+      existingLead?.status && existingLead.status !== status;
+  
+    await supabase.from("lead_activities").insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      actor_id: profile.id,
+      activity_type: statusChanged ? "status_change" : "note",
+      title: statusChanged ? "Status lead berubah" : "Data lead diperbarui",
+      body: statusChanged
+        ? `Status berubah dari ${existingLead?.status} menjadi ${status}.`
+        : `Data lead ${fullName} diperbarui.`,
+    });
+  }
   revalidatePath("/leads");
   revalidatePath(`/leads/${leadId}`);
   redirect(`/leads/${leadId}`);

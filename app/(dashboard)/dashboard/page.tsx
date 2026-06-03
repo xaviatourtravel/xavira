@@ -1,12 +1,84 @@
-export default function DashboardPage() {
+import { requireProfile } from "@/lib/auth/session";
+import { createClient } from "@/utils/supabase/server";
+
+export default async function DashboardPage() {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const today = new Date();
+
+  const [
+    { count: totalLeads },
+    { count: pendingFollowUps },
+    { count: overdueFollowUps },
+  ] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id)
+      .is("deleted_at", null),
+
+    supabase
+      .from("follow_up_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id)
+      .eq("status", "pending"),
+
+    supabase
+      .from("follow_up_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id)
+      .eq("status", "pending")
+      .lt("due_date", today.toISOString()),
+  ]);
+
   return (
-    <div style={{ padding: '50px', backgroundColor: '#e2e8f0', minHeight: '100vh' }}>
-      <h1 style={{ color: 'red', fontSize: '40px', fontWeight: 'bold' }}>
-        🚨 TES: HALAMAN DASHBOARD MUNCUL!
-      </h1>
-      <p style={{ color: 'black', marginTop: '10px' }}>
-        Jika Anda bisa melihat tulisan ini, berarti masalahnya murni karena Supabase "nyangkut" saat membaca sesi.
-      </p>
+    <div className="space-y-6">
+
+      <div>
+        <h1 className="text-3xl font-bold">
+          Dashboard
+        </h1>
+
+        <p className="text-muted-foreground">
+          Ringkasan aktivitas CRM Xavira.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+
+        <div className="rounded-xl border p-6">
+          <p className="text-sm text-muted-foreground">
+            Total Leads
+          </p>
+
+          <h2 className="mt-2 text-3xl font-bold">
+            {totalLeads ?? 0}
+          </h2>
+        </div>
+
+        <div className="rounded-xl border p-6">
+          <p className="text-sm text-muted-foreground">
+            Follow Up Pending
+          </p>
+
+          <h2 className="mt-2 text-3xl font-bold">
+            {pendingFollowUps ?? 0}
+          </h2>
+        </div>
+
+        <div className="rounded-xl border p-6">
+          <p className="text-sm text-muted-foreground">
+            Follow Up Terlambat
+          </p>
+
+          <h2 className="mt-2 text-3xl font-bold text-red-600">
+            {overdueFollowUps ?? 0}
+          </h2>
+        </div>
+
+      </div>
+
     </div>
-  )
+  );
 }

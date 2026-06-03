@@ -54,17 +54,18 @@ export default async function LeadsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Leads</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola prospect Umroh dan Halal Tour.
-          </p>
-        </div>
-        <Link href="/leads/new" className={cn(buttonVariants())}>
-          Tambah Lead
-        </Link>
-      </div>
+      <div className="flex gap-2">
+  <Link
+    href="/leads/pipeline"
+    className={cn(buttonVariants({ variant: "outline" }))}
+  >
+    Pipeline
+  </Link>
+
+  <Link href="/leads/new" className={cn(buttonVariants())}>
+    Tambah Lead
+  </Link>
+</div>
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">

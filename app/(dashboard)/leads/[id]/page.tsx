@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { createLeadActivity } from "./actions";
+import {
+  createLeadActivity,
+  createFollowUpTask,
+  completeFollowUpTask,
+} from "./actions";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -46,6 +50,13 @@ type LeadActivity = {
         full_name: string | null;
       }[]
     | null;
+};
+type FollowUpTask = {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string;
+  status: string;
 };
 
 function getActorName(activity: LeadActivity) {
@@ -125,8 +136,11 @@ export default async function LeadDetailPage({
   const { profile } = await requireProfile();
   const supabase = await createClient();
 
-  const [{ data: lead, error }, { data: activities, error: activitiesError }] =
-    await Promise.all([
+  const [
+    { data: lead, error },
+    { data: activities, error: activitiesError },
+    { data: followUps, error: followUpsError },
+  ] = await Promise.all([
       supabase
         .from("leads")
         .select(
@@ -144,9 +158,15 @@ export default async function LeadDetailPage({
         .eq("lead_id", id)
         .eq("organization_id", profile.organization_id)
         .order("occurred_at", { ascending: false }),
+        supabase
+  .from("follow_up_tasks")
+  .select("id, title, description, due_date, status")
+  .eq("lead_id", id)
+  .eq("organization_id", profile.organization_id)
+  .order("due_date", { ascending: true }),
     ]);
 
-  if (error || activitiesError) {
+  if (error || activitiesError || followUpsError) {
     throw new Error("Gagal memuat detail lead.");
   }
 
@@ -156,6 +176,7 @@ export default async function LeadDetailPage({
 
   const detail = lead as LeadDetail;
   const timeline = (activities ?? []) as LeadActivity[];
+  const followUpTasks = (followUps ?? []) as FollowUpTask[];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -245,7 +266,149 @@ export default async function LeadDetailPage({
           </dl>
         </CardContent>
       </Card>
+      
+      <Card>
+  <CardHeader>
+    <CardTitle>Jadwalkan Follow Up</CardTitle>
+    <CardDescription>
+      Buat pengingat follow up untuk lead ini.
+    </CardDescription>
+  </CardHeader>
 
+  <CardContent>
+    <form action={createFollowUpTask} className="space-y-4">
+
+      <input
+        type="hidden"
+        name="lead_id"
+        value={detail.id}
+      />
+
+      <div>
+        <label className="text-sm font-medium">
+          Judul
+        </label>
+
+        <input
+          name="title"
+          required
+          placeholder="Telepon kembali"
+          className="mt-1 w-full rounded-md border px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">
+          Tanggal Follow Up
+        </label>
+
+        <input
+          type="datetime-local"
+          name="due_date"
+          required
+          className="mt-1 w-full rounded-md border px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">
+          Catatan
+        </label>
+
+        <textarea
+          name="description"
+          rows={3}
+          className="mt-1 w-full rounded-md border px-3 py-2"
+        />
+      </div>
+
+      <button
+        type="submit"
+        className="rounded-md bg-blue-600 px-4 py-2 text-white"
+      >
+        Simpan Follow Up
+      </button>
+
+    </form>
+  </CardContent>
+</Card>
+
+<Card>
+  <CardHeader>
+    <CardTitle>Follow Up Terjadwal</CardTitle>
+    <CardDescription>
+      Daftar follow up yang harus dilakukan.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent>
+    {followUpTasks.length === 0 ? (
+      <p className="text-sm text-muted-foreground">
+        Belum ada follow up terjadwal.
+      </p>
+    ) : (
+      <div className="space-y-3">
+        {followUpTasks.map((task) => (
+          <div
+            key={task.id}
+            className="rounded-lg border p-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+  <div>
+    <h4 className="font-medium">
+      {task.title}
+    </h4>
+  </div>
+
+  <div className="flex items-center gap-2">
+
+    <span className="text-xs rounded bg-slate-100 px-2 py-1">
+      {task.status}
+    </span>
+
+    {task.status !== "completed" && (
+      <form action={completeFollowUpTask}>
+        <input
+          type="hidden"
+          name="lead_id"
+          value={detail.id}
+        />
+
+        <input
+          type="hidden"
+          name="task_id"
+          value={task.id}
+        />
+
+        <button
+          type="submit"
+          className="rounded bg-green-600 px-2 py-1 text-xs text-white"
+        >
+          ✓ Selesai
+        </button>
+      </form>
+    )}
+
+  </div>
+</div>
+
+            {task.description && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {task.description}
+              </p>
+            )}
+
+            <p className="mt-2 text-xs text-muted-foreground">
+              {formatDateTime(task.due_date)}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+  </CardContent>
+</Card>
+      
+      
       <Card>
         <CardHeader>
           <CardTitle>Aktivitas</CardTitle>

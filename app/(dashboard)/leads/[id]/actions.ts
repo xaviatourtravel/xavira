@@ -78,6 +78,119 @@ export async function createLeadActivity(formData: FormData) {
     redirect(`/leads/${leadId}`);
   }
 
+  export async function createFollowUpTask(formData: FormData) {
+    const { profile } = await requireProfile();
+    const supabase = await createClient();
+  
+    const leadId = getString(formData, "lead_id");
+    const title = getString(formData, "title");
+    const description = getString(formData, "description");
+    const dueDate = getString(formData, "due_date");
+  
+    if (!leadId) {
+      redirect("/leads?error=Lead tidak ditemukan");
+    }
+  
+    if (!title) {
+      redirect(
+        `/leads/${leadId}?error=${encodeURIComponent("Judul follow up wajib diisi")}`,
+      );
+    }
+  
+    if (!dueDate) {
+      redirect(
+        `/leads/${leadId}?error=${encodeURIComponent("Tanggal follow up wajib diisi")}`,
+      );
+    }
+  
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("id", leadId)
+      .eq("organization_id", profile.organization_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+  
+    if (!lead) {
+      redirect("/leads?error=Lead tidak ditemukan");
+    }
+  
+    const { error } = await supabase.from("follow_up_tasks").insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      title,
+      description: description || null,
+      due_date: new Date(dueDate).toISOString(),
+      status: "pending",
+      created_by: profile.id,
+    });
+  
+    if (error) {
+      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+    }
+  
+    await supabase.from("lead_activities").insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      actor_id: profile.id,
+      activity_type: "note",
+      title: "Follow up dijadwalkan",
+      body: `${title} pada ${dueDate}.`,
+    });
+  
+    revalidatePath(`/leads/${leadId}`);
+    redirect(`/leads/${leadId}`);
+  }
+
+  export async function completeFollowUpTask(formData: FormData) {
+    const { profile } = await requireProfile();
+    const supabase = await createClient();
+  
+    const leadId = getString(formData, "lead_id");
+    const taskId = getString(formData, "task_id");
+  
+    if (!leadId || !taskId) {
+      redirect("/leads?error=Follow up tidak ditemukan");
+    }
+  
+    const { data: task, error: taskError } = await supabase
+      .from("follow_up_tasks")
+      .select("id, title")
+      .eq("id", taskId)
+      .eq("lead_id", leadId)
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle();
+  
+    if (taskError || !task) {
+      redirect(`/leads/${leadId}?error=Follow up tidak ditemukan`);
+    }
+  
+    const { error } = await supabase
+      .from("follow_up_tasks")
+      .update({
+        status: "completed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", taskId)
+      .eq("organization_id", profile.organization_id);
+  
+    if (error) {
+      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+    }
+  
+    await supabase.from("lead_activities").insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      actor_id: profile.id,
+      activity_type: "note",
+      title: "Follow up selesai",
+      body: `Follow up "${task.title}" ditandai selesai.`,
+    });
+  
+    revalidatePath(`/leads/${leadId}`);
+    redirect(`/leads/${leadId}`);
+  }
+
 export async function updateLead(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();

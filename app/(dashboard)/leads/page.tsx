@@ -33,18 +33,43 @@ function getContactPhone(lead: LeadRow) {
   return lead.whatsapp_number || lead.phone || "-";
 }
 
-export default async function LeadsPage() {
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+  }>;
+}) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
+  const params = await searchParams;
 
-  const { data: leads, error } = await supabase
-    .from("leads")
-    .select(
-      "id, full_name, phone, whatsapp_number, source, interest_type, package_interest, status, created_at",
-    )
-    .eq("organization_id", profile.organization_id)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+const search = params.q?.trim() ?? "";
+const statusFilter = params.status?.trim() ?? "";
+
+let query = supabase
+.from("leads")
+.select(
+  "id, full_name, phone, whatsapp_number, source, interest_type, package_interest, status, created_at"
+)
+.eq("organization_id", profile.organization_id)
+.is("deleted_at", null);
+
+if (search) {
+query = query.or(
+  `full_name.ilike.%${search}%,whatsapp_number.ilike.%${search}%,phone.ilike.%${search}%`
+);
+}
+
+if (statusFilter) {
+query = query.eq("status", statusFilter);
+}
+
+const { data: leads, error } = await query.order(
+"created_at",
+{ ascending: false }
+);
 
   if (error) {
     throw new Error("Gagal memuat data lead.");
@@ -66,6 +91,40 @@ export default async function LeadsPage() {
     Tambah Lead
   </Link>
 </div>
+<form
+  method="GET"
+  className="flex flex-wrap gap-2"
+>
+  <input
+    type="text"
+    name="q"
+    defaultValue={search}
+    placeholder="Cari nama atau WA..."
+    className="rounded-md border px-3 py-2 text-sm"
+  />
+
+  <select
+    name="status"
+    defaultValue={statusFilter}
+    className="rounded-md border px-3 py-2 text-sm"
+  >
+    <option value="">Semua Status</option>
+    <option value="new">New</option>
+    <option value="contacted">Contacted</option>
+    <option value="qualified">Qualified</option>
+    <option value="proposal_sent">Proposal</option>
+    <option value="negotiating">Negotiating</option>
+    <option value="won">Won</option>
+    <option value="lost">Lost</option>
+  </select>
+
+  <button
+    type="submit"
+    className="rounded-md border px-3 py-2 text-sm"
+  >
+    Filter
+  </button>
+</form>
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">

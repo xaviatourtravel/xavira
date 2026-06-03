@@ -44,9 +44,11 @@ const [
     due_date,
     lead_id,
     leads (
-      full_name,
-      package_interest
-    )
+  full_name,
+  package_interest,
+  whatsapp_number,
+  phone
+)
   `)
   .eq("organization_id", profile.organization_id)
   .eq("status", "pending")
@@ -142,6 +144,16 @@ const [
               <p className="text-xs text-muted-foreground">
                 {task.leads?.package_interest ?? "-"}
               </p>
+              {(task.leads?.whatsapp_number || task.leads?.phone) && (
+  <a
+    href={`https://wa.me/${(task.leads.whatsapp_number || task.leads.phone).replace(/\D/g, "")}`}
+    target="_blank"
+    rel="noreferrer"
+    className="mt-2 inline-flex rounded bg-green-600 px-3 py-1 text-xs text-white"
+  >
+    WhatsApp
+  </a>
+)}
             </div>
 
             <div className="text-right text-sm">

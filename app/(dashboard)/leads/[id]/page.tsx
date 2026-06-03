@@ -205,6 +205,18 @@ export default async function LeadDetailPage({
       <Card>
         <CardHeader>
           <CardTitle>{detail.full_name}</CardTitle>
+          <div className="mt-3">
+  {formatContact(detail) !== "-" && (
+    <a
+      href={`https://wa.me/${formatContact(detail).replace(/\D/g, "")}`}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex rounded bg-green-600 px-3 py-2 text-sm text-white"
+    >
+      Buka WhatsApp
+    </a>
+  )}
+</div>
           <CardDescription>Detail lead</CardDescription>
         </CardHeader>
         <CardContent>

@@ -2,6 +2,19 @@ import Link from "next/link";
 
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
+import { updateLeadStatus } from "./actions";
+
+function getNextStatus(status: string) {
+    const flow: Record<string, string> = {
+      new: "contacted",
+      contacted: "qualified",
+      qualified: "proposal_sent",
+      proposal_sent: "negotiating",
+      negotiating: "won",
+    };
+  
+    return flow[status] ?? null;
+  }
 
 const STATUSES = [
   { value: "new", label: "New" },
@@ -39,6 +52,7 @@ export default async function LeadPipelinePage() {
   }
 
   const rows = (leads ?? []) as Lead[];
+  
 
   return (
     <div className="space-y-6">
@@ -64,19 +78,43 @@ export default async function LeadPipelinePage() {
 
               <div className="space-y-3">
                 {statusLeads.map((lead) => (
+                  <div
+                  key={lead.id}
+                  className="rounded-lg border bg-background p-3 text-sm"
+                >
                   <Link
-                    key={lead.id}
                     href={`/leads/${lead.id}`}
-                    className="block rounded-lg border bg-background p-3 text-sm hover:bg-muted"
+                    className="font-medium hover:underline"
                   >
-                    <p className="font-medium">{lead.full_name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {lead.package_interest || "Belum ada paket"}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {lead.whatsapp_number || lead.phone || "-"}
-                    </p>
+                    {lead.full_name}
                   </Link>
+                
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {lead.package_interest || "Belum ada paket"}
+                  </p>
+                
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {lead.whatsapp_number || lead.phone || "-"}
+                  </p>
+                
+                  {getNextStatus(lead.status) && (
+                    <form action={updateLeadStatus} className="mt-3">
+                      <input type="hidden" name="lead_id" value={lead.id} />
+                      <input
+                        type="hidden"
+                        name="next_status"
+                        value={getNextStatus(lead.status) ?? ""}
+                      />
+                
+                      <button
+                        type="submit"
+                        className="w-full rounded-md bg-blue-600 px-2 py-1 text-xs text-white"
+                      >
+                        Next Status
+                      </button>
+                    </form>
+                  )}
+                </div> 
                 ))}
               </div>
             </div>

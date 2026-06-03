@@ -92,6 +92,7 @@ export default async function LeadsPage() {
                 <th className="px-4 py-3 font-medium">Paket</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Dibuat</th>
+                <th className="px-4 py-3 font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -121,6 +122,18 @@ export default async function LeadsPage() {
                   <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                     {formatDate(lead.created_at)}
                   </td>
+                  <td className="px-4 py-3">
+  {getContactPhone(lead) !== "-" && (
+    <a
+      href={`https://wa.me/${getContactPhone(lead).replace(/\D/g, "")}`}
+      target="_blank"
+      rel="noreferrer"
+      className="rounded bg-green-600 px-3 py-1 text-xs text-white"
+    >
+      WhatsApp
+    </a>
+  )}
+</td>
                 </tr>
               ))}
             </tbody>

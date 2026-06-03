@@ -18,6 +18,7 @@ const [
   { count: overdueFollowUps },
   { data: todayFollowUps },
   { data: pipelineLeads },
+  { data: packageLeads },
 ] = await Promise.all([
     supabase
       .from("leads")
@@ -61,7 +62,12 @@ const [
   .select("status")
   .eq("organization_id", profile.organization_id)
   .is("deleted_at", null),
-  ]);
+  supabase
+  .from("leads")
+  .select("package_interest")
+  .eq("organization_id", profile.organization_id)
+  .is("deleted_at", null),  
+]);
 
   const funnel = {
     new: 0,
@@ -72,6 +78,19 @@ const [
     won: 0,
     lost: 0,
   };
+  const packageStats: Record<string, number> = {};
+
+for (const lead of packageLeads ?? []) {
+  if (!lead.package_interest) continue;
+
+  packageStats[lead.package_interest] =
+    (packageStats[lead.package_interest] ?? 0) + 1;
+}
+
+const topPackages = Object.entries(packageStats)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
+  
   const leadToWonRate =
   totalLeads && totalLeads > 0
     ? Math.round((funnel.won / totalLeads) * 100)
@@ -283,6 +302,38 @@ const proposalToWonRate =
   ) : (
     <p className="text-sm text-muted-foreground">
       Tidak ada follow up hari ini.
+    </p>
+  )}
+</div>
+<div className="rounded-xl border p-6">
+  <h2 className="text-lg font-semibold">
+    Paket Terlaris
+  </h2>
+
+  <p className="mb-4 text-sm text-muted-foreground">
+    Paket yang paling banyak diminati lead.
+  </p>
+
+  {topPackages.length ? (
+    <div className="space-y-3">
+      {topPackages.map(([packageName, total]) => (
+        <div
+          key={packageName}
+          className="flex items-center justify-between rounded-lg border p-3"
+        >
+          <span className="font-medium">
+            {packageName}
+          </span>
+
+          <span className="text-sm text-muted-foreground">
+            {total} Lead
+          </span>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm text-muted-foreground">
+      Belum ada data paket.
     </p>
   )}
 </div>

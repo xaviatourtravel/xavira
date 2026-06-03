@@ -56,3 +56,48 @@ export async function createPackage(formData: FormData) {
   revalidatePath("/packages");
   redirect("/packages");
 }
+export async function updatePackage(formData: FormData) {
+    const { profile } = await requireProfile();
+    const supabase = await createClient();
+  
+    const packageId = getString(formData, "package_id");
+    const name = getString(formData, "name");
+    const destination = getString(formData, "destination");
+    const departureDate = getString(formData, "departure_date");
+    const durationDays = getOptionalInt(formData, "duration_days");
+    const priceIdr = getOptionalInt(formData, "price_idr");
+    const quota = getOptionalInt(formData, "quota");
+    const status = getString(formData, "status") || "draft";
+  
+    if (!packageId) {
+      redirect("/packages?error=Paket tidak ditemukan");
+    }
+  
+    if (!name) {
+      redirect(`/packages/${packageId}/edit?error=Nama paket wajib diisi`);
+    }
+  
+    const { error } = await supabase
+      .from("packages")
+      .update({
+        name,
+        destination: destination || null,
+        departure_date: departureDate || null,
+        duration_days: durationDays,
+        price_idr: priceIdr,
+        quota,
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", packageId)
+      .eq("organization_id", profile.organization_id);
+  
+    if (error) {
+      redirect(
+        `/packages/${packageId}/edit?error=${encodeURIComponent(error.message)}`,
+      );
+    }
+  
+    revalidatePath("/packages");
+    redirect("/packages");
+  }

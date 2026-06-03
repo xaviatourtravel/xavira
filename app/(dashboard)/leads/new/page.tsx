@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createLead } from "../actions";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { requireProfile } from "@/lib/auth/session";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function NewLeadPage({
   searchParams,
@@ -10,6 +12,15 @@ export default async function NewLeadPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
+  const { profile } = await requireProfile();
+const supabase = await createClient();
+
+const { data: packages } = await supabase
+  .from("packages")
+  .select("id, name")
+  .eq("organization_id", profile.organization_id)
+  .eq("status", "active")
+  .order("name");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -87,13 +98,28 @@ export default async function NewLeadPage({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Paket Diminati</label>
-          <input
-            name="package_interest"
-            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-            placeholder="Contoh: Yunnan Halal Tour, Umroh Reguler"
-          />
-        </div>
+  <label className="text-sm font-medium">
+    Paket Diminati
+  </label>
+
+  <select
+    name="package_interest"
+    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+  >
+    <option value="">
+      Pilih Paket
+    </option>
+
+    {(packages ?? []).map((pkg) => (
+      <option
+        key={pkg.id}
+        value={pkg.name}
+      >
+        {pkg.name}
+      </option>
+    ))}
+  </select>
+</div>
 
         <div>
           <label className="text-sm font-medium">Catatan</label>

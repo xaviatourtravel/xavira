@@ -65,6 +65,12 @@ export default async function EditLeadPage({
   }
 
   const detail = lead as LeadEdit;
+  const { data: packages } = await supabase
+  .from("packages")
+  .select("id, name")
+  .eq("organization_id", profile.organization_id)
+  .eq("status", "active")
+  .order("name");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -146,13 +152,29 @@ export default async function EditLeadPage({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Paket Diminati</label>
-          <input
-            name="package_interest"
-            defaultValue={detail.package_interest ?? ""}
-            className={inputClassName}
-          />
-        </div>
+  <label className="text-sm font-medium">
+    Paket Diminati
+  </label>
+
+  <select
+    name="package_interest"
+    defaultValue={detail.package_interest ?? ""}
+    className={inputClassName}
+  >
+    <option value="">
+      Pilih Paket
+    </option>
+
+    {(packages ?? []).map((pkg) => (
+      <option
+        key={pkg.id}
+        value={pkg.name}
+      >
+        {pkg.name}
+      </option>
+    ))}
+  </select>
+</div>
 
         <div>
           <label className="text-sm font-medium">Status</label>

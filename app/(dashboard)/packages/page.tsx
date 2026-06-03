@@ -100,7 +100,11 @@ export default async function PackagesPage() {
             <tbody>
               {rows.map((pkg) => (
                 <tr key={pkg.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">{pkg.name}</td>
+                  <td className="px-4 py-3 font-medium">
+  <Link href={`/packages/${pkg.id}/edit`} className="hover:underline">
+    {pkg.name}
+  </Link>
+</td>
                   <td className="px-4 py-3">{pkg.destination || "-"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {pkg.departure_date ? formatDate(pkg.departure_date) : "-"}

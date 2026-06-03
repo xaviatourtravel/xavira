@@ -33,25 +33,33 @@ function getContactPhone(lead: LeadRow) {
   return lead.whatsapp_number || lead.phone || "-";
 }
 
-export default async function LeadsPage({
-  searchParams,
-}: {
+type LeadsPageProps = {
   searchParams: Promise<{
     q?: string;
     status?: string;
+    page?: string;
   }>;
-}) {
+};
+
+export default async function LeadsPage({
+  searchParams,
+}: LeadsPageProps) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
   const params = await searchParams;
 
 const search = params.q?.trim() ?? "";
 const statusFilter = params.status?.trim() ?? "";
+const currentPage = Math.max(Number(params.page ?? "1"), 1);
+const pageSize = 20;
+const from = (currentPage - 1) * pageSize;
+const to = from + pageSize - 1;
 
 let query = supabase
 .from("leads")
 .select(
-  "id, full_name, phone, whatsapp_number, source, interest_type, package_interest, status, created_at"
+  "id, full_name, phone, whatsapp_number, source, interest_type, package_interest, status, created_at",
+  { count: "exact" }
 )
 .eq("organization_id", profile.organization_id)
 .is("deleted_at", null);
@@ -66,16 +74,51 @@ if (statusFilter) {
 query = query.eq("status", statusFilter);
 }
 
-const { data: leads, error } = await query.order(
-"created_at",
-{ ascending: false }
-);
+const { data: leads, error, count } = await query
+  .order("created_at", { ascending: false })
+  .range(from, to);
 
   if (error) {
     throw new Error("Gagal memuat data lead.");
   }
 
   const rows = (leads ?? []) as LeadRow[];
+  const totalPages = Math.max(Math.ceil((count ?? 0) / pageSize), 1);
+
+const buildPageHref = (page: number) => {
+  const query = new URLSearchParams();
+
+  if (search) query.set("q", search);
+  if (statusFilter) query.set("status", statusFilter);
+  query.set("page", String(page));
+
+  return `/leads?${query.toString()}`;
+};
+<div className="flex items-center justify-between">
+  <p className="text-sm text-muted-foreground">
+    Halaman {currentPage} dari {totalPages}
+  </p>
+
+  <div className="flex gap-2">
+    {currentPage > 1 && (
+      <Link
+        href={buildPageHref(currentPage - 1)}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        Previous
+      </Link>
+    )}
+
+    {currentPage < totalPages && (
+      <Link
+        href={buildPageHref(currentPage + 1)}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        Next
+      </Link>
+    )}
+  </div>
+</div>
 
   return (
     <div className="space-y-6">

@@ -17,6 +17,7 @@ const [
   { count: pendingFollowUps },
   { count: overdueFollowUps },
   { data: todayFollowUps },
+  { data: pipelineLeads },
 ] = await Promise.all([
     supabase
       .from("leads")
@@ -55,7 +56,42 @@ const [
   .gte("due_date", todayStart.toISOString())
   .lte("due_date", todayEnd.toISOString())
   .order("due_date", { ascending: true }),
+  supabase
+  .from("leads")
+  .select("status")
+  .eq("organization_id", profile.organization_id)
+  .is("deleted_at", null),
   ]);
+
+  const funnel = {
+    new: 0,
+    contacted: 0,
+    qualified: 0,
+    proposal_sent: 0,
+    negotiating: 0,
+    won: 0,
+    lost: 0,
+  };
+  const leadToWonRate =
+  totalLeads && totalLeads > 0
+    ? Math.round((funnel.won / totalLeads) * 100)
+    : 0;
+
+const proposalTotal =
+  funnel.proposal_sent + funnel.negotiating + funnel.won + funnel.lost;
+
+const proposalToWonRate =
+  proposalTotal > 0
+    ? Math.round((funnel.won / proposalTotal) * 100)
+    : 0;
+  
+  for (const lead of pipelineLeads ?? []) {
+    const status = lead.status as keyof typeof funnel;
+  
+    if (status in funnel) {
+      funnel[status]++;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -70,7 +106,7 @@ const [
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-6">
 
         <div className="rounded-xl border p-6">
           <p className="text-sm text-muted-foreground">
@@ -81,6 +117,25 @@ const [
             {totalLeads ?? 0}
           </h2>
         </div>
+        <div className="rounded-xl border p-6">
+  <p className="text-sm text-muted-foreground">
+    Lead → Won
+  </p>
+
+  <h2 className="mt-2 text-3xl font-bold">
+    {leadToWonRate}%
+  </h2>
+</div>
+
+<div className="rounded-xl border p-6">
+  <p className="text-sm text-muted-foreground">
+    Proposal → Won
+  </p>
+
+  <h2 className="mt-2 text-3xl font-bold">
+    {proposalToWonRate}%
+  </h2>
+</div>
 
         <div className="rounded-xl border p-6">
           <p className="text-sm text-muted-foreground">
@@ -170,7 +225,61 @@ const [
         </div>
       ))}
 
+<div className="rounded-xl border p-6">
+  <h2 className="text-lg font-semibold">
+    Pipeline Summary
+  </h2>
+
+  <p className="mb-4 text-sm text-muted-foreground">
+    Distribusi lead berdasarkan status pipeline.
+  </p>
+
+  <div className="grid gap-3 md:grid-cols-4">
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">New</p>
+      <p className="text-2xl font-bold">{funnel.new}</p>
     </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">Contacted</p>
+      <p className="text-2xl font-bold">{funnel.contacted}</p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">Qualified</p>
+      <p className="text-2xl font-bold">{funnel.qualified}</p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">Proposal</p>
+      <p className="text-2xl font-bold">{funnel.proposal_sent}</p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">Negotiating</p>
+      <p className="text-2xl font-bold">{funnel.negotiating}</p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">Won</p>
+      <p className="text-2xl font-bold text-green-600">
+        {funnel.won}
+      </p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">Lost</p>
+      <p className="text-2xl font-bold text-red-600">
+        {funnel.lost}
+      </p>
+    </div>
+
+  </div>
+</div>
+
+    </div>
+    
   ) : (
     <p className="text-sm text-muted-foreground">
       Tidak ada follow up hari ini.

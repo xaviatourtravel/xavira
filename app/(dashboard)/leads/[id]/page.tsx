@@ -341,6 +341,7 @@ Terima kasih.`
           rows={14}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
+        
 
         <div className="flex gap-2">
           <QuotationCopyButton text={quotationText} />
@@ -355,6 +356,15 @@ Terima kasih.`
               Buka WhatsApp
             </a>
           )}
+
+<a
+  href={`/leads/${detail.id}/quotation`}
+  target="_blank"
+  rel="noreferrer"
+  className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+>
+  Download PDF
+</a>
         </div>
       </>
     ) : (

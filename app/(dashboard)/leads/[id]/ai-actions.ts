@@ -101,6 +101,37 @@ Output hanya isi pesan WhatsApp. Jangan pakai markdown.
   });
 
   const text = response.output_text;
+  await supabase
+  .from("follow_ups")
+  .insert({
+    organization_id: profile.organization_id,
+    created_by: profile.id,
+    lead_id: lead.id,
+
+    generated_body: text,
+
+    status: "draft",
+    channel: "whatsapp",
+    tone: "professional",
+  });
+
+  await supabase
+  .from("lead_activities")
+  .insert({
+    organization_id: profile.organization_id,
+    lead_id: lead.id,
+
+    activity_type: "follow_up_generated",
+
+    title: "AI Follow Up Generated",
+
+    body: text,
+
+    metadata: {
+      source: "ai",
+      model: "gpt-4.1-mini",
+    },
+  });
 
   return {
     success: true,

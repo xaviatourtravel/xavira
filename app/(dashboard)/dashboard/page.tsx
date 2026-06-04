@@ -20,7 +20,10 @@ const [
   { data: pipelineLeads },
   { data: packageLeads },
   { data: sourceLeads },
+  { data: aiLogs },
+  { data: priorityLeads },
 ] = await Promise.all([
+  
     supabase
       .from("leads")
       .select("*", { count: "exact", head: true })
@@ -71,6 +74,21 @@ const [
   supabase
   .from("leads")
   .select("source")
+  .eq("organization_id", profile.organization_id)
+  .is("deleted_at", null),
+  supabase
+  .from("ai_generation_logs")
+  .select("input_tokens, output_tokens, estimated_cost_usd")
+  .eq("organization_id", profile.organization_id),
+  supabase
+  .from("leads")
+  .select(`
+    id,
+    full_name,
+    status,
+    package_interest,
+    updated_at
+  `)
   .eq("organization_id", profile.organization_id)
   .is("deleted_at", null),
 ]);
@@ -129,6 +147,46 @@ const proposalToWonRate =
       funnel[status]++;
     }
   }
+  const aiUsage = {
+    totalGenerations: aiLogs?.length ?? 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    estimatedCostUsd: 0,
+  };
+  
+  for (const log of aiLogs ?? []) {
+    aiUsage.inputTokens += log.input_tokens ?? 0;
+    aiUsage.outputTokens += log.output_tokens ?? 0;
+    aiUsage.estimatedCostUsd += Number(log.estimated_cost_usd ?? 0);
+  }
+  
+  const totalAiTokens = aiUsage.inputTokens + aiUsage.outputTokens;
+
+  const leadScores = (priorityLeads ?? []).map((lead) => {
+    let score = 0;
+  
+    if (lead.status === "negotiating") score += 50;
+    if (lead.status === "proposal_sent") score += 40;
+    if (lead.status === "qualified") score += 30;
+    if (lead.status === "contacted") score += 20;
+  
+    const daysSinceUpdate = Math.floor(
+      (Date.now() - new Date(lead.updated_at).getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+  
+    score += Math.min(daysSinceUpdate * 2, 20);
+  
+    return {
+      ...lead,
+      score,
+      daysSinceUpdate,
+    };
+  });
+  
+  const topPriorityLeads = leadScores
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -384,6 +442,112 @@ const proposalToWonRate =
   ) : (
     <p className="text-sm text-muted-foreground">
       Belum ada data sumber lead.
+    </p>
+  )}
+</div>
+<div className="rounded-xl border p-6">
+  <h2 className="text-lg font-semibold">
+    AI Usage
+  </h2>
+
+  <p className="mb-4 text-sm text-muted-foreground">
+    Ringkasan penggunaan AI untuk organisasi ini.
+  </p>
+
+  <div className="grid gap-3 md:grid-cols-4">
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">
+        Total Generate
+      </p>
+      <p className="text-2xl font-bold">
+        {aiUsage.totalGenerations}
+      </p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">
+        Input Token
+      </p>
+      <p className="text-2xl font-bold">
+        {aiUsage.inputTokens}
+      </p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">
+        Output Token
+      </p>
+      <p className="text-2xl font-bold">
+        {aiUsage.outputTokens}
+      </p>
+    </div>
+
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">
+        Est. Cost
+      </p>
+      <p className="text-2xl font-bold">
+        ${aiUsage.estimatedCostUsd.toFixed(4)}
+      </p>
+    </div>
+  </div>
+
+  <p className="mt-3 text-xs text-muted-foreground">
+    Total token: {totalAiTokens}
+  </p>
+</div>
+
+<div className="rounded-xl border p-6">
+  <h2 className="text-lg font-semibold">
+    AI Sales Copilot
+  </h2>
+
+  <p className="mb-4 text-sm text-muted-foreground">
+    Lead yang paling layak diprioritaskan hari ini.
+  </p>
+
+  {topPriorityLeads.length ? (
+    <div className="space-y-3">
+      {topPriorityLeads.map((lead, index) => (
+        <div
+          key={lead.id}
+          className="rounded-lg border p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">
+                #{index + 1} {lead.full_name}
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                Status: {lead.status}
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                Paket: {lead.package_interest ?? "-"}
+              </p>
+
+              <p className="text-xs text-muted-foreground">
+                {lead.daysSinceUpdate} hari sejak update terakhir
+              </p>
+            </div>
+
+            <div className="text-right">
+              <p className="text-2xl font-bold">
+                {lead.score}
+              </p>
+
+              <p className="text-xs text-muted-foreground">
+                Priority Score
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm text-muted-foreground">
+      Belum ada lead.
     </p>
   )}
 </div>

@@ -115,6 +115,38 @@ Output hanya isi pesan WhatsApp. Jangan pakai markdown.
     tone: "professional",
   });
 
+  const inputTokens =
+  response.usage?.input_tokens ?? 0;
+
+const outputTokens =
+  response.usage?.output_tokens ?? 0;
+
+const estimatedCostUsd =
+  (inputTokens * 0.0000004) +
+  (outputTokens * 0.0000016);
+
+  await supabase
+  .from("ai_generation_logs")
+  .insert({
+    organization_id: profile.organization_id,
+
+    user_id: profile.id,
+
+    feature: "follow_up",
+
+    model: "gpt-4.1-mini",
+
+    reference_id: lead.id,
+
+    input_tokens: inputTokens,
+
+    output_tokens: outputTokens,
+
+    estimated_cost_usd: estimatedCostUsd,
+  });
+
+  
+
   await supabase
   .from("lead_activities")
   .insert({

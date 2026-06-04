@@ -19,6 +19,7 @@ const [
   { data: todayFollowUps },
   { data: pipelineLeads },
   { data: packageLeads },
+  { data: sourceLeads },
 ] = await Promise.all([
     supabase
       .from("leads")
@@ -67,6 +68,11 @@ const [
   .select("package_interest")
   .eq("organization_id", profile.organization_id)
   .is("deleted_at", null),  
+  supabase
+  .from("leads")
+  .select("source")
+  .eq("organization_id", profile.organization_id)
+  .is("deleted_at", null),
 ]);
 
   const funnel = {
@@ -90,6 +96,18 @@ for (const lead of packageLeads ?? []) {
 const topPackages = Object.entries(packageStats)
   .sort((a, b) => b[1] - a[1])
   .slice(0, 5);
+
+  const sourceStats: Record<string, number> = {};
+
+for (const lead of sourceLeads ?? []) {
+  if (!lead.source) continue;
+
+  sourceStats[lead.source] =
+    (sourceStats[lead.source] ?? 0) + 1;
+}
+
+const topSources = Object.entries(sourceStats)
+  .sort((a, b) => b[1] - a[1]);
   
   const leadToWonRate =
   totalLeads && totalLeads > 0
@@ -334,6 +352,38 @@ const proposalToWonRate =
   ) : (
     <p className="text-sm text-muted-foreground">
       Belum ada data paket.
+    </p>
+  )}
+</div>
+<div className="rounded-xl border p-6">
+  <h2 className="text-lg font-semibold">
+    Sumber Lead
+  </h2>
+
+  <p className="mb-4 text-sm text-muted-foreground">
+    Distribusi lead berdasarkan channel akuisisi.
+  </p>
+
+  {topSources.length ? (
+    <div className="space-y-3">
+      {topSources.map(([source, total]) => (
+        <div
+          key={source}
+          className="flex items-center justify-between rounded-lg border p-3"
+        >
+          <span className="capitalize">
+            {source.replaceAll("_", " ")}
+          </span>
+
+          <span className="text-sm text-muted-foreground">
+            {total} Lead
+          </span>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm text-muted-foreground">
+      Belum ada data sumber lead.
     </p>
   )}
 </div>

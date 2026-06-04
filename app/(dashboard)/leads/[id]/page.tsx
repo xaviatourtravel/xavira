@@ -17,6 +17,8 @@ import {
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
+import { QuotationCopyButton } from "@/components/leads/quotation-copy-button";
+import { AiFollowUpGenerator } from "@/components/leads/ai-follow-up-generator";
 
 type LeadDetail = {
   id: string;
@@ -177,6 +179,49 @@ export default async function LeadDetailPage({
   const detail = lead as LeadDetail;
   const timeline = (activities ?? []) as LeadActivity[];
   const followUpTasks = (followUps ?? []) as FollowUpTask[];
+  const { data: selectedPackage } = detail.package_interest
+  ? await supabase
+      .from("packages")
+      .select("name, destination, departure_date, duration_days, price_idr, quota")
+      .eq("organization_id", profile.organization_id)
+      .eq("name", detail.package_interest)
+      .maybeSingle()
+  : { data: null };
+
+const quotationText = selectedPackage
+  ? `Assalamualaikum ${detail.full_name},
+
+Terima kasih atas ketertarikannya pada paket:
+
+${selectedPackage.name}
+
+Destinasi:
+${selectedPackage.destination ?? "-"}
+
+Durasi:
+${selectedPackage.duration_days ? `${selectedPackage.duration_days} Hari` : "-"}
+
+Tanggal Keberangkatan:
+${
+  selectedPackage.departure_date
+    ? formatDate(selectedPackage.departure_date)
+    : "-"
+}
+
+Harga:
+${
+  selectedPackage.price_idr != null
+    ? formatCurrency(selectedPackage.price_idr)
+    : "-"
+}
+
+Kuota:
+${selectedPackage.quota ?? "-"} pax
+
+Apabila berkenan, kami siap membantu proses reservasi dan menjawab pertanyaan lebih lanjut.
+
+Terima kasih.`
+  : "";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -278,6 +323,60 @@ export default async function LeadDetailPage({
           </dl>
         </CardContent>
       </Card>
+
+      <Card>
+  <CardHeader>
+    <CardTitle>Penawaran Paket</CardTitle>
+    <CardDescription>
+      Generate teks penawaran berdasarkan paket yang diminati lead.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent className="space-y-4">
+    {selectedPackage ? (
+      <>
+        <textarea
+          readOnly
+          value={quotationText}
+          rows={14}
+          className="w-full rounded-md border px-3 py-2 text-sm"
+        />
+
+        <div className="flex gap-2">
+          <QuotationCopyButton text={quotationText} />
+
+          {formatContact(detail) !== "-" && (
+            <a
+              href={`https://wa.me/${formatContact(detail).replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md bg-green-600 px-4 py-2 text-sm text-white"
+            >
+              Buka WhatsApp
+            </a>
+          )}
+        </div>
+      </>
+    ) : (
+      <p className="text-sm text-muted-foreground">
+        Paket belum ditemukan. Pastikan lead sudah memilih paket yang tersedia.
+      </p>
+    )}
+  </CardContent>
+</Card>
+
+<Card>
+  <CardHeader>
+    <CardTitle>AI Follow Up Writer</CardTitle>
+    <CardDescription>
+      Buat pesan follow up WhatsApp berdasarkan data lead, paket, dan aktivitas terakhir.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent>
+    <AiFollowUpGenerator leadId={detail.id} />
+  </CardContent>
+</Card>
       
       <Card>
   <CardHeader>

@@ -17,7 +17,7 @@ import {
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
-import { QuotationCopyButton } from "@/components/leads/quotation-copy-button";
+import { QuotationCard } from "@/components/leads/quotation-card";
 import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
 
 type LeadDetail = {
@@ -324,56 +324,12 @@ Terima kasih.`
         </CardContent>
       </Card>
 
-      <Card>
-  <CardHeader>
-    <CardTitle>Penawaran Paket</CardTitle>
-    <CardDescription>
-      Generate teks penawaran berdasarkan paket yang diminati lead.
-    </CardDescription>
-  </CardHeader>
-
-  <CardContent className="space-y-4">
-    {selectedPackage ? (
-      <>
-        <textarea
-          readOnly
-          value={quotationText}
-          rows={14}
-          className="w-full rounded-md border px-3 py-2 text-sm"
-        />
-        
-
-        <div className="flex gap-2">
-          <QuotationCopyButton text={quotationText} />
-
-          {formatContact(detail) !== "-" && (
-            <a
-              href={`https://wa.me/${formatContact(detail).replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-md bg-green-600 px-4 py-2 text-sm text-white"
-            >
-              Buka WhatsApp
-            </a>
-          )}
-
-<a
-  href={`/leads/${detail.id}/quotation`}
-  target="_blank"
-  rel="noreferrer"
-  className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
->
-  Download PDF
-</a>
-        </div>
-      </>
-    ) : (
-      <p className="text-sm text-muted-foreground">
-        Paket belum ditemukan. Pastikan lead sudah memilih paket yang tersedia.
-      </p>
-    )}
-  </CardContent>
-</Card>
+      <QuotationCard
+        leadId={detail.id}
+        selectedPackage={selectedPackage}
+        quotationText={quotationText}
+        contactPhone={formatContact(detail)}
+      />
 
 <AiFollowUpCard leadId={detail.id} />
       

@@ -1,5 +1,7 @@
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
+import { AiUsageCard } from "@/components/dashboard/ai-usage-card";
+import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
 
 export default async function DashboardPage() {
   const { profile } = await requireProfile();
@@ -187,7 +189,7 @@ const proposalToWonRate =
   const topPriorityLeads = leadScores
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
-
+    
   return (
     <div className="space-y-6">
 
@@ -320,6 +322,15 @@ const proposalToWonRate =
         </div>
       ))}
 
+    </div>
+    
+  ) : (
+    <p className="text-sm text-muted-foreground">
+      Tidak ada follow up hari ini.
+    </p>
+  )}
+</div>
+
 <div className="rounded-xl border p-6">
   <h2 className="text-lg font-semibold">
     Pipeline Summary
@@ -373,14 +384,6 @@ const proposalToWonRate =
   </div>
 </div>
 
-    </div>
-    
-  ) : (
-    <p className="text-sm text-muted-foreground">
-      Tidak ada follow up hari ini.
-    </p>
-  )}
-</div>
 <div className="rounded-xl border p-6">
   <h2 className="text-lg font-semibold">
     Paket Terlaris
@@ -445,113 +448,16 @@ const proposalToWonRate =
     </p>
   )}
 </div>
-<div className="rounded-xl border p-6">
-  <h2 className="text-lg font-semibold">
-    AI Usage
-  </h2>
-
-  <p className="mb-4 text-sm text-muted-foreground">
-    Ringkasan penggunaan AI untuk organisasi ini.
-  </p>
-
-  <div className="grid gap-3 md:grid-cols-4">
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">
-        Total Generate
-      </p>
-      <p className="text-2xl font-bold">
-        {aiUsage.totalGenerations}
-      </p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">
-        Input Token
-      </p>
-      <p className="text-2xl font-bold">
-        {aiUsage.inputTokens}
-      </p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">
-        Output Token
-      </p>
-      <p className="text-2xl font-bold">
-        {aiUsage.outputTokens}
-      </p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">
-        Est. Cost
-      </p>
-      <p className="text-2xl font-bold">
-        ${aiUsage.estimatedCostUsd.toFixed(4)}
-      </p>
-    </div>
-  </div>
-
-  <p className="mt-3 text-xs text-muted-foreground">
-    Total token: {totalAiTokens}
-  </p>
-</div>
-
-<div className="rounded-xl border p-6">
-  <h2 className="text-lg font-semibold">
-    AI Sales Copilot
-  </h2>
-
-  <p className="mb-4 text-sm text-muted-foreground">
-    Lead yang paling layak diprioritaskan hari ini.
-  </p>
-
-  {topPriorityLeads.length ? (
-    <div className="space-y-3">
-      {topPriorityLeads.map((lead, index) => (
-        <div
-          key={lead.id}
-          className="rounded-lg border p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">
-                #{index + 1} {lead.full_name}
-              </p>
-
-              <p className="text-sm text-muted-foreground">
-                Status: {lead.status}
-              </p>
-
-              <p className="text-sm text-muted-foreground">
-                Paket: {lead.package_interest ?? "-"}
-              </p>
-
-              <p className="text-xs text-muted-foreground">
-                {lead.daysSinceUpdate} hari sejak update terakhir
-              </p>
-            </div>
-
-            <div className="text-right">
-              <p className="text-2xl font-bold">
-                {lead.score}
-              </p>
-
-              <p className="text-xs text-muted-foreground">
-                Priority Score
-              </p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p className="text-sm text-muted-foreground">
-      Belum ada lead.
-    </p>
-  )}
-</div>
-
+<AiUsageCard
+  totalGenerations={aiUsage.totalGenerations}
+  inputTokens={aiUsage.inputTokens}
+  outputTokens={aiUsage.outputTokens}
+  estimatedCostUsd={aiUsage.estimatedCostUsd}
+  totalAiTokens={totalAiTokens}
+/>
+<AiSalesCopilotCard
+  leads={topPriorityLeads}
+/>
     </div>
   );
 }

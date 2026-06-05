@@ -2,6 +2,8 @@ import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 import { AiUsageCard } from "@/components/dashboard/ai-usage-card";
 import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
+import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
+import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 
 export default async function DashboardPage() {
   const { profile } = await requireProfile();
@@ -265,124 +267,11 @@ const proposalToWonRate =
 </div>
 
       </div>
-      <div className="rounded-xl border p-6">
-  <h2 className="text-lg font-semibold">
-    Follow Up Hari Ini
-  </h2>
+      <FollowUpTodayCard
+        todayFollowUps={todayFollowUps as FollowUpTodayTask[] | null}
+      />
 
-  <p className="mb-4 text-sm text-muted-foreground">
-    Prioritas follow up yang harus dilakukan hari ini.
-  </p>
-
-  {todayFollowUps?.length ? (
-    <div className="space-y-3">
-
-      {todayFollowUps.map((task: any) => (
-        <div
-          key={task.id}
-          className="rounded-lg border p-4"
-        >
-          <div className="flex justify-between">
-
-            <div>
-              <p className="font-medium">
-                {task.leads?.full_name ?? "Lead"}
-              </p>
-
-              <p className="text-sm text-muted-foreground">
-                {task.title}
-              </p>
-
-              <p className="text-xs text-muted-foreground">
-                {task.leads?.package_interest ?? "-"}
-              </p>
-              {(task.leads?.whatsapp_number || task.leads?.phone) && (
-  <a
-    href={`https://wa.me/${(task.leads.whatsapp_number || task.leads.phone).replace(/\D/g, "")}`}
-    target="_blank"
-    rel="noreferrer"
-    className="mt-2 inline-flex rounded bg-green-600 px-3 py-1 text-xs text-white"
-  >
-    WhatsApp
-  </a>
-)}
-            </div>
-
-            <div className="text-right text-sm">
-              {new Date(task.due_date).toLocaleTimeString(
-                "id-ID",
-                {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }
-              )}
-            </div>
-
-          </div>
-        </div>
-      ))}
-
-    </div>
-    
-  ) : (
-    <p className="text-sm text-muted-foreground">
-      Tidak ada follow up hari ini.
-    </p>
-  )}
-</div>
-
-<div className="rounded-xl border p-6">
-  <h2 className="text-lg font-semibold">
-    Pipeline Summary
-  </h2>
-
-  <p className="mb-4 text-sm text-muted-foreground">
-    Distribusi lead berdasarkan status pipeline.
-  </p>
-
-  <div className="grid gap-3 md:grid-cols-4">
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">New</p>
-      <p className="text-2xl font-bold">{funnel.new}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Contacted</p>
-      <p className="text-2xl font-bold">{funnel.contacted}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Qualified</p>
-      <p className="text-2xl font-bold">{funnel.qualified}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Proposal</p>
-      <p className="text-2xl font-bold">{funnel.proposal_sent}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Negotiating</p>
-      <p className="text-2xl font-bold">{funnel.negotiating}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Won</p>
-      <p className="text-2xl font-bold text-green-600">
-        {funnel.won}
-      </p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Lost</p>
-      <p className="text-2xl font-bold text-red-600">
-        {funnel.lost}
-      </p>
-    </div>
-
-  </div>
-</div>
+<PipelineSummaryCard funnel={funnel} />
 
 <div className="rounded-xl border p-6">
   <h2 className="text-lg font-semibold">

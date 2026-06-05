@@ -200,7 +200,7 @@ Terima kasih.`
   : "";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-screen-2xl space-y-6">
       {query?.error && (
         <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
           {decodeURIComponent(query.error)}
@@ -223,6 +223,8 @@ Terima kasih.`
   </Link>
 </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
       <Card>
         <CardHeader>
           <CardTitle>{detail.full_name}</CardTitle>
@@ -300,6 +302,14 @@ Terima kasih.`
         </CardContent>
       </Card>
 
+      <ActivityTimelineCard
+        leadId={detail.id}
+        timeline={timeline}
+        createLeadActivity={createLeadActivity}
+      />
+        </div>
+
+        <div className="space-y-6 lg:col-span-1">
       <QuotationCard
         leadId={detail.id}
         selectedPackage={selectedPackage}
@@ -380,13 +390,8 @@ Terima kasih.`
   followUpTasks={followUpTasks}
   completeFollowUpTask={completeFollowUpTask}
 />
-      
-      
-      <ActivityTimelineCard
-        leadId={detail.id}
-        timeline={timeline}
-        createLeadActivity={createLeadActivity}
-      />
+        </div>
+      </div>
     </div>
   );
 }

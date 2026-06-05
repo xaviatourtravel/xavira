@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 import { QuotationCard } from "@/components/leads/quotation-card";
 import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
+import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
 
 type LeadDetail = {
   id: string;
@@ -399,80 +400,11 @@ Terima kasih.`
   </CardContent>
 </Card>
 
-<Card>
-  <CardHeader>
-    <CardTitle>Follow Up Terjadwal</CardTitle>
-    <CardDescription>
-      Daftar follow up yang harus dilakukan.
-    </CardDescription>
-  </CardHeader>
-
-  <CardContent>
-    {followUpTasks.length === 0 ? (
-      <p className="text-sm text-muted-foreground">
-        Belum ada follow up terjadwal.
-      </p>
-    ) : (
-      <div className="space-y-3">
-        {followUpTasks.map((task) => (
-          <div
-            key={task.id}
-            className="rounded-lg border p-4"
-          >
-            <div className="flex items-center justify-between gap-2">
-  <div>
-    <h4 className="font-medium">
-      {task.title}
-    </h4>
-  </div>
-
-  <div className="flex items-center gap-2">
-
-    <span className="text-xs rounded bg-slate-100 px-2 py-1">
-      {task.status}
-    </span>
-
-    {task.status !== "completed" && (
-      <form action={completeFollowUpTask}>
-        <input
-          type="hidden"
-          name="lead_id"
-          value={detail.id}
-        />
-
-        <input
-          type="hidden"
-          name="task_id"
-          value={task.id}
-        />
-
-        <button
-          type="submit"
-          className="rounded bg-green-600 px-2 py-1 text-xs text-white"
-        >
-          ✓ Selesai
-        </button>
-      </form>
-    )}
-
-  </div>
-</div>
-
-            {task.description && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                {task.description}
-              </p>
-            )}
-
-            <p className="mt-2 text-xs text-muted-foreground">
-              {formatDateTime(task.due_date)}
-            </p>
-          </div>
-        ))}
-      </div>
-    )}
-  </CardContent>
-</Card>
+<FollowUpTasksCard
+  leadId={detail.id}
+  followUpTasks={followUpTasks}
+  completeFollowUpTask={completeFollowUpTask}
+/>
       
       
       <Card>

@@ -18,7 +18,7 @@ import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 import { QuotationCopyButton } from "@/components/leads/quotation-copy-button";
-import { AiFollowUpGenerator } from "@/components/leads/ai-follow-up-generator";
+import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
 
 type LeadDetail = {
   id: string;
@@ -375,18 +375,7 @@ Terima kasih.`
   </CardContent>
 </Card>
 
-<Card>
-  <CardHeader>
-    <CardTitle>AI Follow Up Writer</CardTitle>
-    <CardDescription>
-      Buat pesan follow up WhatsApp berdasarkan data lead, paket, dan aktivitas terakhir.
-    </CardDescription>
-  </CardHeader>
-
-  <CardContent>
-    <AiFollowUpGenerator leadId={detail.id} />
-  </CardContent>
-</Card>
+<AiFollowUpCard leadId={detail.id} />
       
       <Card>
   <CardHeader>

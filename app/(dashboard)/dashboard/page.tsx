@@ -6,6 +6,14 @@ import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboar
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import { BusinessAnalyticsCard } from "@/components/dashboard/business-analytics-card";
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export default async function DashboardPage() {
   const { profile } = await requireProfile();
   const supabase = await createClient();
@@ -27,6 +35,8 @@ const [
   { data: sourceLeads },
   { data: aiLogs },
   { data: priorityLeads },
+  { count: totalBookings, data: orgBookings },
+  { data: orgBookingPayments },
 ] = await Promise.all([
   
     supabase
@@ -96,6 +106,14 @@ const [
   `)
   .eq("organization_id", profile.organization_id)
   .is("deleted_at", null),
+  supabase
+    .from("bookings")
+    .select("total_pax, total_amount", { count: "exact" })
+    .eq("organization_id", profile.organization_id),
+  supabase
+    .from("booking_payments")
+    .select("amount, bookings!inner(organization_id)")
+    .eq("bookings.organization_id", profile.organization_id),
 ]);
 
   const funnel = {
@@ -192,6 +210,20 @@ const proposalToWonRate =
   const topPriorityLeads = leadScores
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+
+  const totalPax = (orgBookings ?? []).reduce(
+    (sum, booking) => sum + (booking.total_pax ?? 0),
+    0,
+  );
+  const totalBookingAmount = (orgBookings ?? []).reduce(
+    (sum, booking) => sum + Number(booking.total_amount ?? 0),
+    0,
+  );
+  const paymentReceived = (orgBookingPayments ?? []).reduce(
+    (sum, payment) => sum + Number(payment.amount ?? 0),
+    0,
+  );
+  const outstandingBalance = totalBookingAmount - paymentReceived;
     
   return (
     <div className="space-y-6">
@@ -268,6 +300,40 @@ const proposalToWonRate =
 </div>
 
       </div>
+
+      <div>
+        <h2 className="text-lg font-semibold">Booking Overview</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Ringkasan booking dan pembayaran organisasi.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-xl border p-6">
+            <p className="text-sm text-muted-foreground">Total Bookings</p>
+            <h2 className="mt-2 text-3xl font-bold">{totalBookings ?? 0}</h2>
+          </div>
+
+          <div className="rounded-xl border p-6">
+            <p className="text-sm text-muted-foreground">Total Pax</p>
+            <h2 className="mt-2 text-3xl font-bold">{totalPax}</h2>
+          </div>
+
+          <div className="rounded-xl border p-6">
+            <p className="text-sm text-muted-foreground">Payment Received</p>
+            <h2 className="mt-2 text-3xl font-bold">
+              {formatCurrency(paymentReceived)}
+            </h2>
+          </div>
+
+          <div className="rounded-xl border p-6">
+            <p className="text-sm text-muted-foreground">Outstanding</p>
+            <h2 className="mt-2 text-3xl font-bold">
+              {formatCurrency(outstandingBalance)}
+            </h2>
+          </div>
+        </div>
+      </div>
+
       <FollowUpTodayCard
         todayFollowUps={todayFollowUps as FollowUpTodayTask[] | null}
       />

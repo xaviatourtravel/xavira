@@ -1,15 +1,10 @@
+import { createBookingParticipant } from "@/app/(dashboard)/bookings/[id]/actions";
 import {
-  createBookingParticipant,
-  deleteBookingParticipant,
-} from "@/app/(dashboard)/bookings/[id]/actions";
+  BookingParticipantsList,
+  type BookingParticipantItem,
+} from "@/components/bookings/booking-participants-list";
 
-export type BookingParticipantItem = {
-  id: string;
-  full_name: string;
-  phone: string | null;
-  passport_number: string | null;
-  emergency_contact: string | null;
-};
+export type { BookingParticipantItem };
 
 type BookingParticipantsSectionProps = {
   bookingId: string;
@@ -109,61 +104,10 @@ export function BookingParticipantsSection({
         </form>
       </details>
 
-      {participants.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Belum ada participant untuk booking ini.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="border-b bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Full Name</th>
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <th className="px-4 py-3 font-medium">Passport Number</th>
-                <th className="px-4 py-3 font-medium">Emergency Contact</th>
-                <th className="px-4 py-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {participants.map((participant) => (
-                <tr key={participant.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">
-                    {participant.full_name}
-                  </td>
-                  <td className="px-4 py-3">{participant.phone || "-"}</td>
-                  <td className="px-4 py-3">
-                    {participant.passport_number || "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {participant.emergency_contact || "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <form action={deleteBookingParticipant}>
-                      <input
-                        type="hidden"
-                        name="booking_id"
-                        value={bookingId}
-                      />
-                      <input
-                        type="hidden"
-                        name="participant_id"
-                        value={participant.id}
-                      />
-                      <button
-                        type="submit"
-                        className="rounded bg-red-600 px-2 py-1 text-xs text-white"
-                      >
-                        Hapus
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <BookingParticipantsList
+        bookingId={bookingId}
+        participants={participants}
+      />
     </div>
   );
 }

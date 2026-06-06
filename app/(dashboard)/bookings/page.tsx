@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { requireProfile } from "@/lib/auth/session";
+import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
 import { createClient } from "@/utils/supabase/server";
 
 type BookingRow = {
@@ -122,8 +123,8 @@ export default async function BookingsPage() {
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatCurrency(Number(booking.total_amount))}
                   </td>
-                  <td className="px-4 py-3 capitalize">
-                    {formatLabel(booking.payment_status)}
+                  <td className="px-4 py-3">
+                    <PaymentStatusBadge status={booking.payment_status} />
                   </td>
                   <td className="px-4 py-3 capitalize">
                     {formatLabel(booking.booking_status)}

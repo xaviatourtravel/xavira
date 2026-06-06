@@ -13,6 +13,7 @@ import {
   BookingPaymentsSection,
   type BookingPaymentItem,
 } from "@/components/bookings/booking-payments-section";
+import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
 
 type BookingDetail = {
   id: string;
@@ -81,7 +82,7 @@ export default async function BookingDetailPage({
     .maybeSingle(),
     supabase
       .from("booking_participants")
-      .select("id, full_name, phone, passport_number, emergency_contact")
+      .select("id, full_name, phone, passport_number, address, emergency_contact, notes")
       .eq("booking_id", id)
       .order("created_at", { ascending: true }),
     supabase
@@ -168,8 +169,8 @@ export default async function BookingDetailPage({
           </div>
           <div>
             <dt className="text-sm text-muted-foreground">Payment Status</dt>
-            <dd className="text-sm font-medium capitalize">
-              {formatLabel(detail.payment_status)}
+            <dd className="text-sm font-medium">
+              <PaymentStatusBadge status={detail.payment_status} />
             </dd>
           </div>
           <div>

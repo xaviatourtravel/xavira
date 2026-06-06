@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
+import { calculateBookingPaymentStatus } from "@/lib/bookings/payment-status";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -104,6 +105,44 @@ async function getBookingForOrg(
   return booking;
 }
 
+async function syncBookingPaymentStatus(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  bookingId: string,
+  organizationId: string,
+) {
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("total_amount")
+    .eq("id", bookingId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (!booking) {
+    return;
+  }
+
+  const { data: payments } = await supabase
+    .from("booking_payments")
+    .select("amount")
+    .eq("booking_id", bookingId);
+
+  const totalPayments = (payments ?? []).reduce(
+    (sum, payment) => sum + Number(payment.amount ?? 0),
+    0,
+  );
+
+  const paymentStatus = calculateBookingPaymentStatus(
+    Number(booking.total_amount ?? 0),
+    totalPayments,
+  );
+
+  await supabase
+    .from("bookings")
+    .update({ payment_status: paymentStatus })
+    .eq("id", bookingId)
+    .eq("organization_id", organizationId);
+}
+
 export async function createBookingParticipant(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
@@ -152,9 +191,88 @@ export async function createBookingParticipant(formData: FormData) {
     );
   }
 
-  revalidatePath(`/bookings/${bookingId}`);
+  revalidatePath(`/bookings/${bookingId}`, "page");
   redirect(
     `/bookings/${bookingId}?success=${encodeURIComponent("Participant berhasil ditambahkan.")}`,
+  );
+}
+
+export async function updateBookingParticipant(formData: FormData) {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const bookingId = getString(formData, "booking_id");
+  const participantId = getString(formData, "participant_id");
+  const fullName = getString(formData, "full_name");
+  const phone = getString(formData, "phone");
+  const passportNumber = getString(formData, "passport_number");
+  const address = getString(formData, "address");
+  const emergencyContact = getString(formData, "emergency_contact");
+  const notes = getString(formData, "notes");
+
+  if (!bookingId || !participantId) {
+    redirect("/bookings?error=Participant tidak ditemukan");
+  }
+
+  if (!fullName) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Nama peserta wajib diisi")}`,
+    );
+  }
+
+  const booking = await getBookingForOrg(
+    supabase,
+    bookingId,
+    profile.organization_id,
+  );
+
+  if (!booking) {
+    redirect("/bookings?error=Booking tidak ditemukan");
+  }
+
+  const { data: participant } = await supabase
+    .from("booking_participants")
+    .select("id")
+    .eq("id", participantId)
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+
+  if (!participant) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Participant tidak ditemukan")}`,
+    );
+  }
+
+  const { data: updatedParticipant, error } = await supabase
+    .from("booking_participants")
+    .update({
+      full_name: fullName,
+      phone: phone || null,
+      passport_number: passportNumber || null,
+      address: address || null,
+      emergency_contact: emergencyContact || null,
+      notes: notes || null,
+    })
+    .eq("id", participantId)
+    .eq("booking_id", bookingId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  if (!updatedParticipant) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Gagal memperbarui participant")}`,
+    );
+  }
+
+  revalidatePath(`/bookings/${bookingId}`, "page");
+  redirect(
+    `/bookings/${bookingId}?success=${encodeURIComponent("Participant berhasil diperbarui.")}`,
   );
 }
 
@@ -270,6 +388,13 @@ export async function createBookingPayment(formData: FormData) {
     );
   }
 
+  await syncBookingPaymentStatus(
+    supabase,
+    bookingId,
+    profile.organization_id,
+  );
+
+  revalidatePath("/bookings");
   revalidatePath(`/bookings/${bookingId}`, "page");
   redirect(
     `/bookings/${bookingId}?success=${encodeURIComponent("Payment berhasil ditambahkan.")}`,
@@ -330,6 +455,13 @@ export async function deleteBookingPayment(formData: FormData) {
     );
   }
 
+  await syncBookingPaymentStatus(
+    supabase,
+    bookingId,
+    profile.organization_id,
+  );
+
+  revalidatePath("/bookings");
   revalidatePath(`/bookings/${bookingId}`, "page");
   redirect(
     `/bookings/${bookingId}?success=${encodeURIComponent("Payment berhasil dihapus.")}`,

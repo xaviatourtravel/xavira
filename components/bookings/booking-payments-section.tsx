@@ -1,15 +1,12 @@
 import {
   createBookingPayment,
-  deleteBookingPayment,
 } from "@/app/(dashboard)/bookings/[id]/actions";
+import {
+  BookingPaymentsList,
+  type BookingPaymentItem,
+} from "@/components/bookings/booking-payments-list";
 
-export type BookingPaymentItem = {
-  id: string;
-  payment_type: string;
-  amount: number;
-  payment_date: string | null;
-  notes: string | null;
-};
+export type { BookingPaymentItem };
 
 type BookingPaymentsSectionProps = {
   bookingId: string;
@@ -25,23 +22,6 @@ function formatCurrency(value: number) {
     currency: "IDR",
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
-}
-
-function formatPaymentType(value: string) {
-  const labels: Record<string, string> = {
-    dp: "DP",
-    installment: "Installment",
-    final: "Final",
-  };
-
-  return labels[value] ?? value;
 }
 
 type BookingPaymentSummaryProps = {
@@ -167,63 +147,7 @@ export function BookingPaymentsSection({
         </form>
       </details>
 
-      {payments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Belum ada payment untuk booking ini.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="border-b bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Payment Type</th>
-                <th className="px-4 py-3 font-medium">Amount</th>
-                <th className="px-4 py-3 font-medium">Payment Date</th>
-                <th className="px-4 py-3 font-medium">Notes</th>
-                <th className="px-4 py-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">
-                    {formatPaymentType(payment.payment_type)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatCurrency(Number(payment.amount))}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {payment.payment_date
-                      ? formatDate(payment.payment_date)
-                      : "-"}
-                  </td>
-                  <td className="px-4 py-3">{payment.notes || "-"}</td>
-                  <td className="px-4 py-3">
-                    <form action={deleteBookingPayment}>
-                      <input
-                        type="hidden"
-                        name="booking_id"
-                        value={bookingId}
-                      />
-                      <input
-                        type="hidden"
-                        name="payment_id"
-                        value={payment.id}
-                      />
-                      <button
-                        type="submit"
-                        className="rounded bg-red-600 px-2 py-1 text-xs text-white"
-                      >
-                        Hapus
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <BookingPaymentsList bookingId={bookingId} payments={payments} />
     </div>
   );
 }

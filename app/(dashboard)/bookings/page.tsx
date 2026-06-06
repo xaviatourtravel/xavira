@@ -8,6 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 
 type BookingRow = {
   id: string;
+  lead_id: string | null;
   booking_code: string | null;
   customer_name: string;
   package_name: string | null;
@@ -119,7 +120,7 @@ export default async function BookingsPage({ searchParams }: BookingsPageProps) 
   let query = supabase
     .from("bookings")
     .select(
-      "id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
+      "id, lead_id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
     )
     .eq("organization_id", profile.organization_id);
 
@@ -248,6 +249,7 @@ export default async function BookingsPage({ searchParams }: BookingsPageProps) 
                   <td className="px-4 py-3">
                     <BookingRowActions
                       bookingId={booking.id}
+                      leadId={booking.lead_id}
                       returnTo={returnTo}
                     />
                   </td>

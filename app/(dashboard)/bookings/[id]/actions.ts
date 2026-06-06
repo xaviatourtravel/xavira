@@ -420,6 +420,94 @@ export async function createBookingPayment(formData: FormData) {
   );
 }
 
+export async function updateBookingPayment(formData: FormData) {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const bookingId = getString(formData, "booking_id");
+  const paymentId = getString(formData, "payment_id");
+  const paymentType = getString(formData, "payment_type");
+  const amount = getOptionalNumber(formData, "amount");
+  const paymentDate = getString(formData, "payment_date");
+  const notes = getString(formData, "notes");
+
+  if (!bookingId || !paymentId) {
+    redirect("/bookings?error=Payment tidak ditemukan");
+  }
+
+  if (!PAYMENT_TYPES.includes(paymentType as (typeof PAYMENT_TYPES)[number])) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Jenis pembayaran tidak valid")}`,
+    );
+  }
+
+  if (amount == null || amount < 0) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Jumlah pembayaran tidak valid")}`,
+    );
+  }
+
+  const booking = await getBookingForOrg(
+    supabase,
+    bookingId,
+    profile.organization_id,
+  );
+
+  if (!booking) {
+    redirect("/bookings?error=Booking tidak ditemukan");
+  }
+
+  const { data: payment } = await supabase
+    .from("booking_payments")
+    .select("id")
+    .eq("id", paymentId)
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+
+  if (!payment) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Payment tidak ditemukan")}`,
+    );
+  }
+
+  const { data: updatedPayment, error } = await supabase
+    .from("booking_payments")
+    .update({
+      payment_type: paymentType,
+      amount,
+      payment_date: paymentDate || null,
+      notes: notes || null,
+    })
+    .eq("id", paymentId)
+    .eq("booking_id", bookingId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  if (!updatedPayment) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Gagal memperbarui payment")}`,
+    );
+  }
+
+  await syncBookingPaymentStatus(
+    supabase,
+    bookingId,
+    profile.organization_id,
+  );
+
+  revalidatePath("/bookings");
+  revalidatePath(`/bookings/${bookingId}`, "page");
+  redirect(
+    `/bookings/${bookingId}?success=${encodeURIComponent("Payment berhasil diperbarui.")}`,
+  );
+}
+
 export async function deleteBookingPayment(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();

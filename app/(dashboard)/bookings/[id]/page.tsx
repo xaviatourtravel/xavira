@@ -18,6 +18,7 @@ import { createClient } from "@/utils/supabase/server";
 
 type BookingDetail = {
   id: string;
+  lead_id: string | null;
   booking_code: string | null;
   customer_name: string;
   package_name: string | null;
@@ -56,7 +57,13 @@ function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
-function BookingActions({ bookingId }: { bookingId: string }) {
+function BookingActions({
+  bookingId,
+  leadId,
+}: {
+  bookingId: string;
+  leadId: string | null;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
       <Link
@@ -65,6 +72,15 @@ function BookingActions({ bookingId }: { bookingId: string }) {
       >
         Kembali
       </Link>
+
+      {leadId && (
+        <Link
+          href={`/leads/${leadId}`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          Lihat Lead
+        </Link>
+      )}
 
       <Link
         href={`/bookings/${bookingId}/edit`}
@@ -96,7 +112,7 @@ export default async function BookingDetailPage({
     supabase
       .from("bookings")
       .select(
-        "id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
+        "id, lead_id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
       )
       .eq("id", id)
       .eq("organization_id", profile.organization_id)
@@ -150,7 +166,7 @@ export default async function BookingDetailPage({
       )}
 
       <div className="lg:hidden">
-        <BookingActions bookingId={detail.id} />
+        <BookingActions bookingId={detail.id} leadId={detail.lead_id} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
@@ -223,7 +239,7 @@ export default async function BookingDetailPage({
 
         <div className="space-y-6">
           <div className="hidden lg:block">
-            <BookingActions bookingId={detail.id} />
+            <BookingActions bookingId={detail.id} leadId={detail.lead_id} />
           </div>
 
           <BookingPaymentSummary

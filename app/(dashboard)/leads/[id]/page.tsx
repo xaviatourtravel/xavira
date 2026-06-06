@@ -18,6 +18,7 @@ import {
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
+import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
 import { QuotationCard } from "@/components/leads/quotation-card";
 import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
 import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
@@ -50,6 +51,14 @@ type FollowUpTask = {
   description: string | null;
   due_date: string;
   status: string;
+};
+
+type RelatedBooking = {
+  id: string;
+  booking_code: string | null;
+  package_name: string | null;
+  payment_status: string;
+  booking_status: string;
 };
 
 
@@ -119,6 +128,7 @@ export default async function LeadDetailPage({
     { data: lead, error },
     { data: activities, error: activitiesError },
     { data: followUps, error: followUpsError },
+    { data: relatedBooking, error: relatedBookingError },
   ] = await Promise.all([
       supabase
         .from("leads")
@@ -143,9 +153,17 @@ export default async function LeadDetailPage({
   .eq("lead_id", id)
   .eq("organization_id", profile.organization_id)
   .order("due_date", { ascending: true }),
+      supabase
+        .from("bookings")
+        .select("id, booking_code, package_name, payment_status, booking_status")
+        .eq("lead_id", id)
+        .eq("organization_id", profile.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
-  if (error || activitiesError || followUpsError) {
+  if (error || activitiesError || followUpsError || relatedBookingError) {
     throw new Error("Gagal memuat detail lead.");
   }
 
@@ -156,6 +174,7 @@ export default async function LeadDetailPage({
   const detail = lead as LeadDetail;
   const timeline = (activities ?? []) as LeadActivityItem[];
   const followUpTasks = (followUps ?? []) as FollowUpTask[];
+  const booking = relatedBooking as RelatedBooking | null;
   const { data: selectedPackage } = detail.package_interest
   ? await supabase
       .from("packages")
@@ -223,15 +242,17 @@ Terima kasih.`
     Edit Lead
   </Link>
 
-  <form action={convertLeadToBooking}>
-    <input type="hidden" name="lead_id" value={detail.id} />
-    <button
-      type="submit"
-      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-    >
-      Convert to Booking
-    </button>
-  </form>
+  {!booking && (
+    <form action={convertLeadToBooking}>
+      <input type="hidden" name="lead_id" value={detail.id} />
+      <button
+        type="submit"
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        Convert to Booking
+      </button>
+    </form>
+  )}
 </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -312,6 +333,50 @@ Terima kasih.`
           </dl>
         </CardContent>
       </Card>
+
+      {booking && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Booking Terkait</CardTitle>
+            <CardDescription>
+              Lead ini sudah dikonversi menjadi booking.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid gap-5 sm:grid-cols-2">
+              <DetailItem
+                label="Booking Code"
+                value={booking.booking_code || booking.id}
+              />
+              <DetailItem
+                label="Package Name"
+                value={booking.package_name || "-"}
+              />
+              <DetailItem
+                label="Payment Status"
+                value={<PaymentStatusBadge status={booking.payment_status} />}
+              />
+              <DetailItem
+                label="Booking Status"
+                value={
+                  <span className="capitalize">
+                    {formatLabel(booking.booking_status)}
+                  </span>
+                }
+              />
+            </dl>
+
+            <div className="mt-4">
+              <Link
+                href={`/bookings/${booking.id}`}
+                className={cn(buttonVariants({ size: "sm" }))}
+              >
+                Lihat Booking
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <ActivityTimelineCard
         leadId={detail.id}

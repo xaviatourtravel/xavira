@@ -6,15 +6,26 @@ import { deleteBooking } from "@/app/(dashboard)/bookings/actions";
 
 type BookingRowActionsProps = {
   bookingId: string;
+  leadId: string | null;
   returnTo: string;
 };
 
 export function BookingRowActions({
   bookingId,
+  leadId,
   returnTo,
 }: BookingRowActionsProps) {
   return (
     <div className="flex items-center gap-2">
+      {leadId && (
+        <Link
+          href={`/leads/${leadId}`}
+          className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-600"
+        >
+          Lead
+        </Link>
+      )}
+
       <Link
         href={`/bookings/${bookingId}/edit`}
         className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-600"

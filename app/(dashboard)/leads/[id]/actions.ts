@@ -337,6 +337,20 @@ export async function convertLeadToBooking(formData: FormData) {
     redirect("/leads?error=Lead tidak ditemukan");
   }
 
+  const { data: existingBooking } = await supabase
+    .from("bookings")
+    .select("id")
+    .eq("lead_id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingBooking) {
+    redirect(
+      `/leads/${leadId}?error=${encodeURIComponent("Lead ini sudah memiliki booking")}`,
+    );
+  }
+
   const totalPax =
     lead.party_size != null && lead.party_size >= 1 ? lead.party_size : 1;
 

@@ -5,6 +5,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
+import {
+  BookingParticipantsSection,
+  type BookingParticipantItem,
+} from "@/components/bookings/booking-participants-section";
+import {
+  BookingPaymentsSection,
+  type BookingPaymentItem,
+} from "@/components/bookings/booking-payments-section";
 
 type BookingDetail = {
   id: string;
@@ -58,16 +66,32 @@ export default async function BookingDetailPage({
   const { profile } = await requireProfile();
   const supabase = await createClient();
 
-  const { data: booking, error } = await supabase
+  const [
+    { data: booking, error },
+    { data: participants, error: participantsError },
+    { data: payments, error: paymentsError },
+  ] = await Promise.all([
+    supabase
     .from("bookings")
     .select(
       "id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
     )
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
-    .maybeSingle();
+    .maybeSingle(),
+    supabase
+      .from("booking_participants")
+      .select("id, full_name, phone, passport_number, emergency_contact")
+      .eq("booking_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("booking_payments")
+      .select("id, payment_type, amount, payment_date, notes")
+      .eq("booking_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
 
-  if (error) {
+  if (error || participantsError || paymentsError) {
     throw new Error("Gagal memuat detail booking.");
   }
 
@@ -76,6 +100,8 @@ export default async function BookingDetailPage({
   }
 
   const detail = booking as BookingDetail;
+  const participantRows = (participants ?? []) as BookingParticipantItem[];
+  const paymentRows = (payments ?? []) as BookingPaymentItem[];
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -160,6 +186,17 @@ export default async function BookingDetailPage({
           </div>
         </dl>
       </div>
+
+      <BookingParticipantsSection
+        bookingId={detail.id}
+        participants={participantRows}
+      />
+
+      <BookingPaymentsSection
+        bookingId={detail.id}
+        bookingTotalAmount={Number(detail.total_amount)}
+        payments={paymentRows}
+      />
     </div>
   );
 }

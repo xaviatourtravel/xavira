@@ -170,6 +170,7 @@ export async function createBookingParticipant(formData: FormData) {
   const fullName = getString(formData, "full_name");
   const phone = getString(formData, "phone");
   const passportNumber = getString(formData, "passport_number");
+  const passportPhotoUrl = getString(formData, "passport_photo_url");
   const address = getString(formData, "address");
   const emergencyContact = getString(formData, "emergency_contact");
   const notes = getString(formData, "notes");
@@ -199,6 +200,7 @@ export async function createBookingParticipant(formData: FormData) {
     full_name: fullName,
     phone: phone || null,
     passport_number: passportNumber || null,
+    passport_photo_url: passportPhotoUrl || null,
     address: address || null,
     emergency_contact: emergencyContact || null,
     notes: notes || null,
@@ -225,6 +227,7 @@ export async function updateBookingParticipant(formData: FormData) {
   const fullName = getString(formData, "full_name");
   const phone = getString(formData, "phone");
   const passportNumber = getString(formData, "passport_number");
+  const passportPhotoUrl = getString(formData, "passport_photo_url");
   const address = getString(formData, "address");
   const emergencyContact = getString(formData, "emergency_contact");
   const notes = getString(formData, "notes");
@@ -268,6 +271,7 @@ export async function updateBookingParticipant(formData: FormData) {
       full_name: fullName,
       phone: phone || null,
       passport_number: passportNumber || null,
+      passport_photo_url: passportPhotoUrl || null,
       address: address || null,
       emergency_contact: emergencyContact || null,
       notes: notes || null,

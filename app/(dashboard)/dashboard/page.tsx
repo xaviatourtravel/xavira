@@ -5,7 +5,9 @@ import { createClient } from "@/utils/supabase/server";
 import { AiUsageCard } from "@/components/dashboard/ai-usage-card";
 import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
 import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
+import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
+import { getLeadAgingCutoffIso } from "@/lib/leads/assignment";
 import {
   PaketTerlarisCard,
   SumberLeadCard,
@@ -30,6 +32,17 @@ todayStart.setHours(0, 0, 0, 0);
 const todayEnd = new Date();
 todayEnd.setHours(23, 59, 59, 999);
 
+const threeDaysAgoIso = getLeadAgingCutoffIso(3);
+const sevenDaysAgoIso = getLeadAgingCutoffIso(7);
+
+const myLeadsBaseQuery = () =>
+  supabase
+    .from("leads")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", profile.organization_id)
+    .eq("assigned_to", profile.id)
+    .is("deleted_at", null);
+
 const [
   { count: totalLeads },
   { count: pendingFollowUps },
@@ -42,6 +55,10 @@ const [
   { data: priorityLeads },
   { count: totalBookings, data: orgBookings },
   { data: orgBookingPayments },
+  { count: myLeadsTotal },
+  { count: myLeadsNeedFollowUp },
+  { count: myLeadsCritical },
+  { count: myLeadsWon },
 ] = await Promise.all([
   
     supabase
@@ -119,6 +136,14 @@ const [
     .from("booking_payments")
     .select("amount, bookings!inner(organization_id)")
     .eq("bookings.organization_id", profile.organization_id),
+  myLeadsBaseQuery(),
+  myLeadsBaseQuery()
+    .not("status", "in", "(won,lost)")
+    .lt("updated_at", threeDaysAgoIso),
+  myLeadsBaseQuery()
+    .not("status", "in", "(won,lost)")
+    .lt("updated_at", sevenDaysAgoIso),
+  myLeadsBaseQuery().eq("status", "won"),
 ]);
 
   const funnel = {
@@ -302,6 +327,15 @@ const topSources = Object.entries(sourceStats)
           </h2>
         </div>
       </div>
+
+      <MyLeadsCard
+        metrics={{
+          totalAssigned: myLeadsTotal ?? 0,
+          needFollowUp: myLeadsNeedFollowUp ?? 0,
+          criticalLeads: myLeadsCritical ?? 0,
+          wonLeads: myLeadsWon ?? 0,
+        }}
+      />
 
       <div>
         <h2 className="text-lg font-semibold">Booking Overview</h2>

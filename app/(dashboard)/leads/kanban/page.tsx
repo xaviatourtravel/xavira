@@ -5,6 +5,11 @@ import type { KanbanLeadItem } from "@/components/leads/lead-kanban-card";
 import { LeadKanbanFilters } from "@/components/leads/lead-kanban-filters";
 import { buttonVariants } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/session";
+import {
+  buildAssignedUserFilter,
+  getLeadAssigneeName,
+  type OrgProfileOption,
+} from "@/lib/leads/assignment";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -20,23 +25,6 @@ type KanbanLeadRow = {
   profiles: { full_name: string } | { full_name: string }[] | null;
   lead_scores: { score: number } | { score: number }[] | null;
 };
-
-type ProfileOption = {
-  id: string;
-  full_name: string;
-};
-
-function getAssigneeName(lead: KanbanLeadRow) {
-  if (!lead.profiles) {
-    return null;
-  }
-
-  if (Array.isArray(lead.profiles)) {
-    return lead.profiles[0]?.full_name ?? null;
-  }
-
-  return lead.profiles.full_name ?? null;
-}
 
 function getPriorityScore(lead: KanbanLeadRow) {
   if (!lead.lead_scores) {
@@ -92,8 +80,12 @@ export default async function LeadKanbanPage({
     .eq("organization_id", profile.organization_id)
     .order("full_name");
 
-  const profiles = (orgProfiles ?? []) as ProfileOption[];
+  const profiles = (orgProfiles ?? []) as OrgProfileOption[];
   const validProfileIds = new Set(profiles.map((item) => item.id));
+  const assignedUserFilter = buildAssignedUserFilter(
+    assignedFilter,
+    validProfileIds,
+  );
 
   let leadsQuery = supabase
     .from("leads")
@@ -124,10 +116,10 @@ export default async function LeadKanbanPage({
     );
   }
 
-  if (assignedFilter === "unassigned") {
+  if (assignedUserFilter.type === "unassigned") {
     leadsQuery = leadsQuery.is("assigned_to", null);
-  } else if (assignedFilter && validProfileIds.has(assignedFilter)) {
-    leadsQuery = leadsQuery.eq("assigned_to", assignedFilter);
+  } else if (assignedUserFilter.type === "profile") {
+    leadsQuery = leadsQuery.eq("assigned_to", assignedUserFilter.profileId);
   }
 
   if (statusFilter && isLeadStatusFilter(statusFilter)) {
@@ -150,7 +142,7 @@ export default async function LeadKanbanPage({
       package_interest: lead.package_interest,
       whatsapp_number: lead.whatsapp_number,
       phone: lead.phone,
-      assignee_name: getAssigneeName(lead),
+      assignee_name: getLeadAssigneeName(lead.profiles),
       priority_score: getPriorityScore(lead),
       updated_at: lead.updated_at,
     }),

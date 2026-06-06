@@ -6,12 +6,14 @@ import {
   deleteBookingParticipant,
   updateBookingParticipant,
 } from "@/app/(dashboard)/bookings/[id]/actions";
+import { ParticipantDocumentChecklist } from "@/components/bookings/participant-document-checklist";
 
 export type BookingParticipantItem = {
   id: string;
   full_name: string;
   phone: string | null;
   passport_number: string | null;
+  passport_photo_url: string | null;
   address: string | null;
   emergency_contact: string | null;
   notes: string | null;
@@ -43,13 +45,14 @@ export function BookingParticipantsList({
   return (
     <>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">Full Name</th>
               <th className="px-4 py-3 font-medium">Phone</th>
               <th className="px-4 py-3 font-medium">Passport Number</th>
               <th className="px-4 py-3 font-medium">Emergency Contact</th>
+              <th className="px-4 py-3 font-medium">Documents</th>
               <th className="px-4 py-3 font-medium">Aksi</th>
             </tr>
           </thead>
@@ -65,6 +68,13 @@ export function BookingParticipantsList({
                 </td>
                 <td className="px-4 py-3">
                   {participant.emergency_contact || "-"}
+                </td>
+                <td className="px-4 py-3">
+                  <ParticipantDocumentChecklist
+                    passportNumber={participant.passport_number}
+                    passportPhotoUrl={participant.passport_photo_url}
+                    emergencyContact={participant.emergency_contact}
+                  />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -151,6 +161,17 @@ export function BookingParticipantsList({
                   name="passport_number"
                   defaultValue={editingParticipant.passport_number ?? ""}
                   className={inputClassName}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Passport Photo URL</label>
+                <input
+                  name="passport_photo_url"
+                  type="url"
+                  defaultValue={editingParticipant.passport_photo_url ?? ""}
+                  className={inputClassName}
+                  placeholder="https://..."
                 />
               </div>
 

@@ -120,7 +120,7 @@ export default async function BookingDetailPage({
     supabase
       .from("booking_participants")
       .select(
-        "id, full_name, phone, passport_number, address, emergency_contact, notes",
+        "id, full_name, phone, passport_number, passport_photo_url, address, emergency_contact, notes",
       )
       .eq("booking_id", id)
       .order("created_at", { ascending: true }),
@@ -233,6 +233,7 @@ export default async function BookingDetailPage({
 
           <BookingParticipantsSection
             bookingId={detail.id}
+            bookingCode={detail.booking_code}
             participants={participantRows}
           />
         </div>

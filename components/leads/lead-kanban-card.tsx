@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { updateKanbanLeadStatus } from "@/app/(dashboard)/leads/kanban/actions";
+import { formatAssignedUserLabel } from "@/lib/leads/assignment";
 import { cn } from "@/lib/utils";
 
 export type KanbanLeadItem = {
@@ -120,21 +121,18 @@ export function LeadKanbanCard({ lead }: LeadKanbanCardProps) {
   const whatsAppHref = getWhatsAppHref(lead);
   const daysSinceUpdate = getDaysSinceUpdate(lead.updated_at);
   const agingBadge = getAgingBadge(daysSinceUpdate);
-  const assigneeTitle = lead.assignee_name
-    ? `Assigned: ${lead.assignee_name}`
-    : undefined;
 
   return (
     <div className="space-y-2 rounded-lg border bg-background p-2.5">
       <div className="space-y-1">
-        <p
-          className="truncate text-sm font-semibold leading-tight"
-          title={assigneeTitle}
-        >
+        <p className="truncate text-sm font-semibold leading-tight">
           {lead.full_name}
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {lead.package_interest || "Belum ada paket"}
+        </p>
+        <p className="truncate text-[11px] text-muted-foreground">
+          {formatAssignedUserLabel(lead.assignee_name)}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-muted-foreground">

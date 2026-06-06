@@ -16,6 +16,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireProfile } from "@/lib/auth/session";
+import {
+  formatAssignedUserLabel,
+  getLeadAssigneeName,
+} from "@/lib/leads/assignment";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
@@ -42,7 +46,9 @@ type LeadDetail = {
   travel_date_preference: string | null;
   party_size: number | null;
   notes: string | null;
+  assigned_to: string | null;
   created_at: string;
+  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
 type FollowUpTask = {
@@ -133,7 +139,27 @@ export default async function LeadDetailPage({
       supabase
         .from("leads")
         .select(
-          "id, full_name, phone, whatsapp_number, email, source, interest_type, package_interest, status, priority, budget_idr, travel_date_preference, party_size, notes, created_at",
+          `
+          id,
+          full_name,
+          phone,
+          whatsapp_number,
+          email,
+          source,
+          interest_type,
+          package_interest,
+          status,
+          priority,
+          budget_idr,
+          travel_date_preference,
+          party_size,
+          notes,
+          assigned_to,
+          created_at,
+          profiles!leads_assigned_to_fkey (
+            full_name
+          )
+        `,
         )
         .eq("id", id)
         .eq("organization_id", profile.organization_id)
@@ -299,6 +325,12 @@ Terima kasih.`
             <DetailItem
               label="Prioritas"
               value={<span className="capitalize">{formatLabel(detail.priority)}</span>}
+            />
+            <DetailItem
+              label="Assigned User"
+              value={formatAssignedUserLabel(
+                getLeadAssigneeName(detail.profiles),
+              )}
             />
             <DetailItem
               label="Budget"

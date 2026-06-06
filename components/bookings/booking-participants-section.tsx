@@ -1,4 +1,5 @@
 import { createBookingParticipant } from "@/app/(dashboard)/bookings/[id]/actions";
+import { ExportParticipantsButton } from "@/components/bookings/export-participants-button";
 import {
   BookingParticipantsList,
   type BookingParticipantItem,
@@ -8,6 +9,7 @@ export type { BookingParticipantItem };
 
 type BookingParticipantsSectionProps = {
   bookingId: string;
+  bookingCode: string | null;
   participants: BookingParticipantItem[];
 };
 
@@ -16,15 +18,24 @@ const inputClassName =
 
 export function BookingParticipantsSection({
   bookingId,
+  bookingCode,
   participants,
 }: BookingParticipantsSectionProps) {
   return (
     <div className="rounded-lg border p-6 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold">Participants</h2>
-        <p className="text-sm text-muted-foreground">
-          Daftar peserta untuk booking ini.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Participants</h2>
+          <p className="text-sm text-muted-foreground">
+            Daftar peserta untuk booking ini.
+          </p>
+        </div>
+
+        <ExportParticipantsButton
+          bookingId={bookingId}
+          bookingCode={bookingCode}
+          participants={participants}
+        />
       </div>
 
       <details className="rounded-lg border p-4">
@@ -63,6 +74,16 @@ export function BookingParticipantsSection({
               name="passport_number"
               className={inputClassName}
               placeholder="Nomor paspor"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Passport Photo URL</label>
+            <input
+              name="passport_photo_url"
+              type="url"
+              className={inputClassName}
+              placeholder="https://..."
             />
           </div>
 

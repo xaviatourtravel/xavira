@@ -4,16 +4,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
-type ProfileOption = {
-  id: string;
-  full_name: string;
-};
+import type { OrgProfileOption } from "@/lib/leads/assignment";
 
 type LeadKanbanFiltersProps = {
   search: string;
   assigned: string;
   status: string;
-  profiles: ProfileOption[];
+  profiles: OrgProfileOption[];
 };
 
 export function LeadKanbanFilters({
@@ -96,7 +93,7 @@ export function LeadKanbanFilters({
         <option value="unassigned">Unassigned</option>
         {profiles.map((profile) => (
           <option key={profile.id} value={profile.id}>
-            {profile.full_name}
+            {profile.full_name || "Pengguna"}
           </option>
         ))}
       </select>

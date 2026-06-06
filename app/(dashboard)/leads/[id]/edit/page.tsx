@@ -216,7 +216,7 @@ export default async function EditLeadPage({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Assigned To</label>
+          <label className="text-sm font-medium">Assigned User</label>
           <select
             name="assigned_to"
             defaultValue={detail.assigned_to ?? ""}

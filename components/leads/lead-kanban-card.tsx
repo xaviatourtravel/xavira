@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { updateKanbanLeadStatus } from "@/app/(dashboard)/leads/kanban/actions";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type KanbanLeadItem = {
@@ -27,6 +27,26 @@ const STATUS_OPTIONS = [
   { value: "won", label: "Won" },
   { value: "lost", label: "Lost" },
 ] as const;
+
+const STATUS_BADGE_STYLES: Record<string, string> = {
+  new: "bg-slate-100 text-slate-700",
+  contacted: "bg-sky-100 text-sky-800",
+  qualified: "bg-indigo-100 text-indigo-800",
+  proposal_sent: "bg-violet-100 text-violet-800",
+  negotiating: "bg-amber-100 text-amber-800",
+  won: "bg-green-100 text-green-800",
+  lost: "bg-red-100 text-red-800",
+};
+
+const compactButtonClassName =
+  "inline-flex items-center justify-center rounded border px-2 py-1 text-xs font-medium";
+
+function getStatusLabel(status: string) {
+  return (
+    STATUS_OPTIONS.find((option) => option.value === status)?.label ??
+    status.replace(/_/g, " ")
+  );
+}
 
 function getDaysSinceUpdate(value: string) {
   return Math.floor(
@@ -78,89 +98,134 @@ function getWhatsAppHref(lead: KanbanLeadItem) {
   return `https://wa.me/${cleanNumber}`;
 }
 
+function KanbanStatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium capitalize",
+        STATUS_BADGE_STYLES[status] ?? "bg-muted text-muted-foreground",
+      )}
+    >
+      {getStatusLabel(status)}
+    </span>
+  );
+}
+
 type LeadKanbanCardProps = {
   lead: KanbanLeadItem;
 };
 
 export function LeadKanbanCard({ lead }: LeadKanbanCardProps) {
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const whatsAppHref = getWhatsAppHref(lead);
   const daysSinceUpdate = getDaysSinceUpdate(lead.updated_at);
   const agingBadge = getAgingBadge(daysSinceUpdate);
+  const assigneeTitle = lead.assignee_name
+    ? `Assigned: ${lead.assignee_name}`
+    : undefined;
 
   return (
-    <div className="space-y-3 rounded-lg border bg-background p-3 text-sm">
-      <div>
-        <p className="font-medium">{lead.full_name}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+    <div className="space-y-2 rounded-lg border bg-background p-2.5">
+      <div className="space-y-1">
+        <p
+          className="truncate text-sm font-semibold leading-tight"
+          title={assigneeTitle}
+        >
+          {lead.full_name}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
           {lead.package_interest || "Belum ada paket"}
         </p>
-        {lead.assignee_name && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Assigned: {lead.assignee_name}
-          </p>
-        )}
-        <p className="mt-1 text-xs text-muted-foreground">
-          {formatAgingText(daysSinceUpdate)}
-        </p>
-        {agingBadge && (
-          <span
-            className={cn(
-              "mt-2 inline-flex rounded border px-2 py-0.5 text-xs font-medium",
-              agingBadge.className,
-            )}
-          >
-            {agingBadge.label}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground">
+            {formatAgingText(daysSinceUpdate)}
           </span>
-        )}
-        {lead.priority_score != null && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Priority Score: {lead.priority_score}
-          </p>
-        )}
+          {agingBadge && (
+            <span
+              className={cn(
+                "inline-flex rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none",
+                agingBadge.className,
+              )}
+            >
+              {agingBadge.label}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="flex gap-2">
-        <Link
-          href={`/leads/${lead.id}`}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "flex-1 justify-center",
-          )}
-        >
-          View Lead
-        </Link>
-
+      <div className="flex items-center gap-1.5">
         {whatsAppHref && (
           <a
             href={whatsAppHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex flex-1 items-center justify-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white"
+            className={cn(
+              compactButtonClassName,
+              "border-green-600 text-green-700 hover:bg-green-50",
+            )}
           >
-            WhatsApp
+            WA
           </a>
         )}
+
+        <Link
+          href={`/leads/${lead.id}`}
+          className={cn(
+            compactButtonClassName,
+            "border-blue-600 text-blue-700 hover:bg-blue-50",
+          )}
+        >
+          Detail
+        </Link>
       </div>
 
-      <form action={updateKanbanLeadStatus}>
-        <input type="hidden" name="lead_id" value={lead.id} />
-        <label className="sr-only" htmlFor={`status-${lead.id}`}>
-          Status
-        </label>
-        <select
-          id={`status-${lead.id}`}
-          name="status"
-          defaultValue={lead.status}
-          onChange={(event) => event.currentTarget.form?.requestSubmit()}
-          className="w-full rounded-md border px-2 py-1.5 text-xs"
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </form>
+      <div className="flex items-center justify-between gap-2 border-t pt-2">
+        <KanbanStatusBadge status={lead.status} />
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsStatusMenuOpen((open) => !open)}
+            className="text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Change Status
+          </button>
+
+          {isStatusMenuOpen && (
+            <>
+              <button
+                type="button"
+                aria-label="Tutup menu status"
+                className="fixed inset-0 z-10 cursor-default"
+                onClick={() => setIsStatusMenuOpen(false)}
+              />
+              <div className="absolute right-0 z-20 mt-1 w-40 rounded-md border bg-background p-1 shadow-sm">
+                {STATUS_OPTIONS.map((option) => (
+                  <form
+                    key={option.value}
+                    action={updateKanbanLeadStatus}
+                    className="block"
+                  >
+                    <input type="hidden" name="lead_id" value={lead.id} />
+                    <input type="hidden" name="status" value={option.value} />
+                    <button
+                      type="submit"
+                      disabled={option.value === lead.status}
+                      className={cn(
+                        "w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent",
+                        option.value === lead.status &&
+                          "cursor-default text-muted-foreground",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  </form>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

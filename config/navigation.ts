@@ -43,10 +43,7 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Leads",
     href: "/leads",
     icon: Users,
-    items: [
-      { title: "List Leads", href: "/leads" },
-      { title: "Kanban", href: "/leads/kanban" },
-    ],
+    items: [{ title: "Lead Kanban", href: "/leads/kanban" }],
   },
   {
     title: "Packages",
@@ -87,13 +84,6 @@ export const dashboardNav: DashboardNavItem[] = [
 
 export function isLeadsNavPath(pathname: string) {
   return pathname === "/leads" || pathname.startsWith("/leads/");
-}
-
-export function isListLeadsNavActive(pathname: string) {
-  return (
-    pathname === "/leads" ||
-    (pathname.startsWith("/leads/") && !pathname.startsWith("/leads/kanban"))
-  );
 }
 
 export function isKanbanNavActive(pathname: string) {

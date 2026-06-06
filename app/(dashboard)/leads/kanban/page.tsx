@@ -50,12 +50,31 @@ function getPriorityScore(lead: KanbanLeadRow) {
   return lead.lead_scores.score ?? null;
 }
 
+const LEAD_STATUS_FILTERS = [
+  "new",
+  "contacted",
+  "qualified",
+  "proposal_sent",
+  "negotiating",
+  "won",
+  "lost",
+] as const;
+
+function isLeadStatusFilter(
+  value: string,
+): value is (typeof LEAD_STATUS_FILTERS)[number] {
+  return LEAD_STATUS_FILTERS.includes(
+    value as (typeof LEAD_STATUS_FILTERS)[number],
+  );
+}
+
 export default async function LeadKanbanPage({
   searchParams,
 }: {
   searchParams: Promise<{
     q?: string;
     assigned?: string;
+    status?: string;
     error?: string;
   }>;
 }) {
@@ -65,6 +84,7 @@ export default async function LeadKanbanPage({
 
   const search = query.q?.trim() ?? "";
   const assignedFilter = query.assigned?.trim() ?? "";
+  const statusFilter = query.status?.trim() ?? "";
 
   const { data: orgProfiles } = await supabase
     .from("profiles")
@@ -108,6 +128,10 @@ export default async function LeadKanbanPage({
     leadsQuery = leadsQuery.is("assigned_to", null);
   } else if (assignedFilter && validProfileIds.has(assignedFilter)) {
     leadsQuery = leadsQuery.eq("assigned_to", assignedFilter);
+  }
+
+  if (statusFilter && isLeadStatusFilter(statusFilter)) {
+    leadsQuery = leadsQuery.eq("status", statusFilter);
   }
 
   const { data: leads, error } = await leadsQuery.order("updated_at", {
@@ -167,6 +191,7 @@ export default async function LeadKanbanPage({
       <LeadKanbanFilters
         search={search}
         assigned={assignedFilter}
+        status={statusFilter}
         profiles={profiles}
       />
 

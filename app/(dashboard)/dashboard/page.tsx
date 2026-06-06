@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 import { AiUsageCard } from "@/components/dashboard/ai-usage-card";
@@ -308,29 +310,38 @@ const topSources = Object.entries(sourceStats)
         </p>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border p-4">
+          <Link
+            href="/bookings"
+            className="rounded-xl border p-4 transition-colors hover:bg-accent/50"
+          >
             <p className="text-sm text-muted-foreground">Total Bookings</p>
             <h2 className="mt-2 text-2xl font-bold">{totalBookings ?? 0}</h2>
-          </div>
+          </Link>
 
           <div className="rounded-xl border p-4">
             <p className="text-sm text-muted-foreground">Total Pax</p>
             <h2 className="mt-2 text-2xl font-bold">{totalPax}</h2>
           </div>
 
-          <div className="rounded-xl border p-4">
+          <Link
+            href="/bookings"
+            className="rounded-xl border p-4 transition-colors hover:bg-accent/50"
+          >
             <p className="text-sm text-muted-foreground">Payment Received</p>
             <h2 className="mt-2 text-2xl font-bold">
               {formatCurrency(paymentReceived)}
             </h2>
-          </div>
+          </Link>
 
-          <div className="rounded-xl border p-4">
+          <Link
+            href="/bookings?payment_status=partial_paid"
+            className="rounded-xl border p-4 transition-colors hover:bg-accent/50"
+          >
             <p className="text-sm text-muted-foreground">Outstanding</p>
             <h2 className="mt-2 text-2xl font-bold">
               {formatCurrency(outstandingBalance)}
             </h2>
-          </div>
+          </Link>
         </div>
       </div>
 

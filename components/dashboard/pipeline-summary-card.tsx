@@ -1,3 +1,7 @@
+import Link from "next/link";
+
+import { cn } from "@/lib/utils";
+
 export type PipelineFunnel = {
   new: number;
   contacted: number;
@@ -12,61 +16,46 @@ type PipelineSummaryCardProps = {
   funnel: PipelineFunnel;
 };
 
-export function PipelineSummaryCard({
-  funnel,
-}: PipelineSummaryCardProps) {
+const PIPELINE_STATUS_ITEMS: Array<{
+  key: keyof PipelineFunnel;
+  label: string;
+  valueClassName?: string;
+}> = [
+  { key: "new", label: "New" },
+  { key: "contacted", label: "Contacted" },
+  { key: "qualified", label: "Qualified" },
+  { key: "proposal_sent", label: "Proposal" },
+  { key: "negotiating", label: "Negotiating" },
+  { key: "won", label: "Won", valueClassName: "text-green-600" },
+  { key: "lost", label: "Lost", valueClassName: "text-red-600" },
+];
+
+const clickableCardClassName =
+  "block rounded-lg border p-3 transition-colors hover:bg-accent/50";
+
+export function PipelineSummaryCard({ funnel }: PipelineSummaryCardProps) {
   return (
     <div className="rounded-xl border p-6">
-  <h2 className="text-lg font-semibold">
-    Pipeline Summary
-  </h2>
+      <h2 className="text-lg font-semibold">Pipeline Summary</h2>
 
-  <p className="mb-4 text-sm text-muted-foreground">
-    Distribusi lead berdasarkan status pipeline.
-  </p>
-
-  <div className="grid gap-3 md:grid-cols-4">
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">New</p>
-      <p className="text-2xl font-bold">{funnel.new}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Contacted</p>
-      <p className="text-2xl font-bold">{funnel.contacted}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Qualified</p>
-      <p className="text-2xl font-bold">{funnel.qualified}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Proposal</p>
-      <p className="text-2xl font-bold">{funnel.proposal_sent}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Negotiating</p>
-      <p className="text-2xl font-bold">{funnel.negotiating}</p>
-    </div>
-
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Won</p>
-      <p className="text-2xl font-bold text-green-600">
-        {funnel.won}
+      <p className="mb-4 text-sm text-muted-foreground">
+        Distribusi lead berdasarkan status pipeline.
       </p>
-    </div>
 
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">Lost</p>
-      <p className="text-2xl font-bold text-red-600">
-        {funnel.lost}
-      </p>
+      <div className="grid gap-3 md:grid-cols-4">
+        {PIPELINE_STATUS_ITEMS.map((item) => (
+          <Link
+            key={item.key}
+            href={`/leads/kanban?status=${item.key}`}
+            className={clickableCardClassName}
+          >
+            <p className="text-xs text-muted-foreground">{item.label}</p>
+            <p className={cn("text-2xl font-bold", item.valueClassName)}>
+              {funnel[item.key]}
+            </p>
+          </Link>
+        ))}
+      </div>
     </div>
-
-  </div>
-</div>
   );
 }

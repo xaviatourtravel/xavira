@@ -12,12 +12,14 @@ type ProfileOption = {
 type LeadKanbanFiltersProps = {
   search: string;
   assigned: string;
+  status: string;
   profiles: ProfileOption[];
 };
 
 export function LeadKanbanFilters({
   search: initialSearch,
   assigned,
+  status,
   profiles,
 }: LeadKanbanFiltersProps) {
   const router = useRouter();
@@ -25,7 +27,8 @@ export function LeadKanbanFilters({
   const [search, setSearch] = useState(initialSearch);
   const [, startTransition] = useTransition();
 
-  const hasFilters = initialSearch.length > 0 || assigned.length > 0;
+  const hasFilters =
+    initialSearch.length > 0 || assigned.length > 0 || status.length > 0;
 
   const pushFilters = useCallback(
     (updates: { q?: string; assigned?: string }) => {

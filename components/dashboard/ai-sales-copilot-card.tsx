@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type LeadPriority = {
   id: string;
   full_name: string;
@@ -32,9 +34,12 @@ export function AiSalesCopilotCard({ leads }: Props) {
           {leads.map((lead, index) => (
             <div key={lead.id} className="rounded-lg border p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate font-medium">
+                <Link
+                  href={`/leads/${lead.id}`}
+                  className="min-w-0 truncate font-medium hover:underline"
+                >
                   #{index + 1} {lead.full_name}
-                </p>
+                </Link>
                 <span className="shrink-0 rounded-md border px-2 py-0.5 text-sm font-bold">
                   {lead.score}
                 </span>
@@ -44,6 +49,13 @@ export function AiSalesCopilotCard({ leads }: Props) {
                 {formatStatus(lead.status)} · {lead.package_interest ?? "-"} ·{" "}
                 {lead.daysSinceUpdate} hari lalu
               </p>
+
+              <Link
+                href={`/leads/${lead.id}`}
+                className="mt-2 inline-flex text-xs text-blue-600 hover:underline"
+              >
+                Detail
+              </Link>
             </div>
           ))}
         </div>

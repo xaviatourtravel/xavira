@@ -7,23 +7,10 @@ import {
   dashboardNav,
   isKanbanNavActive,
   isLeadsNavPath,
-  isListLeadsNavActive,
   isNavGroup,
   isNavItemActive,
 } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-
-function getSubItemActive(pathname: string, href: string) {
-  if (href === "/leads") {
-    return isListLeadsNavActive(pathname);
-  }
-
-  if (href === "/leads/kanban") {
-    return isKanbanNavActive(pathname);
-  }
-
-  return isNavItemActive(pathname, href);
-}
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -43,24 +30,22 @@ export function AppSidebar() {
 
             return (
               <div key={item.href} className="space-y-1">
-                <div
+                <Link
+                  href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                     isGroupActive
                       ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground",
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {item.title}
-                </div>
+                </Link>
 
                 <div className="ml-4 space-y-1 border-l pl-3">
                   {item.items.map((subItem) => {
-                    const isSubActive = getSubItemActive(
-                      pathname,
-                      subItem.href,
-                    );
+                    const isSubActive = isKanbanNavActive(pathname);
 
                     return (
                       <Link

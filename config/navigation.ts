@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   CalendarCheck,
@@ -10,7 +11,29 @@ import {
   Users,
 } from "lucide-react";
 
-export const dashboardNav = [
+export type NavLinkItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+};
+
+export type NavGroupItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  items: ReadonlyArray<{
+    title: string;
+    href: string;
+  }>;
+};
+
+export type DashboardNavItem = NavLinkItem | NavGroupItem;
+
+export function isNavGroup(item: DashboardNavItem): item is NavGroupItem {
+  return "items" in item;
+}
+
+export const dashboardNav: DashboardNavItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
@@ -20,6 +43,10 @@ export const dashboardNav = [
     title: "Leads",
     href: "/leads",
     icon: Users,
+    items: [
+      { title: "List Leads", href: "/leads" },
+      { title: "Kanban", href: "/leads/kanban" },
+    ],
   },
   {
     title: "Packages",
@@ -56,4 +83,25 @@ export const dashboardNav = [
     href: "/settings",
     icon: Settings,
   },
-] as const;
+];
+
+export function isLeadsNavPath(pathname: string) {
+  return pathname === "/leads" || pathname.startsWith("/leads/");
+}
+
+export function isListLeadsNavActive(pathname: string) {
+  return (
+    pathname === "/leads" ||
+    (pathname.startsWith("/leads/") && !pathname.startsWith("/leads/kanban"))
+  );
+}
+
+export function isKanbanNavActive(pathname: string) {
+  return (
+    pathname === "/leads/kanban" || pathname.startsWith("/leads/kanban/")
+  );
+}
+
+export function isNavItemActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}

@@ -95,16 +95,13 @@ export default async function PackagesPage() {
                 <th className="px-4 py-3 font-medium">Harga</th>
                 <th className="px-4 py-3 font-medium">Kuota</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((pkg) => (
                 <tr key={pkg.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">
-  <Link href={`/packages/${pkg.id}/edit`} className="hover:underline">
-    {pkg.name}
-  </Link>
-</td>
+                  <td className="px-4 py-3 font-medium">{pkg.name}</td>
                   <td className="px-4 py-3">{pkg.destination || "-"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {pkg.departure_date ? formatDate(pkg.departure_date) : "-"}
@@ -120,6 +117,16 @@ export default async function PackagesPage() {
                   </td>
                   <td className="px-4 py-3 capitalize">
                     {formatLabel(pkg.status)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/packages/${pkg.id}/edit`}
+                        className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-600"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

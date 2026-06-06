@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -326,7 +327,7 @@ export async function convertLeadToBooking(formData: FormData) {
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, full_name")
+    .select("id, full_name, package_interest, party_size")
     .eq("id", leadId)
     .eq("organization_id", profile.organization_id)
     .is("deleted_at", null)
@@ -336,17 +337,43 @@ export async function convertLeadToBooking(formData: FormData) {
     redirect("/leads?error=Lead tidak ditemukan");
   }
 
+  const totalPax =
+    lead.party_size != null && lead.party_size >= 1 ? lead.party_size : 1;
+
+  let departureDate: string | null = null;
+  let totalAmount = 0;
+
+  if (lead.package_interest) {
+    const { data: matchedPackage } = await supabase
+      .from("packages")
+      .select("departure_date, price_idr")
+      .eq("organization_id", profile.organization_id)
+      .eq("name", lead.package_interest)
+      .maybeSingle();
+
+    if (matchedPackage) {
+      departureDate = matchedPackage.departure_date;
+
+      totalAmount = calculateBookingTotalAmount(
+        matchedPackage.price_idr,
+        totalPax,
+      );
+    }
+  }
+
   const { data: booking, error } = await supabase
     .from("bookings")
     .insert({
       organization_id: profile.organization_id,
       lead_id: leadId,
       customer_name: lead.full_name,
+      package_name: lead.package_interest || null,
+      departure_date: departureDate,
       booking_code: generateBookingCode(),
       booking_status: "new",
       payment_status: "pending",
-      total_pax: 1,
-      total_amount: 0,
+      total_pax: totalPax,
+      total_amount: totalAmount,
     })
     .select("id")
     .maybeSingle();

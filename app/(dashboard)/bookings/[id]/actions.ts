@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
 import { calculateBookingPaymentStatus } from "@/lib/bookings/payment-status";
+import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -53,7 +54,25 @@ export async function updateBooking(formData: FormData) {
     );
   }
 
-  if (totalAmount == null || totalAmount < 0) {
+  let resolvedTotalAmount = totalAmount ?? 0;
+
+  if (packageName) {
+    const { data: matchedPackage } = await supabase
+      .from("packages")
+      .select("price_idr")
+      .eq("organization_id", profile.organization_id)
+      .eq("name", packageName)
+      .maybeSingle();
+
+    if (matchedPackage?.price_idr != null) {
+      resolvedTotalAmount = calculateBookingTotalAmount(
+        matchedPackage.price_idr,
+        totalPax,
+      );
+    }
+  }
+
+  if (resolvedTotalAmount < 0) {
     redirect(
       `/bookings/${bookingId}/edit?error=${encodeURIComponent("Total amount tidak valid")}`,
     );
@@ -65,7 +84,7 @@ export async function updateBooking(formData: FormData) {
       package_name: packageName || null,
       departure_date: departureDate || null,
       total_pax: totalPax,
-      total_amount: totalAmount,
+      total_amount: resolvedTotalAmount,
       notes: notes || null,
     })
     .eq("id", bookingId)

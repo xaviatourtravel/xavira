@@ -21,6 +21,7 @@ type LeadEdit = {
   travel_date_preference: string | null;
   party_size: number | null;
   notes: string | null;
+  assigned_to: string | null;
 };
 
 function toDateInputValue(value: string | null) {
@@ -49,7 +50,7 @@ export default async function EditLeadPage({
   const { data: lead, error } = await supabase
     .from("leads")
     .select(
-      "id, full_name, whatsapp_number, email, source, interest_type, package_interest, status, priority, budget_idr, travel_date_preference, party_size, notes",
+      "id, full_name, whatsapp_number, email, source, interest_type, package_interest, status, priority, budget_idr, travel_date_preference, party_size, notes, assigned_to",
     )
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
@@ -65,12 +66,19 @@ export default async function EditLeadPage({
   }
 
   const detail = lead as LeadEdit;
-  const { data: packages } = await supabase
+  const [{ data: packages }, { data: orgProfiles }] = await Promise.all([
+  supabase
   .from("packages")
   .select("id, name")
   .eq("organization_id", profile.organization_id)
   .eq("status", "active")
-  .order("name");
+  .order("name"),
+  supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("organization_id", profile.organization_id)
+    .order("full_name"),
+]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -204,6 +212,22 @@ export default async function EditLeadPage({
             <option value="medium">Sedang</option>
             <option value="high">Tinggi</option>
             <option value="urgent">Urgent</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Assigned To</label>
+          <select
+            name="assigned_to"
+            defaultValue={detail.assigned_to ?? ""}
+            className={inputClassName}
+          >
+            <option value="">Belum di-assign</option>
+            {(orgProfiles ?? []).map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.full_name || "Pengguna"}
+              </option>
+            ))}
           </select>
         </div>
 

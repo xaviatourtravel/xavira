@@ -207,6 +207,7 @@ export async function updateLead(formData: FormData) {
   const travelDatePreference = getString(formData, "travel_date_preference");
   const partySize = getOptionalInt(formData, "party_size");
   const notes = getString(formData, "notes");
+  const assignedTo = getString(formData, "assigned_to");
 
   if (!leadId) {
     redirect("/leads?error=Lead tidak ditemukan");
@@ -216,6 +217,21 @@ export async function updateLead(formData: FormData) {
     redirect(
       `/leads/${leadId}/edit?error=${encodeURIComponent("Nama wajib diisi")}`,
     );
+  }
+
+  if (assignedTo) {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", assignedTo)
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle();
+
+    if (!assignee) {
+      redirect(
+        `/leads/${leadId}/edit?error=${encodeURIComponent("Assignee tidak valid")}`,
+      );
+    }
   }
 
   const { data: existingLead } = await supabase
@@ -242,6 +258,7 @@ export async function updateLead(formData: FormData) {
       travel_date_preference: travelDatePreference || null,
       party_size: partySize,
       notes: notes || null,
+      assigned_to: assignedTo || null,
     })
     .eq("id", leadId)
     .eq("organization_id", profile.organization_id)

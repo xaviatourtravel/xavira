@@ -5,6 +5,7 @@ import {
   createLeadActivity,
   createFollowUpTask,
   completeFollowUpTask,
+  convertLeadToBooking,
 } from "./actions";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -221,6 +222,16 @@ Terima kasih.`
   >
     Edit Lead
   </Link>
+
+  <form action={convertLeadToBooking}>
+    <input type="hidden" name="lead_id" value={detail.id} />
+    <button
+      type="submit"
+      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+    >
+      Convert to Booking
+    </button>
+  </form>
 </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

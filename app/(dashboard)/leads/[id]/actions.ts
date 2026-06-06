@@ -21,6 +21,26 @@ function getOptionalInt(formData: FormData, key: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function generateBookingCode() {
+  const datePart = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .replace(/-/g, "");
+
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let randomPart = "";
+
+  for (let i = 0; i < 4; i += 1) {
+    randomPart += chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  return `BK-${datePart}-${randomPart}`;
+}
+
 const ACTIVITY_TYPES = [
   "note",
   "call",
@@ -295,4 +315,50 @@ export async function updateLead(formData: FormData) {
   redirect(`/leads/${leadId}`);
 }
 
+export async function convertLeadToBooking(formData: FormData) {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+  const leadId = getString(formData, "lead_id");
+
+  if (!leadId) {
+    redirect("/leads?error=Lead tidak ditemukan");
+  }
+
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("id, full_name")
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!lead) {
+    redirect("/leads?error=Lead tidak ditemukan");
+  }
+
+  const { data: booking, error } = await supabase
+    .from("bookings")
+    .insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      customer_name: lead.full_name,
+      booking_code: generateBookingCode(),
+      booking_status: "new",
+      payment_status: "pending",
+      total_pax: 1,
+      total_amount: 0,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (error || !booking) {
+    redirect(
+      `/leads/${leadId}?error=${encodeURIComponent(error?.message ?? "Gagal membuat booking")}`,
+    );
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath(`/leads/${leadId}`);
+  redirect(`/bookings/${booking.id}`);
+}
 

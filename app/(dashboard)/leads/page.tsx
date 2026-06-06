@@ -1,16 +1,22 @@
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
+import { LeadsActiveFilters } from "@/components/leads/leads-active-filters";
 import {
   formatAssignedUserLabel,
   getLeadAssigneeName,
   getLeadAgingCutoffIso,
-  parseLeadAgingFilter,
-  resolveLeadAssignedFilter,
   shouldExcludeClosedLeadsForAging,
   CLOSED_LEAD_STATUS_FILTER,
   type OrgProfileOption,
 } from "@/lib/leads/assignment";
+import {
+  buildLeadsListHref,
+  getActiveLeadFilterBadges,
+  parseLeadsListFilters,
+  resolveLeadsListAssignedFilter,
+  type LeadsListSearchParams,
+} from "@/lib/leads/list-filters";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -46,26 +52,14 @@ function getContactPhone(lead: LeadRow) {
 }
 
 type LeadsPageProps = {
-  searchParams: Promise<{
-    q?: string;
-    status?: string;
-    assigned?: string;
-    assigned_to?: string;
-    aging?: string;
-    page?: string;
-  }>;
+  searchParams: Promise<LeadsListSearchParams>;
 };
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
   const params = await searchParams;
-
-  const search = params.q?.trim() ?? "";
-  const statusFilter = params.status?.trim() ?? "";
-  const assignedFilter = params.assigned?.trim() ?? "";
-  const assignedToParam = params.assigned_to?.trim() ?? "";
-  const agingFilter = parseLeadAgingFilter(params.aging?.trim() ?? "");
+  const filters = parseLeadsListFilters(params);
   const currentPage = Math.max(Number(params.page ?? "1"), 1);
   const pageSize = 20;
   const from = (currentPage - 1) * pageSize;
@@ -79,12 +73,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   const profiles = (orgProfiles ?? []) as OrgProfileOption[];
   const validProfileIds = new Set(profiles.map((item) => item.id));
-  const assignedUserFilter = resolveLeadAssignedFilter({
-    assignedToParam,
-    assignedParam: assignedFilter,
-    currentProfileId: profile.id,
+  const assignedUserFilter = resolveLeadsListAssignedFilter(
+    filters,
+    profile.id,
     validProfileIds,
-  });
+  );
+  const activeFilterBadges = getActiveLeadFilterBadges(filters, profiles);
+  const filtersActive = activeFilterBadges.length > 0;
 
   let query = supabase
     .from("leads")
@@ -109,14 +104,14 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     .eq("organization_id", profile.organization_id)
     .is("deleted_at", null);
 
-  if (search) {
+  if (filters.q) {
     query = query.or(
-      `full_name.ilike.%${search}%,whatsapp_number.ilike.%${search}%,phone.ilike.%${search}%`,
+      `full_name.ilike.%${filters.q}%,whatsapp_number.ilike.%${filters.q}%,phone.ilike.%${filters.q}%`,
     );
   }
 
-  if (statusFilter) {
-    query = query.eq("status", statusFilter);
+  if (filters.status) {
+    query = query.eq("status", filters.status);
   }
 
   if (assignedUserFilter.type === "unassigned") {
@@ -125,10 +120,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     query = query.eq("assigned_to", assignedUserFilter.profileId);
   }
 
-  if (agingFilter != null) {
-    query = query.lt("updated_at", getLeadAgingCutoffIso(agingFilter));
+  if (filters.aging != null) {
+    query = query.lt("updated_at", getLeadAgingCutoffIso(filters.aging));
 
-    if (shouldExcludeClosedLeadsForAging(agingFilter)) {
+    if (shouldExcludeClosedLeadsForAging(filters.aging)) {
       query = query.not("status", "in", CLOSED_LEAD_STATUS_FILTER);
     }
   }
@@ -143,34 +138,6 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   const rows = (leads ?? []) as LeadRow[];
   const totalPages = Math.max(Math.ceil((count ?? 0) / pageSize), 1);
-
-  const buildPageHref = (page: number) => {
-    const queryParams = new URLSearchParams();
-
-    if (search) {
-      queryParams.set("q", search);
-    }
-
-    if (statusFilter) {
-      queryParams.set("status", statusFilter);
-    }
-
-    if (assignedFilter) {
-      queryParams.set("assigned", assignedFilter);
-    }
-
-    if (assignedToParam) {
-      queryParams.set("assigned_to", assignedToParam);
-    }
-
-    if (agingFilter != null) {
-      queryParams.set("aging", String(agingFilter));
-    }
-
-    queryParams.set("page", String(page));
-
-    return `/leads?${queryParams.toString()}`;
-  };
 
   return (
     <div className="space-y-6">
@@ -188,25 +155,25 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       </div>
 
       <form method="GET" className="flex flex-wrap gap-2">
-        {assignedToParam && (
-          <input type="hidden" name="assigned_to" value={assignedToParam} />
+        {filters.assignedTo && (
+          <input type="hidden" name="assigned_to" value={filters.assignedTo} />
         )}
 
-        {agingFilter != null && (
-          <input type="hidden" name="aging" value={String(agingFilter)} />
+        {filters.aging != null && (
+          <input type="hidden" name="aging" value={String(filters.aging)} />
         )}
 
         <input
           type="text"
           name="q"
-          defaultValue={search}
+          defaultValue={filters.q}
           placeholder="Cari nama atau WA..."
           className="rounded-md border px-3 py-2 text-sm"
         />
 
         <select
           name="status"
-          defaultValue={statusFilter}
+          defaultValue={filters.status}
           className="rounded-md border px-3 py-2 text-sm"
         >
           <option value="">Semua Status</option>
@@ -221,7 +188,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
         <select
           name="assigned"
-          defaultValue={assignedFilter}
+          defaultValue={filters.assigned}
           className="rounded-md border px-3 py-2 text-sm"
         >
           <option value="">All Users</option>
@@ -241,18 +208,33 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         </button>
       </form>
 
+      <LeadsActiveFilters badges={activeFilterBadges} />
+
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">
-          <h2 className="text-lg font-medium">Belum ada lead</h2>
+          <h2 className="text-lg font-medium">
+            {filtersActive ? "Lead tidak ditemukan" : "Belum ada lead"}
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Mulai dengan menambahkan lead pertama Anda.
+            {filtersActive
+              ? "Coba ubah kata kunci atau filter pencarian."
+              : "Mulai dengan menambahkan lead pertama Anda."}
           </p>
-          <Link
-            href="/leads/new"
-            className={cn(buttonVariants(), "mt-4 inline-flex")}
-          >
-            Tambah Lead
-          </Link>
+          {filtersActive ? (
+            <Link
+              href="/leads"
+              className={cn(buttonVariants({ variant: "outline" }), "mt-4 inline-flex")}
+            >
+              Clear filters
+            </Link>
+          ) : (
+            <Link
+              href="/leads/new"
+              className={cn(buttonVariants(), "mt-4 inline-flex")}
+            >
+              Tambah Lead
+            </Link>
+          )}
         </div>
       ) : (
         <>
@@ -327,7 +309,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
             <div className="flex gap-2">
               {currentPage > 1 && (
                 <Link
-                  href={buildPageHref(currentPage - 1)}
+                  href={buildLeadsListHref(filters, { page: currentPage - 1 })}
                   className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                 >
                   Previous
@@ -336,7 +318,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
               {currentPage < totalPages && (
                 <Link
-                  href={buildPageHref(currentPage + 1)}
+                  href={buildLeadsListHref(filters, { page: currentPage + 1 })}
                   className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                 >
                   Next

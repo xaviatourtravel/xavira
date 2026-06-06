@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -95,9 +97,21 @@ export default async function BookingsPage() {
               {rows.map((booking) => (
                 <tr key={booking.id} className="border-b last:border-b-0">
                   <td className="px-4 py-3 font-medium">
-                    {booking.booking_code || "-"}
+                    <Link
+                      href={`/bookings/${booking.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {booking.booking_code || "-"}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3">{booking.customer_name}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/bookings/${booking.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {booking.customer_name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">{booking.package_name || "-"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {booking.departure_date

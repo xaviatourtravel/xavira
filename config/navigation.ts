@@ -1,9 +1,11 @@
 import {
   BarChart3,
+  CalendarCheck,
   FileText,
   LayoutDashboard,
   Megaphone,
   MessageSquare,
+  Package,
   Settings,
   Users,
 } from "lucide-react";
@@ -18,6 +20,16 @@ export const dashboardNav = [
     title: "Leads",
     href: "/leads",
     icon: Users,
+  },
+  {
+    title: "Packages",
+    href: "/packages",
+    icon: Package,
+  },
+  {
+    title: "Bookings",
+    href: "/bookings",
+    icon: CalendarCheck,
   },
   {
     title: "Follow Ups",

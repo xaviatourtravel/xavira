@@ -13,7 +13,6 @@ export type BookingPaymentItem = {
 
 type BookingPaymentsSectionProps = {
   bookingId: string;
-  bookingTotalAmount: number;
   payments: BookingPaymentItem[];
 };
 
@@ -45,11 +44,15 @@ function formatPaymentType(value: string) {
   return labels[value] ?? value;
 }
 
-export function BookingPaymentsSection({
-  bookingId,
+type BookingPaymentSummaryProps = {
+  bookingTotalAmount: number;
+  payments: BookingPaymentItem[];
+};
+
+export function BookingPaymentSummary({
   bookingTotalAmount,
   payments,
-}: BookingPaymentsSectionProps) {
+}: BookingPaymentSummaryProps) {
   const totalPayments = payments.reduce(
     (sum, payment) => sum + Number(payment.amount),
     0,
@@ -57,15 +60,21 @@ export function BookingPaymentsSection({
   const outstandingBalance = Number(bookingTotalAmount) - totalPayments;
 
   return (
-    <div className="rounded-lg border p-6 space-y-6">
+    <div className="rounded-lg border p-6">
       <div>
-        <h2 className="text-lg font-semibold">Payments</h2>
+        <h2 className="text-lg font-semibold">Payment Summary</h2>
         <p className="text-sm text-muted-foreground">
-          Riwayat pembayaran untuk booking ini.
+          Ringkasan pembayaran booking ini.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Total Amount</p>
+          <p className="text-lg font-semibold">
+            {formatCurrency(Number(bookingTotalAmount))}
+          </p>
+        </div>
         <div className="rounded-lg border p-3">
           <p className="text-xs text-muted-foreground">Total Payments</p>
           <p className="text-lg font-semibold">
@@ -78,6 +87,22 @@ export function BookingPaymentsSection({
             {formatCurrency(outstandingBalance)}
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function BookingPaymentsSection({
+  bookingId,
+  payments,
+}: BookingPaymentsSectionProps) {
+  return (
+    <div className="space-y-6 rounded-lg border p-6">
+      <div>
+        <h2 className="text-lg font-semibold">Payments</h2>
+        <p className="text-sm text-muted-foreground">
+          Riwayat pembayaran untuk booking ini.
+        </p>
       </div>
 
       <details className="rounded-lg border p-4">

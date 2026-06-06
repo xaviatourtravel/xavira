@@ -2,18 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
-import { requireProfile } from "@/lib/auth/session";
-import { cn } from "@/lib/utils";
-import { createClient } from "@/utils/supabase/server";
 import {
   BookingParticipantsSection,
   type BookingParticipantItem,
 } from "@/components/bookings/booking-participants-section";
 import {
+  BookingPaymentSummary,
   BookingPaymentsSection,
   type BookingPaymentItem,
 } from "@/components/bookings/booking-payments-section";
 import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
+import { requireProfile } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/utils/supabase/server";
 
 type BookingDetail = {
   id: string;
@@ -55,6 +56,26 @@ function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
+function BookingActions({ bookingId }: { bookingId: string }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Link
+        href="/bookings"
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        Kembali
+      </Link>
+
+      <Link
+        href={`/bookings/${bookingId}/edit`}
+        className={cn(buttonVariants({ size: "sm" }))}
+      >
+        Edit Booking
+      </Link>
+    </div>
+  );
+}
+
 export default async function BookingDetailPage({
   params,
   searchParams,
@@ -73,16 +94,18 @@ export default async function BookingDetailPage({
     { data: payments, error: paymentsError },
   ] = await Promise.all([
     supabase
-    .from("bookings")
-    .select(
-      "id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
-    )
-    .eq("id", id)
-    .eq("organization_id", profile.organization_id)
-    .maybeSingle(),
+      .from("bookings")
+      .select(
+        "id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
+      )
+      .eq("id", id)
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle(),
     supabase
       .from("booking_participants")
-      .select("id, full_name, phone, passport_number, address, emergency_contact, notes")
+      .select(
+        "id, full_name, phone, passport_number, address, emergency_contact, notes",
+      )
       .eq("booking_id", id)
       .order("created_at", { ascending: true }),
     supabase
@@ -103,23 +126,15 @@ export default async function BookingDetailPage({
   const detail = booking as BookingDetail;
   const participantRows = (participants ?? []) as BookingParticipantItem[];
   const paymentRows = (payments ?? []) as BookingPaymentItem[];
+  const bookingTotalAmount = Number(detail.total_amount);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex gap-2">
-        <Link
-          href="/bookings"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          Kembali
-        </Link>
-
-        <Link
-          href={`/bookings/${detail.id}/edit`}
-          className={cn(buttonVariants({ size: "sm" }))}
-        >
-          Edit Booking
-        </Link>
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Booking Detail</h1>
+        <p className="text-sm text-muted-foreground">
+          {detail.booking_code || detail.id}
+        </p>
       </div>
 
       {query?.success && (
@@ -134,70 +149,94 @@ export default async function BookingDetailPage({
         </div>
       )}
 
-      <div>
-        <h1 className="text-2xl font-semibold">Booking Detail</h1>
-        <p className="text-sm text-muted-foreground">
-          {detail.booking_code || detail.id}
-        </p>
+      <div className="lg:hidden">
+        <BookingActions bookingId={detail.id} />
       </div>
 
-      <div className="rounded-lg border p-6">
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-sm text-muted-foreground">Customer Name</dt>
-            <dd className="text-sm font-medium">{detail.customer_name}</dd>
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="space-y-6">
+          <div className="rounded-lg border p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Booking Info</h2>
+              <p className="text-sm text-muted-foreground">
+                Informasi utama booking customer.
+              </p>
+            </div>
+
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm text-muted-foreground">Customer Name</dt>
+                <dd className="text-sm font-medium">{detail.customer_name}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Package Name</dt>
+                <dd className="text-sm font-medium">
+                  {detail.package_name || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">
+                  Departure Date
+                </dt>
+                <dd className="text-sm font-medium">
+                  {detail.departure_date
+                    ? formatDate(detail.departure_date)
+                    : "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Total Pax</dt>
+                <dd className="text-sm font-medium">{detail.total_pax}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Total Amount</dt>
+                <dd className="text-sm font-medium">
+                  {formatCurrency(bookingTotalAmount)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Payment Status</dt>
+                <dd className="text-sm font-medium">
+                  <PaymentStatusBadge status={detail.payment_status} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Booking Status</dt>
+                <dd className="text-sm font-medium capitalize">
+                  {formatLabel(detail.booking_status)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Created At</dt>
+                <dd className="text-sm font-medium">
+                  {formatDateTime(detail.created_at)}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Package Name</dt>
-            <dd className="text-sm font-medium">{detail.package_name || "-"}</dd>
+
+          <BookingParticipantsSection
+            bookingId={detail.id}
+            participants={participantRows}
+          />
+        </div>
+
+        <div className="space-y-6">
+          <div className="hidden lg:block">
+            <BookingActions bookingId={detail.id} />
           </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Departure Date</dt>
-            <dd className="text-sm font-medium">
-              {detail.departure_date ? formatDate(detail.departure_date) : "-"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Total Pax</dt>
-            <dd className="text-sm font-medium">{detail.total_pax}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Total Amount</dt>
-            <dd className="text-sm font-medium">
-              {formatCurrency(Number(detail.total_amount))}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Payment Status</dt>
-            <dd className="text-sm font-medium">
-              <PaymentStatusBadge status={detail.payment_status} />
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Booking Status</dt>
-            <dd className="text-sm font-medium capitalize">
-              {formatLabel(detail.booking_status)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Created At</dt>
-            <dd className="text-sm font-medium">
-              {formatDateTime(detail.created_at)}
-            </dd>
-          </div>
-        </dl>
+
+          <BookingPaymentSummary
+            bookingTotalAmount={bookingTotalAmount}
+            payments={paymentRows}
+          />
+
+          <BookingPaymentsSection
+            bookingId={detail.id}
+            payments={paymentRows}
+          />
+        </div>
       </div>
-
-      <BookingParticipantsSection
-        bookingId={detail.id}
-        participants={participantRows}
-      />
-
-      <BookingPaymentsSection
-        bookingId={detail.id}
-        bookingTotalAmount={Number(detail.total_amount)}
-        payments={paymentRows}
-      />
     </div>
   );
 }

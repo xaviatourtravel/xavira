@@ -4,7 +4,10 @@ import { AiUsageCard } from "@/components/dashboard/ai-usage-card";
 import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
 import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
-import { BusinessAnalyticsCard } from "@/components/dashboard/business-analytics-card";
+import {
+  PaketTerlarisCard,
+  SumberLeadCard,
+} from "@/components/dashboard/business-analytics-card";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -149,27 +152,27 @@ for (const lead of sourceLeads ?? []) {
 
 const topSources = Object.entries(sourceStats)
   .sort((a, b) => b[1] - a[1]);
-  
-  const leadToWonRate =
-  totalLeads && totalLeads > 0
-    ? Math.round((funnel.won / totalLeads) * 100)
-    : 0;
 
-const proposalTotal =
-  funnel.proposal_sent + funnel.negotiating + funnel.won + funnel.lost;
-
-const proposalToWonRate =
-  proposalTotal > 0
-    ? Math.round((funnel.won / proposalTotal) * 100)
-    : 0;
-  
   for (const lead of pipelineLeads ?? []) {
     const status = lead.status as keyof typeof funnel;
-  
+
     if (status in funnel) {
       funnel[status]++;
     }
   }
+
+  const leadToWonRate =
+    totalLeads && totalLeads > 0
+      ? Math.round((funnel.won / totalLeads) * 100)
+      : 0;
+
+  const proposalTotal =
+    funnel.proposal_sent + funnel.negotiating + funnel.won + funnel.lost;
+
+  const proposalToWonRate =
+    proposalTotal > 0
+      ? Math.round((funnel.won / proposalTotal) * 100)
+      : 0;
   const aiUsage = {
     totalGenerations: aiLogs?.length ?? 0,
     inputTokens: 0,
@@ -226,8 +229,7 @@ const proposalToWonRate =
   const outstandingBalance = totalBookingAmount - paymentReceived;
     
   return (
-    <div className="space-y-6">
-
+    <div className="mx-auto w-full max-w-7xl space-y-6">
       <div>
         <h1 className="text-3xl font-bold">
           Dashboard
@@ -238,8 +240,7 @@ const proposalToWonRate =
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-6">
-
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-xl border p-6">
           <p className="text-sm text-muted-foreground">
             Total Leads
@@ -250,24 +251,24 @@ const proposalToWonRate =
           </h2>
         </div>
         <div className="rounded-xl border p-6">
-  <p className="text-sm text-muted-foreground">
-    Lead → Won
-  </p>
+          <p className="text-sm text-muted-foreground">
+            Lead → Won
+          </p>
 
-  <h2 className="mt-2 text-3xl font-bold">
-    {leadToWonRate}%
-  </h2>
-</div>
+          <h2 className="mt-2 text-3xl font-bold">
+            {leadToWonRate}%
+          </h2>
+        </div>
 
-<div className="rounded-xl border p-6">
-  <p className="text-sm text-muted-foreground">
-    Proposal → Won
-  </p>
+        <div className="rounded-xl border p-6">
+          <p className="text-sm text-muted-foreground">
+            Proposal → Won
+          </p>
 
-  <h2 className="mt-2 text-3xl font-bold">
-    {proposalToWonRate}%
-  </h2>
-</div>
+          <h2 className="mt-2 text-3xl font-bold">
+            {proposalToWonRate}%
+          </h2>
+        </div>
 
         <div className="rounded-xl border p-6">
           <p className="text-sm text-muted-foreground">
@@ -290,15 +291,14 @@ const proposalToWonRate =
         </div>
 
         <div className="rounded-xl border p-6">
-  <p className="text-sm text-muted-foreground">
-    Follow Up Hari Ini
-  </p>
+          <p className="text-sm text-muted-foreground">
+            Follow Up Hari Ini
+          </p>
 
-  <h2 className="mt-2 text-3xl font-bold text-blue-600">
-    {todayFollowUps?.length ?? 0}
-  </h2>
-</div>
-
+          <h2 className="mt-2 text-3xl font-bold text-blue-600">
+            {todayFollowUps?.length ?? 0}
+          </h2>
+        </div>
       </div>
 
       <div>
@@ -307,53 +307,54 @@ const proposalToWonRate =
           Ringkasan booking dan pembayaran organisasi.
         </p>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-xl border p-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border p-4">
             <p className="text-sm text-muted-foreground">Total Bookings</p>
-            <h2 className="mt-2 text-3xl font-bold">{totalBookings ?? 0}</h2>
+            <h2 className="mt-2 text-2xl font-bold">{totalBookings ?? 0}</h2>
           </div>
 
-          <div className="rounded-xl border p-6">
+          <div className="rounded-xl border p-4">
             <p className="text-sm text-muted-foreground">Total Pax</p>
-            <h2 className="mt-2 text-3xl font-bold">{totalPax}</h2>
+            <h2 className="mt-2 text-2xl font-bold">{totalPax}</h2>
           </div>
 
-          <div className="rounded-xl border p-6">
+          <div className="rounded-xl border p-4">
             <p className="text-sm text-muted-foreground">Payment Received</p>
-            <h2 className="mt-2 text-3xl font-bold">
+            <h2 className="mt-2 text-2xl font-bold">
               {formatCurrency(paymentReceived)}
             </h2>
           </div>
 
-          <div className="rounded-xl border p-6">
+          <div className="rounded-xl border p-4">
             <p className="text-sm text-muted-foreground">Outstanding</p>
-            <h2 className="mt-2 text-3xl font-bold">
+            <h2 className="mt-2 text-2xl font-bold">
               {formatCurrency(outstandingBalance)}
             </h2>
           </div>
         </div>
       </div>
 
-      <FollowUpTodayCard
-        todayFollowUps={todayFollowUps as FollowUpTodayTask[] | null}
-      />
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="space-y-6">
+          <FollowUpTodayCard
+            todayFollowUps={todayFollowUps as FollowUpTodayTask[] | null}
+          />
+          <PipelineSummaryCard funnel={funnel} />
+          <PaketTerlarisCard topPackages={topPackages} />
+        </div>
 
-<PipelineSummaryCard funnel={funnel} />
-
-<BusinessAnalyticsCard
-  topPackages={topPackages}
-  topSources={topSources}
-/>
-<AiUsageCard
-  totalGenerations={aiUsage.totalGenerations}
-  inputTokens={aiUsage.inputTokens}
-  outputTokens={aiUsage.outputTokens}
-  estimatedCostUsd={aiUsage.estimatedCostUsd}
-  totalAiTokens={totalAiTokens}
-/>
-<AiSalesCopilotCard
-  leads={topPriorityLeads}
-/>
+        <div className="space-y-6">
+          <AiSalesCopilotCard leads={topPriorityLeads} />
+          <AiUsageCard
+            totalGenerations={aiUsage.totalGenerations}
+            inputTokens={aiUsage.inputTokens}
+            outputTokens={aiUsage.outputTokens}
+            estimatedCostUsd={aiUsage.estimatedCostUsd}
+            totalAiTokens={totalAiTokens}
+          />
+          <SumberLeadCard topSources={topSources} />
+        </div>
+      </div>
     </div>
   );
 }

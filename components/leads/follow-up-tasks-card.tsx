@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FollowUpTaskTitle } from "@/components/leads/follow-up-task-title";
 
 export type FollowUpTaskItem = {
   id: string;
@@ -55,13 +56,12 @@ export function FollowUpTasksCard({
             className="rounded-lg border p-4"
           >
             <div className="flex items-center justify-between gap-2">
-  <div>
-    <h4 className="font-medium">
-      {task.title}
-    </h4>
-  </div>
+              <FollowUpTaskTitle
+                title={task.title}
+                titleClassName="font-medium"
+              />
 
-  <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
 
     <span className="text-xs rounded bg-slate-100 px-2 py-1">
       {task.status}

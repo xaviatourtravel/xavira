@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/auth/session";
+import { createAutomaticFirstFollowUpTask } from "@/lib/leads/first-follow-up";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -45,21 +46,27 @@ export async function createLead(formData: FormData) {
       .select("id")
       .single();
   
-    if (error) {
-      redirect(`/leads/new?error=${encodeURIComponent(error.message)}`);
+    if (error || !createdLead) {
+      redirect(
+        `/leads/new?error=${encodeURIComponent(error?.message ?? "Gagal membuat lead")}`,
+      );
     }
-  
-    if (createdLead) {
-      await supabase.from("lead_activities").insert({
-        organization_id: profile.organization_id,
-        lead_id: createdLead.id,
-        actor_id: profile.id,
-        activity_type: "note",
-        title: "Lead dibuat",
-        body: `Lead ${fullName} ditambahkan ke CRM.`,
-      });
-    }
-  
+
+    await supabase.from("lead_activities").insert({
+      organization_id: profile.organization_id,
+      lead_id: createdLead.id,
+      actor_id: profile.id,
+      activity_type: "note",
+      title: "Lead dibuat",
+      body: `Lead ${fullName} ditambahkan ke CRM.`,
+    });
+
+    await createAutomaticFirstFollowUpTask(
+      supabase,
+      profile,
+      createdLead.id,
+    );
+
     revalidatePath("/leads");
     redirect("/leads");
   }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
+import { createAutomaticStatusFollowUpTask } from "@/lib/leads/first-follow-up";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -296,21 +297,31 @@ export async function updateLead(formData: FormData) {
   if (!updatedLead) {
     redirect("/leads?error=Lead tidak ditemukan");
   }
-  if (updatedLead) {
-    const statusChanged =
-      existingLead?.status && existingLead.status !== status;
-  
-    await supabase.from("lead_activities").insert({
-      organization_id: profile.organization_id,
-      lead_id: leadId,
-      actor_id: profile.id,
-      activity_type: statusChanged ? "status_change" : "note",
-      title: statusChanged ? "Status lead berubah" : "Data lead diperbarui",
-      body: statusChanged
-        ? `Status berubah dari ${existingLead?.status} menjadi ${status}.`
-        : `Data lead ${fullName} diperbarui.`,
-    });
+
+  const previousStatus = existingLead?.status ?? "";
+  const statusChanged = Boolean(previousStatus && previousStatus !== status);
+
+  await supabase.from("lead_activities").insert({
+    organization_id: profile.organization_id,
+    lead_id: leadId,
+    actor_id: profile.id,
+    activity_type: statusChanged ? "status_change" : "note",
+    title: statusChanged ? "Status lead berubah" : "Data lead diperbarui",
+    body: statusChanged
+      ? `Status berubah dari ${previousStatus} menjadi ${status}.`
+      : `Data lead ${fullName} diperbarui.`,
+  });
+
+  if (statusChanged) {
+    await createAutomaticStatusFollowUpTask(
+      supabase,
+      profile,
+      leadId,
+      previousStatus,
+      status,
+    );
   }
+
   revalidatePath("/leads");
   revalidatePath(`/leads/${leadId}`);
   redirect(`/leads/${leadId}`);

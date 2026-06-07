@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { FollowUpTaskTitle } from "@/components/leads/follow-up-task-title";
+
 export type FollowUpTodayLead = {
   full_name: string | null;
   package_interest: string | null;
@@ -40,7 +42,10 @@ export function FollowUpTodayCard({
                     {task.leads?.full_name ?? "Lead"}
                   </p>
 
-                  <p className="text-sm text-muted-foreground">{task.title}</p>
+                  <FollowUpTaskTitle
+                    title={task.title}
+                    className="text-sm text-muted-foreground"
+                  />
 
                   <p className="text-xs text-muted-foreground">
                     {task.leads?.package_interest ?? "-"}

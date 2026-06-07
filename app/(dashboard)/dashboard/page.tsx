@@ -6,6 +6,7 @@ import { AiUsageCard } from "@/components/dashboard/ai-usage-card";
 import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
 import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
+import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import { getLeadAgingCutoffIso } from "@/lib/leads/assignment";
 import {
@@ -43,6 +44,13 @@ const myLeadsBaseQuery = () =>
     .eq("assigned_to", profile.id)
     .is("deleted_at", null);
 
+const orgLeadsBaseQuery = () =>
+  supabase
+    .from("leads")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null);
+
 const [
   { count: totalLeads },
   { count: pendingFollowUps },
@@ -59,6 +67,9 @@ const [
   { count: myLeadsNeedFollowUp },
   { count: myLeadsCritical },
   { count: myLeadsWon },
+  { count: leadsInactive3Days },
+  { count: leadsInactive7Days },
+  { count: unassignedLeads },
 ] = await Promise.all([
   
     supabase
@@ -144,6 +155,13 @@ const [
     .not("status", "in", "(won,lost)")
     .lt("updated_at", sevenDaysAgoIso),
   myLeadsBaseQuery().eq("status", "won"),
+  orgLeadsBaseQuery()
+    .not("status", "in", "(won,lost)")
+    .lt("updated_at", threeDaysAgoIso),
+  orgLeadsBaseQuery()
+    .not("status", "in", "(won,lost)")
+    .lt("updated_at", sevenDaysAgoIso),
+  orgLeadsBaseQuery().is("assigned_to", null),
 ]);
 
   const funnel = {
@@ -307,7 +325,7 @@ const topSources = Object.entries(sourceStats)
           </h2>
         </div>
 
-        <div className="rounded-xl border p-6">
+        <div id="follow-up-overdue" className="rounded-xl border p-6">
           <p className="text-sm text-muted-foreground">
             Follow Up Terlambat
           </p>
@@ -334,6 +352,15 @@ const topSources = Object.entries(sourceStats)
           needFollowUp: myLeadsNeedFollowUp ?? 0,
           criticalLeads: myLeadsCritical ?? 0,
           wonLeads: myLeadsWon ?? 0,
+        }}
+      />
+
+      <NeedAttentionCard
+        metrics={{
+          overdueFollowUps: overdueFollowUps ?? 0,
+          leadsInactive3Days: leadsInactive3Days ?? 0,
+          leadsInactive7Days: leadsInactive7Days ?? 0,
+          unassignedLeads: unassignedLeads ?? 0,
         }}
       />
 

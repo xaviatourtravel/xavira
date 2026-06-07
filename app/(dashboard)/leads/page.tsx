@@ -13,6 +13,8 @@ import {
 import {
   buildLeadsListHref,
   getActiveLeadFilterBadges,
+  getOverdueFollowUpLeadIds,
+  isOverdueFollowUpFilter,
   parseLeadsListFilters,
   resolveLeadsListAssignedFilter,
   type LeadsListSearchParams,
@@ -81,6 +83,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const activeFilterBadges = getActiveLeadFilterBadges(filters, profiles);
   const filtersActive = activeFilterBadges.length > 0;
 
+  const overdueLeadIds = isOverdueFollowUpFilter(filters.followUp)
+    ? await getOverdueFollowUpLeadIds(supabase, profile.organization_id)
+    : null;
+
   let query = supabase
     .from("leads")
     .select(
@@ -128,6 +134,27 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     }
   }
 
+  if (isOverdueFollowUpFilter(filters.followUp)) {
+    if (!overdueLeadIds?.length) {
+      const rows: LeadRow[] = [];
+      const totalPages = 1;
+
+      return (
+        <LeadsPageContent
+          filters={filters}
+          profiles={profiles}
+          activeFilterBadges={activeFilterBadges}
+          filtersActive={filtersActive}
+          rows={rows}
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
+      );
+    }
+
+    query = query.in("id", overdueLeadIds);
+  }
+
   const { data: leads, error, count } = await query
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -139,6 +166,38 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const rows = (leads ?? []) as LeadRow[];
   const totalPages = Math.max(Math.ceil((count ?? 0) / pageSize), 1);
 
+  return (
+    <LeadsPageContent
+      filters={filters}
+      profiles={profiles}
+      activeFilterBadges={activeFilterBadges}
+      filtersActive={filtersActive}
+      rows={rows}
+      currentPage={currentPage}
+      totalPages={totalPages}
+    />
+  );
+}
+
+type LeadsPageContentProps = {
+  filters: ReturnType<typeof parseLeadsListFilters>;
+  profiles: OrgProfileOption[];
+  activeFilterBadges: ReturnType<typeof getActiveLeadFilterBadges>;
+  filtersActive: boolean;
+  rows: LeadRow[];
+  currentPage: number;
+  totalPages: number;
+};
+
+function LeadsPageContent({
+  filters,
+  profiles,
+  activeFilterBadges,
+  filtersActive,
+  rows,
+  currentPage,
+  totalPages,
+}: LeadsPageContentProps) {
   return (
     <div className="space-y-6">
       <div className="flex gap-2">
@@ -161,6 +220,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
         {filters.aging != null && (
           <input type="hidden" name="aging" value={String(filters.aging)} />
+        )}
+
+        {filters.followUp && (
+          <input type="hidden" name="follow_up" value={filters.followUp} />
         )}
 
         <input

@@ -3,6 +3,9 @@ import {
   parseLeadAgingFilter,
   resolveLeadAssignedFilter,
 } from "@/lib/leads/assignment";
+import type { createClient } from "@/utils/supabase/server";
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type LeadsListFilters = {
   q: string;
@@ -10,6 +13,7 @@ export type LeadsListFilters = {
   assigned: string;
   assignedTo: string;
   aging: number | null;
+  followUp: string;
 };
 
 export type LeadsListSearchParams = {
@@ -18,6 +22,7 @@ export type LeadsListSearchParams = {
   assigned?: string;
   assigned_to?: string;
   aging?: string;
+  follow_up?: string;
   page?: string;
 };
 
@@ -30,6 +35,7 @@ export function parseLeadsListFilters(
     assigned: params.assigned?.trim() ?? "",
     assignedTo: params.assigned_to?.trim() ?? "",
     aging: parseLeadAgingFilter(params.aging?.trim() ?? ""),
+    followUp: params.follow_up?.trim() ?? "",
   };
 }
 
@@ -63,6 +69,10 @@ export function buildLeadsListHref(
 
   if (!omit.has("aging") && filters.aging != null) {
     params.set("aging", String(filters.aging));
+  }
+
+  if (!omit.has("followUp") && filters.followUp) {
+    params.set("follow_up", filters.followUp);
   }
 
   if (options?.page != null && options.page > 1) {
@@ -111,6 +121,12 @@ export function getActiveLeadFilterBadges(
       label: "Assigned to Me",
       href: buildLeadsListHref(filters, { omit: ["assignedTo"] }),
     });
+  } else if (filters.assignedTo === "unassigned") {
+    badges.push({
+      key: "assignedTo",
+      label: "Unassigned",
+      href: buildLeadsListHref(filters, { omit: ["assignedTo"] }),
+    });
   } else if (filters.assigned === "unassigned") {
     badges.push({
       key: "assigned",
@@ -129,14 +145,22 @@ export function getActiveLeadFilterBadges(
   if (filters.aging === 3) {
     badges.push({
       key: "aging",
-      label: "Need Follow Up (>3 days)",
+      label: "Inactive > 3 Days",
       href: buildLeadsListHref(filters, { omit: ["aging"] }),
     });
   } else if (filters.aging === 7) {
     badges.push({
       key: "aging",
-      label: "Critical Leads (>7 days)",
+      label: "Inactive > 7 Days",
       href: buildLeadsListHref(filters, { omit: ["aging"] }),
+    });
+  }
+
+  if (filters.followUp === "overdue") {
+    badges.push({
+      key: "followUp",
+      label: "Overdue Follow Up",
+      href: buildLeadsListHref(filters, { omit: ["followUp"] }),
     });
   }
 
@@ -161,4 +185,32 @@ export function resolveLeadsListAssignedFilter(
     currentProfileId,
     validProfileIds,
   });
+}
+
+export function isOverdueFollowUpFilter(followUp: string) {
+  return followUp === "overdue";
+}
+
+export async function getOverdueFollowUpLeadIds(
+  supabase: SupabaseServerClient,
+  organizationId: string,
+) {
+  const { data: overdueTasks, error } = await supabase
+    .from("follow_up_tasks")
+    .select("lead_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "pending")
+    .lt("due_date", new Date().toISOString());
+
+  if (error) {
+    throw new Error("Gagal memuat follow up terlambat.");
+  }
+
+  return [
+    ...new Set(
+      (overdueTasks ?? [])
+        .map((task) => task.lead_id)
+        .filter((leadId): leadId is string => Boolean(leadId)),
+    ),
+  ];
 }

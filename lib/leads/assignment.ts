@@ -57,6 +57,10 @@ export function resolveLeadAssignedFilter({
     return { type: "profile" as const, profileId: currentProfileId };
   }
 
+  if (assignedToParam === "unassigned") {
+    return { type: "unassigned" as const };
+  }
+
   return buildAssignedUserFilter(assignedParam, validProfileIds);
 }
 
@@ -85,4 +89,11 @@ export type MyLeadsMetrics = {
   needFollowUp: number;
   criticalLeads: number;
   wonLeads: number;
+};
+
+export type NeedAttentionMetrics = {
+  overdueFollowUps: number;
+  leadsInactive3Days: number;
+  leadsInactive7Days: number;
+  unassignedLeads: number;
 };

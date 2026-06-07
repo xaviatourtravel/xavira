@@ -13,12 +13,15 @@ import {
 import {
   buildLeadsListHref,
   getActiveLeadFilterBadges,
+  getLeadIdsForHealthFilterQuery,
   getOverdueFollowUpLeadIds,
+  isLeadHealthFilter,
   isOverdueFollowUpFilter,
   parseLeadsListFilters,
   resolveLeadsListAssignedFilter,
   type LeadsListSearchParams,
 } from "@/lib/leads/list-filters";
+import { parseLeadHealthFilter } from "@/lib/leads/health-score";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -87,6 +90,29 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     ? await getOverdueFollowUpLeadIds(supabase, profile.organization_id)
     : null;
 
+  const healthFilter = parseLeadHealthFilter(filters.health);
+  const healthLeadIds = healthFilter
+    ? await getLeadIdsForHealthFilterQuery(
+        supabase,
+        profile.organization_id,
+        healthFilter,
+      )
+    : null;
+
+  if (healthFilter && healthLeadIds?.length === 0) {
+    return (
+      <LeadsPageContent
+        filters={filters}
+        profiles={profiles}
+        activeFilterBadges={activeFilterBadges}
+        filtersActive={filtersActive}
+        rows={[]}
+        currentPage={1}
+        totalPages={1}
+      />
+    );
+  }
+
   let query = supabase
     .from("leads")
     .select(
@@ -153,6 +179,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     }
 
     query = query.in("id", overdueLeadIds);
+  }
+
+  if (healthFilter && healthLeadIds) {
+    query = query.in("id", healthLeadIds);
   }
 
   const { data: leads, error, count } = await query
@@ -224,6 +254,10 @@ function LeadsPageContent({
 
         {filters.followUp && (
           <input type="hidden" name="follow_up" value={filters.followUp} />
+        )}
+
+        {isLeadHealthFilter(filters.health) && (
+          <input type="hidden" name="health" value={filters.health} />
         )}
 
         <input

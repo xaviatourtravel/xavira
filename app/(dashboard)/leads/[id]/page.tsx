@@ -28,6 +28,8 @@ import { QuotationCard } from "@/components/leads/quotation-card";
 import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
 import { AiRecommendationCard } from "@/components/leads/ai-recommendation-card";
 import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
+import { calculateLeadHealthScore } from "@/lib/leads/health-score";
+import { LeadHealthScoreCard } from "@/components/leads/lead-health-score-card";
 import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
 import {
   ActivityTimelineCard,
@@ -210,6 +212,12 @@ export default async function LeadDetailPage({
     detail.status,
     followUpTasks,
   );
+  const healthScore = calculateLeadHealthScore({
+    assignedTo: detail.assigned_to,
+    updatedAt: detail.updated_at,
+    status: detail.status,
+    followUpTaskCount: followUpTasks.length,
+  });
   const { data: selectedPackage } = detail.package_interest
   ? await supabase
       .from("packages")
@@ -433,6 +441,8 @@ Terima kasih.`
         </div>
 
         <div className="space-y-6 lg:col-span-1">
+      <LeadHealthScoreCard healthScore={healthScore} />
+
       <AiRecommendationCard
         leadId={detail.id}
         fullName={detail.full_name}

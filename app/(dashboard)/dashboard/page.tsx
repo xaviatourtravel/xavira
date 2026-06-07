@@ -7,6 +7,7 @@ import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card
 import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
+import { LeadHealthOverviewCard } from "@/components/dashboard/lead-health-overview-card";
 import { SalesPerformanceCard } from "@/components/dashboard/sales-performance-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import {
@@ -14,6 +15,10 @@ import {
   shouldShowSalesPerformanceEmptyState,
 } from "@/lib/dashboard/sales-performance";
 import { getLeadAgingCutoffIso } from "@/lib/leads/assignment";
+import {
+  buildFollowUpCountByLeadId,
+  buildLeadHealthOverviewCounts,
+} from "@/lib/leads/health-score";
 import {
   PaketTerlarisCard,
   SumberLeadCard,
@@ -77,6 +82,8 @@ const [
   { count: unassignedLeads },
   { data: orgProfiles },
   { data: assignedLeadsForPerformance },
+  { data: activeLeadsForHealth },
+  { data: orgFollowUpTasksForHealth },
 ] = await Promise.all([
   
     supabase
@@ -180,6 +187,16 @@ const [
     .eq("organization_id", profile.organization_id)
     .is("deleted_at", null)
     .not("assigned_to", "is", null),
+  supabase
+    .from("leads")
+    .select("id, assigned_to, updated_at, status")
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .not("status", "in", "(won,lost)"),
+  supabase
+    .from("follow_up_tasks")
+    .select("lead_id")
+    .eq("organization_id", profile.organization_id),
 ]);
 
   const funnel = {
@@ -300,6 +317,10 @@ const topSources = Object.entries(sourceStats)
     orgProfiles ?? [],
     salesPerformanceRows,
   );
+  const leadHealthOverviewCounts = buildLeadHealthOverviewCounts(
+    activeLeadsForHealth ?? [],
+    buildFollowUpCountByLeadId(orgFollowUpTasksForHealth ?? []),
+  );
     
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -391,6 +412,8 @@ const topSources = Object.entries(sourceStats)
           unassignedLeads: unassignedLeads ?? 0,
         }}
       />
+
+      <LeadHealthOverviewCard counts={leadHealthOverviewCounts} />
 
       <SalesPerformanceCard
         rows={salesPerformanceRows}

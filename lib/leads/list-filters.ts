@@ -1,4 +1,11 @@
 import {
+  buildFollowUpCountByLeadId,
+  getLeadHealthFilterLabel,
+  getLeadIdsForHealthFilter,
+  parseLeadHealthFilter,
+  type LeadHealthFilter,
+} from "@/lib/leads/health-score";
+import {
   type OrgProfileOption,
   parseLeadAgingFilter,
   resolveLeadAssignedFilter,
@@ -14,6 +21,7 @@ export type LeadsListFilters = {
   assignedTo: string;
   aging: number | null;
   followUp: string;
+  health: string;
 };
 
 export type LeadsListSearchParams = {
@@ -23,6 +31,7 @@ export type LeadsListSearchParams = {
   assigned_to?: string;
   aging?: string;
   follow_up?: string;
+  health?: string;
   page?: string;
 };
 
@@ -36,6 +45,7 @@ export function parseLeadsListFilters(
     assignedTo: params.assigned_to?.trim() ?? "",
     aging: parseLeadAgingFilter(params.aging?.trim() ?? ""),
     followUp: params.follow_up?.trim() ?? "",
+    health: params.health?.trim() ?? "",
   };
 }
 
@@ -73,6 +83,10 @@ export function buildLeadsListHref(
 
   if (!omit.has("followUp") && filters.followUp) {
     params.set("follow_up", filters.followUp);
+  }
+
+  if (!omit.has("health") && filters.health) {
+    params.set("health", filters.health);
   }
 
   if (options?.page != null && options.page > 1) {
@@ -164,6 +178,15 @@ export function getActiveLeadFilterBadges(
     });
   }
 
+  const healthFilter = parseLeadHealthFilter(filters.health);
+  if (healthFilter) {
+    badges.push({
+      key: "health",
+      label: getLeadHealthFilterLabel(healthFilter),
+      href: buildLeadsListHref(filters, { omit: ["health"] }),
+    });
+  }
+
   return badges;
 }
 
@@ -189,6 +212,40 @@ export function resolveLeadsListAssignedFilter(
 
 export function isOverdueFollowUpFilter(followUp: string) {
   return followUp === "overdue";
+}
+
+export function isLeadHealthFilter(health: string): health is LeadHealthFilter {
+  return parseLeadHealthFilter(health) != null;
+}
+
+export async function getLeadIdsForHealthFilterQuery(
+  supabase: SupabaseServerClient,
+  organizationId: string,
+  filter: LeadHealthFilter,
+) {
+  const [{ data: leads, error: leadsError }, { data: followUpTasks, error: tasksError }] =
+    await Promise.all([
+      supabase
+        .from("leads")
+        .select("id, assigned_to, updated_at, status")
+        .eq("organization_id", organizationId)
+        .is("deleted_at", null)
+        .not("status", "in", "(won,lost)"),
+      supabase
+        .from("follow_up_tasks")
+        .select("lead_id")
+        .eq("organization_id", organizationId),
+    ]);
+
+  if (leadsError || tasksError) {
+    throw new Error("Gagal memuat filter health lead.");
+  }
+
+  return getLeadIdsForHealthFilter(
+    leads ?? [],
+    buildFollowUpCountByLeadId(followUpTasks ?? []),
+    filter,
+  );
 }
 
 export async function getOverdueFollowUpLeadIds(

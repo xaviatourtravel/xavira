@@ -116,12 +116,84 @@ async function getBookingForOrg(
 ) {
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id")
+    .select("id, lead_id, organization_id")
     .eq("id", bookingId)
     .eq("organization_id", organizationId)
     .maybeSingle();
 
   return booking;
+}
+
+function formatPaymentTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    dp: "DP",
+    installment: "Installment",
+    final: "Final",
+  };
+
+  return labels[value] ?? value;
+}
+
+function formatPaymentActivityBody(paymentType: string, amount: number) {
+  const formattedAmount = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+  return `${formatPaymentTypeLabel(paymentType)} sebesar ${formattedAmount} telah dicatat.`;
+}
+
+async function logLeadActivityForBookingPayment(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  booking: { lead_id: string | null; organization_id: string },
+  actorId: string,
+  paymentType: string,
+  amount: number,
+) {
+  if (!booking.lead_id) {
+    return;
+  }
+
+  await supabase.from("lead_activities").insert({
+    organization_id: booking.organization_id,
+    lead_id: booking.lead_id,
+    actor_id: actorId,
+    activity_type: "note",
+    title: "Payment Ditambahkan",
+    body: formatPaymentActivityBody(paymentType, amount),
+  });
+}
+
+function formatPaymentUpdatedActivityBody(paymentType: string, amount: number) {
+  const formattedAmount = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+  return `Payment ${formatPaymentTypeLabel(paymentType)} diperbarui menjadi ${formattedAmount}.`;
+}
+
+async function logLeadActivityForBookingPaymentUpdate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  booking: { lead_id: string | null; organization_id: string },
+  actorId: string,
+  paymentType: string,
+  amount: number,
+) {
+  if (!booking.lead_id) {
+    return;
+  }
+
+  await supabase.from("lead_activities").insert({
+    organization_id: booking.organization_id,
+    lead_id: booking.lead_id,
+    actor_id: actorId,
+    activity_type: "note",
+    title: "Payment Diperbarui",
+    body: formatPaymentUpdatedActivityBody(paymentType, amount),
+  });
 }
 
 async function syncBookingPaymentStatus(
@@ -411,6 +483,14 @@ export async function createBookingPayment(formData: FormData) {
     );
   }
 
+  await logLeadActivityForBookingPayment(
+    supabase,
+    booking,
+    profile.id,
+    paymentType,
+    amount,
+  );
+
   await syncBookingPaymentStatus(
     supabase,
     bookingId,
@@ -419,6 +499,9 @@ export async function createBookingPayment(formData: FormData) {
 
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${bookingId}`, "page");
+  if (booking.lead_id) {
+    revalidatePath(`/leads/${booking.lead_id}`);
+  }
   redirect(
     `/bookings/${bookingId}?success=${encodeURIComponent("Payment berhasil ditambahkan.")}`,
   );
@@ -499,6 +582,14 @@ export async function updateBookingPayment(formData: FormData) {
     );
   }
 
+  await logLeadActivityForBookingPaymentUpdate(
+    supabase,
+    booking,
+    profile.id,
+    paymentType,
+    amount,
+  );
+
   await syncBookingPaymentStatus(
     supabase,
     bookingId,
@@ -507,6 +598,9 @@ export async function updateBookingPayment(formData: FormData) {
 
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${bookingId}`, "page");
+  if (booking.lead_id) {
+    revalidatePath(`/leads/${booking.lead_id}`);
+  }
   redirect(
     `/bookings/${bookingId}?success=${encodeURIComponent("Payment berhasil diperbarui.")}`,
   );

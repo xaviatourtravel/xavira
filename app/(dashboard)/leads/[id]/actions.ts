@@ -51,6 +51,20 @@ function generateBookingCode() {
   return `BK-${datePart}-${randomPart}`;
 }
 
+function formatBookingCreatedActivityBody(
+  bookingCode: string | null,
+  packageName: string | null,
+) {
+  const code = bookingCode?.trim() || "baru";
+  const packageLabel = packageName?.trim();
+
+  if (packageLabel) {
+    return `Booking ${code} untuk paket ${packageLabel} berhasil dibuat.`;
+  }
+
+  return `Booking ${code} berhasil dibuat.`;
+}
+
 const ACTIVITY_TYPES = [
   "note",
   "call",
@@ -418,7 +432,7 @@ export async function convertLeadToBooking(formData: FormData) {
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, full_name, package_interest, party_size")
+    .select("id, full_name, package_interest, party_size, organization_id")
     .eq("id", leadId)
     .eq("organization_id", profile.organization_id)
     .is("deleted_at", null)
@@ -480,7 +494,7 @@ export async function convertLeadToBooking(formData: FormData) {
       total_pax: totalPax,
       total_amount: totalAmount,
     })
-    .select("id")
+    .select("id, booking_code")
     .maybeSingle();
 
   if (error || !booking) {
@@ -488,6 +502,18 @@ export async function convertLeadToBooking(formData: FormData) {
       `/leads/${leadId}?error=${encodeURIComponent(error?.message ?? "Gagal membuat booking")}`,
     );
   }
+
+  await supabase.from("lead_activities").insert({
+    organization_id: lead.organization_id,
+    lead_id: leadId,
+    actor_id: profile.id,
+    activity_type: "note",
+    title: "Booking Dibuat",
+    body: formatBookingCreatedActivityBody(
+      booking.booking_code,
+      lead.package_interest,
+    ),
+  });
 
   revalidatePath("/bookings");
   revalidatePath(`/leads/${leadId}`);

@@ -7,7 +7,12 @@ import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card
 import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
+import { SalesPerformanceCard } from "@/components/dashboard/sales-performance-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
+import {
+  buildSalesPerformanceRows,
+  shouldShowSalesPerformanceEmptyState,
+} from "@/lib/dashboard/sales-performance";
 import { getLeadAgingCutoffIso } from "@/lib/leads/assignment";
 import {
   PaketTerlarisCard,
@@ -70,6 +75,8 @@ const [
   { count: leadsInactive3Days },
   { count: leadsInactive7Days },
   { count: unassignedLeads },
+  { data: orgProfiles },
+  { data: assignedLeadsForPerformance },
 ] = await Promise.all([
   
     supabase
@@ -162,6 +169,17 @@ const [
     .not("status", "in", "(won,lost)")
     .lt("updated_at", sevenDaysAgoIso),
   orgLeadsBaseQuery().is("assigned_to", null),
+  supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("organization_id", profile.organization_id)
+    .order("full_name"),
+  supabase
+    .from("leads")
+    .select("assigned_to, status, updated_at")
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .not("assigned_to", "is", null),
 ]);
 
   const funnel = {
@@ -272,6 +290,16 @@ const topSources = Object.entries(sourceStats)
     0,
   );
   const outstandingBalance = totalBookingAmount - paymentReceived;
+
+  const salesPerformanceRows = buildSalesPerformanceRows(
+    orgProfiles ?? [],
+    assignedLeadsForPerformance ?? [],
+    threeDaysAgoIso,
+  );
+  const showSalesPerformanceEmptyState = shouldShowSalesPerformanceEmptyState(
+    orgProfiles ?? [],
+    salesPerformanceRows,
+  );
     
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -362,6 +390,11 @@ const topSources = Object.entries(sourceStats)
           leadsInactive7Days: leadsInactive7Days ?? 0,
           unassignedLeads: unassignedLeads ?? 0,
         }}
+      />
+
+      <SalesPerformanceCard
+        rows={salesPerformanceRows}
+        showEmptyState={showSalesPerformanceEmptyState}
       />
 
       <div>

@@ -1,15 +1,25 @@
-import Link from "next/link";
-
 import { completeFollowUpTaskFromCenter } from "@/app/(dashboard)/follow-ups/actions";
-import { FollowUpsFilters } from "@/components/follow-ups/follow-ups-filters";
-import { FollowUpTaskTitle } from "@/components/leads/follow-up-task-title";
-import { requireProfile } from "@/lib/auth/session";
 import {
+  FollowUpCenterTable,
+  type FollowUpCenterTask,
+} from "@/components/follow-ups/follow-up-center-table";
+import { FollowUpsFilters } from "@/components/follow-ups/follow-ups-filters";
+import { requireProfile } from "@/lib/auth/session";
+import type { OrgProfileOption } from "@/lib/leads/assignment";
+import {
+  getFollowUpCenterLeadIdsForAssignee,
   getFollowUpTodayBounds,
-  parseFollowUpCenterFilter,
+  parseFollowUpCenterQuery,
+  resolveFollowUpCenterAssignedFilter,
   type FollowUpCenterSearchParams,
 } from "@/lib/follow-ups/list-filters";
 import { createClient } from "@/utils/supabase/server";
+
+type FollowUpLead = {
+  full_name: string | null;
+  whatsapp_number: string | null;
+  phone: string | null;
+};
 
 type FollowUpTaskRow = {
   id: string;
@@ -17,10 +27,7 @@ type FollowUpTaskRow = {
   due_date: string;
   status: string;
   lead_id: string;
-  leads:
-    | { full_name: string | null }
-    | { full_name: string | null }[]
-    | null;
+  leads: FollowUpLead | FollowUpLead[] | null;
 };
 
 type FollowUpsPageProps = {
@@ -39,14 +46,35 @@ function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
-function getLeadName(
-  leads: FollowUpTaskRow["leads"],
-) {
+function getLeadRecord(leads: FollowUpTaskRow["leads"]) {
   const lead = Array.isArray(leads) ? leads[0] : leads;
-  return lead?.full_name ?? "Lead";
+  return lead ?? null;
 }
 
-function getEmptyMessage(filter: ReturnType<typeof parseFollowUpCenterFilter>) {
+function getLeadName(leads: FollowUpTaskRow["leads"]) {
+  return getLeadRecord(leads)?.full_name ?? "Lead";
+}
+
+function getWhatsAppHref(leads: FollowUpTaskRow["leads"]) {
+  const lead = getLeadRecord(leads);
+  const phone = lead?.whatsapp_number || lead?.phone;
+
+  if (!phone) {
+    return null;
+  }
+
+  const cleaned = phone.replace(/\D/g, "");
+  return cleaned ? `https://wa.me/${cleaned}` : null;
+}
+
+function getEmptyMessage(
+  filter: ReturnType<typeof parseFollowUpCenterQuery>["filter"],
+  hasAssigneeFilter: boolean,
+) {
+  if (hasAssigneeFilter) {
+    return "Tidak ada follow up untuk filter assignee ini.";
+  }
+
   switch (filter) {
     case "today":
       return "Tidak ada follow up jatuh tempo hari ini.";
@@ -63,49 +91,95 @@ export default async function FollowUpsPage({ searchParams }: FollowUpsPageProps
   const { profile } = await requireProfile();
   const supabase = await createClient();
   const params = await searchParams;
-  const filter = parseFollowUpCenterFilter(params);
+  const { filter, assigned } = parseFollowUpCenterQuery(params);
   const { todayStart, todayEnd } = getFollowUpTodayBounds();
   const nowIso = new Date().toISOString();
 
-  let query = supabase
-    .from("follow_up_tasks")
-    .select(
-      `
-      id,
-      title,
-      due_date,
-      status,
-      lead_id,
-      leads (
-        full_name
+  const { data: orgProfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("organization_id", profile.organization_id)
+    .order("full_name");
+
+  const profiles = (orgProfiles ?? []) as OrgProfileOption[];
+  const validProfileIds = new Set(profiles.map((member) => member.id));
+  const assignedFilter = resolveFollowUpCenterAssignedFilter(
+    assigned,
+    profile.id,
+    validProfileIds,
+  );
+  const hasAssigneeFilter = assignedFilter.type !== "all";
+
+  const assigneeLeadIds = hasAssigneeFilter
+    ? await getFollowUpCenterLeadIdsForAssignee(
+        supabase,
+        profile.organization_id,
+        assignedFilter,
       )
-    `,
-    )
-    .eq("organization_id", profile.organization_id);
+    : null;
 
-  if (filter === "completed") {
-    query = query.eq("status", "completed");
+  let rows: FollowUpTaskRow[] = [];
+
+  if (assigneeLeadIds && assigneeLeadIds.length === 0) {
+    rows = [];
   } else {
-    query = query.eq("status", "pending");
+    let query = supabase
+      .from("follow_up_tasks")
+      .select(
+        `
+        id,
+        title,
+        due_date,
+        status,
+        lead_id,
+        leads (
+          full_name,
+          whatsapp_number,
+          phone
+        )
+      `,
+      )
+      .eq("organization_id", profile.organization_id);
 
-    if (filter === "today") {
-      query = query
-        .gte("due_date", todayStart.toISOString())
-        .lte("due_date", todayEnd.toISOString());
-    } else if (filter === "overdue") {
-      query = query.lt("due_date", nowIso);
+    if (assigneeLeadIds) {
+      query = query.in("lead_id", assigneeLeadIds);
     }
+
+    if (filter === "completed") {
+      query = query.eq("status", "completed");
+    } else {
+      query = query.eq("status", "pending");
+
+      if (filter === "today") {
+        query = query
+          .gte("due_date", todayStart.toISOString())
+          .lte("due_date", todayEnd.toISOString());
+      } else if (filter === "overdue") {
+        query = query.lt("due_date", nowIso);
+      }
+    }
+
+    const { data: tasks, error } = await query.order("due_date", {
+      ascending: filter !== "completed",
+    });
+
+    if (error) {
+      throw new Error("Gagal memuat data follow up.");
+    }
+
+    rows = (tasks ?? []) as FollowUpTaskRow[];
   }
 
-  const { data: tasks, error } = await query.order("due_date", {
-    ascending: filter !== "completed",
-  });
-
-  if (error) {
-    throw new Error("Gagal memuat data follow up.");
-  }
-
-  const rows = (tasks ?? []) as FollowUpTaskRow[];
+  const tableTasks: FollowUpCenterTask[] = rows.map((task) => ({
+    id: task.id,
+    title: task.title,
+    dueDateLabel: formatDateTime(task.due_date),
+    status: task.status,
+    statusLabel: formatLabel(task.status),
+    leadId: task.lead_id,
+    leadName: getLeadName(task.leads),
+    whatsAppHref: getWhatsAppHref(task.leads),
+  }));
 
   return (
     <div className="space-y-6">
@@ -128,82 +202,26 @@ export default async function FollowUpsPage({ searchParams }: FollowUpsPageProps
         </div>
       )}
 
-      <FollowUpsFilters activeFilter={filter} />
+      <FollowUpsFilters
+        activeFilter={filter}
+        activeAssigned={assigned}
+        profiles={profiles}
+      />
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">
           <h2 className="text-lg font-medium">Tidak ada follow up</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {getEmptyMessage(filter)}
+            {getEmptyMessage(filter, hasAssigneeFilter)}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[900px] text-sm">
-            <thead className="border-b bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Judul</th>
-                <th className="px-4 py-3 font-medium">Nama Lead</th>
-                <th className="px-4 py-3 font-medium">Jatuh Tempo</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((task) => (
-                <tr key={task.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3">
-                    <FollowUpTaskTitle title={task.title} />
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    <Link
-                      href={`/leads/${task.lead_id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {getLeadName(task.leads)}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    {formatDateTime(task.due_date)}
-                  </td>
-                  <td className="px-4 py-3 capitalize">
-                    <span className="rounded bg-slate-100 px-2 py-1 text-xs">
-                      {formatLabel(task.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/leads/${task.lead_id}`}
-                        className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
-                      >
-                        Detail Lead
-                      </Link>
-
-                      {task.status !== "completed" && (
-                        <form action={completeFollowUpTaskFromCenter}>
-                          <input type="hidden" name="lead_id" value={task.lead_id} />
-                          <input type="hidden" name="task_id" value={task.id} />
-                          <input
-                            type="hidden"
-                            name="return_filter"
-                            value={filter}
-                          />
-                          <button
-                            type="submit"
-                            className="rounded bg-green-600 px-2 py-1 text-xs text-white"
-                          >
-                            Selesai
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <FollowUpCenterTable
+          tasks={tableTasks}
+          filter={filter}
+          assigned={assigned}
+          completeFollowUpTask={completeFollowUpTaskFromCenter}
+        />
       )}
     </div>
   );

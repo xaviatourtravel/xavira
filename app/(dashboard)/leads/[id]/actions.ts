@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
-import { createAutomaticStatusFollowUpTask } from "@/lib/leads/first-follow-up";
+import {
+  createAutomaticStatusFollowUpTask,
+  getFollowUpDueDateInDays,
+} from "@/lib/leads/first-follow-up";
+import {
+  getLeadNextBestAction,
+  getRecommendationFollowUpDueDays,
+  getRecommendationFollowUpTaskTitle,
+} from "@/lib/leads/next-best-action";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -162,6 +170,78 @@ export async function createLeadActivity(formData: FormData) {
   
     revalidatePath(`/leads/${leadId}`);
     redirect(`/leads/${leadId}`);
+  }
+
+  export async function createFollowUpFromRecommendation(formData: FormData) {
+    const { profile } = await requireProfile();
+    const supabase = await createClient();
+
+    const leadId = getString(formData, "lead_id");
+
+    if (!leadId) {
+      redirect("/leads?error=Lead tidak ditemukan");
+    }
+
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id, status, updated_at")
+      .eq("id", leadId)
+      .eq("organization_id", profile.organization_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (!lead) {
+      redirect("/leads?error=Lead tidak ditemukan");
+    }
+
+    const recommendation = getLeadNextBestAction({
+      status: lead.status,
+      updatedAt: lead.updated_at,
+    });
+    const taskTitle = getRecommendationFollowUpTaskTitle(lead.status);
+    const dueDays = getRecommendationFollowUpDueDays(recommendation.priority);
+
+    const { data: existingTask } = await supabase
+      .from("follow_up_tasks")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("organization_id", profile.organization_id)
+      .eq("status", "pending")
+      .eq("title", taskTitle)
+      .maybeSingle();
+
+    if (existingTask) {
+      redirect(
+        `/leads/${leadId}?error=${encodeURIComponent("Follow up rekomendasi sudah dijadwalkan.")}`,
+      );
+    }
+
+    const { error } = await supabase.from("follow_up_tasks").insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      title: taskTitle,
+      status: "pending",
+      due_date: getFollowUpDueDateInDays(dueDays),
+      created_by: profile.id,
+    });
+
+    if (error) {
+      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+    }
+
+    await supabase.from("lead_activities").insert({
+      organization_id: profile.organization_id,
+      lead_id: leadId,
+      actor_id: profile.id,
+      activity_type: "note",
+      title: "Follow Up dibuat dari AI Recommendation",
+      body: recommendation.text,
+    });
+
+    revalidatePath(`/leads/${leadId}`);
+    redirect(
+      `/leads/${leadId}?success=${encodeURIComponent("Follow up rekomendasi berhasil dibuat.")}`,
+    );
   }
 
   export async function completeFollowUpTask(formData: FormData) {

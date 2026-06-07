@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   createLeadActivity,
   createFollowUpTask,
+  createFollowUpFromRecommendation,
   completeFollowUpTask,
   convertLeadToBooking,
 } from "./actions";
@@ -25,6 +26,8 @@ import { createClient } from "@/utils/supabase/server";
 import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
 import { QuotationCard } from "@/components/leads/quotation-card";
 import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
+import { AiRecommendationCard } from "@/components/leads/ai-recommendation-card";
+import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
 import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
 import {
   ActivityTimelineCard,
@@ -48,6 +51,7 @@ type LeadDetail = {
   notes: string | null;
   assigned_to: string | null;
   created_at: string;
+  updated_at: string;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
@@ -123,7 +127,7 @@ export default async function LeadDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -156,6 +160,7 @@ export default async function LeadDetailPage({
           notes,
           assigned_to,
           created_at,
+          updated_at,
           profiles!leads_assigned_to_fkey (
             full_name
           )
@@ -201,6 +206,10 @@ export default async function LeadDetailPage({
   const timeline = (activities ?? []) as LeadActivityItem[];
   const followUpTasks = (followUps ?? []) as FollowUpTask[];
   const booking = relatedBooking as RelatedBooking | null;
+  const hasPendingRecommendedTask = hasPendingRecommendedFollowUpTask(
+    detail.status,
+    followUpTasks,
+  );
   const { data: selectedPackage } = detail.package_interest
   ? await supabase
       .from("packages")
@@ -250,6 +259,12 @@ Terima kasih.`
       {query?.error && (
         <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
           {decodeURIComponent(query.error)}
+        </div>
+      )}
+
+      {query?.success && (
+        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+          {decodeURIComponent(query.success)}
         </div>
       )}
 
@@ -418,6 +433,18 @@ Terima kasih.`
         </div>
 
         <div className="space-y-6 lg:col-span-1">
+      <AiRecommendationCard
+        leadId={detail.id}
+        fullName={detail.full_name}
+        packageInterest={detail.package_interest}
+        whatsappNumber={detail.whatsapp_number}
+        phone={detail.phone}
+        status={detail.status}
+        updatedAt={detail.updated_at}
+        hasPendingRecommendedTask={hasPendingRecommendedTask}
+        createFollowUpFromRecommendation={createFollowUpFromRecommendation}
+      />
+
       <QuotationCard
         leadId={detail.id}
         selectedPackage={selectedPackage}

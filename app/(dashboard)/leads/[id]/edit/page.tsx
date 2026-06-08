@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { updateLead } from "../actions";
+import { LeadSourceSelect } from "@/components/leads/lead-source-select";
 import { buttonVariants } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
@@ -129,20 +130,11 @@ export default async function EditLeadPage({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Sumber Lead</label>
-          <select
-            name="source"
+          <label className="text-sm font-medium">Lead Source</label>
+          <LeadSourceSelect
             defaultValue={detail.source}
             className={inputClassName}
-          >
-            <option value="whatsapp">WhatsApp</option>
-            <option value="instagram">Instagram</option>
-            <option value="facebook">Facebook</option>
-            <option value="website">Website</option>
-            <option value="referral">Referral</option>
-            <option value="walk_in">Walk-in</option>
-            <option value="other">Lainnya</option>
-          </select>
+          />
         </div>
 
         <div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { createLead } from "../actions";
+import { LeadSourceSelect } from "@/components/leads/lead-source-select";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { requireProfile } from "@/lib/auth/session";
@@ -68,19 +69,8 @@ const { data: packages } = await supabase
         </div>
 
         <div>
-          <label className="text-sm font-medium">Sumber Lead</label>
-          <select
-            name="source"
-            defaultValue="whatsapp"
-            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-          >
-            <option value="whatsapp">WhatsApp</option>
-            <option value="instagram">Instagram</option>
-            <option value="facebook">Facebook</option>
-            <option value="website">Website</option>
-            <option value="referral">Referral</option>
-            <option value="other">Lainnya</option>
-          </select>
+          <label className="text-sm font-medium">Lead Source</label>
+          <LeadSourceSelect className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
         </div>
 
         <div>

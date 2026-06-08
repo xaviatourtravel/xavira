@@ -22,6 +22,11 @@ import {
   type LeadsListSearchParams,
 } from "@/lib/leads/list-filters";
 import { parseLeadHealthFilter } from "@/lib/leads/health-score";
+import {
+  formatLeadSourceLabel,
+  LEAD_SOURCE_OPTIONS,
+  resolveLeadSourceFilterValues,
+} from "@/lib/leads/source-tracking";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -113,6 +118,21 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     );
   }
 
+  const sourceFilterValues = resolveLeadSourceFilterValues(filters.source);
+  if (sourceFilterValues?.length === 0) {
+    return (
+      <LeadsPageContent
+        filters={filters}
+        profiles={profiles}
+        activeFilterBadges={activeFilterBadges}
+        filtersActive={filtersActive}
+        rows={[]}
+        currentPage={1}
+        totalPages={1}
+      />
+    );
+  }
+
   let query = supabase
     .from("leads")
     .select(
@@ -144,6 +164,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   if (filters.status) {
     query = query.eq("status", filters.status);
+  }
+
+  if (sourceFilterValues) {
+    query = query.in("source", sourceFilterValues);
   }
 
   if (assignedUserFilter.type === "unassigned") {
@@ -190,7 +214,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     .range(from, to);
 
   if (error) {
-    throw new Error("Gagal memuat data lead.");
+    console.error("Leads query error:", error);
+    throw new Error(`Gagal memuat data lead: ${error.message}`);
   }
 
   const rows = (leads ?? []) as LeadRow[];
@@ -284,6 +309,19 @@ function LeadsPageContent({
         </select>
 
         <select
+          name="source"
+          defaultValue={filters.source}
+          className="rounded-md border px-3 py-2 text-sm"
+        >
+          <option value="">All Sources</option>
+          {LEAD_SOURCE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
           name="assigned"
           defaultValue={filters.assigned}
           className="rounded-md border px-3 py-2 text-sm"
@@ -341,7 +379,7 @@ function LeadsPageContent({
                 <tr>
                   <th className="px-4 py-3 font-medium">Nama</th>
                   <th className="px-4 py-3 font-medium">WhatsApp / Telepon</th>
-                  <th className="px-4 py-3 font-medium">Sumber</th>
+                  <th className="px-4 py-3 font-medium">Source</th>
                   <th className="px-4 py-3 font-medium">Minat</th>
                   <th className="px-4 py-3 font-medium">Paket</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -362,8 +400,8 @@ function LeadsPageContent({
                       </Link>
                     </td>
                     <td className="px-4 py-3">{getContactPhone(lead)}</td>
-                    <td className="px-4 py-3 capitalize">
-                      {formatLabel(lead.source)}
+                    <td className="px-4 py-3">
+                      {formatLeadSourceLabel(lead.source)}
                     </td>
                     <td className="px-4 py-3 capitalize">
                       {formatLabel(lead.interest_type)}

@@ -1,4 +1,8 @@
 import {
+  getLeadSourceFilterLabel,
+  isLeadSourceV1,
+} from "@/lib/leads/source-tracking";
+import {
   buildFollowUpCountByLeadId,
   getLeadHealthFilterLabel,
   getLeadIdsForHealthFilter,
@@ -17,6 +21,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 export type LeadsListFilters = {
   q: string;
   status: string;
+  source: string;
   assigned: string;
   assignedTo: string;
   aging: number | null;
@@ -27,6 +32,7 @@ export type LeadsListFilters = {
 export type LeadsListSearchParams = {
   q?: string;
   status?: string;
+  source?: string;
   assigned?: string;
   assigned_to?: string;
   aging?: string;
@@ -41,6 +47,7 @@ export function parseLeadsListFilters(
   return {
     q: params.q?.trim() ?? "",
     status: params.status?.trim() ?? "",
+    source: params.source?.trim() ?? "",
     assigned: params.assigned?.trim() ?? "",
     assignedTo: params.assigned_to?.trim() ?? "",
     aging: parseLeadAgingFilter(params.aging?.trim() ?? ""),
@@ -67,6 +74,10 @@ export function buildLeadsListHref(
 
   if (!omit.has("status") && filters.status) {
     params.set("status", filters.status);
+  }
+
+  if (!omit.has("source") && filters.source) {
+    params.set("source", filters.source);
   }
 
   if (!omit.has("assigned") && filters.assigned) {
@@ -126,6 +137,14 @@ export function getActiveLeadFilterBadges(
       key: "status",
       label: `Status: ${formatStatusLabel(filters.status)}`,
       href: buildLeadsListHref(filters, { omit: ["status"] }),
+    });
+  }
+
+  if (isLeadSourceV1(filters.source)) {
+    badges.push({
+      key: "source",
+      label: `Source: ${getLeadSourceFilterLabel(filters.source)}`,
+      href: buildLeadsListHref(filters, { omit: ["source"] }),
     });
   }
 

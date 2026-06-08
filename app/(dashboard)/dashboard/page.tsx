@@ -8,6 +8,7 @@ import { FollowUpTodayCard, type FollowUpTodayTask } from "@/components/dashboar
 import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
 import { LeadHealthOverviewCard } from "@/components/dashboard/lead-health-overview-card";
+import { LeadSourcesCard } from "@/components/dashboard/lead-sources-card";
 import { SalesPerformanceCard } from "@/components/dashboard/sales-performance-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import {
@@ -19,6 +20,7 @@ import {
   buildFollowUpCountByLeadId,
   buildLeadHealthOverviewCounts,
 } from "@/lib/leads/health-score";
+import { buildLeadSourceStats } from "@/lib/leads/source-tracking";
 import {
   PaketTerlarisCard,
   SumberLeadCard,
@@ -69,6 +71,7 @@ const [
   { data: pipelineLeads },
   { data: packageLeads },
   { data: sourceLeads },
+  { data: leadSourceAnalyticsLeads },
   { data: aiLogs },
   { data: priorityLeads },
   { count: totalBookings, data: orgBookings },
@@ -138,6 +141,11 @@ const [
   .select("source")
   .eq("organization_id", profile.organization_id)
   .is("deleted_at", null),
+  supabase
+    .from("leads")
+    .select("source, status")
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null),
   supabase
   .from("ai_generation_logs")
   .select("input_tokens, output_tokens, estimated_cost_usd")
@@ -321,6 +329,7 @@ const topSources = Object.entries(sourceStats)
     activeLeadsForHealth ?? [],
     buildFollowUpCountByLeadId(orgFollowUpTasksForHealth ?? []),
   );
+  const leadSourceStats = buildLeadSourceStats(leadSourceAnalyticsLeads ?? []);
     
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -414,6 +423,8 @@ const topSources = Object.entries(sourceStats)
       />
 
       <LeadHealthOverviewCard counts={leadHealthOverviewCounts} />
+
+      <LeadSourcesCard rows={leadSourceStats} />
 
       <SalesPerformanceCard
         rows={salesPerformanceRows}

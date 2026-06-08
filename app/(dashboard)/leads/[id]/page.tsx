@@ -29,6 +29,7 @@ import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
 import { AiRecommendationCard } from "@/components/leads/ai-recommendation-card";
 import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
 import { calculateLeadHealthScore } from "@/lib/leads/health-score";
+import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
 import { LeadHealthScoreCard } from "@/components/leads/lead-health-score-card";
 import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
 import {
@@ -328,8 +329,8 @@ Terima kasih.`
             <DetailItem label="WhatsApp / Telepon" value={formatContact(detail)} />
             <DetailItem label="Email" value={detail.email || "-"} />
             <DetailItem
-              label="Sumber"
-              value={<span className="capitalize">{formatLabel(detail.source)}</span>}
+              label="Lead Source"
+              value={formatLeadSourceLabel(detail.source)}
             />
             <DetailItem
               label="Minat"

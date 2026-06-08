@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/auth/session";
 import { createAutomaticFirstFollowUpTask } from "@/lib/leads/first-follow-up";
+import { toPersistedLeadSource } from "@/lib/leads/source-tracking";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -19,7 +20,7 @@ export async function createLead(formData: FormData) {
     const fullName = getString(formData, "full_name");
     const whatsappNumber = getString(formData, "whatsapp_number");
     const email = getString(formData, "email");
-    const source = getString(formData, "source") || "other";
+    const source = toPersistedLeadSource(getString(formData, "source"));
     const interestType = getString(formData, "interest_type") || "unknown";
     const packageInterest = getString(formData, "package_interest");
     const notes = getString(formData, "notes");

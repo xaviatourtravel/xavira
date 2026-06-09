@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { updateLead } from "../actions";
+import { CampaignSelect } from "@/components/campaigns/campaign-select";
 import { LeadSourceSelect } from "@/components/leads/lead-source-select";
 import { buttonVariants } from "@/components/ui/button";
+import { getOrgCampaignOptions } from "@/lib/campaigns/queries";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -23,6 +25,7 @@ type LeadEdit = {
   party_size: number | null;
   notes: string | null;
   assigned_to: string | null;
+  campaign_id: string | null;
 };
 
 function toDateInputValue(value: string | null) {
@@ -51,7 +54,7 @@ export default async function EditLeadPage({
   const { data: lead, error } = await supabase
     .from("leads")
     .select(
-      "id, full_name, whatsapp_number, email, source, interest_type, package_interest, status, priority, budget_idr, travel_date_preference, party_size, notes, assigned_to",
+      "id, full_name, whatsapp_number, email, source, interest_type, package_interest, status, priority, budget_idr, travel_date_preference, party_size, notes, assigned_to, campaign_id",
     )
     .eq("id", id)
     .eq("organization_id", profile.organization_id)
@@ -67,7 +70,7 @@ export default async function EditLeadPage({
   }
 
   const detail = lead as LeadEdit;
-  const [{ data: packages }, { data: orgProfiles }] = await Promise.all([
+  const [{ data: packages }, { data: orgProfiles }, campaigns] = await Promise.all([
   supabase
   .from("packages")
   .select("id, name")
@@ -79,6 +82,7 @@ export default async function EditLeadPage({
     .select("id, full_name")
     .eq("organization_id", profile.organization_id)
     .order("full_name"),
+  getOrgCampaignOptions(supabase, profile.organization_id),
 ]);
 
   return (
@@ -133,6 +137,15 @@ export default async function EditLeadPage({
           <label className="text-sm font-medium">Lead Source</label>
           <LeadSourceSelect
             defaultValue={detail.source}
+            className={inputClassName}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Campaign</label>
+          <CampaignSelect
+            campaigns={campaigns}
+            defaultValue={detail.campaign_id}
             className={inputClassName}
           />
         </div>

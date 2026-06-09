@@ -11,6 +11,7 @@ import {
   formatBulkDeleteFailureMessage,
   parseLeadIds,
 } from "@/lib/leads/bulk-delete";
+import { resolveCampaignIdForOrganization } from "@/lib/campaigns/queries";
 import { parseLeadSourceForSave } from "@/lib/leads/source-tracking";
 import { createClient } from "@/utils/supabase/server";
 
@@ -30,9 +31,20 @@ export async function createLead(formData: FormData) {
     const interestType = getString(formData, "interest_type") || "unknown";
     const packageInterest = getString(formData, "package_interest");
     const notes = getString(formData, "notes");
+    const campaignIdInput = getString(formData, "campaign_id");
   
     if (!fullName) {
       redirect("/leads/new?error=Nama wajib diisi");
+    }
+
+    const campaignId = await resolveCampaignIdForOrganization(
+      supabase,
+      profile.organization_id,
+      campaignIdInput,
+    );
+
+    if (campaignIdInput && !campaignId) {
+      redirect("/leads/new?error=Campaign tidak valid");
     }
   
     const { data: createdLead, error } = await supabase
@@ -47,6 +59,7 @@ export async function createLead(formData: FormData) {
         interest_type: interestType,
         package_interest: packageInterest || null,
         notes: notes || null,
+        campaign_id: campaignId,
         status: "new",
         priority: "medium",
       })

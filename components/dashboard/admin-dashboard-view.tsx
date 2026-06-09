@@ -1,12 +1,7 @@
-import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
+import { BookingOverviewSection } from "@/components/dashboard/booking-overview-section";
+import { ContentMediaOverviewCard } from "@/components/dashboard/content-media-overview-card";
 import { FollowUpTodayCard } from "@/components/dashboard/follow-up-today-card";
-import { LeadHealthOverviewCard } from "@/components/dashboard/lead-health-overview-card";
-import { LeadSourcesCard } from "@/components/dashboard/lead-sources-card";
 import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
-import {
-  PaketTerlarisCard,
-  SumberLeadCard,
-} from "@/components/dashboard/business-analytics-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import { SalesPerformanceCard } from "@/components/dashboard/sales-performance-card";
 import type { AdminDashboardMetrics } from "@/lib/dashboard/admin-dashboard-data";
@@ -58,27 +53,18 @@ export function AdminDashboardView({ metrics }: AdminDashboardViewProps) {
 
       <NeedAttentionCard metrics={metrics.needAttention} />
 
-      <LeadHealthOverviewCard counts={metrics.leadHealthOverviewCounts} />
-
-      <LeadSourcesCard rows={metrics.leadSourceStats} />
-
       <SalesPerformanceCard
         rows={metrics.salesPerformanceRows}
         showEmptyState={metrics.showSalesPerformanceEmptyState}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <div className="space-y-6">
-          <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
-          <PipelineSummaryCard funnel={metrics.funnel} />
-          <PaketTerlarisCard topPackages={metrics.topPackages} />
-        </div>
+      <BookingOverviewSection metrics={metrics.bookingOverview} />
 
-        <div className="space-y-6">
-          <AiSalesCopilotCard leads={metrics.priorityLeads} />
-          <SumberLeadCard topSources={metrics.topSources} />
-        </div>
-      </div>
+      <ContentMediaOverviewCard metrics={metrics.contentOverview} />
+
+      <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
+
+      <PipelineSummaryCard funnel={metrics.funnel} />
     </div>
   );
 }

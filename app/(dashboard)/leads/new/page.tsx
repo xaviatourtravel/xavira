@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { createLead } from "../actions";
+import { CampaignSelect } from "@/components/campaigns/campaign-select";
 import { LeadSourceSelect } from "@/components/leads/lead-source-select";
 import { buttonVariants } from "@/components/ui/button";
+import { getOrgCampaignOptions } from "@/lib/campaigns/queries";
 import { cn } from "@/lib/utils";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
@@ -22,6 +24,8 @@ const { data: packages } = await supabase
   .eq("organization_id", profile.organization_id)
   .eq("status", "active")
   .order("name");
+
+  const campaigns = await getOrgCampaignOptions(supabase, profile.organization_id);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -71,6 +75,14 @@ const { data: packages } = await supabase
         <div>
           <label className="text-sm font-medium">Lead Source</label>
           <LeadSourceSelect className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Campaign</label>
+          <CampaignSelect
+            campaigns={campaigns}
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+          />
         </div>
 
         <div>

@@ -13,6 +13,7 @@ import {
   getRecommendationFollowUpDueDays,
   getRecommendationFollowUpTaskTitle,
 } from "@/lib/leads/next-best-action";
+import { resolveCampaignIdForOrganization } from "@/lib/campaigns/queries";
 import { requireProfile } from "@/lib/auth/session";
 import { parseLeadSourceForSave } from "@/lib/leads/source-tracking";
 import { createClient } from "@/utils/supabase/server";
@@ -314,6 +315,7 @@ export async function updateLead(formData: FormData) {
   const partySize = getOptionalInt(formData, "party_size");
   const notes = getString(formData, "notes");
   const assignedTo = getString(formData, "assigned_to");
+  const campaignIdInput = getString(formData, "campaign_id");
 
   if (!leadId) {
     redirect("/leads?error=Lead tidak ditemukan");
@@ -338,6 +340,18 @@ export async function updateLead(formData: FormData) {
         `/leads/${leadId}/edit?error=${encodeURIComponent("Assignee tidak valid")}`,
       );
     }
+  }
+
+  const campaignId = await resolveCampaignIdForOrganization(
+    supabase,
+    profile.organization_id,
+    campaignIdInput,
+  );
+
+  if (campaignIdInput && !campaignId) {
+    redirect(
+      `/leads/${leadId}/edit?error=${encodeURIComponent("Campaign tidak valid")}`,
+    );
   }
 
   const { data: existingLead } = await supabase
@@ -365,6 +379,7 @@ export async function updateLead(formData: FormData) {
       party_size: partySize,
       notes: notes || null,
       assigned_to: assignedTo || null,
+      campaign_id: campaignId,
     })
     .eq("id", leadId)
     .eq("organization_id", profile.organization_id)

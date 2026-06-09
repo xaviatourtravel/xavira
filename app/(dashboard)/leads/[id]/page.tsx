@@ -53,8 +53,10 @@ type LeadDetail = {
   party_size: number | null;
   notes: string | null;
   assigned_to: string | null;
+  campaign_id: string | null;
   created_at: string;
   updated_at: string;
+  campaigns: { name: string } | { name: string }[] | null;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
@@ -110,6 +112,18 @@ function formatContact(lead: LeadDetail) {
   return lead.whatsapp_number || lead.phone || "-";
 }
 
+function getCampaignName(detail: LeadDetail) {
+  if (!detail.campaign_id) {
+    return null;
+  }
+
+  const campaign = Array.isArray(detail.campaigns)
+    ? detail.campaigns[0]
+    : detail.campaigns;
+
+  return campaign?.name ?? null;
+}
+
 function DetailItem({
   label,
   value,
@@ -162,8 +176,12 @@ export default async function LeadDetailPage({
           party_size,
           notes,
           assigned_to,
+          campaign_id,
           created_at,
           updated_at,
+          campaigns (
+            name
+          ),
           profiles!leads_assigned_to_fkey (
             full_name
           )
@@ -331,6 +349,21 @@ Terima kasih.`
             <DetailItem
               label="Lead Source"
               value={formatLeadSourceLabel(detail.source)}
+            />
+            <DetailItem
+              label="Campaign"
+              value={
+                getCampaignName(detail) ? (
+                  <Link
+                    href={`/campaigns/${detail.campaign_id}`}
+                    className="text-blue-600 hover:underline"
+                  >
+                    {getCampaignName(detail)}
+                  </Link>
+                ) : (
+                  "-"
+                )
+              }
             />
             <DetailItem
               label="Minat"

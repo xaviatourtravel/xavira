@@ -1,5 +1,7 @@
 import type { Profile } from "@/types/app-types";
+import type { FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import { buildCriticalLeadListItems } from "@/lib/leads/critical-leads";
+import { getLeadAgingCutoffIso, type MyLeadsMetrics } from "@/lib/leads/assignment";
 import { getFollowUpTodayBounds } from "@/lib/follow-ups/list-filters";
 import { createClient } from "@/utils/supabase/server";
 
@@ -18,6 +20,8 @@ export type SalesDashboardMetrics = {
   followUpOverdueCount: number;
   criticalLeadsCount: number;
   priorityLeads: SalesDashboardPriorityLead[];
+  myLeadsMetrics: MyLeadsMetrics;
+  todayFollowUps: FollowUpTodayTask[];
 };
 
 function buildPriorityLeads(
@@ -60,12 +64,25 @@ export async function loadSalesDashboardMetrics(
   const supabase = await createClient();
   const { todayStart, todayEnd } = getFollowUpTodayBounds();
   const todayIso = new Date().toISOString();
+  const threeDaysAgoIso = getLeadAgingCutoffIso(3);
+  const sevenDaysAgoIso = getLeadAgingCutoffIso(7);
+
+  const myLeadsBaseQuery = () =>
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id)
+      .eq("assigned_to", profile.id)
+      .is("deleted_at", null);
 
   const [
     { count: totalAssignedLeads },
     { data: myActiveLeads },
     { data: myPriorityLeads },
     { data: followUpTasks },
+    { count: myLeadsNeedFollowUp },
+    { count: myLeadsCritical },
+    { count: myLeadsWon },
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -109,6 +126,13 @@ export async function loadSalesDashboardMetrics(
       .from("follow_up_tasks")
       .select("lead_id")
       .eq("organization_id", profile.organization_id),
+    myLeadsBaseQuery()
+      .not("status", "in", "(won,lost)")
+      .lt("updated_at", threeDaysAgoIso),
+    myLeadsBaseQuery()
+      .not("status", "in", "(won,lost)")
+      .lt("updated_at", sevenDaysAgoIso),
+    myLeadsBaseQuery().eq("status", "won"),
   ]);
 
   const myLeadIds = (myActiveLeads ?? [])
@@ -117,9 +141,14 @@ export async function loadSalesDashboardMetrics(
 
   let followUpTodayCount = 0;
   let followUpOverdueCount = 0;
+  let todayFollowUps: FollowUpTodayTask[] = [];
 
   if (myLeadIds.length > 0) {
-    const [{ count: todayCount }, { count: overdueCount }] = await Promise.all([
+    const [
+      { count: todayCount },
+      { count: overdueCount },
+      { data: myTodayFollowUps },
+    ] = await Promise.all([
       supabase
         .from("follow_up_tasks")
         .select("*", { count: "exact", head: true })
@@ -135,10 +164,34 @@ export async function loadSalesDashboardMetrics(
         .eq("status", "pending")
         .in("lead_id", myLeadIds)
         .lt("due_date", todayIso),
+      supabase
+        .from("follow_up_tasks")
+        .select(`
+          id,
+          title,
+          due_date,
+          lead_id,
+          leads (
+            full_name,
+            package_interest,
+            whatsapp_number,
+            phone
+          )
+        `)
+        .eq("organization_id", profile.organization_id)
+        .eq("status", "pending")
+        .in("lead_id", myLeadIds)
+        .gte("due_date", todayStart.toISOString())
+        .lte("due_date", todayEnd.toISOString())
+        .order("due_date", { ascending: true }),
     ]);
 
     followUpTodayCount = todayCount ?? 0;
     followUpOverdueCount = overdueCount ?? 0;
+    todayFollowUps = (myTodayFollowUps ?? []).map((task) => ({
+      ...task,
+      leads: Array.isArray(task.leads) ? (task.leads[0] ?? null) : task.leads,
+    }));
   }
 
   const criticalLeadsCount = buildCriticalLeadListItems(
@@ -152,5 +205,12 @@ export async function loadSalesDashboardMetrics(
     followUpOverdueCount,
     criticalLeadsCount,
     priorityLeads: buildPriorityLeads(myPriorityLeads ?? []),
+    myLeadsMetrics: {
+      totalAssigned: totalAssignedLeads ?? 0,
+      needFollowUp: myLeadsNeedFollowUp ?? 0,
+      criticalLeads: myLeadsCritical ?? 0,
+      wonLeads: myLeadsWon ?? 0,
+    },
+    todayFollowUps,
   };
 }

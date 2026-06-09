@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
+import { FollowUpTodayCard } from "@/components/dashboard/follow-up-today-card";
+import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import type { SalesDashboardMetrics } from "@/lib/dashboard/sales-dashboard-data";
 
 const KPI_ITEMS = [
@@ -80,6 +82,10 @@ export function SalesDashboardView({ metrics }: SalesDashboardViewProps) {
           </Link>
         ))}
       </div>
+
+      <MyLeadsCard metrics={metrics.myLeadsMetrics} />
+
+      <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
 
       <AiSalesCopilotCard leads={metrics.priorityLeads} />
 

@@ -1,5 +1,13 @@
 import type { FollowUpTodayLead, FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import {
+  loadBookingOverviewMetrics,
+  type BookingOverviewMetrics,
+} from "@/lib/dashboard/booking-overview";
+import {
+  loadContentOverviewMetrics,
+  type ContentOverviewMetrics,
+} from "@/lib/dashboard/content-overview";
+import {
   buildSalesPerformanceRows,
   shouldShowSalesPerformanceEmptyState,
   type SalesPerformanceRow,
@@ -73,6 +81,8 @@ export type AdminDashboardMetrics = {
   topSources: [string, number][];
   todayFollowUps: FollowUpTodayTask[];
   priorityLeads: AdminDashboardPriorityLead[];
+  bookingOverview: BookingOverviewMetrics;
+  contentOverview: ContentOverviewMetrics;
 };
 
 function buildPriorityLeads(
@@ -286,6 +296,11 @@ export async function loadAdminDashboardMetrics(
     threeDaysAgoIso,
   );
 
+  const [bookingOverview, contentOverview] = await Promise.all([
+    loadBookingOverviewMetrics(profile.organization_id),
+    loadContentOverviewMetrics(profile.organization_id),
+  ]);
+
   return {
     totalLeads: totalLeads ?? 0,
     leadToWonRate,
@@ -316,5 +331,7 @@ export async function loadAdminDashboardMetrics(
     topSources: Object.entries(sourceStats).sort((a, b) => b[1] - a[1]),
     todayFollowUps: normalizeTodayFollowUps(todayFollowUps),
     priorityLeads: buildPriorityLeads(priorityLeads ?? []),
+    bookingOverview,
+    contentOverview,
   };
 }

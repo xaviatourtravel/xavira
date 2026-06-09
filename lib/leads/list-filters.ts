@@ -22,6 +22,7 @@ export type LeadsListFilters = {
   q: string;
   status: string;
   source: string;
+  campaign: string;
   assigned: string;
   assignedTo: string;
   aging: number | null;
@@ -33,6 +34,7 @@ export type LeadsListSearchParams = {
   q?: string;
   status?: string;
   source?: string;
+  campaign?: string;
   assigned?: string;
   assigned_to?: string;
   aging?: string;
@@ -48,6 +50,7 @@ export function parseLeadsListFilters(
     q: params.q?.trim() ?? "",
     status: params.status?.trim() ?? "",
     source: params.source?.trim() ?? "",
+    campaign: params.campaign?.trim() ?? "",
     assigned: params.assigned?.trim() ?? "",
     assignedTo: params.assigned_to?.trim() ?? "",
     aging: parseLeadAgingFilter(params.aging?.trim() ?? ""),
@@ -78,6 +81,10 @@ export function buildLeadsListHref(
 
   if (!omit.has("source") && filters.source) {
     params.set("source", filters.source);
+  }
+
+  if (!omit.has("campaign") && filters.campaign) {
+    params.set("campaign", filters.campaign);
   }
 
   if (!omit.has("assigned") && filters.assigned) {
@@ -121,6 +128,7 @@ function formatStatusLabel(status: string) {
 export function getActiveLeadFilterBadges(
   filters: LeadsListFilters,
   profiles: OrgProfileOption[],
+  campaigns: ReadonlyArray<{ id: string; name: string }> = [],
 ): ActiveLeadFilterBadge[] {
   const badges: ActiveLeadFilterBadge[] = [];
 
@@ -145,6 +153,15 @@ export function getActiveLeadFilterBadges(
       key: "source",
       label: `Source: ${getLeadSourceFilterLabel(filters.source)}`,
       href: buildLeadsListHref(filters, { omit: ["source"] }),
+    });
+  }
+
+  if (filters.campaign) {
+    const campaign = campaigns.find((item) => item.id === filters.campaign);
+    badges.push({
+      key: "campaign",
+      label: `Campaign: ${campaign?.name ?? "Campaign"}`,
+      href: buildLeadsListHref(filters, { omit: ["campaign"] }),
     });
   }
 
@@ -212,8 +229,9 @@ export function getActiveLeadFilterBadges(
 export function hasActiveLeadFilters(
   filters: LeadsListFilters,
   profiles: OrgProfileOption[] = [],
+  campaigns: ReadonlyArray<{ id: string; name: string }> = [],
 ) {
-  return getActiveLeadFilterBadges(filters, profiles).length > 0;
+  return getActiveLeadFilterBadges(filters, profiles, campaigns).length > 0;
 }
 
 export function resolveLeadsListAssignedFilter(

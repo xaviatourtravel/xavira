@@ -32,6 +32,7 @@ import {
   resolveLeadSourceFilterValues,
 } from "@/lib/leads/source-tracking";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { getOrgCampaignOptions } from "@/lib/campaigns/queries";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -110,6 +111,11 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     .eq("organization_id", profile.organization_id)
     .order("full_name");
 
+  const campaigns = await getOrgCampaignOptions(
+    supabase,
+    profile.organization_id,
+  );
+
   const profiles = (orgProfiles ?? []) as OrgProfileOption[];
   const validProfileIds = new Set(profiles.map((item) => item.id));
   const assignedUserFilter = resolveLeadsListAssignedFilter(
@@ -117,7 +123,11 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     profile.id,
     validProfileIds,
   );
-  const activeFilterBadges = getActiveLeadFilterBadges(filters, profiles);
+  const activeFilterBadges = getActiveLeadFilterBadges(
+    filters,
+    profiles,
+    campaigns,
+  );
   const filtersActive = activeFilterBadges.length > 0;
 
   const overdueLeadIds = isOverdueFollowUpFilter(filters.followUp)
@@ -138,6 +148,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       <LeadsPageContent
         filters={filters}
         profiles={profiles}
+        campaigns={campaigns}
         activeFilterBadges={activeFilterBadges}
         filtersActive={filtersActive}
         rows={[]}
@@ -156,6 +167,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       <LeadsPageContent
         filters={filters}
         profiles={profiles}
+        campaigns={campaigns}
         activeFilterBadges={activeFilterBadges}
         filtersActive={filtersActive}
         rows={[]}
@@ -205,6 +217,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     query = query.in("source", sourceFilterValues);
   }
 
+  if (filters.campaign) {
+    query = query.eq("campaign_id", filters.campaign);
+  }
+
   if (assignedUserFilter.type === "unassigned") {
     query = query.is("assigned_to", null);
   } else if (assignedUserFilter.type === "profile") {
@@ -228,6 +244,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         <LeadsPageContent
           filters={filters}
           profiles={profiles}
+          campaigns={campaigns}
           activeFilterBadges={activeFilterBadges}
           filtersActive={filtersActive}
           rows={rows}
@@ -263,6 +280,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     <LeadsPageContent
       filters={filters}
       profiles={profiles}
+      campaigns={campaigns}
       activeFilterBadges={activeFilterBadges}
       filtersActive={filtersActive}
       rows={rows}
@@ -278,6 +296,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 type LeadsPageContentProps = {
   filters: ReturnType<typeof parseLeadsListFilters>;
   profiles: OrgProfileOption[];
+  campaigns: Awaited<ReturnType<typeof getOrgCampaignOptions>>;
   activeFilterBadges: ReturnType<typeof getActiveLeadFilterBadges>;
   filtersActive: boolean;
   rows: LeadRow[];
@@ -291,6 +310,7 @@ type LeadsPageContentProps = {
 function LeadsPageContent({
   filters,
   profiles,
+  campaigns,
   activeFilterBadges,
   filtersActive,
   rows,
@@ -367,6 +387,19 @@ function LeadsPageContent({
           {LEAD_SOURCE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="campaign"
+          defaultValue={filters.campaign}
+          className="rounded-md border px-3 py-2 text-sm"
+        >
+          <option value="">All Campaigns</option>
+          {campaigns.map((campaign) => (
+            <option key={campaign.id} value={campaign.id}>
+              {campaign.name}
             </option>
           ))}
         </select>

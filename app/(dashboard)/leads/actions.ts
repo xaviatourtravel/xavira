@@ -3,8 +3,14 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { createAutomaticFirstFollowUpTask } from "@/lib/leads/first-follow-up";
+import {
+  buildLeadsActionRedirectPath,
+  formatBulkDeleteFailureMessage,
+  parseLeadIds,
+} from "@/lib/leads/bulk-delete";
 import { parseLeadSourceForSave } from "@/lib/leads/source-tracking";
 import { createClient } from "@/utils/supabase/server";
 
@@ -71,3 +77,114 @@ export async function createLead(formData: FormData) {
     revalidatePath("/leads");
     redirect("/leads");
   }
+
+export async function bulkDeleteLeads(formData: FormData) {
+  const { profile } = await requireProfile();
+
+  if (!isAdminOrOwner(profile)) {
+    redirect(
+      buildLeadsActionRedirectPath(
+        getString(formData, "return_to") || "/leads",
+        "error",
+        "Hanya admin atau owner yang dapat menghapus lead.",
+      ),
+    );
+  }
+
+  const returnTo = getString(formData, "return_to") || "/leads";
+  const leadIds = parseLeadIds(formData.getAll("lead_ids"));
+
+  if (leadIds.length === 0) {
+    redirect(
+      buildLeadsActionRedirectPath(
+        returnTo,
+        "error",
+        "Pilih minimal satu lead untuk dihapus.",
+      ),
+    );
+  }
+
+  const supabase = await createClient();
+
+  const { data: orgLeads, error: lookupError } = await supabase
+    .from("leads")
+    .select("id")
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .in("id", leadIds);
+
+  if (lookupError) {
+    redirect(
+      buildLeadsActionRedirectPath(returnTo, "error", lookupError.message),
+    );
+  }
+
+  const allowedIds = new Set((orgLeads ?? []).map((lead) => lead.id));
+  const unauthorizedIds = leadIds.filter((leadId) => !allowedIds.has(leadId));
+
+  if (unauthorizedIds.length > 0) {
+    redirect(
+      buildLeadsActionRedirectPath(
+        returnTo,
+        "error",
+        "Beberapa lead tidak ditemukan atau berada di organisasi lain.",
+      ),
+    );
+  }
+
+  const failures: string[] = [];
+  let deletedCount = 0;
+
+  for (const leadId of leadIds) {
+    const { data: deletedLead, error } = await supabase
+      .from("leads")
+      .delete()
+      .eq("id", leadId)
+      .eq("organization_id", profile.organization_id)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      failures.push(
+        formatBulkDeleteFailureMessage({
+          leadId,
+          message: error.message,
+        }),
+      );
+      continue;
+    }
+
+    if (!deletedLead) {
+      failures.push(`Lead ${leadId} tidak ditemukan atau sudah dihapus.`);
+      continue;
+    }
+
+    deletedCount += 1;
+  }
+
+  revalidatePath("/leads");
+
+  if (failures.length > 0) {
+    const failureSummary = failures.join(" ");
+    const message =
+      deletedCount > 0
+        ? `${deletedCount} lead berhasil dihapus. Gagal menghapus ${failures.length} lead: ${failureSummary}`
+        : `Gagal menghapus lead terpilih: ${failureSummary}`;
+
+    redirect(
+      buildLeadsActionRedirectPath(
+        returnTo,
+        deletedCount > 0 ? "success" : "error",
+        message,
+      ),
+    );
+  }
+
+  redirect(
+    buildLeadsActionRedirectPath(
+      returnTo,
+      "success",
+      `${deletedCount} lead berhasil dihapus.`,
+    ),
+  );
+}

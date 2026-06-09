@@ -3,6 +3,10 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { LeadsActiveFilters } from "@/components/leads/leads-active-filters";
 import {
+  LeadsListTable,
+  type LeadsListTableRow,
+} from "@/components/leads/leads-list-table";
+import {
   formatAssignedUserLabel,
   getLeadAssigneeName,
   getLeadAgingCutoffIso,
@@ -27,6 +31,7 @@ import {
   LEAD_SOURCE_OPTIONS,
   resolveLeadSourceFilterValues,
 } from "@/lib/leads/source-tracking";
+import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -62,14 +67,38 @@ function getContactPhone(lead: LeadRow) {
 }
 
 type LeadsPageProps = {
-  searchParams: Promise<LeadsListSearchParams>;
+  searchParams: Promise<LeadsListSearchParams & { success?: string; error?: string }>;
 };
+
+function mapLeadRowsToTableRows(rows: LeadRow[]): LeadsListTableRow[] {
+  return rows.map((lead) => {
+    const contactPhone = getContactPhone(lead);
+    const normalizedPhone = contactPhone.replace(/\D/g, "");
+
+    return {
+      id: lead.id,
+      fullName: lead.full_name,
+      contactPhone,
+      sourceLabel: formatLeadSourceLabel(lead.source),
+      interestLabel: formatLabel(lead.interest_type),
+      packageInterest: lead.package_interest || "-",
+      statusLabel: formatLabel(lead.status),
+      assignedUserLabel: formatAssignedUserLabel(getLeadAssigneeName(lead.profiles)),
+      createdAtLabel: formatDate(lead.created_at),
+      whatsAppHref:
+        contactPhone !== "-" && normalizedPhone
+          ? `https://wa.me/${normalizedPhone}`
+          : null,
+    };
+  });
+}
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
   const params = await searchParams;
   const filters = parseLeadsListFilters(params);
+  const canBulkDelete = isAdminOrOwner(profile);
   const currentPage = Math.max(Number(params.page ?? "1"), 1);
   const pageSize = 20;
   const from = (currentPage - 1) * pageSize;
@@ -114,6 +143,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         rows={[]}
         currentPage={1}
         totalPages={1}
+        canBulkDelete={canBulkDelete}
+        successMessage={params.success}
+        errorMessage={params.error}
       />
     );
   }
@@ -129,6 +161,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         rows={[]}
         currentPage={1}
         totalPages={1}
+        canBulkDelete={canBulkDelete}
+        successMessage={params.success}
+        errorMessage={params.error}
       />
     );
   }
@@ -198,6 +233,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           rows={rows}
           currentPage={currentPage}
           totalPages={totalPages}
+          canBulkDelete={canBulkDelete}
+          successMessage={params.success}
+          errorMessage={params.error}
         />
       );
     }
@@ -230,6 +268,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       rows={rows}
       currentPage={currentPage}
       totalPages={totalPages}
+      canBulkDelete={canBulkDelete}
+      successMessage={params.success}
+      errorMessage={params.error}
     />
   );
 }
@@ -242,6 +283,9 @@ type LeadsPageContentProps = {
   rows: LeadRow[];
   currentPage: number;
   totalPages: number;
+  canBulkDelete: boolean;
+  successMessage?: string;
+  errorMessage?: string;
 };
 
 function LeadsPageContent({
@@ -252,7 +296,13 @@ function LeadsPageContent({
   rows,
   currentPage,
   totalPages,
+  canBulkDelete,
+  successMessage,
+  errorMessage,
 }: LeadsPageContentProps) {
+  const returnTo = buildLeadsListHref(filters, { page: currentPage });
+  const tableRows = mapLeadRowsToTableRows(rows);
+
   return (
     <div className="space-y-6">
       <div className="flex gap-2">
@@ -345,6 +395,18 @@ function LeadsPageContent({
 
       <LeadsActiveFilters badges={activeFilterBadges} />
 
+      {successMessage && (
+        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+          {decodeURIComponent(successMessage)}
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
+          {decodeURIComponent(errorMessage)}
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">
           <h2 className="text-lg font-medium">
@@ -372,96 +434,23 @@ function LeadsPageContent({
           )}
         </div>
       ) : (
-        <>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full min-w-[1100px] text-sm">
-              <thead className="border-b bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Nama</th>
-                  <th className="px-4 py-3 font-medium">WhatsApp / Telepon</th>
-                  <th className="px-4 py-3 font-medium">Source</th>
-                  <th className="px-4 py-3 font-medium">Minat</th>
-                  <th className="px-4 py-3 font-medium">Paket</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Assigned User</th>
-                  <th className="px-4 py-3 font-medium">Dibuat</th>
-                  <th className="px-4 py-3 font-medium">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((lead) => (
-                  <tr key={lead.id} className="border-b last:border-b-0">
-                    <td className="px-4 py-3 font-medium">
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {lead.full_name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">{getContactPhone(lead)}</td>
-                    <td className="px-4 py-3">
-                      {formatLeadSourceLabel(lead.source)}
-                    </td>
-                    <td className="px-4 py-3 capitalize">
-                      {formatLabel(lead.interest_type)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {lead.package_interest || "-"}
-                    </td>
-                    <td className="px-4 py-3 capitalize">
-                      {formatLabel(lead.status)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatAssignedUserLabel(getLeadAssigneeName(lead.profiles))}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                      {formatDate(lead.created_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {getContactPhone(lead) !== "-" && (
-                        <a
-                          href={`https://wa.me/${getContactPhone(lead).replace(/\D/g, "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded bg-green-600 px-3 py-1 text-xs text-white"
-                        >
-                          WhatsApp
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Halaman {currentPage} dari {totalPages}
-            </p>
-
-            <div className="flex gap-2">
-              {currentPage > 1 && (
-                <Link
-                  href={buildLeadsListHref(filters, { page: currentPage - 1 })}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                >
-                  Previous
-                </Link>
-              )}
-
-              {currentPage < totalPages && (
-                <Link
-                  href={buildLeadsListHref(filters, { page: currentPage + 1 })}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                >
-                  Next
-                </Link>
-              )}
-            </div>
-          </div>
-        </>
+        <LeadsListTable
+          rows={tableRows}
+          canBulkDelete={canBulkDelete}
+          returnTo={returnTo}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          previousPageHref={
+            currentPage > 1
+              ? buildLeadsListHref(filters, { page: currentPage - 1 })
+              : null
+          }
+          nextPageHref={
+            currentPage < totalPages
+              ? buildLeadsListHref(filters, { page: currentPage + 1 })
+              : null
+          }
+        />
       )}
     </div>
   );

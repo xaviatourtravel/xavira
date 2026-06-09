@@ -1,6 +1,8 @@
-import { requireProfile } from "@/lib/auth/session";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { redirect } from "next/navigation";
+
 import { completeOnboardingIfNeeded } from "@/actions/auth";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { requireProfile } from "@/lib/auth/session";
 
 export default async function DashboardLayout({
   children,
@@ -9,7 +11,9 @@ export default async function DashboardLayout({
 }) {
   const onboardingError = await completeOnboardingIfNeeded();
 
-  console.log("DASHBOARD ONBOARDING ERROR:", onboardingError);
+  if (onboardingError) {
+    redirect(`/login?error=${encodeURIComponent(onboardingError)}`);
+  }
 
   const { profile } = await requireProfile();
 

@@ -5,19 +5,32 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password wajib diisi"),
 });
 
+const registerPasswordFields = {
+  email: z.string().email("Email tidak valid"),
+  password: z.string().min(8, "Password minimal 8 karakter"),
+  confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+};
+
+const registerPasswordRefinement = {
+  message: "Password tidak cocok",
+  path: ["confirmPassword"],
+};
+
 export const registerSchema = z
   .object({
     fullName: z.string().min(2, "Nama minimal 2 karakter"),
-    email: z.string().email("Email tidak valid"),
-    password: z.string().min(8, "Password minimal 8 karakter"),
-    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+    ...registerPasswordFields,
     organizationName: z.string().min(2, "Nama travel minimal 2 karakter"),
     businessType: z.enum(["umroh", "halal_tour", "both"]).default("both"),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Password tidak cocok",
-    path: ["confirmPassword"],
-  });
+  .refine((data) => data.password === data.confirmPassword, registerPasswordRefinement);
+
+export const betaRegisterSchema = z
+  .object({
+    fullName: z.string().min(2, "Nama minimal 2 karakter"),
+    ...registerPasswordFields,
+  })
+  .refine((data) => data.password === data.confirmPassword, registerPasswordRefinement);
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Email tidak valid"),

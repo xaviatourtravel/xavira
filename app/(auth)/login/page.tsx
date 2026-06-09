@@ -1,4 +1,5 @@
 import { login, signup } from "./actions";
+import { isBetaJoinModeActive } from "@/lib/auth/beta-onboarding";
 
 export default async function LoginPage({
   searchParams,
@@ -6,6 +7,7 @@ export default async function LoginPage({
   searchParams: Promise<{ message?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const betaJoinMode = isBetaJoinModeActive();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
@@ -15,7 +17,9 @@ export default async function LoginPage({
             Xavira CRM
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Masuk atau daftar untuk kelola leads Halal Tour Anda
+            {betaJoinMode
+              ? "Masuk atau daftar untuk bergabung dengan tim Xavira."
+              : "Masuk atau daftar untuk kelola leads Halal Tour Anda."}
           </p>
         </div>
 
@@ -77,7 +81,9 @@ export default async function LoginPage({
               formAction={signup}
               className="flex w-full justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
-              Daftar Organisasi Baru
+              {betaJoinMode
+                ? "Daftar sebagai anggota tim"
+                : "Daftar Organisasi Baru"}
             </button>
           </div>
         </form>

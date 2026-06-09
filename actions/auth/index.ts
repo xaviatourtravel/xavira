@@ -2,25 +2,51 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  getBetaJoinConfigError,
+  isBetaJoinModeActive,
+  logBetaJoinOnboarding,
+  resolveBetaJoinState,
+} from "@/lib/auth/beta-onboarding";
 import type { AuthFormState } from "@/lib/auth/types";
 import { getAuthRedirectUrl, slugifyOrganizationName } from "@/lib/auth/utils";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import {
+  betaRegisterSchema,
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
 } from "@/lib/validations/auth";
-import type {
-  OrganizationInsert,
-  ProfileInsert,
-  SubscriptionInsert,
-} from "@/types/database";
+import type { Database, TablesInsert } from "@/types/database";
+
+type OrganizationInsert = TablesInsert<"organizations">;
+type ProfileInsert = TablesInsert<"profiles">;
+type SubscriptionInsert = TablesInsert<"subscriptions">;
+type BusinessType = Database["public"]["Enums"]["business_type"];
+
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+type EnsureProfileInput = {
+  userId: string;
+  fullName: string;
+  organizationName: string;
+  businessType: BusinessType;
+};
+
+export type SignUpWithOnboardingResult =
+  | { ok: true; emailConfirmationRequired: true }
+  | { ok: true; emailConfirmationRequired: false }
+  | { ok: false; error: string };
 
 function getFormString(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getEmailLocalPart(email: string): string {
+  return email.split("@")[0]?.trim() || "User";
 }
 
 export async function login(
@@ -59,6 +85,41 @@ export async function register(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const betaJoinMode = isBetaJoinModeActive();
+
+  if (betaJoinMode) {
+    const parsed = betaRegisterSchema.safeParse({
+      fullName: getFormString(formData, "fullName"),
+      email: getFormString(formData, "email"),
+      password: getFormString(formData, "password"),
+      confirmPassword: getFormString(formData, "confirmPassword"),
+    });
+
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0]?.message ?? "Data tidak valid" };
+    }
+
+    const signUpResult = await signUpWithOnboarding({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      fullName: parsed.data.fullName,
+    });
+
+    if (!signUpResult.ok) {
+      return { success: false, error: signUpResult.error };
+    }
+
+    if (signUpResult.emailConfirmationRequired) {
+      return {
+        success: true,
+        message:
+          "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk menyelesaikan setup.",
+      };
+    }
+
+    redirect("/dashboard");
+  }
+
   const parsed = registerSchema.safeParse({
     fullName: getFormString(formData, "fullName"),
     email: getFormString(formData, "email"),
@@ -72,27 +133,19 @@ export async function register(
     return { success: false, error: parsed.error.errors[0]?.message ?? "Data tidak valid" };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
+  const signUpResult = await signUpWithOnboarding({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: {
-      data: {
-        full_name: parsed.data.fullName,
-        organization_name: parsed.data.organizationName,
-      },
-    },
+    fullName: parsed.data.fullName,
+    organizationName: parsed.data.organizationName,
+    businessType: parsed.data.businessType,
   });
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (!signUpResult.ok) {
+    return { success: false, error: signUpResult.error };
   }
 
-  if (!data.user) {
-    return { success: false, error: "Registrasi gagal. Silakan coba lagi." };
-  }
-
-  if (!data.session) {
+  if (signUpResult.emailConfirmationRequired) {
     return {
       success: true,
       message:
@@ -100,34 +153,105 @@ export async function register(
     };
   }
 
-  const admin = createAdminClient();
-
-const onboardingError = await createOrganizationForUser(admin as any, {
-    userId: data.user.id,
-    fullName: parsed.data.fullName,
-    organizationName: parsed.data.organizationName,
-    businessType: parsed.data.businessType,
-  });
-
-  if (onboardingError) {
-    return { success: false, error: onboardingError };
-  }
-
   redirect("/dashboard");
 }
 
-async function createOrganizationForUser(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  input: {
-    userId: string;
-    fullName: string;
-    organizationName: string;
-    businessType: "umroh" | "halal_tour" | "both";
-  },
+export async function signUpWithOnboarding(input: {
+  email: string;
+  password: string;
+  fullName: string;
+  organizationName?: string;
+  businessType?: BusinessType;
+}): Promise<SignUpWithOnboardingResult> {
+  const betaJoinMode = isBetaJoinModeActive();
+  logBetaJoinOnboarding("signUpWithOnboarding");
+  const organizationName =
+    input.organizationName ?? `${input.fullName} Travel`;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email,
+    password: input.password,
+    options: {
+      data: {
+        full_name: input.fullName,
+        ...(betaJoinMode ? {} : { organization_name: organizationName }),
+      },
+    },
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  if (!data.user) {
+    return { ok: false, error: "Registrasi gagal. Silakan coba lagi." };
+  }
+
+  if (!data.session) {
+    return { ok: true, emailConfirmationRequired: true };
+  }
+
+  const admin = createAdminClient();
+  const onboardingError = await ensureUserProfile(admin, {
+    userId: data.user.id,
+    fullName: input.fullName,
+    organizationName,
+    businessType: input.businessType ?? "both",
+  });
+
+  if (onboardingError) {
+    return { ok: false, error: onboardingError };
+  }
+
+  return { ok: true, emailConfirmationRequired: false };
+}
+
+async function joinBetaOrganization(
+  supabase: AdminClient,
+  input: { userId: string; fullName: string },
+  organizationId: string,
 ): Promise<string | null> {
-  // Typed client inference is fixed after running `supabase gen types typescript`.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  const { data: organization, error: organizationError } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (organizationError) {
+    return organizationError.message;
+  }
+
+  if (!organization) {
+    return "Organisasi beta tidak ditemukan. Hubungi admin.";
+  }
+
+  const profilePayload: ProfileInsert = {
+    id: input.userId,
+    organization_id: organizationId,
+    full_name: input.fullName,
+    role: "agent",
+  };
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .insert(profilePayload);
+
+  if (profileError) {
+    if (profileError.code === "23505") {
+      return null;
+    }
+
+    return profileError.message;
+  }
+
+  return null;
+}
+
+async function createNewOrganizationForUser(
+  supabase: AdminClient,
+  input: EnsureProfileInput,
+): Promise<string | null> {
   const slug = slugifyOrganizationName(input.organizationName);
   const trialEnds = new Date();
   trialEnds.setDate(trialEnds.getDate() + 14);
@@ -138,9 +262,9 @@ async function createOrganizationForUser(
     business_type: input.businessType,
   };
 
-  const { data: organization, error: organizationError } = await db
+  const { data: organization, error: organizationError } = await supabase
     .from("organizations")
-    .insert([organizationPayload])
+    .insert(organizationPayload)
     .select("id")
     .single();
 
@@ -155,11 +279,15 @@ async function createOrganizationForUser(
     role: "owner",
   };
 
-  const { error: profileError } = await db
+  const { error: profileError } = await supabase
     .from("profiles")
-    .insert([profilePayload]);
+    .insert(profilePayload);
 
   if (profileError) {
+    if (profileError.code === "23505") {
+      return null;
+    }
+
     return profileError.message;
   }
 
@@ -172,15 +300,56 @@ async function createOrganizationForUser(
     current_period_end: trialEnds.toISOString(),
   };
 
-  const { error: subscriptionError } = await db
+  const { error: subscriptionError } = await supabase
     .from("subscriptions")
-    .insert([subscriptionPayload]);
+    .insert(subscriptionPayload);
 
   if (subscriptionError) {
     return subscriptionError.message;
   }
 
   return null;
+}
+
+async function ensureUserProfile(
+  supabase: AdminClient,
+  input: EnsureProfileInput,
+): Promise<string | null> {
+  logBetaJoinOnboarding("ensureUserProfile");
+
+  const betaConfigError = getBetaJoinConfigError();
+  if (betaConfigError) {
+    return betaConfigError;
+  }
+
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", input.userId)
+    .maybeSingle();
+
+  if (existingProfileError) {
+    return existingProfileError.message;
+  }
+
+  if (existingProfile) {
+    return null;
+  }
+
+  const betaState = resolveBetaJoinState();
+
+  if (betaState.mode === "active") {
+    return joinBetaOrganization(
+      supabase,
+      {
+        userId: input.userId,
+        fullName: input.fullName,
+      },
+      betaState.organizationId,
+    );
+  }
+
+  return createNewOrganizationForUser(supabase, input);
 }
 
 export async function forgotPassword(
@@ -253,6 +422,8 @@ export async function signOut() {
 }
 
 export async function completeOnboardingIfNeeded(): Promise<string | null> {
+  logBetaJoinOnboarding("completeOnboardingIfNeeded");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -277,13 +448,12 @@ export async function completeOnboardingIfNeeded(): Promise<string | null> {
     organization_name?: string;
   };
 
-  const fullName = metadata.full_name ?? user.email?.split("@")[0] ?? "Owner";
-  const organizationName =
-    metadata.organization_name ?? `${fullName} Travel`;
+  const fullName = metadata.full_name ?? getEmailLocalPart(user.email ?? "User");
+  const organizationName = metadata.organization_name ?? `${fullName} Travel`;
 
   const admin = createAdminClient();
 
-  return createOrganizationForUser(admin as any, {
+  return ensureUserProfile(admin, {
     userId: user.id,
     fullName,
     organizationName,

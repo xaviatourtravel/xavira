@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { createPackage } from "../actions";
 import { buttonVariants } from "@/components/ui/button";
+import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 
 export default async function NewPackagePage({
@@ -10,6 +13,13 @@ export default async function NewPackagePage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
+  const { profile } = await requireProfile();
+
+  if (!isAdminOrOwner(profile)) {
+    redirect(
+      "/packages?error=Hanya admin atau owner yang dapat menambah paket.",
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

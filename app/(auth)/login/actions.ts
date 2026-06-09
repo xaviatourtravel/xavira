@@ -1,9 +1,19 @@
-'use server'
+"use server";
 
-import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { completeOnboardingIfNeeded } from '@/actions/auth'
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+
+import { completeOnboardingIfNeeded, signUpWithOnboarding } from "@/actions/auth";
+import { createClient } from "@/utils/supabase/server";
+
+function getFormString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getEmailLocalPart(email: string): string {
+  return email.split("@")[0]?.trim() || "User";
+}
 
 export async function login(formData: FormData) {
   let errorMessage = "";
@@ -11,8 +21,8 @@ export async function login(formData: FormData) {
 
   try {
     const supabase = await createClient();
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const email = getFormString(formData, "email");
+    const password = getFormString(formData, "password");
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -23,8 +33,6 @@ export async function login(formData: FormData) {
       errorMessage = "Email atau password salah";
     } else {
       const onboardingError = await completeOnboardingIfNeeded();
-
-      console.log("LOGIN ONBOARDING ERROR:", onboardingError);
 
       if (onboardingError) {
         errorMessage = onboardingError;
@@ -48,32 +56,40 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  let errorMessage = ''
-  let isSuccess = false
+  let errorMessage = "";
+  let isSuccess = false;
 
   try {
-    const supabase = await createClient()
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
+    const email = getFormString(formData, "email");
+    const password = getFormString(formData, "password");
+    const fullName = getEmailLocalPart(email);
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const result = await signUpWithOnboarding({
+      email,
+      password,
+      fullName,
+    });
 
-    if (error) {
-      errorMessage = error.message // Menampilkan pesan asli Supabase
+    if (!result.ok) {
+      errorMessage = result.error;
+    } else if (result.emailConfirmationRequired) {
+      redirect(
+        `/login?message=${encodeURIComponent("Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login.")}`,
+      );
     } else {
-      isSuccess = true
+      isSuccess = true;
     }
   } catch (err) {
-    errorMessage = 'Sistem sedang bermasalah'
+    console.error("SIGNUP ACTION CRASH:", err);
+    errorMessage = "Sistem sedang bermasalah";
   }
 
-  // Lakukan redirect di LUAR try-catch
   if (errorMessage) {
-    redirect(`/login?error=${errorMessage}`)
+    redirect(`/login?error=${encodeURIComponent(errorMessage)}`);
   }
 
   if (isSuccess) {
-    revalidatePath('/', 'layout')
-    redirect('/dashboard') // Langsung arahkan ke dashboard karena konfirmasi email sudah kita matikan
+    revalidatePath("/", "layout");
+    redirect("/dashboard");
   }
 }

@@ -9,7 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function RegisterForm() {
+type RegisterFormProps = {
+  betaJoinMode: boolean;
+};
+
+export function RegisterForm({ betaJoinMode }: RegisterFormProps) {
   const [state, formAction, pending] = useActionState(register, null);
 
   return (
@@ -17,7 +21,9 @@ export function RegisterForm() {
       <CardHeader>
         <CardTitle>Daftar Xavira</CardTitle>
         <CardDescription>
-          Buat akun travel agency dan mulai kelola lead dalam hitungan menit.
+          {betaJoinMode
+            ? "Buat akun untuk bergabung dengan tim Xavira yang sudah ada."
+            : "Buat akun travel agency dan mulai kelola lead dalam hitungan menit."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -29,29 +35,33 @@ export function RegisterForm() {
             <Input id="fullName" name="fullName" autoComplete="name" required />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="organizationName">Nama Travel Agency</Label>
-            <Input
-              id="organizationName"
-              name="organizationName"
-              placeholder="Contoh: Al-Haramain Travel"
-              required
-            />
-          </div>
+          {!betaJoinMode && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="organizationName">Nama Travel Agency</Label>
+                <Input
+                  id="organizationName"
+                  name="organizationName"
+                  placeholder="Contoh: Al-Haramain Travel"
+                  required
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessType">Jenis Bisnis</Label>
-            <select
-              id="businessType"
-              name="businessType"
-              defaultValue="both"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="umroh">Umroh</option>
-              <option value="halal_tour">Halal Tour</option>
-              <option value="both">Keduanya</option>
-            </select>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessType">Jenis Bisnis</Label>
+                <select
+                  id="businessType"
+                  name="businessType"
+                  defaultValue="both"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="umroh">Umroh</option>
+                  <option value="halal_tour">Halal Tour</option>
+                  <option value="both">Keduanya</option>
+                </select>
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -89,7 +99,11 @@ export function RegisterForm() {
           </div>
 
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Memproses..." : "Daftar"}
+            {pending
+              ? "Memproses..."
+              : betaJoinMode
+                ? "Daftar sebagai anggota tim"
+                : "Daftar"}
           </Button>
         </form>
 

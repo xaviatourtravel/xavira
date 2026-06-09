@@ -27,6 +27,9 @@ import {
   PaketTerlarisCard,
   SumberLeadCard,
 } from "@/components/dashboard/business-analytics-card";
+import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
+import { SalesDashboard } from "@/components/dashboard/sales-dashboard";
+import { resolveDashboardVariant } from "@/lib/dashboard/role-visibility";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -38,6 +41,16 @@ function formatCurrency(value: number) {
 
 export default async function DashboardPage() {
   const { profile } = await requireProfile();
+  const dashboardVariant = resolveDashboardVariant(profile.role);
+
+  if (dashboardVariant === "agent") {
+    return <SalesDashboard profile={profile} />;
+  }
+
+  if (dashboardVariant === "admin") {
+    return <AdminDashboard profile={profile} />;
+  }
+
   const supabase = await createClient();
 
   const today = new Date();

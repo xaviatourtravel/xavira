@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { updatePackage } from "../../actions";
 import { buttonVariants } from "@/components/ui/button";
+import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -17,6 +18,13 @@ export default async function EditPackagePage({
   const { id } = await params;
   const query = await searchParams;
   const { profile } = await requireProfile();
+
+  if (!isAdminOrOwner(profile)) {
+    redirect(
+      "/packages?error=Hanya admin atau owner yang dapat mengubah paket.",
+    );
+  }
+
   const supabase = await createClient();
 
   const { data: pkg, error } = await supabase

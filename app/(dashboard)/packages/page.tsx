@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { PackageRowActions } from "@/components/packages/package-row-actions";
 import { buttonVariants } from "@/components/ui/button";
+import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -37,8 +39,14 @@ function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
-export default async function PackagesPage() {
+export default async function PackagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
   const { profile } = await requireProfile();
+  const canManagePackages = isAdminOrOwner(profile);
   const supabase = await createClient();
 
   const { data: packages, error } = await supabase
@@ -61,27 +69,41 @@ export default async function PackagesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Paket</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola paket Umroh dan Halal Tour untuk tim sales Anda.
+            {canManagePackages
+              ? "Kelola paket Umroh dan Halal Tour untuk tim sales Anda."
+              : "Lihat paket Umroh dan Halal Tour yang tersedia untuk tim sales."}
           </p>
         </div>
 
-        <Link href="/packages/new" className={cn(buttonVariants())}>
-          Tambah Paket
-        </Link>
+        {canManagePackages && (
+          <Link href="/packages/new" className={cn(buttonVariants())}>
+            Tambah Paket
+          </Link>
+        )}
       </div>
+
+      {params?.error && (
+        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
+          {decodeURIComponent(params.error)}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">
           <h2 className="text-lg font-medium">Belum ada paket</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Mulai dengan menambahkan paket pertama Anda.
+            {canManagePackages
+              ? "Mulai dengan menambahkan paket pertama Anda."
+              : "Belum ada paket yang tersedia di organisasi Anda."}
           </p>
-          <Link
-            href="/packages/new"
-            className={cn(buttonVariants(), "mt-4 inline-flex")}
-          >
-            Tambah Paket
-          </Link>
+          {canManagePackages && (
+            <Link
+              href="/packages/new"
+              className={cn(buttonVariants(), "mt-4 inline-flex")}
+            >
+              Tambah Paket
+            </Link>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
@@ -95,7 +117,9 @@ export default async function PackagesPage() {
                 <th className="px-4 py-3 font-medium">Harga</th>
                 <th className="px-4 py-3 font-medium">Kuota</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Aksi</th>
+                {canManagePackages && (
+                  <th className="px-4 py-3 font-medium">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -118,16 +142,11 @@ export default async function PackagesPage() {
                   <td className="px-4 py-3 capitalize">
                     {formatLabel(pkg.status)}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/packages/${pkg.id}/edit`}
-                        className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-600"
-                      >
-                        Edit
-                      </Link>
-                    </div>
-                  </td>
+                  {canManagePackages && (
+                    <td className="px-4 py-3">
+                      <PackageRowActions packageId={pkg.id} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

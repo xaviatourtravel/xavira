@@ -21,6 +21,12 @@ const ALLOWED_STATUS = [
   "lost",
 ] as const;
 
+type AllowedLeadStatus = (typeof ALLOWED_STATUS)[number];
+
+function isAllowedLeadStatus(value: string): value is AllowedLeadStatus {
+  return (ALLOWED_STATUS as readonly string[]).includes(value);
+}
+
 export async function updateLeadStatus(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
@@ -28,7 +34,7 @@ export async function updateLeadStatus(formData: FormData) {
   const leadId = getString(formData, "lead_id");
   const nextStatus = getString(formData, "next_status");
 
-  if (!leadId || !ALLOWED_STATUS.includes(nextStatus as any)) {
+  if (!leadId || !isAllowedLeadStatus(nextStatus)) {
     redirect("/leads/pipeline?error=Status tidak valid");
   }
 

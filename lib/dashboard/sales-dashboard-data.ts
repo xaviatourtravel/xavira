@@ -1,4 +1,4 @@
-import type { Profile } from "@/types/database";
+import type { Profile } from "@/types/app-types";
 import { buildCriticalLeadListItems } from "@/lib/leads/critical-leads";
 import { getFollowUpTodayBounds } from "@/lib/follow-ups/list-filters";
 import { createClient } from "@/utils/supabase/server";

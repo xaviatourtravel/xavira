@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import type { Profile } from "@/types/database";
+import type { Profile } from "@/types/app-types";
 
 export function DashboardShell({
   children,

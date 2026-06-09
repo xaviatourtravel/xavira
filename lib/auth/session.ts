@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/utils/supabase/server";
-import type { Profile } from "@/types/database";
+import type { Profile } from "@/types/app-types";
 
 export async function getSession() {
   const supabase = await createClient();

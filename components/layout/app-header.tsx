@@ -2,7 +2,7 @@
 
 import { signOut } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
-import type { Profile } from "@/types/database";
+import type { Profile } from "@/types/app-types";
 
 export function AppHeader({ profile }: { profile: Profile }) {
   return (

@@ -1,1 +1,1 @@
-export type { BusinessType, Profile, Subscription, UserRole } from "./database";
+export type { BusinessType, Profile, Subscription, UserRole } from "./app-types";

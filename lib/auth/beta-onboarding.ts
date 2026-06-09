@@ -40,27 +40,12 @@ export function getBetaJoinConfigError(): string | null {
 }
 
 export function logBetaJoinOnboarding(context: string): void {
-  const rawValue = process.env.BETA_JOIN_ORGANIZATION_ID?.trim();
-
-  console.log(
-    `[onboarding:${context}] BETA_JOIN_ORGANIZATION_ID:`,
-    rawValue ? "set" : "missing",
-  );
-
   const state = resolveBetaJoinState();
 
-  if (state.mode === "active") {
-    console.log(`[onboarding:${context}] Using beta join flow`);
-    return;
-  }
-
   if (state.mode === "invalid") {
-    console.log(
+    console.warn(
       `[onboarding:${context}] Invalid BETA_JOIN_ORGANIZATION_ID:`,
       state.rawValue,
     );
-    return;
   }
-
-  console.log(`[onboarding:${context}] Using create new organization flow`);
 }

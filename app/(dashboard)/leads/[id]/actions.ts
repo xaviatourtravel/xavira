@@ -66,17 +66,6 @@ function formatBookingCreatedActivityBody(
   return `Booking ${code} berhasil dibuat.`;
 }
 
-const ACTIVITY_TYPES = [
-  "note",
-  "call",
-  "whatsapp",
-  "email",
-  "status_change",
-  "score_update",
-  "follow_up_sent",
-  "follow_up_generated",
-] as const;
-
 export async function createLeadActivity(formData: FormData) {
     const { profile } = await requireProfile();
     const supabase = await createClient();

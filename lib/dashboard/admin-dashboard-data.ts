@@ -1,4 +1,4 @@
-import type { FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
+import type { FollowUpTodayLead, FollowUpTodayTask } from "@/components/dashboard/follow-up-today-card";
 import {
   buildSalesPerformanceRows,
   shouldShowSalesPerformanceEmptyState,
@@ -18,6 +18,21 @@ import type { Tables } from "@/types/database";
 import { createClient } from "@/utils/supabase/server";
 
 type Profile = Tables<"profiles">;
+
+function normalizeTodayFollowUps(
+  tasks: ReadonlyArray<{
+    id: string;
+    title: string;
+    due_date: string;
+    lead_id: string;
+    leads: FollowUpTodayLead | FollowUpTodayLead[] | null;
+  }> | null,
+): FollowUpTodayTask[] {
+  return (tasks ?? []).map((task) => ({
+    ...task,
+    leads: Array.isArray(task.leads) ? (task.leads[0] ?? null) : task.leads,
+  }));
+}
 
 export type AdminDashboardPriorityLead = {
   id: string;
@@ -299,7 +314,7 @@ export async function loadAdminDashboardMetrics(
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5),
     topSources: Object.entries(sourceStats).sort((a, b) => b[1] - a[1]),
-    todayFollowUps: (todayFollowUps ?? []) as FollowUpTodayTask[],
+    todayFollowUps: normalizeTodayFollowUps(todayFollowUps),
     priorityLeads: buildPriorityLeads(priorityLeads ?? []),
   };
 }

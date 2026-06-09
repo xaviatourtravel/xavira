@@ -1,4 +1,4 @@
-import type { Profile, UserRole } from "@/types/database";
+import type { Profile, UserRole } from "@/types/app-types";
 
 export function hasRole(profile: Profile, roles: UserRole[]): boolean {
   return roles.includes(profile.role);

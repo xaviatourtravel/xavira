@@ -9,6 +9,7 @@ import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
 import { LeadHealthOverviewCard } from "@/components/dashboard/lead-health-overview-card";
 import { LeadSourcesCard } from "@/components/dashboard/lead-sources-card";
+import { RevenueBySourceCard } from "@/components/dashboard/revenue-by-source-card";
 import { SalesPerformanceCard } from "@/components/dashboard/sales-performance-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import {
@@ -21,6 +22,7 @@ import {
   buildLeadHealthOverviewCounts,
 } from "@/lib/leads/health-score";
 import { buildLeadSourceStats } from "@/lib/leads/source-tracking";
+import { buildLeadSourceRevenueStats } from "@/lib/leads/source-revenue";
 import {
   PaketTerlarisCard,
   SumberLeadCard,
@@ -76,6 +78,7 @@ const [
   { data: priorityLeads },
   { count: totalBookings, data: orgBookings },
   { data: orgBookingPayments },
+  { data: sourceRevenuePayments },
   { count: myLeadsTotal },
   { count: myLeadsNeedFollowUp },
   { count: myLeadsCritical },
@@ -168,6 +171,19 @@ const [
   supabase
     .from("booking_payments")
     .select("amount, bookings!inner(organization_id)")
+    .eq("bookings.organization_id", profile.organization_id),
+  supabase
+    .from("booking_payments")
+    .select(`
+      amount,
+      bookings!inner (
+        organization_id,
+        lead_id,
+        leads (
+          source
+        )
+      )
+    `)
     .eq("bookings.organization_id", profile.organization_id),
   myLeadsBaseQuery(),
   myLeadsBaseQuery()
@@ -330,6 +346,10 @@ const topSources = Object.entries(sourceStats)
     buildFollowUpCountByLeadId(orgFollowUpTasksForHealth ?? []),
   );
   const leadSourceStats = buildLeadSourceStats(leadSourceAnalyticsLeads ?? []);
+  const leadSourceRevenueStats = buildLeadSourceRevenueStats(
+    leadSourceAnalyticsLeads ?? [],
+    sourceRevenuePayments ?? [],
+  );
     
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -425,6 +445,8 @@ const topSources = Object.entries(sourceStats)
       <LeadHealthOverviewCard counts={leadHealthOverviewCounts} />
 
       <LeadSourcesCard rows={leadSourceStats} />
+
+      <RevenueBySourceCard rows={leadSourceRevenueStats} />
 
       <SalesPerformanceCard
         rows={salesPerformanceRows}

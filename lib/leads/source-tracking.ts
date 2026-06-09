@@ -1,3 +1,5 @@
+import type { Database } from "@/types/database";
+
 export const LEAD_SOURCE_OPTIONS = [
   { value: "meta_ads", label: "Meta Ads" },
   { value: "tiktok", label: "TikTok" },
@@ -11,30 +13,12 @@ export const LEAD_SOURCE_OPTIONS = [
 
 export type LeadSourceV1 = (typeof LEAD_SOURCE_OPTIONS)[number]["value"];
 
-export const DEFAULT_LEAD_SOURCE: LeadSourceV1 = "meta_ads";
+export type LeadSource = Database["public"]["Enums"]["lead_source"];
 
-const LEGACY_META_SOURCES = ["instagram", "facebook"] as const;
+export const DEFAULT_LEAD_SOURCE: LeadSourceV1 = "other";
 
-/** Values accepted by the current `lead_source` Postgres enum (001_enums.sql). */
-export const PERSISTED_LEAD_SOURCE_VALUES = [
-  "whatsapp",
-  "instagram",
-  "facebook",
-  "referral",
-  "walk_in",
-  "website",
-  "other",
-] as const;
-
-export type PersistedLeadSource = (typeof PERSISTED_LEAD_SOURCE_VALUES)[number];
-
-const V1_SOURCE_STORAGE_FALLBACK: Partial<
-  Record<LeadSourceV1, PersistedLeadSource>
-> = {
-  meta_ads: "facebook",
-  tiktok: "other",
-  repeat_customer: "other",
-};
+/** Legacy enum values still stored on older leads; shown in edit UI only. */
+const LEGACY_LEAD_SOURCES = ["instagram", "facebook"] as const;
 
 const LEAD_SOURCE_LABELS: Record<string, string> = {
   meta_ads: "Meta Ads",
@@ -49,9 +33,9 @@ const LEAD_SOURCE_LABELS: Record<string, string> = {
   facebook: "Meta Ads",
 };
 
-const VALID_LEAD_SOURCES = new Set<string>([
+const SAVEABLE_LEAD_SOURCES = new Set<string>([
   ...LEAD_SOURCE_OPTIONS.map((option) => option.value),
-  ...LEGACY_META_SOURCES,
+  ...LEGACY_LEAD_SOURCES,
 ]);
 
 export type LeadSourceStatsRow = {
@@ -66,67 +50,35 @@ export function isLeadSourceV1(value: string): value is LeadSourceV1 {
   return LEAD_SOURCE_OPTIONS.some((option) => option.value === value);
 }
 
-export function parseLeadSource(value: string) {
-  if (VALID_LEAD_SOURCES.has(value)) {
+export function parseLeadSource(value: string): LeadSourceV1 {
+  if (isLeadSourceV1(value)) {
     return value;
   }
 
   return DEFAULT_LEAD_SOURCE;
 }
 
-export function toPersistedLeadSource(value: string): PersistedLeadSource {
-  const parsed = parseLeadSource(value);
+export function parseLeadSourceForSave(value: string): LeadSource {
+  const trimmed = value.trim();
 
-  if (
-    (PERSISTED_LEAD_SOURCE_VALUES as readonly string[]).includes(parsed)
-  ) {
-    return parsed as PersistedLeadSource;
+  if (SAVEABLE_LEAD_SOURCES.has(trimmed)) {
+    return trimmed as LeadSource;
   }
 
-  if (isLeadSourceV1(parsed) && V1_SOURCE_STORAGE_FALLBACK[parsed]) {
-    return V1_SOURCE_STORAGE_FALLBACK[parsed]!;
-  }
-
-  return "other";
-}
-
-function isPersistedLeadSource(value: string): value is PersistedLeadSource {
-  return (PERSISTED_LEAD_SOURCE_VALUES as readonly string[]).includes(value);
+  return DEFAULT_LEAD_SOURCE;
 }
 
 export function formatLeadSourceLabel(source: string) {
   return LEAD_SOURCE_LABELS[source] ?? "Other";
 }
 
-export function normalizeLeadSourceForAnalytics(source: string): LeadSourceV1 {
-  if (LEGACY_META_SOURCES.includes(source as (typeof LEGACY_META_SOURCES)[number])) {
-    return "meta_ads";
-  }
-
-  if (isLeadSourceV1(source)) {
-    return source;
-  }
-
-  return "other";
-}
-
-export function resolveLeadSourceFilterValues(source: string) {
+export function resolveLeadSourceFilterValues(source: string): LeadSource[] | null {
   if (!source) {
     return null;
   }
 
-  if (source === "meta_ads") {
-    // Legacy Meta channels exist in DB today. Native `meta_ads` requires migration
-    // 20260607000004_extend_lead_source_enum.sql before it can be used in filters.
-    return [...LEGACY_META_SOURCES];
-  }
-
-  if (isPersistedLeadSource(source)) {
-    return [source];
-  }
-
   if (isLeadSourceV1(source)) {
-    return [];
+    return [source];
   }
 
   return null;
@@ -139,6 +91,14 @@ export function getLeadSourceFilterLabel(source: string) {
   }
 
   return "Source";
+}
+
+export function getLeadSourceAnalyticsBucket(source: string): LeadSourceV1 {
+  if (isLeadSourceV1(source)) {
+    return source;
+  }
+
+  return "other";
 }
 
 export function buildLeadSourceStats(
@@ -155,8 +115,8 @@ export function buildLeadSourceStats(
   );
 
   for (const lead of leads) {
-    const normalized = normalizeLeadSourceForAnalytics(lead.source);
-    const bucket = buckets.get(normalized);
+    const bucketKey = getLeadSourceAnalyticsBucket(lead.source);
+    const bucket = buckets.get(bucketKey);
 
     if (!bucket) {
       continue;

@@ -20,12 +20,18 @@ import {
   getLeadIdsForHealthFilterQuery,
   getOverdueFollowUpLeadIds,
   isLeadHealthFilter,
+  getLeadIdsForTemperatureFilterQuery,
+  isLeadTemperatureFilter,
   isOverdueFollowUpFilter,
   parseLeadsListFilters,
   resolveLeadsListAssignedFilter,
   type LeadsListSearchParams,
 } from "@/lib/leads/list-filters";
+import { parseLeadTemperatureFilter } from "@/lib/leads/lead-temperature";
 import { parseLeadHealthFilter } from "@/lib/leads/health-score";
+import { formatLeadDate } from "@/lib/leads/lead-date";
+import { loadLeadFormOptions } from "@/lib/leads/load-lead-form-options";
+import { canEditLead } from "@/lib/leads/permissions";
 import {
   formatLeadSourceLabel,
   LEAD_SOURCE_OPTIONS,
@@ -47,6 +53,9 @@ type LeadRow = {
   package_interest: string | null;
   status: string;
   assigned_to: string | null;
+  lead_date: string | null;
+  lead_temperature: string | null;
+  updated_at: string;
   created_at: string;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
 };
@@ -71,7 +80,10 @@ type LeadsPageProps = {
   searchParams: Promise<LeadsListSearchParams & { success?: string; error?: string }>;
 };
 
-function mapLeadRowsToTableRows(rows: LeadRow[]): LeadsListTableRow[] {
+function mapLeadRowsToTableRows(
+  rows: LeadRow[],
+  profile: Awaited<ReturnType<typeof requireProfile>>["profile"],
+): LeadsListTableRow[] {
   return rows.map((lead) => {
     const contactPhone = getContactPhone(lead);
     const normalizedPhone = contactPhone.replace(/\D/g, "");
@@ -85,11 +97,21 @@ function mapLeadRowsToTableRows(rows: LeadRow[]): LeadsListTableRow[] {
       packageInterest: lead.package_interest || "-",
       statusLabel: formatLabel(lead.status),
       assignedUserLabel: formatAssignedUserLabel(getLeadAssigneeName(lead.profiles)),
-      createdAtLabel: formatDate(lead.created_at),
+      leadDateLabel: lead.lead_date
+        ? formatLeadDate(lead.lead_date)
+        : formatDate(lead.created_at),
+      crmCreatedAtLabel: formatDate(lead.created_at),
       whatsAppHref:
         contactPhone !== "-" && normalizedPhone
           ? `https://wa.me/${normalizedPhone}`
           : null,
+      canEdit: canEditLead(profile, {
+        organization_id: profile.organization_id,
+        assigned_to: lead.assigned_to,
+      }),
+      leadTemperature: lead.lead_temperature,
+      status: lead.status,
+      updatedAt: lead.updated_at,
     };
   });
 }
@@ -111,10 +133,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     .eq("organization_id", profile.organization_id)
     .order("full_name");
 
-  const campaigns = await getOrgCampaignOptions(
-    supabase,
-    profile.organization_id,
-  );
+  const [campaigns, formOptions] = await Promise.all([
+    getOrgCampaignOptions(supabase, profile.organization_id),
+    loadLeadFormOptions(supabase, profile.organization_id),
+  ]);
 
   const profiles = (orgProfiles ?? []) as OrgProfileOption[];
   const validProfileIds = new Set(profiles.map((item) => item.id));
@@ -143,6 +165,15 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       )
     : null;
 
+  const temperatureFilter = parseLeadTemperatureFilter(filters.temperature);
+  const temperatureLeadIds = temperatureFilter
+    ? await getLeadIdsForTemperatureFilterQuery(
+        supabase,
+        profile.organization_id,
+        temperatureFilter,
+      )
+    : null;
+
   if (healthFilter && healthLeadIds?.length === 0) {
     return (
       <LeadsPageContent
@@ -155,6 +186,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         currentPage={1}
         totalPages={1}
         canBulkDelete={canBulkDelete}
+        formOptions={formOptions}
+        profile={profile}
         successMessage={params.success}
         errorMessage={params.error}
       />
@@ -162,6 +195,26 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   }
 
   const sourceFilterValues = resolveLeadSourceFilterValues(filters.source);
+  if (temperatureFilter && temperatureLeadIds?.length === 0) {
+    return (
+      <LeadsPageContent
+        filters={filters}
+        profiles={profiles}
+        campaigns={campaigns}
+        activeFilterBadges={activeFilterBadges}
+        filtersActive={filtersActive}
+        rows={[]}
+        currentPage={1}
+        totalPages={1}
+        canBulkDelete={canBulkDelete}
+        formOptions={formOptions}
+        profile={profile}
+        successMessage={params.success}
+        errorMessage={params.error}
+      />
+    );
+  }
+
   if (sourceFilterValues?.length === 0) {
     return (
       <LeadsPageContent
@@ -174,6 +227,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         currentPage={1}
         totalPages={1}
         canBulkDelete={canBulkDelete}
+        formOptions={formOptions}
+        profile={profile}
         successMessage={params.success}
         errorMessage={params.error}
       />
@@ -193,6 +248,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       package_interest,
       status,
       assigned_to,
+      lead_date,
+      lead_temperature,
+      updated_at,
       created_at,
       profiles!leads_assigned_to_fkey (
         full_name
@@ -251,6 +309,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           currentPage={currentPage}
           totalPages={totalPages}
           canBulkDelete={canBulkDelete}
+          formOptions={formOptions}
+          profile={profile}
           successMessage={params.success}
           errorMessage={params.error}
         />
@@ -264,7 +324,12 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     query = query.in("id", healthLeadIds);
   }
 
+  if (temperatureFilter && temperatureLeadIds) {
+    query = query.in("id", temperatureLeadIds);
+  }
+
   const { data: leads, error, count } = await query
+    .order("lead_date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -287,6 +352,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       currentPage={currentPage}
       totalPages={totalPages}
       canBulkDelete={canBulkDelete}
+      formOptions={formOptions}
+      profile={profile}
       successMessage={params.success}
       errorMessage={params.error}
     />
@@ -303,6 +370,8 @@ type LeadsPageContentProps = {
   currentPage: number;
   totalPages: number;
   canBulkDelete: boolean;
+  formOptions: Awaited<ReturnType<typeof loadLeadFormOptions>>;
+  profile: Awaited<ReturnType<typeof requireProfile>>["profile"];
   successMessage?: string;
   errorMessage?: string;
 };
@@ -317,11 +386,13 @@ function LeadsPageContent({
   currentPage,
   totalPages,
   canBulkDelete,
+  formOptions,
+  profile,
   successMessage,
   errorMessage,
 }: LeadsPageContentProps) {
   const returnTo = buildLeadsListHref(filters, { page: currentPage });
-  const tableRows = mapLeadRowsToTableRows(rows);
+  const tableRows = mapLeadRowsToTableRows(rows, profile);
 
   return (
     <div className="space-y-6">
@@ -353,6 +424,10 @@ function LeadsPageContent({
 
         {isLeadHealthFilter(filters.health) && (
           <input type="hidden" name="health" value={filters.health} />
+        )}
+
+        {isLeadTemperatureFilter(filters.temperature) && (
+          <input type="hidden" name="temperature" value={filters.temperature} />
         )}
 
         <input
@@ -418,6 +493,18 @@ function LeadsPageContent({
           ))}
         </select>
 
+        <select
+          name="temperature"
+          defaultValue={filters.temperature}
+          className="rounded-md border px-3 py-2 text-sm"
+        >
+          <option value="">All Temperatures</option>
+          <option value="hot">Hot</option>
+          <option value="warm">Warm</option>
+          <option value="cold">Cold</option>
+          <option value="not_set">Not Set</option>
+        </select>
+
         <button
           type="submit"
           className="rounded-md border px-3 py-2 text-sm"
@@ -469,6 +556,8 @@ function LeadsPageContent({
       ) : (
         <LeadsListTable
           rows={tableRows}
+          profile={profile}
+          formOptions={formOptions}
           canBulkDelete={canBulkDelete}
           returnTo={returnTo}
           currentPage={currentPage}

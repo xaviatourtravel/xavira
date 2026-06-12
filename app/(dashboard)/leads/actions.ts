@@ -11,85 +11,136 @@ import {
   formatBulkDeleteFailureMessage,
   parseLeadIds,
 } from "@/lib/leads/bulk-delete";
+import { parseLeadFormFields, getLeadFormString } from "@/lib/leads/lead-form-parsing";
+import { canEditLead } from "@/lib/leads/permissions";
+import { parseLeadTemperatureInput } from "@/lib/leads/lead-temperature";
 import { resolveCampaignIdForOrganization } from "@/lib/campaigns/queries";
-import { parseLeadSourceForSave } from "@/lib/leads/source-tracking";
 import { createClient } from "@/utils/supabase/server";
 
-function getString(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
+export async function createLead(formData: FormData) {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+  const fields = parseLeadFormFields(formData);
+
+  if (!fields.fullName) {
+    redirect("/leads/new?error=Nama wajib diisi");
+  }
+
+  const campaignId = await resolveCampaignIdForOrganization(
+    supabase,
+    profile.organization_id,
+    fields.campaignIdInput,
+  );
+
+  if (fields.campaignIdInput && !campaignId) {
+    redirect("/leads/new?error=Campaign tidak valid");
+  }
+
+  let assignedTo = fields.assignedTo;
+  if (!isAdminOrOwner(profile)) {
+    assignedTo = profile.id;
+  } else if (assignedTo) {
+    const { data: assignee } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", assignedTo)
+      .eq("organization_id", profile.organization_id)
+      .maybeSingle();
+
+    if (!assignee) {
+      redirect("/leads/new?error=Assignee tidak valid");
+    }
+  }
+
+  const { data: createdLead, error } = await supabase
+    .from("leads")
+    .insert({
+      organization_id: profile.organization_id,
+      full_name: fields.fullName,
+      whatsapp_number: fields.whatsappNumber || null,
+      phone: fields.whatsappNumber || null,
+      email: fields.email || null,
+      source: fields.source,
+      package_interest: fields.packageInterest || null,
+      notes: fields.notes || null,
+      campaign_id: campaignId,
+      lead_date: fields.leadDateForCreate,
+      status: fields.status,
+      priority: "medium",
+      interest_type: "halal_tour",
+      budget_idr: fields.budgetIdr,
+      travel_date_preference: fields.travelDatePreference || null,
+      party_size: fields.partySize,
+      assigned_to: assignedTo || null,
+      lead_temperature: fields.leadTemperature,
+    })
+    .select("id")
+    .single();
+
+  if (error || !createdLead) {
+    redirect(
+      `/leads/new?error=${encodeURIComponent(error?.message ?? "Gagal membuat lead")}`,
+    );
+  }
+
+  await supabase.from("lead_activities").insert({
+    organization_id: profile.organization_id,
+    lead_id: createdLead.id,
+    actor_id: profile.id,
+    activity_type: "note",
+    title: "Lead dibuat",
+    body: `Lead ${fields.fullName} ditambahkan ke CRM.`,
+  });
+
+  await createAutomaticFirstFollowUpTask(supabase, profile, createdLead.id);
+
+  revalidatePath("/leads");
+  redirect("/leads");
 }
 
-export async function createLead(formData: FormData) {
-    const { profile } = await requireProfile();
-    const supabase = await createClient();
-  
-    const fullName = getString(formData, "full_name");
-    const whatsappNumber = getString(formData, "whatsapp_number");
-    const email = getString(formData, "email");
-    const source = parseLeadSourceForSave(getString(formData, "source"));
-    const interestType = getString(formData, "interest_type") || "unknown";
-    const packageInterest = getString(formData, "package_interest");
-    const notes = getString(formData, "notes");
-    const campaignIdInput = getString(formData, "campaign_id");
-  
-    if (!fullName) {
-      redirect("/leads/new?error=Nama wajib diisi");
-    }
+export async function updateLeadTemperature(
+  leadId: string,
+  temperatureInput: string,
+): Promise<{ ok: true } | { error: string }> {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
 
-    const campaignId = await resolveCampaignIdForOrganization(
-      supabase,
-      profile.organization_id,
-      campaignIdInput,
-    );
-
-    if (campaignIdInput && !campaignId) {
-      redirect("/leads/new?error=Campaign tidak valid");
-    }
-  
-    const { data: createdLead, error } = await supabase
-      .from("leads")
-      .insert({
-        organization_id: profile.organization_id,
-        full_name: fullName,
-        whatsapp_number: whatsappNumber || null,
-        phone: whatsappNumber || null,
-        email: email || null,
-        source,
-        interest_type: interestType,
-        package_interest: packageInterest || null,
-        notes: notes || null,
-        campaign_id: campaignId,
-        status: "new",
-        priority: "medium",
-      })
-      .select("id")
-      .single();
-  
-    if (error || !createdLead) {
-      redirect(
-        `/leads/new?error=${encodeURIComponent(error?.message ?? "Gagal membuat lead")}`,
-      );
-    }
-
-    await supabase.from("lead_activities").insert({
-      organization_id: profile.organization_id,
-      lead_id: createdLead.id,
-      actor_id: profile.id,
-      activity_type: "note",
-      title: "Lead dibuat",
-      body: `Lead ${fullName} ditambahkan ke CRM.`,
-    });
-
-    await createAutomaticFirstFollowUpTask(
-      supabase,
-      profile,
-      createdLead.id,
-    );
-
-    revalidatePath("/leads");
-    redirect("/leads");
+  if (!leadId) {
+    return { error: "Lead tidak ditemukan" };
   }
+
+  const { data: existingLead, error: lookupError } = await supabase
+    .from("leads")
+    .select("id, assigned_to, organization_id")
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { error: lookupError.message };
+  }
+
+  if (!existingLead || !canEditLead(profile, existingLead)) {
+    return { error: "Anda tidak memiliki izin untuk mengubah lead ini." };
+  }
+
+  const leadTemperature = parseLeadTemperatureInput(temperatureInput);
+
+  const { error } = await supabase
+    .from("leads")
+    .update({ lead_temperature: leadTemperature })
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/leads");
+  return { ok: true };
+}
 
 export async function bulkDeleteLeads(formData: FormData) {
   const { profile } = await requireProfile();
@@ -97,14 +148,14 @@ export async function bulkDeleteLeads(formData: FormData) {
   if (!isAdminOrOwner(profile)) {
     redirect(
       buildLeadsActionRedirectPath(
-        getString(formData, "return_to") || "/leads",
+        getLeadFormString(formData, "return_to") || "/leads",
         "error",
         "Hanya admin atau owner yang dapat menghapus lead.",
       ),
     );
   }
 
-  const returnTo = getString(formData, "return_to") || "/leads";
+  const returnTo = getLeadFormString(formData, "return_to") || "/leads";
   const leadIds = parseLeadIds(formData.getAll("lead_ids"));
 
   if (leadIds.length === 0) {

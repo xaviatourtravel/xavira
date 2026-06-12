@@ -11,6 +11,7 @@ import {
   getCampaignMetrics,
   loadCampaignMetricsForOrganization,
 } from "@/lib/campaigns/queries";
+import { formatLeadDate } from "@/lib/leads/lead-date";
 import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
@@ -35,6 +36,7 @@ type CampaignLeadRow = {
   full_name: string;
   status: string;
   source: string;
+  lead_date: string | null;
   created_at: string;
 };
 
@@ -101,10 +103,11 @@ export default async function CampaignDetailPage({
         .maybeSingle(),
       supabase
         .from("leads")
-        .select("id, full_name, status, source, created_at")
+        .select("id, full_name, status, source, lead_date, created_at")
         .eq("organization_id", profile.organization_id)
         .eq("campaign_id", id)
         .is("deleted_at", null)
+        .order("lead_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
     ]);
 
@@ -225,7 +228,7 @@ export default async function CampaignDetailPage({
                 <th className="px-4 py-3 font-medium">Nama</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Lead Source</th>
-                <th className="px-4 py-3 font-medium">Dibuat</th>
+                <th className="px-4 py-3 font-medium">Tanggal Lead</th>
               </tr>
             </thead>
             <tbody>
@@ -245,8 +248,17 @@ export default async function CampaignDetailPage({
                   <td className="px-4 py-3">
                     {formatLeadSourceLabel(lead.source)}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatDate(lead.created_at)}
+                  <td
+                    className="px-4 py-3 whitespace-nowrap"
+                    title={
+                      lead.lead_date
+                        ? `Dibuat di CRM: ${formatDate(lead.created_at)}`
+                        : undefined
+                    }
+                  >
+                    {lead.lead_date
+                      ? formatLeadDate(lead.lead_date)
+                      : formatDate(lead.created_at)}
                   </td>
                 </tr>
               ))}

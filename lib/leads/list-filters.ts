@@ -1,4 +1,10 @@
 import {
+  getLeadIdsForTemperatureFilter,
+  getLeadTemperatureFilterLabel,
+  parseLeadTemperatureFilter,
+  type LeadTemperatureFilter,
+} from "@/lib/leads/lead-temperature";
+import {
   getLeadSourceFilterLabel,
   isLeadSourceV1,
 } from "@/lib/leads/source-tracking";
@@ -28,6 +34,7 @@ export type LeadsListFilters = {
   aging: number | null;
   followUp: string;
   health: string;
+  temperature: string;
 };
 
 export type LeadsListSearchParams = {
@@ -40,6 +47,7 @@ export type LeadsListSearchParams = {
   aging?: string;
   follow_up?: string;
   health?: string;
+  temperature?: string;
   page?: string;
 };
 
@@ -56,6 +64,7 @@ export function parseLeadsListFilters(
     aging: parseLeadAgingFilter(params.aging?.trim() ?? ""),
     followUp: params.follow_up?.trim() ?? "",
     health: params.health?.trim() ?? "",
+    temperature: params.temperature?.trim() ?? "",
   };
 }
 
@@ -105,6 +114,10 @@ export function buildLeadsListHref(
 
   if (!omit.has("health") && filters.health) {
     params.set("health", filters.health);
+  }
+
+  if (!omit.has("temperature") && filters.temperature) {
+    params.set("temperature", filters.temperature);
   }
 
   if (options?.page != null && options.page > 1) {
@@ -223,6 +236,15 @@ export function getActiveLeadFilterBadges(
     });
   }
 
+  const temperatureFilter = parseLeadTemperatureFilter(filters.temperature);
+  if (temperatureFilter) {
+    badges.push({
+      key: "temperature",
+      label: getLeadTemperatureFilterLabel(temperatureFilter),
+      href: buildLeadsListHref(filters, { omit: ["temperature"] }),
+    });
+  }
+
   return badges;
 }
 
@@ -253,6 +275,30 @@ export function isOverdueFollowUpFilter(followUp: string) {
 
 export function isLeadHealthFilter(health: string): health is LeadHealthFilter {
   return parseLeadHealthFilter(health) != null;
+}
+
+export function isLeadTemperatureFilter(
+  temperature: string,
+): temperature is LeadTemperatureFilter {
+  return parseLeadTemperatureFilter(temperature) != null;
+}
+
+export async function getLeadIdsForTemperatureFilterQuery(
+  supabase: SupabaseServerClient,
+  organizationId: string,
+  filter: LeadTemperatureFilter,
+) {
+  const { data: leads, error } = await supabase
+    .from("leads")
+    .select("id, lead_temperature, status, updated_at")
+    .eq("organization_id", organizationId)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error("Gagal memuat filter temperature lead.");
+  }
+
+  return getLeadIdsForTemperatureFilter(leads ?? [], filter);
 }
 
 export async function getLeadIdsForHealthFilterQuery(

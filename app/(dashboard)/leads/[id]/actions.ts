@@ -13,24 +13,21 @@ import {
   getRecommendationFollowUpDueDays,
   getRecommendationFollowUpTaskTitle,
 } from "@/lib/leads/next-best-action";
+import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { resolveCampaignIdForOrganization } from "@/lib/campaigns/queries";
 import { requireProfile } from "@/lib/auth/session";
-import { parseLeadSourceForSave } from "@/lib/leads/source-tracking";
+import { buildLeadsActionRedirectPath } from "@/lib/leads/bulk-delete";
+import type { LeadFormValues } from "@/lib/leads/lead-form-types";
+import {
+  getLeadFormString,
+  parseLeadFormFields,
+} from "@/lib/leads/lead-form-parsing";
+import { canEditLead } from "@/lib/leads/permissions";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-function getOptionalInt(formData: FormData, key: string): number | null {
-  const value = getString(formData, key);
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function generateBookingCode() {
@@ -298,36 +295,101 @@ export async function createLeadActivity(formData: FormData) {
     redirect(`/leads/${leadId}`);
   }
 
+function buildUpdateLeadErrorRedirect(
+  leadId: string,
+  returnTo: string,
+  message: string,
+) {
+  if (returnTo) {
+    return buildLeadsActionRedirectPath(returnTo, "error", message);
+  }
+
+  return `/leads/${leadId}/edit?error=${encodeURIComponent(message)}`;
+}
+
+export async function getLeadForEditForm(
+  leadId: string,
+): Promise<{ values: LeadFormValues } | { error: string }> {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: lead, error } = await supabase
+    .from("leads")
+    .select(
+      "id, organization_id, full_name, whatsapp_number, email, source, lead_date, lead_temperature, package_interest, status, assigned_to, campaign_id, budget_idr, party_size, travel_date_preference, notes",
+    )
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error || !lead) {
+    return { error: "Lead tidak ditemukan" };
+  }
+
+  if (!canEditLead(profile, lead)) {
+    return { error: "Anda tidak memiliki izin untuk mengubah lead ini." };
+  }
+
+  return {
+    values: {
+      full_name: lead.full_name,
+      whatsapp_number: lead.whatsapp_number,
+      email: lead.email,
+      source: lead.source,
+      lead_date: lead.lead_date,
+      package_interest: lead.package_interest,
+      status: lead.status,
+      assigned_to: lead.assigned_to,
+      campaign_id: lead.campaign_id,
+      budget_idr: lead.budget_idr,
+      party_size: lead.party_size,
+      travel_date_preference: lead.travel_date_preference,
+      notes: lead.notes,
+      lead_temperature: lead.lead_temperature,
+    },
+  };
+}
+
 export async function updateLead(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
   const leadId = getString(formData, "lead_id");
-  const fullName = getString(formData, "full_name");
-  const whatsappNumber = getString(formData, "whatsapp_number");
-  const email = getString(formData, "email");
-  const source = parseLeadSourceForSave(getString(formData, "source"));
-  const interestType = getString(formData, "interest_type") || "unknown";
-  const packageInterest = getString(formData, "package_interest");
-  const status = getString(formData, "status") || "new";
-  const priority = getString(formData, "priority") || "medium";
-  const budgetIdr = getOptionalInt(formData, "budget_idr");
-  const travelDatePreference = getString(formData, "travel_date_preference");
-  const partySize = getOptionalInt(formData, "party_size");
-  const notes = getString(formData, "notes");
-  const assignedTo = getString(formData, "assigned_to");
-  const campaignIdInput = getString(formData, "campaign_id");
+  const returnTo = getLeadFormString(formData, "return_to");
+  const fields = parseLeadFormFields(formData);
 
   if (!leadId) {
     redirect("/leads?error=Lead tidak ditemukan");
   }
 
-  if (!fullName) {
+  if (!fields.fullName) {
     redirect(
-      `/leads/${leadId}/edit?error=${encodeURIComponent("Nama wajib diisi")}`,
+      buildUpdateLeadErrorRedirect(leadId, returnTo, "Nama wajib diisi"),
     );
   }
 
-  if (assignedTo) {
+  const { data: existingLead } = await supabase
+    .from("leads")
+    .select("status, full_name, assigned_to, organization_id")
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!existingLead || !canEditLead(profile, existingLead)) {
+    redirect(
+      buildUpdateLeadErrorRedirect(
+        leadId,
+        returnTo,
+        "Anda tidak memiliki izin untuk mengubah lead ini.",
+      ),
+    );
+  }
+
+  let assignedTo = fields.assignedTo;
+  if (!isAdminOrOwner(profile)) {
+    assignedTo = profile.id;
+  } else if (assignedTo) {
     const { data: assignee } = await supabase
       .from("profiles")
       .select("id")
@@ -337,7 +399,7 @@ export async function updateLead(formData: FormData) {
 
     if (!assignee) {
       redirect(
-        `/leads/${leadId}/edit?error=${encodeURIComponent("Assignee tidak valid")}`,
+        buildUpdateLeadErrorRedirect(leadId, returnTo, "Assignee tidak valid"),
       );
     }
   }
@@ -345,41 +407,33 @@ export async function updateLead(formData: FormData) {
   const campaignId = await resolveCampaignIdForOrganization(
     supabase,
     profile.organization_id,
-    campaignIdInput,
+    fields.campaignIdInput,
   );
 
-  if (campaignIdInput && !campaignId) {
+  if (fields.campaignIdInput && !campaignId) {
     redirect(
-      `/leads/${leadId}/edit?error=${encodeURIComponent("Campaign tidak valid")}`,
+      buildUpdateLeadErrorRedirect(leadId, returnTo, "Campaign tidak valid"),
     );
   }
-
-  const { data: existingLead } = await supabase
-  .from("leads")
-  .select("status, full_name")
-  .eq("id", leadId)
-  .eq("organization_id", profile.organization_id)
-  .is("deleted_at", null)
-  .maybeSingle();
 
   const { data: updatedLead, error } = await supabase
     .from("leads")
     .update({
-      full_name: fullName,
-      whatsapp_number: whatsappNumber || null,
-      phone: whatsappNumber || null,
-      email: email || null,
-      source,
-      interest_type: interestType,
-      package_interest: packageInterest || null,
-      status,
-      priority,
-      budget_idr: budgetIdr,
-      travel_date_preference: travelDatePreference || null,
-      party_size: partySize,
-      notes: notes || null,
+      full_name: fields.fullName,
+      whatsapp_number: fields.whatsappNumber || null,
+      phone: fields.whatsappNumber || null,
+      email: fields.email || null,
+      source: fields.source,
+      package_interest: fields.packageInterest || null,
+      status: fields.status,
+      budget_idr: fields.budgetIdr,
+      travel_date_preference: fields.travelDatePreference || null,
+      party_size: fields.partySize,
+      notes: fields.notes || null,
       assigned_to: assignedTo || null,
       campaign_id: campaignId,
+      lead_date: fields.leadDate,
+      lead_temperature: fields.leadTemperature,
     })
     .eq("id", leadId)
     .eq("organization_id", profile.organization_id)
@@ -388,17 +442,19 @@ export async function updateLead(formData: FormData) {
     .maybeSingle();
 
   if (error) {
-    redirect(
-      `/leads/${leadId}/edit?error=${encodeURIComponent(error.message)}`,
-    );
+    redirect(buildUpdateLeadErrorRedirect(leadId, returnTo, error.message));
   }
 
   if (!updatedLead) {
-    redirect("/leads?error=Lead tidak ditemukan");
+    redirect(
+      buildUpdateLeadErrorRedirect(leadId, returnTo, "Lead tidak ditemukan"),
+    );
   }
 
-  const previousStatus = existingLead?.status ?? "";
-  const statusChanged = Boolean(previousStatus && previousStatus !== status);
+  const previousStatus = existingLead.status ?? "";
+  const statusChanged = Boolean(
+    previousStatus && previousStatus !== fields.status,
+  );
 
   await supabase.from("lead_activities").insert({
     organization_id: profile.organization_id,
@@ -407,8 +463,8 @@ export async function updateLead(formData: FormData) {
     activity_type: statusChanged ? "status_change" : "note",
     title: statusChanged ? "Status lead berubah" : "Data lead diperbarui",
     body: statusChanged
-      ? `Status berubah dari ${previousStatus} menjadi ${status}.`
-      : `Data lead ${fullName} diperbarui.`,
+      ? `Status berubah dari ${previousStatus} menjadi ${fields.status}.`
+      : `Data lead ${fields.fullName} diperbarui.`,
   });
 
   if (statusChanged) {
@@ -417,12 +473,23 @@ export async function updateLead(formData: FormData) {
       profile,
       leadId,
       previousStatus,
-      status,
+      fields.status,
     );
   }
 
   revalidatePath("/leads");
   revalidatePath(`/leads/${leadId}`);
+
+  if (returnTo) {
+    redirect(
+      buildLeadsActionRedirectPath(
+        returnTo,
+        "success",
+        "Lead berhasil diperbarui.",
+      ),
+    );
+  }
+
   redirect(`/leads/${leadId}`);
 }
 

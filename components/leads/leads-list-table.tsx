@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { bulkDeleteLeads } from "@/app/(dashboard)/leads/actions";
+import { EditLeadModal } from "@/components/leads/edit-lead-modal";
+import { LeadTemperatureInlineSelect } from "@/components/leads/lead-temperature-inline-select";
 import { buttonVariants } from "@/components/ui/button";
+import type { LeadFormOptions } from "@/lib/leads/lead-form-types";
+import type { Profile } from "@/types/app-types";
 import { cn } from "@/lib/utils";
 
 export type LeadsListTableRow = {
@@ -16,12 +20,19 @@ export type LeadsListTableRow = {
   packageInterest: string;
   statusLabel: string;
   assignedUserLabel: string;
-  createdAtLabel: string;
+  leadDateLabel: string;
+  crmCreatedAtLabel: string;
   whatsAppHref: string | null;
+  canEdit: boolean;
+  leadTemperature: string | null;
+  status: string;
+  updatedAt: string;
 };
 
 type LeadsListTableProps = {
   rows: LeadsListTableRow[];
+  profile: Profile;
+  formOptions: LeadFormOptions;
   canBulkDelete: boolean;
   returnTo: string;
   currentPage: number;
@@ -35,6 +46,8 @@ const BULK_DELETE_CONFIRM_MESSAGE =
 
 export function LeadsListTable({
   rows,
+  profile,
+  formOptions,
   canBulkDelete,
   returnTo,
   currentPage,
@@ -44,6 +57,7 @@ export function LeadsListTable({
 }: LeadsListTableProps) {
   const rowIds = useMemo(() => rows.map((row) => row.id), [rows]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
 
   const allVisibleSelected =
     rowIds.length > 0 && rowIds.every((id) => selectedIds.includes(id));
@@ -105,7 +119,7 @@ export function LeadsListTable({
       )}
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[1100px] text-sm">
+        <table className="w-full min-w-[1240px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               {canBulkDelete && (
@@ -129,8 +143,9 @@ export function LeadsListTable({
               <th className="px-4 py-3 font-medium">Minat</th>
               <th className="px-4 py-3 font-medium">Paket</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Temperature</th>
               <th className="px-4 py-3 font-medium">Assigned User</th>
-              <th className="px-4 py-3 font-medium">Dibuat</th>
+              <th className="px-4 py-3 font-medium">Tanggal Lead</th>
               <th className="px-4 py-3 font-medium">Aksi</th>
             </tr>
           </thead>
@@ -162,27 +177,58 @@ export function LeadsListTable({
                 <td className="px-4 py-3 capitalize">{lead.interestLabel}</td>
                 <td className="px-4 py-3">{lead.packageInterest}</td>
                 <td className="px-4 py-3 capitalize">{lead.statusLabel}</td>
+                <td className="px-4 py-3">
+                  <LeadTemperatureInlineSelect
+                    leadId={lead.id}
+                    leadTemperature={lead.leadTemperature}
+                    status={lead.status}
+                    updatedAt={lead.updatedAt}
+                    canEdit={lead.canEdit}
+                  />
+                </td>
                 <td className="px-4 py-3">{lead.assignedUserLabel}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                  {lead.createdAtLabel}
+                <td
+                  className="px-4 py-3 whitespace-nowrap text-muted-foreground"
+                  title={`Dibuat di CRM: ${lead.crmCreatedAtLabel}`}
+                >
+                  {lead.leadDateLabel}
                 </td>
                 <td className="px-4 py-3">
-                  {lead.whatsAppHref && (
-                    <a
-                      href={lead.whatsAppHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded bg-green-600 px-3 py-1 text-xs text-white"
-                    >
-                      WhatsApp
-                    </a>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {lead.whatsAppHref && (
+                      <a
+                        href={lead.whatsAppHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded bg-green-600 px-3 py-1 text-xs text-white"
+                      >
+                        WhatsApp
+                      </a>
+                    )}
+                    {lead.canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingLeadId(lead.id)}
+                        className="rounded border px-3 py-1 text-xs hover:bg-muted"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <EditLeadModal
+        leadId={editingLeadId}
+        profile={profile}
+        options={formOptions}
+        returnTo={returnTo}
+        onClose={() => setEditingLeadId(null)}
+      />
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">

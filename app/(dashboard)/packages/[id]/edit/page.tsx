@@ -97,6 +97,7 @@ export default async function EditPackagePage({
             name="duration_days"
             type="number"
             min="1"
+            step="1"
             defaultValue={pkg.duration_days ?? ""}
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
           />
@@ -106,9 +107,11 @@ export default async function EditPackagePage({
           <label className="text-sm font-medium">Harga IDR</label>
           <input
             name="price_idr"
-            type="number"
-            min="0"
-            defaultValue={pkg.price_idr ?? ""}
+            type="text"
+            inputMode="numeric"
+            defaultValue={
+              pkg.price_idr != null ? String(pkg.price_idr) : ""
+            }
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
           />
         </div>
@@ -119,6 +122,7 @@ export default async function EditPackagePage({
             name="quota"
             type="number"
             min="0"
+            step="1"
             defaultValue={pkg.quota ?? ""}
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
           />

@@ -71,6 +71,7 @@ export default async function NewPackagePage({
             name="duration_days"
             type="number"
             min="1"
+            step="1"
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
             placeholder="8"
           />
@@ -80,10 +81,10 @@ export default async function NewPackagePage({
           <label className="text-sm font-medium">Harga IDR</label>
           <input
             name="price_idr"
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-            placeholder="18900000"
+            placeholder="18900000 atau 15.000.000"
           />
         </div>
 
@@ -93,6 +94,7 @@ export default async function NewPackagePage({
             name="quota"
             type="number"
             min="0"
+            step="1"
             className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
             placeholder="24"
           />

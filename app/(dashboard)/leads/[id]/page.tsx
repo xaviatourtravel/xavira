@@ -26,6 +26,7 @@ import { createClient } from "@/utils/supabase/server";
 import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
 import { QuotationCard } from "@/components/leads/quotation-card";
 import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
+import { AiReplyAssistantCard } from "@/components/leads/ai-reply-assistant-card";
 import { AiRecommendationCard } from "@/components/leads/ai-recommendation-card";
 import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
 import { calculateLeadHealthScore } from "@/lib/leads/health-score";
@@ -524,6 +525,12 @@ Terima kasih.`
       />
 
 <AiFollowUpCard leadId={detail.id} />
+
+      <AiReplyAssistantCard
+        leadId={detail.id}
+        whatsappNumber={detail.whatsapp_number}
+        phone={detail.phone}
+      />
       
       <Card>
   <CardHeader>

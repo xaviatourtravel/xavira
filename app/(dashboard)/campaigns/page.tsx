@@ -18,21 +18,8 @@ type CampaignRow = {
   name: string;
   source: string | null;
   status: string;
-  start_date: string | null;
-  end_date: string | null;
   budget: number | null;
 };
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
-}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -55,9 +42,7 @@ export default async function CampaignsPage({
   const [{ data: campaigns, error }, metricsByCampaignId] = await Promise.all([
     supabase
       .from("campaigns")
-      .select(
-        "id, name, source, status, start_date, end_date, budget",
-      )
+      .select("id, name, source, status, budget")
       .eq("organization_id", profile.organization_id)
       .order("created_at", { ascending: false }),
     loadCampaignMetricsForOrganization(supabase, profile.organization_id),
@@ -113,18 +98,17 @@ export default async function CampaignsPage({
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[1120px] text-sm">
+          <table className="w-full min-w-[1040px] text-sm">
             <thead className="border-b bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Campaign Name</th>
                 <th className="px-4 py-3 font-medium">Source</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Budget</th>
-                <th className="px-4 py-3 font-medium">Start Date</th>
-                <th className="px-4 py-3 font-medium">End Date</th>
                 <th className="px-4 py-3 font-medium">Lead Count</th>
-                <th className="px-4 py-3 font-medium">Won Count</th>
-                <th className="px-4 py-3 font-medium">Revenue Received</th>
+                <th className="px-4 py-3 font-medium">Booking Count</th>
+                <th className="px-4 py-3 font-medium">Revenue</th>
+                <th className="px-4 py-3 font-medium">Conversion Rate</th>
                 {canManageCampaigns && (
                   <th className="px-4 py-3 font-medium">Aksi</th>
                 )}
@@ -156,17 +140,12 @@ export default async function CampaignsPage({
                     <td className="px-4 py-3 whitespace-nowrap">
                       {formatCurrency(campaign.budget ?? 0)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {formatDate(campaign.start_date)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {formatDate(campaign.end_date)}
-                    </td>
                     <td className="px-4 py-3">{metrics.leadCount}</td>
-                    <td className="px-4 py-3">{metrics.wonCount}</td>
+                    <td className="px-4 py-3">{metrics.bookingCount}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {formatCurrency(metrics.revenueReceived)}
+                      {formatCurrency(metrics.revenue)}
                     </td>
+                    <td className="px-4 py-3">{metrics.conversionRate}%</td>
                     {canManageCampaigns && (
                       <td className="px-4 py-3">
                         <CampaignRowActions campaignId={campaign.id} />

@@ -15,6 +15,11 @@ import {
   getEffectiveLeadTemperature,
   type LeadTemperature,
 } from "@/lib/leads/lead-temperature";
+import {
+  buildTopCampaigns,
+  type TopCampaignRow,
+} from "@/lib/campaigns/metrics";
+import { loadCampaignMetricsForOrganization } from "@/lib/campaigns/queries";
 import type { Tables } from "@/types/database";
 import { createClient } from "@/utils/supabase/server";
 
@@ -97,6 +102,7 @@ export type OwnerDashboardMetrics = {
   needAttention: OwnerNeedAttentionMetrics;
   revenueOverview: OwnerRevenueOverview;
   topPackages: OwnerTopPackageRow[];
+  topCampaigns: TopCampaignRow[];
 };
 
 function getLeadAcquisitionDate(lead: Pick<LeadRow, "lead_date" | "created_at">) {
@@ -249,6 +255,8 @@ export async function loadOwnerDashboardMetrics(
     { data: bookings },
     { data: payments },
     { count: unassignedLeads },
+    { data: campaigns },
+    metricsByCampaignId,
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -280,6 +288,11 @@ export async function loadOwnerDashboardMetrics(
       .eq("organization_id", organizationId)
       .is("deleted_at", null)
       .is("assigned_to", null),
+    supabase
+      .from("campaigns")
+      .select("id, name")
+      .eq("organization_id", organizationId),
+    loadCampaignMetricsForOrganization(supabase, organizationId),
   ]);
 
   const leadRows = (leads ?? []) as LeadRow[];
@@ -378,5 +391,6 @@ export async function loadOwnerDashboardMetrics(
         .slice(0, 5),
     },
     topPackages: buildTopPackages(leadRows, bookingRows),
+    topCampaigns: buildTopCampaigns(campaigns ?? [], metricsByCampaignId),
   };
 }

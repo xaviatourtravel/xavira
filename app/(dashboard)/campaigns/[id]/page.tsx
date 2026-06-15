@@ -7,11 +7,14 @@ import {
   formatCampaignStatusLabel,
   type CampaignStatus,
 } from "@/lib/campaigns/constants";
+import { loadCampaignDetailAttribution } from "@/lib/campaigns/queries";
 import {
-  getCampaignMetrics,
-  loadCampaignMetricsForOrganization,
-} from "@/lib/campaigns/queries";
+  formatAssignedUserLabel,
+  getLeadAssigneeName,
+} from "@/lib/leads/assignment";
 import { formatLeadDate } from "@/lib/leads/lead-date";
+import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
+import { LeadTemperatureBadge } from "@/components/leads/lead-temperature-badge";
 import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
@@ -35,9 +38,16 @@ type CampaignLeadRow = {
   id: string;
   full_name: string;
   status: string;
-  source: string;
+  lead_temperature: string | null;
+  updated_at: string;
+  package_interest: string | null;
   lead_date: string | null;
   created_at: string;
+  assigned_to: string | null;
+  profiles:
+    | { full_name: string | null }
+    | { full_name: string | null }[]
+    | null;
 };
 
 function formatDate(value: string | null) {
@@ -78,6 +88,23 @@ function MetricCard({
   );
 }
 
+function TemperatureStat({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: number;
+  className: string;
+}) {
+  return (
+    <div className="rounded-lg border p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className={cn("mt-2 text-2xl font-semibold", className)}>{value}</p>
+    </div>
+  );
+}
+
 export default async function CampaignDetailPage({
   params,
   searchParams,
@@ -103,7 +130,22 @@ export default async function CampaignDetailPage({
         .maybeSingle(),
       supabase
         .from("leads")
-        .select("id, full_name, status, source, lead_date, created_at")
+        .select(
+          `
+          id,
+          full_name,
+          status,
+          lead_temperature,
+          updated_at,
+          package_interest,
+          lead_date,
+          created_at,
+          assigned_to,
+          profiles!leads_assigned_to_fkey (
+            full_name
+          )
+        `,
+        )
         .eq("organization_id", profile.organization_id)
         .eq("campaign_id", id)
         .is("deleted_at", null)
@@ -121,11 +163,12 @@ export default async function CampaignDetailPage({
 
   const detail = campaign as CampaignDetail;
   const leads = (relatedLeads ?? []) as CampaignLeadRow[];
-  const metricsByCampaignId = await loadCampaignMetricsForOrganization(
-    supabase,
-    profile.organization_id,
-  );
-  const metrics = getCampaignMetrics(metricsByCampaignId, detail.id);
+  const { metrics, temperatureBreakdown, revenueByPackage } =
+    await loadCampaignDetailAttribution(
+      supabase,
+      profile.organization_id,
+      detail.id,
+    );
 
   return (
     <div className="space-y-6">
@@ -139,7 +182,7 @@ export default async function CampaignDetailPage({
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">{detail.name}</h1>
           <p className="text-sm text-muted-foreground">
-            Detail campaign attribution dan lead terkait.
+            Campaign attribution dan performa marketing.
           </p>
         </div>
 
@@ -162,33 +205,18 @@ export default async function CampaignDetailPage({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Lead Count" value={metrics.leadCount} />
-        <MetricCard label="Won Count" value={metrics.wonCount} />
-        <MetricCard
-          label="Conversion Rate"
-          value={`${metrics.conversionRate}%`}
-        />
-        <MetricCard
-          label="Revenue Received"
-          value={formatCurrency(metrics.revenueReceived)}
-        />
-      </div>
-
       <div className="rounded-xl border p-6">
-        <h2 className="text-lg font-semibold">Informasi Campaign</h2>
+        <h2 className="text-lg font-semibold">Campaign Information</h2>
 
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-sm text-muted-foreground">Name</dt>
+            <dd className="mt-1 text-sm font-medium">{detail.name}</dd>
+          </div>
           <div>
             <dt className="text-sm text-muted-foreground">Source</dt>
             <dd className="mt-1 text-sm font-medium">
               {formatLeadSourceLabel(detail.source ?? "other")}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">Status</dt>
-            <dd className="mt-1 text-sm font-medium capitalize">
-              {formatCampaignStatusLabel(detail.status)}
             </dd>
           </div>
           <div>
@@ -198,7 +226,13 @@ export default async function CampaignDetailPage({
             </dd>
           </div>
           <div>
-            <dt className="text-sm text-muted-foreground">Periode</dt>
+            <dt className="text-sm text-muted-foreground">Status</dt>
+            <dd className="mt-1 text-sm font-medium capitalize">
+              {formatCampaignStatusLabel(detail.status)}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-sm text-muted-foreground">Date Range</dt>
             <dd className="mt-1 text-sm font-medium">
               {formatDate(detail.start_date)} - {formatDate(detail.end_date)}
             </dd>
@@ -212,9 +246,44 @@ export default async function CampaignDetailPage({
         </dl>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Leads" value={metrics.leadCount} />
+        <MetricCard label="Bookings" value={metrics.bookingCount} />
+        <MetricCard label="Revenue" value={formatCurrency(metrics.revenue)} />
+        <MetricCard
+          label="Conversion Rate"
+          value={`${metrics.conversionRate}%`}
+        />
+      </div>
+
+      <div className="rounded-xl border p-6">
+        <h2 className="text-lg font-semibold">Lead Temperature Breakdown</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Distribusi suhu lead yang ditautkan ke campaign ini.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TemperatureStat
+            label="Hot"
+            value={temperatureBreakdown.hot}
+            className="text-orange-700"
+          />
+          <TemperatureStat
+            label="Warm"
+            value={temperatureBreakdown.warm}
+            className="text-yellow-700"
+          />
+          <TemperatureStat
+            label="Cold"
+            value={temperatureBreakdown.cold}
+            className="text-slate-700"
+          />
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border">
         <div className="border-b px-4 py-3">
-          <h2 className="text-lg font-semibold">Lead Terkait</h2>
+          <h2 className="text-lg font-semibold">Leads</h2>
         </div>
 
         {leads.length === 0 ? (
@@ -222,48 +291,96 @@ export default async function CampaignDetailPage({
             Belum ada lead yang ditautkan ke campaign ini.
           </div>
         ) : (
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[960px] text-sm">
             <thead className="border-b bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Nama</th>
+                <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Lead Source</th>
-                <th className="px-4 py-3 font-medium">Tanggal Lead</th>
+                <th className="px-4 py-3 font-medium">Temperature</th>
+                <th className="px-4 py-3 font-medium">Assigned Sales</th>
+                <th className="px-4 py-3 font-medium">Package</th>
+                <th className="px-4 py-3 font-medium">Lead Date</th>
               </tr>
             </thead>
             <tbody>
-              {leads.map((lead) => (
-                <tr key={lead.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">
-                    <Link
-                      href={`/leads/${lead.id}`}
-                      className="text-blue-600 hover:underline"
+              {leads.map((lead) => {
+                const temperature = getEffectiveLeadTemperature({
+                  lead_temperature: lead.lead_temperature,
+                  status: lead.status,
+                  updated_at: lead.updated_at,
+                });
+
+                return (
+                  <tr key={lead.id} className="border-b last:border-b-0">
+                    <td className="px-4 py-3 font-medium">
+                      <Link
+                        href={`/leads/${lead.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {lead.full_name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 capitalize">
+                      {formatLabel(lead.status)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <LeadTemperatureBadge
+                        value={temperature.value}
+                        isSuggested={temperature.isSuggested}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      {formatAssignedUserLabel(
+                        getLeadAssigneeName(lead.profiles),
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {lead.package_interest || "-"}
+                    </td>
+                    <td
+                      className="px-4 py-3 whitespace-nowrap"
+                      title={
+                        lead.lead_date
+                          ? `Dibuat di CRM: ${formatDate(lead.created_at)}`
+                          : undefined
+                      }
                     >
-                      {lead.full_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 capitalize">
-                    {formatLabel(lead.status)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {formatLeadSourceLabel(lead.source)}
-                  </td>
-                  <td
-                    className="px-4 py-3 whitespace-nowrap"
-                    title={
-                      lead.lead_date
-                        ? `Dibuat di CRM: ${formatDate(lead.created_at)}`
-                        : undefined
-                    }
-                  >
-                    {lead.lead_date
-                      ? formatLeadDate(lead.lead_date)
-                      : formatDate(lead.created_at)}
-                  </td>
-                </tr>
-              ))}
+                      {lead.lead_date
+                        ? formatLeadDate(lead.lead_date)
+                        : formatDate(lead.created_at)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        )}
+      </div>
+
+      <div className="rounded-xl border p-6">
+        <h2 className="text-lg font-semibold">Revenue by Package</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Pendapatan dari booking lead campaign ini, dikelompokkan per paket.
+        </p>
+
+        {revenueByPackage.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Belum ada revenue dari lead campaign ini.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {revenueByPackage.map((row) => (
+              <div
+                key={row.packageName}
+                className="flex items-center justify-between rounded-lg border p-3"
+              >
+                <span className="font-medium">{row.packageName}</span>
+                <span className="text-sm text-green-700">
+                  {formatCurrency(row.revenue)}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

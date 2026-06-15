@@ -1,8 +1,12 @@
 import type { CampaignOption } from "@/lib/campaigns/constants";
 import {
   buildCampaignMetricsByCampaignId,
+  buildCampaignRevenueByPackage,
+  buildCampaignTemperatureBreakdown,
   getCampaignMetrics,
   type CampaignMetrics,
+  type CampaignRevenueByPackageRow,
+  type CampaignTemperatureBreakdown,
 } from "@/lib/campaigns/metrics";
 import type { createClient } from "@/utils/supabase/server";
 
@@ -25,26 +29,28 @@ export async function getOrgCampaignOptions(
   return (data ?? []) as CampaignOption[];
 }
 
-export async function loadCampaignMetricsForOrganization(
+async function loadCampaignAttributionRows(
   supabase: SupabaseServerClient,
   organizationId: string,
-): Promise<Record<string, CampaignMetrics>> {
+) {
   const [{ data: leads }, { data: bookings }] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, campaign_id, status")
+      .select("id, campaign_id, status, lead_temperature, updated_at")
       .eq("organization_id", organizationId)
       .is("deleted_at", null)
       .not("campaign_id", "is", null),
     supabase
       .from("bookings")
-      .select("id, lead_id")
+      .select("id, lead_id, package_name")
       .eq("organization_id", organizationId),
   ]);
 
   const leadRows = leads ?? [];
   const bookingRows = (bookings ?? []).filter(
-    (booking) => booking.lead_id && leadRows.some((lead) => lead.id === booking.lead_id),
+    (booking) =>
+      booking.lead_id &&
+      leadRows.some((lead) => lead.id === booking.lead_id),
   );
   const bookingIds = bookingRows.map((booking) => booking.id);
 
@@ -63,7 +69,57 @@ export async function loadCampaignMetricsForOrganization(
     payments = paymentRows ?? [];
   }
 
+  return {
+    leadRows,
+    bookingRows,
+    payments,
+  };
+}
+
+export async function loadCampaignMetricsForOrganization(
+  supabase: SupabaseServerClient,
+  organizationId: string,
+): Promise<Record<string, CampaignMetrics>> {
+  const { leadRows, bookingRows, payments } =
+    await loadCampaignAttributionRows(supabase, organizationId);
+
   return buildCampaignMetricsByCampaignId(leadRows, bookingRows, payments);
+}
+
+export async function loadCampaignDetailAttribution(
+  supabase: SupabaseServerClient,
+  organizationId: string,
+  campaignId: string,
+): Promise<{
+  metrics: CampaignMetrics;
+  temperatureBreakdown: CampaignTemperatureBreakdown;
+  revenueByPackage: CampaignRevenueByPackageRow[];
+}> {
+  const { leadRows, bookingRows, payments } =
+    await loadCampaignAttributionRows(supabase, organizationId);
+  const metricsByCampaignId = buildCampaignMetricsByCampaignId(
+    leadRows,
+    bookingRows,
+    payments,
+  );
+  const campaignLeadIds = new Set(
+    leadRows
+      .filter((lead) => lead.campaign_id === campaignId)
+      .map((lead) => lead.id),
+  );
+
+  return {
+    metrics: getCampaignMetrics(metricsByCampaignId, campaignId),
+    temperatureBreakdown: buildCampaignTemperatureBreakdown(
+      leadRows,
+      campaignId,
+    ),
+    revenueByPackage: buildCampaignRevenueByPackage(
+      campaignLeadIds,
+      bookingRows,
+      payments,
+    ),
+  };
 }
 
 export { getCampaignMetrics };

@@ -1,4 +1,5 @@
 import { LeadTemperatureOverviewCard } from "@/components/dashboard/lead-temperature-overview-card";
+import { OwnerCampaignPerformanceCard } from "@/components/dashboard/owner-campaign-performance-card";
 import { OwnerExecutiveKpiSection } from "@/components/dashboard/owner-executive-kpi-section";
 import { OwnerNeedAttentionCard } from "@/components/dashboard/owner-need-attention-card";
 import { OwnerPipelineFunnelCard } from "@/components/dashboard/owner-pipeline-funnel-card";
@@ -39,6 +40,8 @@ export function OwnerDashboardView({ metrics }: OwnerDashboardViewProps) {
         <OwnerRevenueOverviewCard overview={metrics.revenueOverview} />
         <OwnerTopPackagesCard rows={metrics.topPackages} />
       </div>
+
+      <OwnerCampaignPerformanceCard rows={metrics.topCampaigns} />
     </div>
   );
 }

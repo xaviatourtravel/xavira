@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { AiSalesCopilotCard } from "@/components/dashboard/ai-sales-copilot-card";
+import { AiSalesAssistantCard } from "@/components/dashboard/ai-sales-assistant-card";
 import { FollowUpTodayCard } from "@/components/dashboard/follow-up-today-card";
 import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
 import type { SalesDashboardMetrics } from "@/lib/dashboard/sales-dashboard-data";
@@ -87,7 +87,7 @@ export function SalesDashboardView({ metrics }: SalesDashboardViewProps) {
 
       <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
 
-      <AiSalesCopilotCard leads={metrics.priorityLeads} />
+      <AiSalesAssistantCard leads={metrics.priorityLeads} />
 
       <div>
         <h2 className="text-lg font-semibold">Quick Actions</h2>

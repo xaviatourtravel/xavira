@@ -25,15 +25,14 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
 import { QuotationCard } from "@/components/leads/quotation-card";
-import { AiFollowUpCard } from "@/components/leads/ai-follow-up-card";
-import { AiReplyAssistantCard } from "@/components/leads/ai-reply-assistant-card";
-import { AiRecommendationCard } from "@/components/leads/ai-recommendation-card";
+import { AiSalesIntelligenceCard } from "@/components/leads/ai-sales-intelligence-card";
 import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
 import { calculateLeadHealthScore } from "@/lib/leads/health-score";
 import { LeadTemperatureBadge } from "@/components/leads/lead-temperature-badge";
 import { formatLeadDate } from "@/lib/leads/lead-date";
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
+import { resolveLeadIntelligenceFromLeadData } from "@/lib/ai/lead-intelligence";
 import { LeadHealthScoreCard } from "@/components/leads/lead-health-score-card";
 import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
 import {
@@ -60,6 +59,7 @@ type LeadDetail = {
   campaign_id: string | null;
   lead_date: string | null;
   lead_temperature: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   campaigns: { name: string } | { name: string }[] | null;
@@ -185,6 +185,7 @@ export default async function LeadDetailPage({
           campaign_id,
           lead_date,
           lead_temperature,
+          metadata,
           created_at,
           updated_at,
           campaigns (
@@ -249,6 +250,21 @@ export default async function LeadDetailPage({
     lead_temperature: detail.lead_temperature,
     status: detail.status,
     updated_at: detail.updated_at,
+  });
+  const leadIntelligence = resolveLeadIntelligenceFromLeadData({
+    metadata: detail.metadata,
+    updatedAt: detail.updated_at,
+    status: detail.status,
+    notes: detail.notes,
+    leadTemperature: detail.lead_temperature,
+    packageInterest: detail.package_interest,
+    activities: timeline.map((activity) => ({
+      activity_type: activity.activity_type,
+      title: activity.title,
+      body: activity.body,
+      occurred_at: activity.occurred_at,
+    })),
+    followUpTasks,
   });
   const { data: selectedPackage } = detail.package_interest
   ? await supabase
@@ -505,7 +521,7 @@ Terima kasih.`
         <div className="space-y-6 lg:col-span-1">
       <LeadHealthScoreCard healthScore={healthScore} />
 
-      <AiRecommendationCard
+      <AiSalesIntelligenceCard
         leadId={detail.id}
         fullName={detail.full_name}
         packageInterest={detail.package_interest}
@@ -515,6 +531,7 @@ Terima kasih.`
         updatedAt={detail.updated_at}
         hasPendingRecommendedTask={hasPendingRecommendedTask}
         createFollowUpFromRecommendation={createFollowUpFromRecommendation}
+        initialIntelligence={leadIntelligence}
       />
 
       <QuotationCard
@@ -522,14 +539,6 @@ Terima kasih.`
         selectedPackage={selectedPackage}
         quotationText={quotationText}
         contactPhone={formatContact(detail)}
-      />
-
-<AiFollowUpCard leadId={detail.id} />
-
-      <AiReplyAssistantCard
-        leadId={detail.id}
-        whatsappNumber={detail.whatsapp_number}
-        phone={detail.phone}
       />
       
       <Card>

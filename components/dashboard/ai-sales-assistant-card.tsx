@@ -20,13 +20,14 @@ function formatStatus(value: string) {
     .join(" ");
 }
 
-export function AiSalesCopilotCard({ leads }: Props) {
+export function AiSalesAssistantCard({ leads }: Props) {
   return (
     <div className="rounded-xl border p-6">
-      <h2 className="text-lg font-semibold">AI Sales Copilot</h2>
+      <h2 className="text-lg font-semibold">✨ AI Sales Assistant</h2>
 
       <p className="mb-4 text-sm text-muted-foreground">
-        Lead yang paling layak diprioritaskan hari ini.
+        Lead yang paling layak diprioritaskan hari ini. Buka detail lead untuk
+        membuat draf pesan WhatsApp.
       </p>
 
       {leads.length ? (
@@ -54,7 +55,7 @@ export function AiSalesCopilotCard({ leads }: Props) {
                 href={`/leads/${lead.id}`}
                 className="mt-2 inline-flex text-xs text-blue-600 hover:underline"
               >
-                Detail
+                Buka Lead
               </Link>
             </div>
           ))}

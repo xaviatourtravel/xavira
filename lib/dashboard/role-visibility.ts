@@ -33,5 +33,5 @@ export function isAgentDashboardVariant(variant: DashboardVariant): boolean {
  * Section visibility by dashboard variant:
  * - owner: executive org-wide KPIs, health, sales, booking, pipeline, sources, analytics, AI usage, content
  * - admin: need attention, sales performance, booking, content, follow-up overview, pipeline
- * - agent: personal leads, follow-ups, critical leads, shortcuts, AI sales copilot
+ * - agent: personal leads, follow-ups, critical leads, shortcuts, AI sales assistant
  */

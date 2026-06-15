@@ -1,54 +1,58 @@
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 
-export const REPLY_ASSISTANT_TYPES = [
+export const SALES_ASSISTANT_ACTIONS = [
   "follow_up",
-  "answer_package_question",
-  "price_explanation",
+  "reply",
   "closing",
   "re_engagement",
   "payment_reminder",
+  "qualification_questions",
 ] as const;
 
-export type ReplyAssistantType = (typeof REPLY_ASSISTANT_TYPES)[number];
+export type SalesAssistantAction = (typeof SALES_ASSISTANT_ACTIONS)[number];
 
-const REPLY_TYPE_LABELS: Record<ReplyAssistantType, string> = {
-  follow_up: "Follow Up",
-  answer_package_question: "Answer Package Question",
-  price_explanation: "Price Explanation",
-  closing: "Closing",
-  re_engagement: "Re-engagement",
-  payment_reminder: "Payment Reminder",
+const SALES_ASSISTANT_ACTION_LABELS: Record<SalesAssistantAction, string> = {
+  follow_up: "Generate Follow Up",
+  reply: "Generate Reply",
+  closing: "Generate Closing Message",
+  re_engagement: "Generate Re-engagement Message",
+  payment_reminder: "Generate Payment Reminder",
+  qualification_questions: "Generate Qualification Questions",
 };
 
-const REPLY_TYPE_INSTRUCTIONS: Record<ReplyAssistantType, string> = {
+const SALES_ASSISTANT_ACTION_INSTRUCTIONS: Record<SalesAssistantAction, string> = {
   follow_up:
     "Buat pesan follow up yang natural untuk melanjutkan percakapan dan mengajak pelanggan merespons.",
-  answer_package_question:
-    "Jawab pertanyaan terkait paket dengan jelas. Jika detail paket belum lengkap, arahkan sales untuk konfirmasi manual.",
-  price_explanation:
-    "Jelaskan harga paket dengan transparan. Jika harga tidak tersedia di data, jangan sebut angka dan minta sales konfirmasi manual.",
+  reply:
+    "Buat balasan WhatsApp yang relevan terhadap konteks pelanggan. Jawab pertanyaan dengan jelas. Jika detail paket belum lengkap, arahkan sales untuk konfirmasi manual.",
   closing:
     "Bantu sales mengajak pelanggan mengambil keputusan booking dengan sopan, tanpa tekanan berlebihan.",
   re_engagement:
     "Buat pesan untuk menghidupkan kembali lead yang sempat dingin atau belum merespons.",
   payment_reminder:
     "Ingatkan pelanggan tentang pembayaran yang belum lunas dengan sopan. Jangan minta data pembayaran sensitif.",
+  qualification_questions:
+    "Buat daftar pertanyaan kualifikasi singkat yang bisa sales kirim via WhatsApp untuk memahami kebutuhan pelanggan (jadwal, budget, jumlah peserta, preferensi paket). Format natural, bukan kuesioner kaku.",
 };
 
-export function isReplyAssistantType(value: string): value is ReplyAssistantType {
-  return REPLY_ASSISTANT_TYPES.includes(value as ReplyAssistantType);
+export function isSalesAssistantAction(
+  value: string,
+): value is SalesAssistantAction {
+  return SALES_ASSISTANT_ACTIONS.includes(value as SalesAssistantAction);
 }
 
-export function parseReplyAssistantType(value: string): ReplyAssistantType | null {
+export function parseSalesAssistantAction(
+  value: string,
+): SalesAssistantAction | null {
   const trimmed = value.trim();
-  return isReplyAssistantType(trimmed) ? trimmed : null;
+  return isSalesAssistantAction(trimmed) ? trimmed : null;
 }
 
-export function getReplyAssistantTypeLabel(type: ReplyAssistantType) {
-  return REPLY_TYPE_LABELS[type];
+export function getSalesAssistantActionLabel(action: SalesAssistantAction) {
+  return SALES_ASSISTANT_ACTION_LABELS[action];
 }
 
-export type ReplyAssistantLead = {
+export type SalesAssistantLead = {
   full_name: string;
   status: string;
   interest_type: string;
@@ -61,7 +65,7 @@ export type ReplyAssistantLead = {
   party_size: number | null;
 };
 
-export type ReplyAssistantPackage = {
+export type SalesAssistantPackage = {
   name: string;
   destination: string | null;
   departure_date: string | null;
@@ -70,35 +74,35 @@ export type ReplyAssistantPackage = {
   quota: number | null;
 };
 
-export type ReplyAssistantActivity = {
+export type SalesAssistantActivity = {
   activity_type: string;
   title: string | null;
   body: string | null;
   occurred_at: string;
 };
 
-export type ReplyAssistantFollowUpTask = {
+export type SalesAssistantFollowUpTask = {
   title: string;
   description: string | null;
   due_date: string;
   status: string;
 };
 
-export type ReplyAssistantBooking = {
+export type SalesAssistantBooking = {
   booking_code: string | null;
   package_name: string | null;
   payment_status: string;
   booking_status: string;
 };
 
-export type ReplyAssistantPromptInput = {
-  replyType: ReplyAssistantType;
+export type SalesAssistantPromptInput = {
+  action: SalesAssistantAction;
   customerContext?: string;
-  lead: ReplyAssistantLead;
-  selectedPackage: ReplyAssistantPackage | null;
-  activities: ReplyAssistantActivity[];
-  followUpTasks: ReplyAssistantFollowUpTask[];
-  booking: ReplyAssistantBooking | null;
+  lead: SalesAssistantLead;
+  selectedPackage: SalesAssistantPackage | null;
+  activities: SalesAssistantActivity[];
+  followUpTasks: SalesAssistantFollowUpTask[];
+  booking: SalesAssistantBooking | null;
 };
 
 function formatOptionalValue(value: string | number | null | undefined) {
@@ -109,7 +113,7 @@ function formatOptionalValue(value: string | number | null | undefined) {
   return String(value);
 }
 
-function formatActivities(activities: ReplyAssistantActivity[]) {
+function formatActivities(activities: SalesAssistantActivity[]) {
   if (activities.length === 0) {
     return "- Belum ada aktivitas tercatat";
   }
@@ -122,7 +126,7 @@ function formatActivities(activities: ReplyAssistantActivity[]) {
     .join("\n");
 }
 
-function formatFollowUpTasks(tasks: ReplyAssistantFollowUpTask[]) {
+function formatFollowUpTasks(tasks: SalesAssistantFollowUpTask[]) {
   if (tasks.length === 0) {
     return "- Belum ada follow up terjadwal";
   }
@@ -135,15 +139,15 @@ function formatFollowUpTasks(tasks: ReplyAssistantFollowUpTask[]) {
     .join("\n");
 }
 
-export function buildReplyAssistantPrompt({
-  replyType,
+export function buildSalesAssistantPrompt({
+  action,
   customerContext,
   lead,
   selectedPackage,
   activities,
   followUpTasks,
   booking,
-}: ReplyAssistantPromptInput) {
+}: SalesAssistantPromptInput) {
   const temperature = getEffectiveLeadTemperature({
     lead_temperature: lead.lead_temperature,
     status: lead.status,
@@ -188,10 +192,10 @@ ${customerContext.trim()}
     : "";
 
   return `
-Kamu membantu sales travel Umroh dan Halal Tour menulis draf balasan WhatsApp.
+Kamu membantu sales travel Umroh dan Halal Tour menulis draf pesan WhatsApp.
 
-Jenis balasan: ${getReplyAssistantTypeLabel(replyType)}
-Instruksi jenis balasan: ${REPLY_TYPE_INSTRUCTIONS[replyType]}
+Aksi: ${getSalesAssistantActionLabel(action)}
+Instruksi aksi: ${SALES_ASSISTANT_ACTION_INSTRUCTIONS[action]}
 
 Aturan wajib:
 - Tulis dalam Bahasa Indonesia, ramah, profesional, cocok untuk WhatsApp.

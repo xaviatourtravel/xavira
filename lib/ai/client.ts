@@ -19,7 +19,7 @@ export async function logAiGeneration({
   referenceId: string;
   inputTokens: number;
   outputTokens: number;
-  feature?: "follow_up" | "content" | "sales_script" | "lead_scoring";
+  feature?: "follow_up" | "content" | "sales_script" | "lead_scoring" | "thumbnail";
 }) {
   const estimatedCostUsd = inputTokens * 0.0000004 + outputTokens * 0.0000016;
 

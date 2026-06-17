@@ -141,24 +141,6 @@ export function buildGenerationPreview(result: ContentStudioResult) {
   return result.caption.slice(0, 120);
 }
 
-export function buildContentBoardNotesFromGeneration(
-  result: ContentStudioResult,
-) {
-  const idea = result.contentIdeas[0];
-  const hook = result.hooks[0];
-  const voExcerpt = result.voScript.slice(0, 280);
-
-  return [
-    idea ? `Ide utama: ${idea}` : null,
-    hook ? `Hook: ${hook}` : null,
-    voExcerpt
-      ? `VO (ringkas): ${voExcerpt}${result.voScript.length > 280 ? "..." : ""}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
-
 export function buildDefaultContentBoardTitle(
   subjectLabel: string,
   result: ContentStudioResult,

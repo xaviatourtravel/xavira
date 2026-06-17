@@ -88,9 +88,6 @@ export async function createContentFromGeneration(formData: FormData): Promise<{
       platform: parseContentPlatform(getString(formData, "platform")),
       content_type: parseContentType(getString(formData, "content_type")),
       status: parseContentStatus(getString(formData, "status") || "idea"),
-      caption: getString(formData, "caption") || null,
-      cta: getString(formData, "cta") || null,
-      notes: getString(formData, "notes") || null,
       publish_date: getString(formData, "publish_date") || null,
       assigned_to: assignedTo,
     })

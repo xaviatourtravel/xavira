@@ -11,10 +11,10 @@ import {
   CONTENT_TYPE_OPTIONS,
 } from "@/lib/content/constants";
 import {
-  buildContentBoardNotesFromGeneration,
   buildDefaultContentBoardTitle,
   type ContentGenerationListItem,
 } from "@/lib/content/generations";
+import { mapContentStudioResultToSections } from "@/lib/content/ai-sections";
 
 type AddToContentBoardModalProps = {
   generation: ContentGenerationListItem;
@@ -31,6 +31,7 @@ export function AddToContentBoardModal({
   onClose,
   onSuccess,
 }: AddToContentBoardModalProps) {
+  const previewSections = mapContentStudioResultToSections(generation.result);
   const [title, setTitle] = useState(
     buildDefaultContentBoardTitle(generation.subjectLabel, generation.result),
   );
@@ -39,11 +40,6 @@ export function AddToContentBoardModal({
   const [status, setStatus] = useState("idea");
   const [assignedTo, setAssignedTo] = useState("");
   const [publishDate, setPublishDate] = useState("");
-  const [caption, setCaption] = useState(generation.result.caption);
-  const [cta, setCta] = useState(generation.result.cta);
-  const [notes, setNotes] = useState(
-    buildContentBoardNotesFromGeneration(generation.result),
-  );
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [createdContentId, setCreatedContentId] = useState<string | null>(null);
@@ -61,9 +57,6 @@ export function AddToContentBoardModal({
     formData.set("status", status);
     formData.set("assigned_to", assignedTo);
     formData.set("publish_date", publishDate);
-    formData.set("caption", caption);
-    formData.set("cta", cta);
-    formData.set("notes", notes);
 
     startTransition(async () => {
       const result = await createContentFromGeneration(formData);
@@ -98,7 +91,8 @@ export function AddToContentBoardModal({
             Tambahkan ke Content Board
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Buat task content board dari generation ini.
+            Buat task content board dari generation ini. Konten AI tetap
+            tersimpan di generation source — tidak diduplikasi ke Notes.
           </p>
         </div>
 
@@ -106,6 +100,32 @@ export function AddToContentBoardModal({
           onSubmit={handleSubmit}
           className="space-y-4 overflow-y-auto px-6 py-4"
         >
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Preview konten AI
+            </p>
+            <dl className="mt-3 space-y-3 text-sm">
+              <div>
+                <dt className="font-medium">Hook</dt>
+                <dd className="mt-1 whitespace-pre-wrap text-muted-foreground">
+                  {previewSections.hook}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">VO Script</dt>
+                <dd className="mt-1 line-clamp-6 whitespace-pre-wrap text-muted-foreground">
+                  {previewSections.voScript}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Caption</dt>
+                <dd className="mt-1 line-clamp-4 whitespace-pre-wrap text-muted-foreground">
+                  {previewSections.caption}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
           <div>
             <label htmlFor="board_title" className="text-sm font-medium">
               Title
@@ -203,44 +223,6 @@ export function AddToContentBoardModal({
               type="date"
               value={publishDate}
               onChange={(event) => setPublishDate(event.target.value)}
-              className={inputClassName}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="board_caption" className="text-sm font-medium">
-              Caption
-            </label>
-            <textarea
-              id="board_caption"
-              value={caption}
-              onChange={(event) => setCaption(event.target.value)}
-              rows={4}
-              className={inputClassName}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="board_cta" className="text-sm font-medium">
-              CTA
-            </label>
-            <input
-              id="board_cta"
-              value={cta}
-              onChange={(event) => setCta(event.target.value)}
-              className={inputClassName}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="board_notes" className="text-sm font-medium">
-              Notes
-            </label>
-            <textarea
-              id="board_notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              rows={4}
               className={inputClassName}
             />
           </div>

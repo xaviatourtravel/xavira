@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { loadRecentContentGenerations } from "@/lib/content/generation-queries";
+import { loadRecentThumbnailGenerations } from "@/lib/content/thumbnail-queries";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -30,6 +31,7 @@ export default async function ContentStudioPage() {
   const [
     { data: packages, error: packagesError },
     history,
+    thumbnailHistory,
     { data: orgProfiles, error: profilesError },
   ] = await Promise.all([
     supabase
@@ -38,6 +40,7 @@ export default async function ContentStudioPage() {
       .eq("organization_id", profile.organization_id)
       .order("name", { ascending: true }),
     loadRecentContentGenerations(supabase, profile.organization_id),
+    loadRecentThumbnailGenerations(supabase, profile.organization_id),
     supabase
       .from("profiles")
       .select("id, full_name")
@@ -64,7 +67,7 @@ export default async function ContentStudioPage() {
           <h1 className="mt-2 text-2xl font-semibold">AI Content Studio</h1>
           <p className="text-sm text-muted-foreground">
             Buat ide konten dari data paket atau topik bebas — hooks, VO,
-            caption, dan visual prompt siap publish.
+            caption, visual prompt, dan Thumbnail Studio.
           </p>
         </div>
 
@@ -76,6 +79,7 @@ export default async function ContentStudioPage() {
       <ContentStudioPanel
         packages={packageOptions}
         initialHistory={history}
+        initialThumbnailHistory={thumbnailHistory}
         profiles={orgProfiles ?? []}
         canManage={canManage}
       />

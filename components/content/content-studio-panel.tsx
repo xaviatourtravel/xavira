@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { generateContentStudio } from "@/app/(dashboard)/content/ai-actions";
 import { ContentCopyButton } from "@/components/content/content-copy-button";
 import { ContentStudioHistory } from "@/components/content/content-studio-history";
+import { ThumbnailStudioPanel } from "@/components/content/thumbnail-studio-panel";
 import { Button } from "@/components/ui/button";
 import { CONTENT_PLATFORM_OPTIONS } from "@/lib/content/constants";
 import {
@@ -22,6 +23,7 @@ import {
   type ContentStudioSource,
 } from "@/lib/ai/content-studio";
 import type { ContentGenerationListItem } from "@/lib/content/generations";
+import type { ThumbnailGenerationListItem } from "@/lib/content/thumbnail-queries";
 import { parsePackageStructure } from "@/lib/packages/parse-package-structure";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,7 @@ type PackageOption = {
 type ContentStudioPanelProps = {
   packages: PackageOption[];
   initialHistory: ContentGenerationListItem[];
+  initialThumbnailHistory: ThumbnailGenerationListItem[];
   profiles: ReadonlyArray<{ id: string; full_name: string | null }>;
   canManage: boolean;
 };
@@ -90,6 +93,7 @@ function OutputSection({
 export function ContentStudioPanel({
   packages,
   initialHistory,
+  initialThumbnailHistory,
   profiles,
   canManage,
 }: ContentStudioPanelProps) {
@@ -420,6 +424,19 @@ export function ContentStudioPanel({
           <OutputSection
             title="Image Prompt"
             content={generation.result.imagePrompt}
+          />
+
+          <ThumbnailStudioPanel
+            sourceHook={
+              generation.result.hooks[0] ??
+              generation.result.hooks.join("\n")
+            }
+            sourceVoScript={generation.result.voScript}
+            contentPillar={pillar}
+            contentAngle={angle}
+            aiContentGenerationId={generation.id}
+            initialHistory={initialThumbnailHistory}
+            canManage={canManage}
           />
         </div>
       )}

@@ -138,6 +138,88 @@ export type Database = {
           },
         ]
       }
+      ai_thumbnail_generations: {
+        Row: {
+          ai_content_generation_id: string | null
+          concept: Json
+          content_angle: string
+          content_pillar: string
+          cover_format: string
+          created_at: string
+          created_by: string | null
+          custom_headline: string | null
+          headlines: Json
+          id: string
+          image_variations: Json
+          organization_id: string
+          selected_headline: string | null
+          selected_image_id: string | null
+          source_hook: string
+          source_vo_script: string
+          style_preset: string
+        }
+        Insert: {
+          ai_content_generation_id?: string | null
+          concept?: Json
+          content_angle: string
+          content_pillar: string
+          cover_format?: string
+          created_at?: string
+          created_by?: string | null
+          custom_headline?: string | null
+          headlines?: Json
+          id?: string
+          image_variations?: Json
+          organization_id: string
+          selected_headline?: string | null
+          selected_image_id?: string | null
+          source_hook: string
+          source_vo_script: string
+          style_preset?: string
+        }
+        Update: {
+          ai_content_generation_id?: string | null
+          concept?: Json
+          content_angle?: string
+          content_pillar?: string
+          cover_format?: string
+          created_at?: string
+          created_by?: string | null
+          custom_headline?: string | null
+          headlines?: Json
+          id?: string
+          image_variations?: Json
+          organization_id?: string
+          selected_headline?: string | null
+          selected_image_id?: string | null
+          source_hook?: string
+          source_vo_script?: string
+          style_preset?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_thumbnail_generations_ai_content_generation_id_fkey"
+            columns: ["ai_content_generation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_thumbnail_generations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_thumbnail_generations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_participants: {
         Row: {
           address: string | null
@@ -492,6 +574,7 @@ export type Database = {
       contents: {
         Row: {
           ai_generation_id: string | null
+          ai_thumbnail_generation_id: string | null
           assigned_to: string | null
           campaign_id: string | null
           caption: string | null
@@ -505,11 +588,14 @@ export type Database = {
           platform: string
           publish_date: string | null
           status: string
+          thumbnail_headline: string | null
+          thumbnail_url: string | null
           title: string
           updated_at: string
         }
         Insert: {
           ai_generation_id?: string | null
+          ai_thumbnail_generation_id?: string | null
           assigned_to?: string | null
           campaign_id?: string | null
           caption?: string | null
@@ -523,11 +609,14 @@ export type Database = {
           platform: string
           publish_date?: string | null
           status?: string
+          thumbnail_headline?: string | null
+          thumbnail_url?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           ai_generation_id?: string | null
+          ai_thumbnail_generation_id?: string | null
           assigned_to?: string | null
           campaign_id?: string | null
           caption?: string | null
@@ -541,6 +630,8 @@ export type Database = {
           platform?: string
           publish_date?: string | null
           status?: string
+          thumbnail_headline?: string | null
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string
         }
@@ -550,6 +641,13 @@ export type Database = {
             columns: ["ai_generation_id"]
             isOneToOne: false
             referencedRelation: "ai_content_generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contents_ai_thumbnail_generation_id_fkey"
+            columns: ["ai_thumbnail_generation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_thumbnail_generations"
             referencedColumns: ["id"]
           },
           {
@@ -1533,7 +1631,7 @@ export type Database = {
         | "score_update"
         | "follow_up_sent"
         | "follow_up_generated"
-      ai_feature: "follow_up" | "content" | "sales_script" | "lead_scoring"
+      ai_feature: "follow_up" | "content" | "sales_script" | "lead_scoring" | "thumbnail" | "thumbnail" | "thumbnail"
       business_type: "umroh" | "halal_tour" | "both"
       campaign_lead_status: "enrolled" | "contacted" | "converted" | "removed"
       campaign_status: "draft" | "active" | "paused" | "completed"
@@ -1725,7 +1823,7 @@ export const Constants = {
         "follow_up_sent",
         "follow_up_generated",
       ],
-      ai_feature: ["follow_up", "content", "sales_script", "lead_scoring"],
+      ai_feature: ["follow_up", "content", "sales_script", "lead_scoring", "thumbnail"],
       business_type: ["umroh", "halal_tour", "both"],
       campaign_lead_status: ["enrolled", "contacted", "converted", "removed"],
       campaign_status: ["draft", "active", "paused", "completed"],

@@ -2,8 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { updateContent } from "../../actions";
+import { ContentAiFormFields } from "@/components/content/content-ai-form-fields";
 import { ContentFormFields } from "@/components/content/content-form-fields";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  mapSectionsToFormDefaults,
+  resolveAiContentSections,
+} from "@/lib/content/ai-sections";
 import { getOrgCampaignOptions } from "@/lib/campaigns/queries";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
@@ -23,6 +28,11 @@ type ContentEdit = {
   cta: string | null;
   drive_url: string | null;
   notes: string | null;
+  ai_generation_id: string | null;
+  ai_content_generations:
+    | { generated_output: unknown }
+    | { generated_output: unknown }[]
+    | null;
 };
 
 export default async function EditContentPage({
@@ -48,7 +58,24 @@ export default async function EditContentPage({
       supabase
         .from("contents")
         .select(
-          "id, title, platform, content_type, status, campaign_id, assigned_to, publish_date, caption, cta, drive_url, notes",
+          `
+          id,
+          title,
+          platform,
+          content_type,
+          status,
+          campaign_id,
+          assigned_to,
+          publish_date,
+          caption,
+          cta,
+          drive_url,
+          notes,
+          ai_generation_id,
+          ai_content_generations (
+            generated_output
+          )
+        `,
         )
         .eq("id", id)
         .eq("organization_id", profile.organization_id)
@@ -70,6 +97,15 @@ export default async function EditContentPage({
   }
 
   const detail = content as ContentEdit;
+  const generationRecord = Array.isArray(detail.ai_content_generations)
+    ? detail.ai_content_generations[0]
+    : detail.ai_content_generations;
+  const aiSections = generationRecord
+    ? resolveAiContentSections(generationRecord.generated_output)
+    : null;
+  const aiFormDefaults = aiSections
+    ? mapSectionsToFormDefaults(aiSections)
+    : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -98,6 +134,7 @@ export default async function EditContentPage({
         <ContentFormFields
           campaigns={campaigns}
           profiles={orgProfiles ?? []}
+          showManualContentFields={!aiFormDefaults}
           defaultValues={{
             title: detail.title,
             platform: detail.platform,
@@ -112,6 +149,8 @@ export default async function EditContentPage({
             notes: detail.notes,
           }}
         />
+
+        {aiFormDefaults && <ContentAiFormFields defaultValues={aiFormDefaults} />}
 
         <div className="flex gap-3">
           <button type="submit" className={cn(buttonVariants())}>

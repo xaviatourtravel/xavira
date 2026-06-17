@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import {
+  isContentStatus,
   parseContentPlatform,
   parseContentStatus,
   parseContentType,
@@ -14,6 +15,12 @@ import {
   resolveContentAssigneeId,
   resolveContentCampaignId,
 } from "@/lib/content/queries";
+import {
+  parseHooksFromTextarea,
+  resolveAiContentSections,
+  serializeContentStudioOutput,
+} from "@/lib/content/ai-sections";
+import { parseStoredContentStudioOutput } from "@/lib/content/generations";
 import { createClient } from "@/utils/supabase/server";
 import type { TablesInsert } from "@/types/database";
 
@@ -125,6 +132,10 @@ export async function createContent(formData: FormData) {
   redirect("/content");
 }
 
+function hasAiSectionFields(formData: FormData) {
+  return formData.has("ai_vo_script");
+}
+
 export async function updateContent(formData: FormData) {
   const { profile } = await requireProfile();
 
@@ -160,6 +171,78 @@ export async function updateContent(formData: FormData) {
     );
   }
 
+  const { data: existingContent, error: existingContentError } = await supabase
+    .from("contents")
+    .select(
+      `
+      id,
+      ai_generation_id,
+      ai_content_generations (
+        generated_output
+      )
+    `,
+    )
+    .eq("id", contentId)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+
+  if (existingContentError) {
+    redirect(
+      `/content/${contentId}/edit?error=${encodeURIComponent(existingContentError.message)}`,
+    );
+  }
+
+  if (!existingContent) {
+    redirect("/content?error=Content tidak ditemukan");
+  }
+
+  const isAiLinkedContent =
+    Boolean(existingContent.ai_generation_id) && hasAiSectionFields(formData);
+
+  if (isAiLinkedContent && existingContent.ai_generation_id) {
+    const generationRecord = Array.isArray(existingContent.ai_content_generations)
+      ? existingContent.ai_content_generations[0]
+      : existingContent.ai_content_generations;
+    const existingResult = parseStoredContentStudioOutput(
+      generationRecord?.generated_output,
+    );
+
+    if (!existingResult) {
+      redirect(
+        `/content/${contentId}/edit?error=${encodeURIComponent("Generation source tidak valid.")}`,
+      );
+    }
+
+    const updatedOutput = serializeContentStudioOutput(existingResult, {
+      hooks: parseHooksFromTextarea(getString(formData, "ai_hooks")),
+      voScript: getString(formData, "ai_vo_script"),
+      caption: getString(formData, "ai_caption"),
+      cta: getString(formData, "ai_cta"),
+      thumbnailConcept: getString(formData, "ai_thumbnail_concept"),
+      imagePrompt: getString(formData, "ai_image_prompt"),
+    });
+
+    if (!resolveAiContentSections(updatedOutput)) {
+      redirect(
+        `/content/${contentId}/edit?error=${encodeURIComponent("Semua section AI wajib diisi.")}`,
+      );
+    }
+
+    const { error: generationUpdateError } = await supabase
+      .from("ai_content_generations")
+      .update({
+        generated_output: updatedOutput,
+      })
+      .eq("id", existingContent.ai_generation_id)
+      .eq("organization_id", profile.organization_id);
+
+    if (generationUpdateError) {
+      redirect(
+        `/content/${contentId}/edit?error=${encodeURIComponent(generationUpdateError.message)}`,
+      );
+    }
+  }
+
   const { data: updatedContent, error } = await supabase
     .from("contents")
     .update({
@@ -167,11 +250,11 @@ export async function updateContent(formData: FormData) {
       platform: payload.platform,
       content_type: payload.content_type,
       status: payload.status,
-      caption: payload.caption,
-      cta: payload.cta,
+      caption: isAiLinkedContent ? null : payload.caption,
+      cta: isAiLinkedContent ? null : payload.cta,
       drive_url: payload.drive_url,
       publish_date: payload.publish_date,
-      notes: payload.notes,
+      notes: isAiLinkedContent ? null : payload.notes,
       campaign_id: relations.campaignId,
       assigned_to: relations.assignedTo,
       updated_at: new Date().toISOString(),
@@ -192,6 +275,7 @@ export async function updateContent(formData: FormData) {
   }
 
   revalidatePath("/content");
+  revalidatePath("/content/studio");
   revalidatePath(`/content/${contentId}`);
   redirect(`/content/${contentId}`);
 }
@@ -230,4 +314,66 @@ export async function deleteContent(formData: FormData) {
 
   revalidatePath("/content");
   redirect("/content");
+}
+
+export async function updateContentBoardStatus(
+  contentId: string,
+  nextStatus: string,
+): Promise<{ success: boolean; message?: string }> {
+  const { profile } = await requireProfile();
+
+  if (!isAdminOrOwner(profile)) {
+    return {
+      success: false,
+      message: "Hanya admin atau owner yang dapat mengubah status content.",
+    };
+  }
+
+  if (!contentId) {
+    return {
+      success: false,
+      message: "Content tidak ditemukan.",
+    };
+  }
+
+  if (!isContentStatus(nextStatus)) {
+    return {
+      success: false,
+      message: "Status content tidak valid.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: updatedContent, error } = await supabase
+    .from("contents")
+    .update({
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", contentId)
+    .eq("organization_id", profile.organization_id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+
+  if (!updatedContent) {
+    return {
+      success: false,
+      message: "Content tidak ditemukan.",
+    };
+  }
+
+  revalidatePath("/content");
+  revalidatePath(`/content/${contentId}`);
+
+  return {
+    success: true,
+    message: "Status content berhasil diperbarui.",
+  };
 }

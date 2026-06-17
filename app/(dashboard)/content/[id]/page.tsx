@@ -1,8 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { ContentAiSectionsDisplay } from "@/components/content/content-ai-sections-display";
 import { ContentDeleteButton } from "@/components/content/content-delete-button";
 import { buttonVariants } from "@/components/ui/button";
+import { resolveAiContentSections } from "@/lib/content/ai-sections";
 import {
   formatContentPlatformLabel,
   formatContentStatusLabel,
@@ -30,10 +33,17 @@ type ContentDetail = {
   notes: string | null;
   campaign_id: string | null;
   assigned_to: string | null;
+  ai_generation_id: string | null;
+  thumbnail_url: string | null;
+  thumbnail_headline: string | null;
   created_at: string;
   updated_at: string;
   campaigns: { id: string; name: string } | { id: string; name: string }[] | null;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+  ai_content_generations:
+    | { generated_output: unknown }
+    | { generated_output: unknown }[]
+    | null;
 };
 
 function formatDate(value: string | null) {
@@ -99,6 +109,9 @@ export default async function ContentDetailPage({
       notes,
       campaign_id,
       assigned_to,
+      ai_generation_id,
+      thumbnail_url,
+      thumbnail_headline,
       created_at,
       updated_at,
       campaigns (
@@ -107,6 +120,9 @@ export default async function ContentDetailPage({
       ),
       profiles!contents_assigned_to_fkey (
         full_name
+      ),
+      ai_content_generations (
+        generated_output
       )
     `,
     )
@@ -128,6 +144,13 @@ export default async function ContentDetailPage({
     : detail.campaigns;
   const campaignName = getContentRelationName(detail.campaigns);
   const assigneeName = getContentAssigneeName(detail.profiles);
+  const generationRecord = Array.isArray(detail.ai_content_generations)
+    ? detail.ai_content_generations[0]
+    : detail.ai_content_generations;
+  const aiSections = generationRecord
+    ? resolveAiContentSections(generationRecord.generated_output)
+    : null;
+  const isAiContent = Boolean(aiSections);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -175,6 +198,33 @@ export default async function ContentDetailPage({
         </a>
       )}
 
+      {detail.thumbnail_url && (
+        <div className="rounded-xl border p-6">
+          <h2 className="text-base font-semibold">Thumbnail</h2>
+          {detail.thumbnail_headline && (
+            <p className="mt-2 text-sm font-medium">{detail.thumbnail_headline}</p>
+          )}
+          <div className="mt-4 max-w-xs overflow-hidden rounded-lg border">
+            <Image
+              src={detail.thumbnail_url}
+              alt={detail.thumbnail_headline ?? "Content thumbnail"}
+              width={512}
+              height={910}
+              className="aspect-[9/16] w-full object-cover"
+              unoptimized
+            />
+          </div>
+          <a
+            href={detail.thumbnail_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "outline" }), "mt-4 inline-flex")}
+          >
+            Download Thumbnail
+          </a>
+        </div>
+      )}
+
       <div className="rounded-xl border p-6">
         <dl className="grid gap-4 sm:grid-cols-2">
           <DetailItem
@@ -211,13 +261,19 @@ export default async function ContentDetailPage({
           />
           <DetailItem label="Created At" value={formatDateTime(detail.created_at)} />
           <DetailItem label="Updated At" value={formatDateTime(detail.updated_at)} />
-          <DetailItem
-            label="Caption"
-            value={
-              <span className="whitespace-pre-wrap">{detail.caption || "-"}</span>
-            }
-          />
-          <DetailItem label="CTA" value={detail.cta || "-"} />
+          {!isAiContent && (
+            <>
+              <DetailItem
+                label="Caption"
+                value={
+                  <span className="whitespace-pre-wrap">
+                    {detail.caption || "-"}
+                  </span>
+                }
+              />
+              <DetailItem label="CTA" value={detail.cta || "-"} />
+            </>
+          )}
           <DetailItem
             label="Drive URL"
             value={
@@ -235,14 +291,18 @@ export default async function ContentDetailPage({
               )
             }
           />
-          <DetailItem
-            label="Notes"
-            value={
-              <span className="whitespace-pre-wrap">{detail.notes || "-"}</span>
-            }
-          />
+          {!isAiContent && (
+            <DetailItem
+              label="Notes"
+              value={
+                <span className="whitespace-pre-wrap">{detail.notes || "-"}</span>
+              }
+            />
+          )}
         </dl>
       </div>
+
+      {aiSections && <ContentAiSectionsDisplay sections={aiSections} />}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
 type ContentFormFieldsProps = {
   campaigns: ReadonlyArray<{ id: string; name: string }>;
   profiles: ReadonlyArray<{ id: string; full_name: string | null }>;
+  showManualContentFields?: boolean;
   defaultValues?: {
     title?: string;
     platform?: string;
@@ -28,6 +29,7 @@ const inputClassName = "mt-1 w-full rounded-md border px-3 py-2 text-sm";
 export function ContentFormFields({
   campaigns,
   profiles,
+  showManualContentFields = true,
   defaultValues,
 }: ContentFormFieldsProps) {
   return (
@@ -128,27 +130,6 @@ export function ContentFormFields({
       </div>
 
       <div>
-        <label className="text-sm font-medium">Caption</label>
-        <textarea
-          name="caption"
-          rows={4}
-          defaultValue={defaultValues?.caption ?? ""}
-          className={inputClassName}
-          placeholder="Draft caption untuk postingan."
-        />
-      </div>
-
-      <div>
-        <label className="text-sm font-medium">CTA</label>
-        <input
-          name="cta"
-          defaultValue={defaultValues?.cta ?? ""}
-          className={inputClassName}
-          placeholder="Contoh: DM kami untuk info paket"
-        />
-      </div>
-
-      <div>
         <label className="text-sm font-medium">Drive URL</label>
         <input
           name="drive_url"
@@ -159,16 +140,41 @@ export function ContentFormFields({
         />
       </div>
 
-      <div>
-        <label className="text-sm font-medium">Notes</label>
-        <textarea
-          name="notes"
-          rows={3}
-          defaultValue={defaultValues?.notes ?? ""}
-          className={inputClassName}
-          placeholder="Catatan internal untuk tim media."
-        />
-      </div>
+      {showManualContentFields && (
+        <>
+          <div>
+            <label className="text-sm font-medium">Caption</label>
+            <textarea
+              name="caption"
+              rows={4}
+              defaultValue={defaultValues?.caption ?? ""}
+              className={inputClassName}
+              placeholder="Draft caption untuk postingan."
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">CTA</label>
+            <input
+              name="cta"
+              defaultValue={defaultValues?.cta ?? ""}
+              className={inputClassName}
+              placeholder="Contoh: DM kami untuk info paket"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Notes</label>
+            <textarea
+              name="notes"
+              rows={3}
+              defaultValue={defaultValues?.notes ?? ""}
+              className={inputClassName}
+              placeholder="Catatan internal untuk tim media."
+            />
+          </div>
+        </>
+      )}
     </>
   );
 }

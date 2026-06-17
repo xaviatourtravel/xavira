@@ -54,6 +54,10 @@ export function parseContentStatus(value: string): ContentStatus {
   return "idea";
 }
 
+export function isContentStatus(value: string): value is ContentStatus {
+  return CONTENT_STATUS_SET.has(value);
+}
+
 export function parseContentPlatform(value: string) {
   if (CONTENT_PLATFORM_SET.has(value)) {
     return value;

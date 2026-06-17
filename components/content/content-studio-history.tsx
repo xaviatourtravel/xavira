@@ -16,12 +16,14 @@ type ContentStudioHistoryProps = {
   history: ContentGenerationListItem[];
   profiles: ReadonlyArray<{ id: string; full_name: string | null }>;
   canManage: boolean;
+  embedded?: boolean;
 };
 
 export function ContentStudioHistory({
   history,
   profiles,
   canManage,
+  embedded = false,
 }: ContentStudioHistoryProps) {
   const [detailGeneration, setDetailGeneration] =
     useState<ContentGenerationListItem | null>(null);
@@ -30,21 +32,30 @@ export function ContentStudioHistory({
 
   return (
     <>
-      <div className="rounded-xl border p-6">
-        <div>
-          <h2 className="text-lg font-semibold">History</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+      <div className={embedded ? "space-y-4" : "rounded-xl border p-6"}>
+        {!embedded && (
+          <div>
+            <h2 className="text-lg font-semibold">History</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Generation tersimpan untuk dibuka ulang atau ditambahkan ke Content
+              Board.
+            </p>
+          </div>
+        )}
+
+        {embedded && (
+          <p className="text-sm text-muted-foreground">
             Generation tersimpan untuk dibuka ulang atau ditambahkan ke Content
             Board.
           </p>
-        </div>
+        )}
 
         {history.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className={embedded ? "text-sm text-muted-foreground" : "mt-4 text-sm text-muted-foreground"}>
             Belum ada generation tersimpan.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className={embedded ? "overflow-x-auto" : "mt-4 overflow-x-auto"}>
             <table className="w-full min-w-[760px] text-sm">
               <thead className="border-b bg-muted/40 text-left">
                 <tr>

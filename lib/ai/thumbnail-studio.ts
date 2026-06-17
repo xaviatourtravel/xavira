@@ -111,7 +111,7 @@ export function getThumbnailCoverFormatLabel(value: string) {
 
 export function getThumbnailImageSize(coverFormat: ThumbnailCoverFormat) {
   void coverFormat;
-  return "1024x1792" as const;
+  return "1024x1536" as const;
 }
 
 function normalizeStringList(value: unknown, limit: number) {

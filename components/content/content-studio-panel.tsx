@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 
 import { generateContentStudio } from "@/app/(dashboard)/content/ai-actions";
+import { AddToContentBoardModal } from "@/components/content/add-to-content-board-modal";
 import { ContentCopyButton } from "@/components/content/content-copy-button";
 import { ContentStudioHistory } from "@/components/content/content-studio-history";
 import { ThumbnailStudioPanel } from "@/components/content/thumbnail-studio-panel";
@@ -40,6 +41,14 @@ type ContentStudioPanelProps = {
   profiles: ReadonlyArray<{ id: string; full_name: string | null }>;
   canManage: boolean;
 };
+
+type StudioTab = "output" | "thumbnail" | "history";
+
+const STUDIO_TABS: ReadonlyArray<{ id: StudioTab; label: string }> = [
+  { id: "output", label: "Content Output" },
+  { id: "thumbnail", label: "Thumbnail Studio" },
+  { id: "history", label: "History" },
+];
 
 const inputClassName = "mt-1 w-full rounded-md border px-3 py-2 text-sm";
 
@@ -90,6 +99,35 @@ function OutputSection({
   );
 }
 
+function StudioTabBar({
+  activeTab,
+  onChange,
+}: {
+  activeTab: StudioTab;
+  onChange: (tab: StudioTab) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1 border-b bg-muted/20 p-2">
+      {STUDIO_TABS.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          className={cn(
+            "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            activeTab === tab.id
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          aria-current={activeTab === tab.id ? "page" : undefined}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ContentStudioPanel({
   packages,
   initialHistory,
@@ -110,6 +148,9 @@ export function ContentStudioPanel({
     null,
   );
   const [history, setHistory] = useState(initialHistory);
+  const [activeTab, setActiveTab] = useState<StudioTab>("output");
+  const [boardGeneration, setBoardGeneration] =
+    useState<ContentGenerationListItem | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -131,6 +172,10 @@ export function ContentStudioPanel({
 
   const canGenerate =
     isPackageBased ? Boolean(packageId) : topic.trim().length > 0;
+
+  const currentHistoryItem = generation
+    ? history.find((item) => item.id === generation.id)
+    : null;
 
   function handleGenerate() {
     setError(null);
@@ -159,6 +204,7 @@ export function ContentStudioPanel({
       }
 
       setGeneration(response.data);
+      setActiveTab("output");
       setSuccessMessage("Konten berhasil dibuat dan disimpan ke history.");
 
       if (response.historyItem) {
@@ -171,17 +217,17 @@ export function ContentStudioPanel({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border p-6">
-        <div>
-          <h2 className="text-lg font-semibold">✨ AI Content Studio</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Generate konten dari data paket atau topik bebas — siap untuk Reels
-            dan Carousel.
-          </p>
-        </div>
+    <>
+      <div className="space-y-6 lg:grid lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0">
+      <aside className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+        <div className="space-y-5 rounded-xl border p-5">
+          <div>
+            <h2 className="text-base font-semibold">Content Controls</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Atur source dan parameter, lalu generate.
+            </p>
+          </div>
 
-        <div className="mt-6 space-y-6">
           <div>
             <p className="text-sm font-medium">Content Source</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -195,7 +241,7 @@ export function ContentStudioPanel({
                     setError(null);
                   }}
                   className={cn(
-                    "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                     contentSource === source
                       ? getContentStudioSourceBadgeClassName(source)
                       : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -209,9 +255,8 @@ export function ContentStudioPanel({
 
           {isPackageBased ? (
             packages.length === 0 ? (
-              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                Belum ada paket di database. Tambahkan paket di menu Packages
-                atau gunakan mode Free Topic.
+              <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                Belum ada paket. Tambahkan di Packages atau gunakan Free Topic.
               </div>
             ) : (
               <div>
@@ -246,10 +291,82 @@ export function ContentStudioPanel({
                 className={inputClassName}
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                Contoh topik: {FREE_TOPIC_EXAMPLES.join(" · ")}
+                {FREE_TOPIC_EXAMPLES.slice(0, 2).join(" · ")}...
               </p>
             </div>
           )}
+
+          <div>
+            <label htmlFor="platform" className="text-sm font-medium">
+              Platform
+            </label>
+            <select
+              id="platform"
+              value={platform}
+              onChange={(event) => setPlatform(event.target.value)}
+              className={inputClassName}
+            >
+              {CONTENT_PLATFORM_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="goal" className="text-sm font-medium">
+              Goal
+            </label>
+            <select
+              id="goal"
+              value={goal}
+              onChange={(event) => setGoal(event.target.value)}
+              className={inputClassName}
+            >
+              {CONTENT_STUDIO_GOALS.map((item) => (
+                <option key={item} value={item}>
+                  {getContentStudioGoalLabel(item)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="pillar" className="text-sm font-medium">
+              Content Pillar
+            </label>
+            <select
+              id="pillar"
+              value={pillar}
+              onChange={(event) => setPillar(event.target.value)}
+              className={inputClassName}
+            >
+              {CONTENT_STUDIO_PILLARS.map((item) => (
+                <option key={item} value={item}>
+                  {getContentStudioPillarLabel(item)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="angle" className="text-sm font-medium">
+              Content Angle
+            </label>
+            <select
+              id="angle"
+              value={angle}
+              onChange={(event) => setAngle(event.target.value)}
+              className={inputClassName}
+            >
+              {CONTENT_STUDIO_ANGLES.map((item) => (
+                <option key={item} value={item}>
+                  {getContentStudioAngleLabel(item)}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
             <label htmlFor="additional_context" className="text-sm font-medium">
@@ -259,193 +376,160 @@ export function ContentStudioPanel({
               id="additional_context"
               value={additionalContext}
               onChange={(event) => setAdditionalContext(event.target.value)}
-              rows={8}
+              rows={5}
               placeholder={ADDITIONAL_CONTEXT_PLACEHOLDER}
               className={inputClassName}
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label htmlFor="platform" className="text-sm font-medium">
-                Platform
-              </label>
-              <select
-                id="platform"
-                value={platform}
-                onChange={(event) => setPlatform(event.target.value)}
-                className={inputClassName}
-              >
-                {CONTENT_PLATFORM_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+          {parsedPackage && (
+            <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Struktur paket</p>
+              <p className="mt-1">{parsedPackage.packageName}</p>
+              <p className="mt-1">
+                {parsedPackage.duration ?? "-"} ·{" "}
+                {parsedPackage.destinations.join(", ") || "-"}
+              </p>
             </div>
+          )}
 
-            <div>
-              <label htmlFor="goal" className="text-sm font-medium">
-                Goal
-              </label>
-              <select
-                id="goal"
-                value={goal}
-                onChange={(event) => setGoal(event.target.value)}
-                className={inputClassName}
-              >
-                {CONTENT_STUDIO_GOALS.map((item) => (
-                  <option key={item} value={item}>
-                    {getContentStudioGoalLabel(item)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <Button
+            type="button"
+            className="w-full"
+            onClick={handleGenerate}
+            disabled={isPending || !canGenerate}
+          >
+            {isPending ? "Generating..." : "Generate"}
+          </Button>
 
-            <div>
-              <label htmlFor="pillar" className="text-sm font-medium">
-                Content Pillar
-              </label>
-              <select
-                id="pillar"
-                value={pillar}
-                onChange={(event) => setPillar(event.target.value)}
-                className={inputClassName}
-              >
-                {CONTENT_STUDIO_PILLARS.map((item) => (
-                  <option key={item} value={item}>
-                    {getContentStudioPillarLabel(item)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="angle" className="text-sm font-medium">
-                Content Angle
-              </label>
-              <select
-                id="angle"
-                value={angle}
-                onChange={(event) => setAngle(event.target.value)}
-                className={inputClassName}
-              >
-                {CONTENT_STUDIO_ANGLES.map((item) => (
-                  <option key={item} value={item}>
-                    {getContentStudioAngleLabel(item)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {successMessage && (
+            <p className="text-sm text-green-700">{successMessage}</p>
+          )}
         </div>
+      </aside>
 
-        {parsedPackage && (
-          <div className="mt-4 rounded-md border bg-muted/30 p-4 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">Struktur paket (internal)</p>
-            <dl className="mt-2 grid gap-2 sm:grid-cols-2">
-              <div>
-                <dt className="uppercase tracking-wide">Package</dt>
-                <dd className="mt-0.5 text-sm text-foreground">
-                  {parsedPackage.packageName}
-                </dd>
-              </div>
-              <div>
-                <dt className="uppercase tracking-wide">Duration</dt>
-                <dd className="mt-0.5 text-sm text-foreground">
-                  {parsedPackage.duration ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="uppercase tracking-wide">Departure</dt>
-                <dd className="mt-0.5 text-sm text-foreground">
-                  {parsedPackage.departureMonth ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="uppercase tracking-wide">Destinations</dt>
-                <dd className="mt-0.5 text-sm text-foreground">
-                  {parsedPackage.destinations.length > 0
-                    ? parsedPackage.destinations.join(", ")
-                    : "-"}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        )}
+      <div className="min-w-0 overflow-hidden rounded-xl border">
+        <StudioTabBar activeTab={activeTab} onChange={setActiveTab} />
 
-        <Button
-          type="button"
-          className="mt-6"
-          onClick={handleGenerate}
-          disabled={isPending || !canGenerate}
-        >
-          {isPending ? "Generating..." : "Generate"}
-        </Button>
+        <div className="max-h-[calc(100vh-8rem)] overflow-y-auto p-4 sm:p-5">
+          {activeTab === "output" && (
+            <div className="space-y-4">
+              {!generation ? (
+                <div className="rounded-lg border border-dashed p-8 text-center">
+                  <p className="text-sm font-medium">Belum ada output</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Generate konten dari panel kiri untuk melihat ideas, hooks,
+                    VO, caption, dan prompt di sini.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "rounded-full px-3 py-1 text-xs font-medium",
+                          getContentStudioSourceBadgeClassName(generation.source),
+                        )}
+                      >
+                        {getContentStudioSourceLabel(generation.source)}
+                      </span>
+                      <p className="text-sm text-muted-foreground">
+                        Output terbaru dari generation ini.
+                      </p>
+                    </div>
+                    {canManage && currentHistoryItem && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setBoardGeneration(currentHistoryItem)}
+                      >
+                        Add to Content Board
+                      </Button>
+                    )}
+                  </div>
 
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        {successMessage && (
-          <p className="mt-3 text-sm text-green-700">{successMessage}</p>
-        )}
+                  <OutputSection
+                    title="Ideas"
+                    content={formatContentStudioList(
+                      generation.result.contentIdeas,
+                    )}
+                  />
+                  <OutputSection
+                    title="Hooks"
+                    content={formatContentStudioList(generation.result.hooks)}
+                  />
+                  <OutputSection
+                    title="VO Script"
+                    content={generation.result.voScript}
+                  />
+                  <OutputSection
+                    title="Caption"
+                    content={generation.result.caption}
+                  />
+                  <OutputSection title="CTA" content={generation.result.cta} />
+                  <OutputSection
+                    title="Thumbnail Concept"
+                    content={generation.result.thumbnailConcept}
+                  />
+                  <OutputSection
+                    title="Image Prompt"
+                    content={generation.result.imagePrompt}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === "thumbnail" && (
+            <div>
+              {!generation ? (
+                <div className="rounded-lg border border-dashed p-8 text-center">
+                  <p className="text-sm font-medium">Thumbnail Studio</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Generate content terlebih dahulu, lalu buat headline dan
+                    thumbnail image di sini.
+                  </p>
+                </div>
+              ) : (
+                <ThumbnailStudioPanel
+                  embedded
+                  sourceHook={
+                    generation.result.hooks[0] ??
+                    generation.result.hooks.join("\n")
+                  }
+                  sourceVoScript={generation.result.voScript}
+                  contentPillar={pillar}
+                  contentAngle={angle}
+                  aiContentGenerationId={generation.id}
+                  initialHistory={initialThumbnailHistory}
+                  canManage={canManage}
+                  onImagesGenerated={() => setActiveTab("thumbnail")}
+                />
+              )}
+            </div>
+          )}
+
+          {activeTab === "history" && (
+            <ContentStudioHistory
+              embedded
+              history={history}
+              profiles={profiles}
+              canManage={canManage}
+            />
+          )}
+        </div>
+      </div>
       </div>
 
-      {generation && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium",
-                getContentStudioSourceBadgeClassName(generation.source),
-              )}
-            >
-              {getContentStudioSourceLabel(generation.source)}
-            </span>
-            <p className="text-sm text-muted-foreground">
-              Output dihasilkan dengan mode{" "}
-              {getContentStudioSourceLabel(generation.source)}.
-            </p>
-          </div>
-
-          <OutputSection
-            title="Ideas"
-            content={formatContentStudioList(generation.result.contentIdeas)}
-          />
-          <OutputSection
-            title="Hooks"
-            content={formatContentStudioList(generation.result.hooks)}
-          />
-          <OutputSection title="VO" content={generation.result.voScript} />
-          <OutputSection title="Caption" content={generation.result.caption} />
-          <OutputSection title="CTA" content={generation.result.cta} />
-          <OutputSection
-            title="Thumbnail"
-            content={generation.result.thumbnailConcept}
-          />
-          <OutputSection
-            title="Image Prompt"
-            content={generation.result.imagePrompt}
-          />
-
-          <ThumbnailStudioPanel
-            sourceHook={
-              generation.result.hooks[0] ??
-              generation.result.hooks.join("\n")
-            }
-            sourceVoScript={generation.result.voScript}
-            contentPillar={pillar}
-            contentAngle={angle}
-            aiContentGenerationId={generation.id}
-            initialHistory={initialThumbnailHistory}
-            canManage={canManage}
-          />
-        </div>
+      {boardGeneration && (
+        <AddToContentBoardModal
+          generation={boardGeneration}
+          profiles={profiles}
+          onClose={() => setBoardGeneration(null)}
+        />
       )}
-
-      <ContentStudioHistory
-        history={history}
-        profiles={profiles}
-        canManage={canManage}
-      />
-    </div>
+    </>
   );
 }

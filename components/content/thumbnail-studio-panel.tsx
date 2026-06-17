@@ -40,6 +40,8 @@ type ThumbnailStudioPanelProps = {
   aiContentGenerationId?: string;
   initialHistory: ThumbnailGenerationListItem[];
   canManage: boolean;
+  embedded?: boolean;
+  onImagesGenerated?: () => void;
 };
 
 const inputClassName = "mt-1 w-full rounded-md border px-3 py-2 text-sm";
@@ -63,6 +65,8 @@ export function ThumbnailStudioPanel({
   aiContentGenerationId,
   initialHistory,
   canManage,
+  embedded = false,
+  onImagesGenerated,
 }: ThumbnailStudioPanelProps) {
   const [customHeadline, setCustomHeadline] = useState("");
   const [coverFormat, setCoverFormat] =
@@ -178,6 +182,7 @@ export function ThumbnailStudioPanel({
       );
       applyGeneration(result.historyItem);
       setSuccessMessage(result.message ?? "Thumbnail images berhasil dibuat.");
+      onImagesGenerated?.();
     });
   }
 
@@ -193,16 +198,18 @@ export function ThumbnailStudioPanel({
 
   return (
     <>
-      <div className="space-y-6 rounded-xl border p-6">
-        <div>
-          <h2 className="text-lg font-semibold">Thumbnail Studio</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Generate headline, concept, dan thumbnail image dari output Content
-            Studio.
-          </p>
-        </div>
+      <div className={cn("space-y-5", !embedded && "rounded-xl border p-6")}>
+        {!embedded && (
+          <div>
+            <h2 className="text-lg font-semibold">Thumbnail Studio</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Generate headline, concept, dan thumbnail image dari output Content
+              Studio.
+            </p>
+          </div>
+        )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="text-sm font-medium">Generated Hook</label>
             <textarea
@@ -247,7 +254,7 @@ export function ThumbnailStudioPanel({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <label htmlFor="custom_headline" className="text-sm font-medium">
               Custom Headline (optional)
@@ -417,21 +424,25 @@ export function ThumbnailStudioPanel({
         )}
       </div>
 
-      <div className="rounded-xl border p-6">
+      <div className={cn("space-y-4", embedded ? "mt-6 border-t pt-5" : "rounded-xl border p-6")}>
         <div>
-          <h2 className="text-lg font-semibold">Thumbnail History</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Thumbnail generations tersimpan untuk download, regenerate, atau
-            attach ke Content Board.
-          </p>
+          <h3 className={embedded ? "text-sm font-semibold" : "text-lg font-semibold"}>
+            Thumbnail History
+          </h3>
+          {!embedded && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Thumbnail generations tersimpan untuk download, regenerate, atau
+              attach ke Content Board.
+            </p>
+          )}
         </div>
 
         {history.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Belum ada thumbnail generation.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/40 text-left">
                 <tr>

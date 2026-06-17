@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
 
 import { AI_MODEL, logAiGeneration } from "@/lib/ai/client";
-import { generateThumbnailImageBuffer } from "@/lib/ai/thumbnail-images";
+import { generateThumbnailImage } from "@/lib/ai/thumbnail-images";
 import {
   buildThumbnailCopyPrompt,
   buildThumbnailImagePrompt,
@@ -22,7 +22,6 @@ import {
   loadThumbnailGenerationById,
   type ThumbnailGenerationListItem,
 } from "@/lib/content/thumbnail-queries";
-import { uploadThumbnailImage } from "@/lib/content/thumbnail-storage";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
@@ -248,18 +247,12 @@ export async function generateThumbnailStudioImages(formData: FormData): Promise
         coverFormat: resolvedCoverFormat,
         variationIndex: index,
       });
-      const buffer = await generateThumbnailImageBuffer(prompt, resolvedCoverFormat);
-      const uploaded = await uploadThumbnailImage({
-        organizationId: profile.organization_id,
-        generationId,
-        variationIndex: index,
-        buffer,
-      });
+      const generated = await generateThumbnailImage(prompt, resolvedCoverFormat);
 
       imageVariations.push({
         id: randomUUID(),
-        storagePath: uploaded.storagePath,
-        publicUrl: uploaded.publicUrl,
+        storagePath: `inline://${generationId}/${index + 1}.png`,
+        publicUrl: generated.dataUrl,
         prompt,
         coverFormat: resolvedCoverFormat,
         stylePreset: resolvedStylePreset,

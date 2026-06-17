@@ -5,30 +5,48 @@ import {
   type ThumbnailCoverFormat,
 } from "@/lib/ai/thumbnail-studio";
 
-export const THUMBNAIL_IMAGE_MODEL = "dall-e-3";
+export const THUMBNAIL_IMAGE_MODEL = "gpt-image-1";
+export const THUMBNAIL_IMAGE_OUTPUT_FORMAT = "png" as const;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function generateThumbnailImageBuffer(
+export type GeneratedThumbnailImage = {
+  dataUrl: string;
+  buffer: Buffer;
+  mimeType: "image/png";
+};
+
+export function createThumbnailDataUrl(
+  b64Json: string,
+  mimeType: "image/png" | "image/jpeg" | "image/webp" = "image/png",
+) {
+  return `data:${mimeType};base64,${b64Json}`;
+}
+
+export async function generateThumbnailImage(
   prompt: string,
   coverFormat: ThumbnailCoverFormat,
-) {
+): Promise<GeneratedThumbnailImage> {
   const response = await openai.images.generate({
     model: THUMBNAIL_IMAGE_MODEL,
     prompt,
     n: 1,
     size: getThumbnailImageSize(coverFormat),
-    response_format: "b64_json",
-    quality: "standard",
+    output_format: THUMBNAIL_IMAGE_OUTPUT_FORMAT,
+    quality: "auto",
   });
 
-  const imageData = response.data?.[0]?.b64_json;
+  const b64Json = response.data?.[0]?.b64_json;
 
-  if (!imageData) {
+  if (!b64Json) {
     throw new Error("Gagal menghasilkan thumbnail image.");
   }
 
-  return Buffer.from(imageData, "base64");
+  return {
+    dataUrl: createThumbnailDataUrl(b64Json),
+    buffer: Buffer.from(b64Json, "base64"),
+    mimeType: "image/png",
+  };
 }

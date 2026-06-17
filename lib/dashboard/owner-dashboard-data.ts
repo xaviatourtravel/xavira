@@ -20,6 +20,13 @@ import {
   type TopCampaignRow,
 } from "@/lib/campaigns/metrics";
 import { loadCampaignMetricsForOrganization } from "@/lib/campaigns/queries";
+import { loadFollowUpComplianceMetrics } from "@/lib/automation/compliance";
+import {
+  loadFollowUpQueue,
+  summarizeFollowUpQueue,
+} from "@/lib/automation/queue";
+import type { FollowUpComplianceMetrics } from "@/lib/automation/compliance";
+import { loadInboxDashboardMetrics, type InboxDashboardMetrics } from "@/lib/inbox/metrics";
 import type { Tables } from "@/types/database";
 import { createClient } from "@/utils/supabase/server";
 
@@ -103,6 +110,13 @@ export type OwnerDashboardMetrics = {
   revenueOverview: OwnerRevenueOverview;
   topPackages: OwnerTopPackageRow[];
   topCampaigns: TopCampaignRow[];
+  inboxMetrics: InboxDashboardMetrics;
+  followUpHealth: {
+    totalLeads: number;
+    overdueLeads: number;
+    hotLeadsOverdue: number;
+    compliance: FollowUpComplianceMetrics;
+  };
 };
 
 function getLeadAcquisitionDate(lead: Pick<LeadRow, "lead_date" | "created_at">) {
@@ -257,6 +271,10 @@ export async function loadOwnerDashboardMetrics(
     { count: unassignedLeads },
     { data: campaigns },
     metricsByCampaignId,
+    inboxMetrics,
+    compliance,
+    queueItems,
+    { count: totalActiveLeads },
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -293,6 +311,15 @@ export async function loadOwnerDashboardMetrics(
       .select("id, name")
       .eq("organization_id", organizationId),
     loadCampaignMetricsForOrganization(supabase, organizationId),
+    loadInboxDashboardMetrics(supabase, organizationId),
+    loadFollowUpComplianceMetrics(supabase, organizationId),
+    loadFollowUpQueue(supabase, organizationId),
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .is("deleted_at", null)
+      .not("status", "in", "(won,lost)"),
   ]);
 
   const leadRows = (leads ?? []) as LeadRow[];
@@ -362,6 +389,8 @@ export async function loadOwnerDashboardMetrics(
     threeDaysAgoIso,
   );
 
+  const queueSummary = summarizeFollowUpQueue(queueItems);
+
   return {
     executiveKpis: {
       leadsToday,
@@ -392,5 +421,12 @@ export async function loadOwnerDashboardMetrics(
     },
     topPackages: buildTopPackages(leadRows, bookingRows),
     topCampaigns: buildTopCampaigns(campaigns ?? [], metricsByCampaignId),
+    inboxMetrics,
+    followUpHealth: {
+      totalLeads: totalActiveLeads ?? 0,
+      overdueLeads: queueSummary.overdueLeads,
+      hotLeadsOverdue: queueSummary.hotOverdueLeads,
+      compliance,
+    },
   };
 }

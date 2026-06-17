@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation";
 
 import {
   dashboardNav,
-  isKanbanNavActive,
-  isLeadsNavPath,
   isNavGroup,
   isNavItemActive,
 } from "@/config/navigation";
@@ -26,7 +24,11 @@ export function AppSidebar() {
         {dashboardNav.map((item) => {
           if (isNavGroup(item)) {
             const Icon = item.icon;
-            const isGroupActive = isLeadsNavPath(pathname);
+            const isGroupActive =
+              isNavItemActive(pathname, item.href) ||
+              item.items.some((subItem) =>
+                isNavItemActive(pathname, subItem.href),
+              );
 
             return (
               <div key={item.href} className="space-y-1">
@@ -45,7 +47,7 @@ export function AppSidebar() {
 
                 <div className="ml-4 space-y-1 border-l pl-3">
                   {item.items.map((subItem) => {
-                    const isSubActive = isKanbanNavActive(pathname);
+                    const isSubActive = isNavItemActive(pathname, subItem.href);
 
                     return (
                       <Link

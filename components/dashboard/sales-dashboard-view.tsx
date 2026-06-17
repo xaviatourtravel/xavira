@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SalesTodayTasksCard } from "@/components/dashboard/sales-today-tasks-card";
 import { AiSalesAssistantCard } from "@/components/dashboard/ai-sales-assistant-card";
 import { FollowUpTodayCard } from "@/components/dashboard/follow-up-today-card";
 import { MyLeadsCard } from "@/components/dashboard/my-leads-card";
@@ -46,6 +47,10 @@ const QUICK_ACTIONS = [
     href: "/leads/kanban",
   },
   {
+    label: "Open Follow Up Queue",
+    href: "/follow-ups/queue?assigned=me",
+  },
+  {
     label: "Open Follow Ups",
     href: "/follow-ups?assigned=me",
   },
@@ -84,6 +89,8 @@ export function SalesDashboardView({ metrics }: SalesDashboardViewProps) {
       </div>
 
       <MyLeadsCard metrics={metrics.myLeadsMetrics} />
+
+      <SalesTodayTasksCard {...metrics.todayTasks} />
 
       <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
 

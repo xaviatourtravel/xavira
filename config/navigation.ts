@@ -3,6 +3,7 @@ import {
   BarChart3,
   CalendarCheck,
   FileText,
+  Inbox,
   LayoutDashboard,
   Megaphone,
   MessageSquare,
@@ -59,6 +60,12 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Follow Ups",
     href: "/follow-ups",
     icon: MessageSquare,
+    items: [{ title: "Follow Up Queue", href: "/follow-ups/queue" }],
+  },
+  {
+    title: "Inbox",
+    href: "/inbox",
+    icon: Inbox,
   },
   {
     title: "Campaigns",
@@ -89,6 +96,17 @@ export function isLeadsNavPath(pathname: string) {
 export function isKanbanNavActive(pathname: string) {
   return (
     pathname === "/leads/kanban" || pathname.startsWith("/leads/kanban/")
+  );
+}
+
+export function isFollowUpsNavPath(pathname: string) {
+  return pathname === "/follow-ups" || pathname.startsWith("/follow-ups/");
+}
+
+export function isFollowUpQueueNavActive(pathname: string) {
+  return (
+    pathname === "/follow-ups/queue" ||
+    pathname.startsWith("/follow-ups/queue/")
   );
 }
 

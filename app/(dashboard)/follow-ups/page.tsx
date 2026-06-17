@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { completeFollowUpTaskFromCenter } from "@/app/(dashboard)/follow-ups/actions";
 import {
   FollowUpCenterTable,
@@ -183,11 +185,19 @@ export default async function FollowUpsPage({ searchParams }: FollowUpsPageProps
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Follow Up Center</h1>
-        <p className="text-sm text-muted-foreground">
-          Kelola semua follow up terjadwal untuk organisasi Anda.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Follow Up Center</h1>
+          <p className="text-sm text-muted-foreground">
+            Kelola semua follow up terjadwal untuk organisasi Anda.
+          </p>
+        </div>
+        <Link
+          href="/follow-ups/queue"
+          className="rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent/50"
+        >
+          Open Follow Up Queue
+        </Link>
       </div>
 
       {params.success && (

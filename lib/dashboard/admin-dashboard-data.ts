@@ -12,6 +12,7 @@ import {
   shouldShowSalesPerformanceEmptyState,
   type SalesPerformanceRow,
 } from "@/lib/dashboard/sales-performance";
+import { loadInboxDashboardMetrics, type InboxDashboardMetrics } from "@/lib/inbox/metrics";
 import { getLeadAgingCutoffIso } from "@/lib/leads/assignment";
 import {
   buildFollowUpCountByLeadId,
@@ -83,6 +84,7 @@ export type AdminDashboardMetrics = {
   priorityLeads: AdminDashboardPriorityLead[];
   bookingOverview: BookingOverviewMetrics;
   contentOverview: ContentOverviewMetrics;
+  inboxMetrics: InboxDashboardMetrics;
 };
 
 function buildPriorityLeads(
@@ -296,9 +298,10 @@ export async function loadAdminDashboardMetrics(
     threeDaysAgoIso,
   );
 
-  const [bookingOverview, contentOverview] = await Promise.all([
+  const [bookingOverview, contentOverview, inboxMetrics] = await Promise.all([
     loadBookingOverviewMetrics(profile.organization_id),
     loadContentOverviewMetrics(profile.organization_id),
+    loadInboxDashboardMetrics(supabase, profile.organization_id),
   ]);
 
   return {
@@ -333,5 +336,6 @@ export async function loadAdminDashboardMetrics(
     priorityLeads: buildPriorityLeads(priorityLeads ?? []),
     bookingOverview,
     contentOverview,
+    inboxMetrics,
   };
 }

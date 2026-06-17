@@ -23,6 +23,11 @@ import {
   parseLeadFormFields,
 } from "@/lib/leads/lead-form-parsing";
 import { canEditLead } from "@/lib/leads/permissions";
+import {
+  formatSnoozeUntilLabel,
+  parseSnoozePreset,
+  resolveSnoozeUntil,
+} from "@/lib/automation/snooze";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -590,5 +595,83 @@ export async function convertLeadToBooking(formData: FormData) {
   revalidatePath("/bookings");
   revalidatePath(`/leads/${leadId}`);
   redirect(`/bookings/${booking.id}`);
+}
+
+export async function snoozeLead(formData: FormData) {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const leadId = getString(formData, "lead_id");
+  const clearSnooze = getString(formData, "clear_snooze") === "true";
+
+  if (!leadId) {
+    redirect("/leads?error=Lead tidak ditemukan");
+  }
+
+  const { data: lead, error: leadError } = await supabase
+    .from("leads")
+    .select("id, full_name")
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (leadError || !lead) {
+    redirect(`/leads/${leadId}?error=Lead tidak ditemukan`);
+  }
+
+  let snoozeUntil: string | null = null;
+  let activityBody = "Snooze lead dihapus. Lead kembali muncul di follow-up queue.";
+
+  if (!clearSnooze) {
+    const preset = parseSnoozePreset(getString(formData, "snooze_preset"));
+
+    if (!preset) {
+      redirect(`/leads/${leadId}?error=Opsi snooze tidak valid`);
+    }
+
+    snoozeUntil = resolveSnoozeUntil({
+      preset,
+      customDate: getString(formData, "snooze_custom_date"),
+    });
+
+    if (!snoozeUntil) {
+      redirect(`/leads/${leadId}?error=Tanggal snooze wajib diisi`);
+    }
+
+    activityBody = `Lead di-snooze hingga ${formatSnoozeUntilLabel(snoozeUntil)}.`;
+  }
+
+  const { error: updateError } = await supabase
+    .from("leads")
+    .update({
+      snooze_until: snoozeUntil,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", leadId)
+    .eq("organization_id", profile.organization_id);
+
+  if (updateError) {
+    redirect(
+      `/leads/${leadId}?error=${encodeURIComponent(updateError.message)}`,
+    );
+  }
+
+  await supabase.from("lead_activities").insert({
+    organization_id: profile.organization_id,
+    lead_id: leadId,
+    actor_id: profile.id,
+    activity_type: "note",
+    title: clearSnooze ? "Snooze Dihapus" : "Lead Di-snooze",
+    body: activityBody,
+  });
+
+  revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/follow-ups/queue");
+  revalidatePath("/dashboard");
+
+  redirect(
+    `/leads/${leadId}?success=${encodeURIComponent(clearSnooze ? "Snooze lead dihapus." : "Lead berhasil di-snooze.")}`,
+  );
 }
 

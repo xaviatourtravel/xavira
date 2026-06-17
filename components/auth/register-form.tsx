@@ -8,34 +8,74 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { OrganizationInvitePreview } from "@/lib/team/invites";
+import { formatInviteRoleLabel } from "@/lib/team/invites";
 
 type RegisterFormProps = {
   betaJoinMode: boolean;
+  invitePreview?: OrganizationInvitePreview | null;
+  inviteToken?: string;
+  inviteError?: string | null;
 };
 
-export function RegisterForm({ betaJoinMode }: RegisterFormProps) {
+export function RegisterForm({
+  betaJoinMode,
+  invitePreview,
+  inviteToken,
+  inviteError,
+}: RegisterFormProps) {
   const [state, formAction, pending] = useActionState(register, null);
+  const inviteMode = Boolean(invitePreview && inviteToken);
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Daftar Xavira</CardTitle>
         <CardDescription>
-          {betaJoinMode
-            ? "Buat akun untuk bergabung dengan tim Xavira yang sudah ada."
-            : "Buat akun travel agency dan mulai kelola lead dalam hitungan menit."}
+          {inviteMode
+            ? `Bergabung ke ${invitePreview?.organizationName} sebagai anggota tim.`
+            : betaJoinMode
+              ? "Buat akun untuk bergabung dengan tim Xavira yang sudah ada."
+              : "Buat akun travel agency dan mulai kelola lead dalam hitungan menit."}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {inviteError && (
+          <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-600">
+            {inviteError}
+          </div>
+        )}
+
+        {inviteMode && (
+          <div className="mb-4 rounded-md border bg-muted/30 p-4 text-sm">
+            <p>
+              <span className="font-medium">Organisasi:</span>{" "}
+              {invitePreview?.organizationName}
+            </p>
+            <p className="mt-1">
+              <span className="font-medium">Role:</span>{" "}
+              {invitePreview ? formatInviteRoleLabel(invitePreview.role) : "-"}
+            </p>
+            <p className="mt-1">
+              <span className="font-medium">Email undangan:</span>{" "}
+              {invitePreview?.email}
+            </p>
+          </div>
+        )}
+
         <form action={formAction} className="space-y-4">
           <AuthAlert state={state} />
+
+          {inviteToken && (
+            <input type="hidden" name="inviteToken" value={inviteToken} />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="fullName">Nama Lengkap</Label>
             <Input id="fullName" name="fullName" autoComplete="name" required />
           </div>
 
-          {!betaJoinMode && (
+          {!betaJoinMode && !inviteMode && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="organizationName">Nama Travel Agency</Label>
@@ -70,6 +110,8 @@ export function RegisterForm({ betaJoinMode }: RegisterFormProps) {
               name="email"
               type="email"
               autoComplete="email"
+              defaultValue={invitePreview?.email}
+              readOnly={inviteMode}
               required
             />
           </div>
@@ -83,6 +125,7 @@ export function RegisterForm({ betaJoinMode }: RegisterFormProps) {
               autoComplete="new-password"
               minLength={8}
               required
+              disabled={Boolean(inviteError)}
             />
           </div>
 
@@ -95,15 +138,22 @@ export function RegisterForm({ betaJoinMode }: RegisterFormProps) {
               autoComplete="new-password"
               minLength={8}
               required
+              disabled={Boolean(inviteError)}
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={pending || Boolean(inviteError)}
+          >
             {pending
               ? "Memproses..."
-              : betaJoinMode
-                ? "Daftar sebagai anggota tim"
-                : "Daftar"}
+              : inviteMode
+                ? "Daftar dengan Undangan"
+                : betaJoinMode
+                  ? "Daftar sebagai anggota tim"
+                  : "Daftar"}
           </Button>
         </form>
 

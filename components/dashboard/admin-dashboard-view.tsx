@@ -4,6 +4,7 @@ import { FollowUpTodayCard } from "@/components/dashboard/follow-up-today-card";
 import { NeedAttentionCard } from "@/components/dashboard/need-attention-card";
 import { PipelineSummaryCard } from "@/components/dashboard/pipeline-summary-card";
 import { SalesPerformanceCard } from "@/components/dashboard/sales-performance-card";
+import { InboxOverviewCard } from "@/components/inbox/inbox-overview-card";
 import type { AdminDashboardMetrics } from "@/lib/dashboard/admin-dashboard-data";
 
 type AdminDashboardViewProps = {
@@ -52,6 +53,8 @@ export function AdminDashboardView({ metrics }: AdminDashboardViewProps) {
       </div>
 
       <NeedAttentionCard metrics={metrics.needAttention} />
+
+      <InboxOverviewCard metrics={metrics.inboxMetrics} />
 
       <SalesPerformanceCard
         rows={metrics.salesPerformanceRows}

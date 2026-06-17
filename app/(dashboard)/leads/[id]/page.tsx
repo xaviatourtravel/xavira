@@ -34,11 +34,13 @@ import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
 import { resolveLeadIntelligenceFromLeadData } from "@/lib/ai/lead-intelligence";
 import { LeadHealthScoreCard } from "@/components/leads/lead-health-score-card";
+import { SnoozeLeadCard } from "@/components/leads/snooze-lead-card";
 import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
+import { LeadTimelineCard } from "@/components/leads/lead-timeline-card";
 import {
-  ActivityTimelineCard,
-  type LeadActivityItem,
-} from "@/components/leads/activity-timeline-card";
+  buildLeadTimeline,
+  resolveLeadActivityActorName,
+} from "@/lib/leads/timeline";
 
 type LeadDetail = {
   id: string;
@@ -59,11 +61,29 @@ type LeadDetail = {
   campaign_id: string | null;
   lead_date: string | null;
   lead_temperature: string | null;
+  snooze_until: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   campaigns: { name: string } | { name: string }[] | null;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+type LeadActivityRow = {
+  id: string;
+  activity_type: string;
+  title: string | null;
+  body: string | null;
+  occurred_at: string;
+  metadata: Record<string, unknown> | null;
+  profiles:
+    | {
+        full_name: string | null;
+      }
+    | {
+        full_name: string | null;
+      }[]
+    | null;
 };
 
 type FollowUpTask = {
@@ -185,6 +205,7 @@ export default async function LeadDetailPage({
           campaign_id,
           lead_date,
           lead_temperature,
+          snooze_until,
           metadata,
           created_at,
           updated_at,
@@ -203,7 +224,7 @@ export default async function LeadDetailPage({
       supabase
         .from("lead_activities")
         .select(
-          "id, activity_type, title, body, occurred_at, profiles:actor_id(full_name)",
+          "id, activity_type, title, body, occurred_at, metadata, profiles:actor_id(full_name)",
         )
         .eq("lead_id", id)
         .eq("organization_id", profile.organization_id)
@@ -233,7 +254,21 @@ export default async function LeadDetailPage({
   }
 
   const detail = lead as LeadDetail;
-  const timeline = (activities ?? []) as LeadActivityItem[];
+  const activityRows = (activities ?? []) as LeadActivityRow[];
+  const timelineEvents = buildLeadTimeline({
+    leadId: detail.id,
+    leadCreatedAt: detail.created_at,
+    leadMetadata: detail.metadata,
+    activities: activityRows.map((activity) => ({
+      id: activity.id,
+      activity_type: activity.activity_type,
+      title: activity.title,
+      body: activity.body,
+      occurred_at: activity.occurred_at,
+      metadata: activity.metadata,
+      actorName: resolveLeadActivityActorName(activity.profiles),
+    })),
+  });
   const followUpTasks = (followUps ?? []) as FollowUpTask[];
   const booking = relatedBooking as RelatedBooking | null;
   const hasPendingRecommendedTask = hasPendingRecommendedFollowUpTask(
@@ -258,7 +293,7 @@ export default async function LeadDetailPage({
     notes: detail.notes,
     leadTemperature: detail.lead_temperature,
     packageInterest: detail.package_interest,
-    activities: timeline.map((activity) => ({
+    activities: activityRows.map((activity) => ({
       activity_type: activity.activity_type,
       title: activity.title,
       body: activity.body,
@@ -511,9 +546,9 @@ Terima kasih.`
         </Card>
       )}
 
-      <ActivityTimelineCard
+      <LeadTimelineCard
         leadId={detail.id}
-        timeline={timeline}
+        events={timelineEvents}
         createLeadActivity={createLeadActivity}
       />
         </div>
@@ -541,6 +576,8 @@ Terima kasih.`
         contactPhone={formatContact(detail)}
       />
       
+      <SnoozeLeadCard leadId={detail.id} snoozeUntil={detail.snooze_until} />
+
       <Card>
   <CardHeader>
     <CardTitle>Jadwalkan Follow Up</CardTitle>

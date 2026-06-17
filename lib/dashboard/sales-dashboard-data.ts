@@ -3,6 +3,10 @@ import type { FollowUpTodayTask } from "@/components/dashboard/follow-up-today-c
 import { buildCriticalLeadListItems } from "@/lib/leads/critical-leads";
 import { getLeadAgingCutoffIso, type MyLeadsMetrics } from "@/lib/leads/assignment";
 import { getFollowUpTodayBounds } from "@/lib/follow-ups/list-filters";
+import {
+  loadFollowUpQueue,
+  summarizeFollowUpQueue,
+} from "@/lib/automation/queue";
 import { createClient } from "@/utils/supabase/server";
 
 export type SalesDashboardPriorityLead = {
@@ -22,6 +26,12 @@ export type SalesDashboardMetrics = {
   priorityLeads: SalesDashboardPriorityLead[];
   myLeadsMetrics: MyLeadsMetrics;
   todayFollowUps: FollowUpTodayTask[];
+  todayTasks: {
+    requiringFollowUp: number;
+    overdueLeads: number;
+    hotLeadsOverdue: number;
+    dueTodayLeads: number;
+  };
 };
 
 function buildPriorityLeads(
@@ -199,6 +209,17 @@ export async function loadSalesDashboardMetrics(
     followUpTasks ?? [],
   ).length;
 
+  const queueItems = await loadFollowUpQueue(supabase, profile.organization_id, {
+    assignedTo: profile.id,
+  });
+  const queueSummary = summarizeFollowUpQueue(queueItems);
+  const todayTasks = {
+    requiringFollowUp: queueSummary.requiringFollowUp,
+    overdueLeads: queueSummary.overdueLeads,
+    hotLeadsOverdue: queueSummary.hotOverdueLeads,
+    dueTodayLeads: queueSummary.dueTodayLeads,
+  };
+
   return {
     totalAssignedLeads: totalAssignedLeads ?? 0,
     followUpTodayCount,
@@ -212,5 +233,6 @@ export async function loadSalesDashboardMetrics(
       wonLeads: myLeadsWon ?? 0,
     },
     todayFollowUps,
+    todayTasks,
   };
 }

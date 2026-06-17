@@ -6,6 +6,8 @@ import { OwnerPipelineFunnelCard } from "@/components/dashboard/owner-pipeline-f
 import { OwnerRevenueOverviewCard } from "@/components/dashboard/owner-revenue-overview-card";
 import { OwnerSalesPerformanceCard } from "@/components/dashboard/owner-sales-performance-card";
 import { OwnerTopPackagesCard } from "@/components/dashboard/owner-top-packages-card";
+import { OwnerFollowUpHealthCard } from "@/components/dashboard/owner-follow-up-health-card";
+import { InboxOverviewCard } from "@/components/inbox/inbox-overview-card";
 import type { OwnerDashboardMetrics } from "@/lib/dashboard/owner-dashboard-data";
 
 type OwnerDashboardViewProps = {
@@ -26,6 +28,15 @@ export function OwnerDashboardView({ metrics }: OwnerDashboardViewProps) {
       <OwnerExecutiveKpiSection {...metrics.executiveKpis} />
 
       <OwnerPipelineFunnelCard funnel={metrics.pipelineFunnel} />
+
+      <InboxOverviewCard metrics={metrics.inboxMetrics} />
+
+      <OwnerFollowUpHealthCard
+        totalLeads={metrics.followUpHealth.totalLeads}
+        overdueLeads={metrics.followUpHealth.overdueLeads}
+        hotLeadsOverdue={metrics.followUpHealth.hotLeadsOverdue}
+        compliance={metrics.followUpHealth.compliance}
+      />
 
       <LeadTemperatureOverviewCard overview={metrics.temperatureOverview} />
 

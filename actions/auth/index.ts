@@ -20,6 +20,11 @@ import {
   resetPasswordSchema,
 } from "@/lib/validations/auth";
 import type { Database, TablesInsert } from "@/types/database";
+import {
+  acceptOrganizationInvite,
+  getOrganizationInviteByToken,
+  getInviteValidationError,
+} from "@/lib/team/invites";
 
 type OrganizationInsert = TablesInsert<"organizations">;
 type ProfileInsert = TablesInsert<"profiles">;
@@ -31,8 +36,10 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 type EnsureProfileInput = {
   userId: string;
   fullName: string;
+  email: string;
   organizationName: string;
   businessType: BusinessType;
+  inviteToken?: string;
 };
 
 export type SignUpWithOnboardingResult =
@@ -85,6 +92,55 @@ export async function register(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const inviteToken = getFormString(formData, "inviteToken");
+
+  if (inviteToken) {
+    const parsed = betaRegisterSchema.safeParse({
+      fullName: getFormString(formData, "fullName"),
+      email: getFormString(formData, "email"),
+      password: getFormString(formData, "password"),
+      confirmPassword: getFormString(formData, "confirmPassword"),
+    });
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.errors[0]?.message ?? "Data tidak valid",
+      };
+    }
+
+    const invite = await getOrganizationInviteByToken(inviteToken);
+    const inviteValidationError = getInviteValidationError(
+      invite,
+      parsed.data.email,
+    );
+
+    if (inviteValidationError) {
+      return { success: false, error: inviteValidationError };
+    }
+
+    const signUpResult = await signUpWithOnboarding({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      fullName: parsed.data.fullName,
+      inviteToken,
+    });
+
+    if (!signUpResult.ok) {
+      return { success: false, error: signUpResult.error };
+    }
+
+    if (signUpResult.emailConfirmationRequired) {
+      return {
+        success: true,
+        message:
+          "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk bergabung ke tim.",
+      };
+    }
+
+    redirect("/dashboard");
+  }
+
   const betaJoinMode = isBetaJoinModeActive();
 
   if (betaJoinMode) {
@@ -162,8 +218,9 @@ export async function signUpWithOnboarding(input: {
   fullName: string;
   organizationName?: string;
   businessType?: BusinessType;
+  inviteToken?: string;
 }): Promise<SignUpWithOnboardingResult> {
-  const betaJoinMode = isBetaJoinModeActive();
+  const betaJoinMode = isBetaJoinModeActive() && !input.inviteToken;
   logBetaJoinOnboarding("signUpWithOnboarding");
   const organizationName =
     input.organizationName ?? `${input.fullName} Travel`;
@@ -175,7 +232,11 @@ export async function signUpWithOnboarding(input: {
     options: {
       data: {
         full_name: input.fullName,
-        ...(betaJoinMode ? {} : { organization_name: organizationName }),
+        ...(input.inviteToken
+          ? { invite_token: input.inviteToken }
+          : betaJoinMode
+            ? {}
+            : { organization_name: organizationName }),
       },
     },
   });
@@ -196,8 +257,10 @@ export async function signUpWithOnboarding(input: {
   const onboardingError = await ensureUserProfile(admin, {
     userId: data.user.id,
     fullName: input.fullName,
+    email: input.email,
     organizationName,
     businessType: input.businessType ?? "both",
+    inviteToken: input.inviteToken,
   });
 
   if (onboardingError) {
@@ -336,6 +399,15 @@ async function ensureUserProfile(
     return null;
   }
 
+  if (input.inviteToken) {
+    return acceptOrganizationInvite({
+      userId: input.userId,
+      fullName: input.fullName,
+      email: input.email,
+      inviteToken: input.inviteToken,
+    });
+  }
+
   const betaState = resolveBetaJoinState();
 
   if (betaState.mode === "active") {
@@ -446,17 +518,21 @@ export async function completeOnboardingIfNeeded(): Promise<string | null> {
   const metadata = user.user_metadata as {
     full_name?: string;
     organization_name?: string;
+    invite_token?: string;
   };
 
   const fullName = metadata.full_name ?? getEmailLocalPart(user.email ?? "User");
   const organizationName = metadata.organization_name ?? `${fullName} Travel`;
+  const inviteToken = metadata.invite_token?.trim() || undefined;
 
   const admin = createAdminClient();
 
   return ensureUserProfile(admin, {
     userId: user.id,
     fullName,
+    email: user.email ?? "",
     organizationName,
     businessType: "both",
+    inviteToken,
   });
 }

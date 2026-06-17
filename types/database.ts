@@ -68,6 +68,76 @@ export type Database = {
           },
         ]
       }
+      ai_content_generations: {
+        Row: {
+          additional_context: string | null
+          content_angle: string | null
+          content_pillar: string | null
+          created_at: string
+          created_by: string | null
+          generated_output: Json
+          goal: string | null
+          id: string
+          organization_id: string
+          package_id: string | null
+          platform: string | null
+          source_type: string
+          topic: string | null
+        }
+        Insert: {
+          additional_context?: string | null
+          content_angle?: string | null
+          content_pillar?: string | null
+          created_at?: string
+          created_by?: string | null
+          generated_output: Json
+          goal?: string | null
+          id?: string
+          organization_id: string
+          package_id?: string | null
+          platform?: string | null
+          source_type: string
+          topic?: string | null
+        }
+        Update: {
+          additional_context?: string | null
+          content_angle?: string | null
+          content_pillar?: string | null
+          created_at?: string
+          created_by?: string | null
+          generated_output?: Json
+          goal?: string | null
+          id?: string
+          organization_id?: string
+          package_id?: string | null
+          platform?: string | null
+          source_type?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_content_generations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_content_generations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_content_generations_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_participants: {
         Row: {
           address: string | null
@@ -421,6 +491,7 @@ export type Database = {
       }
       contents: {
         Row: {
+          ai_generation_id: string | null
           assigned_to: string | null
           campaign_id: string | null
           caption: string | null
@@ -438,6 +509,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_generation_id?: string | null
           assigned_to?: string | null
           campaign_id?: string | null
           caption?: string | null
@@ -455,6 +527,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_generation_id?: string | null
           assigned_to?: string | null
           campaign_id?: string | null
           caption?: string | null
@@ -472,6 +545,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contents_ai_generation_id_fkey"
+            columns: ["ai_generation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_content_generations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contents_assigned_to_fkey"
             columns: ["assigned_to"]

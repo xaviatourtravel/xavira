@@ -2,6 +2,8 @@
 
 import OpenAI from "openai";
 
+import { AI_MODEL, logAiGeneration } from "@/lib/ai/client";
+import { loadSalesAssistantContextForLead } from "@/lib/ai/sales-assistant-context";
 import {
   buildSalesAssistantPrompt,
   getSalesAssistantActionLabel,
@@ -25,122 +27,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const AI_MODEL = "gpt-4.1-mini";
-
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-async function logAiGeneration({
-  supabase,
-  organizationId,
-  userId,
-  referenceId,
-  inputTokens,
-  outputTokens,
-  feature = "follow_up",
-}: {
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  organizationId: string;
-  userId: string;
-  referenceId: string;
-  inputTokens: number;
-  outputTokens: number;
-  feature?: "follow_up" | "lead_scoring";
-}) {
-  const estimatedCostUsd = inputTokens * 0.0000004 + outputTokens * 0.0000016;
-
-  await supabase.from("ai_generation_logs").insert({
-    organization_id: organizationId,
-    user_id: userId,
-    feature,
-    model: AI_MODEL,
-    reference_id: referenceId,
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    estimated_cost_usd: estimatedCostUsd,
-  });
-}
-
-async function loadSalesAssistantContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  organizationId: string,
-  leadId: string,
-) {
-  const { data: lead } = await supabase
-    .from("leads")
-    .select(
-      `
-      id,
-      full_name,
-      status,
-      interest_type,
-      package_interest,
-      notes,
-      lead_temperature,
-      updated_at,
-      budget_idr,
-      travel_date_preference,
-      party_size
-    `,
-    )
-    .eq("id", leadId)
-    .eq("organization_id", organizationId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (!lead) {
-    return null;
-  }
-
-  const [
-    { data: selectedPackage },
-    { data: activities },
-    { data: followUpTasks },
-    { data: booking },
-  ] = await Promise.all([
-    lead.package_interest
-      ? supabase
-          .from("packages")
-          .select(
-            "name, destination, departure_date, duration_days, price_idr, quota",
-          )
-          .eq("organization_id", organizationId)
-          .eq("name", lead.package_interest)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("lead_activities")
-      .select("activity_type, title, body, occurred_at")
-      .eq("lead_id", leadId)
-      .eq("organization_id", organizationId)
-      .order("occurred_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("follow_up_tasks")
-      .select("title, description, due_date, status")
-      .eq("lead_id", leadId)
-      .eq("organization_id", organizationId)
-      .order("due_date", { ascending: true })
-      .limit(5),
-    supabase
-      .from("bookings")
-      .select("booking_code, package_name, payment_status, booking_status")
-      .eq("lead_id", leadId)
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
-
-  return {
-    lead,
-    selectedPackage,
-    activities: activities ?? [],
-    followUpTasks: followUpTasks ?? [],
-    booking: booking ?? null,
-  };
 }
 
 export async function generateAiSalesAssistant(formData: FormData) {
@@ -167,7 +56,7 @@ export async function generateAiSalesAssistant(formData: FormData) {
     };
   }
 
-  const context = await loadSalesAssistantContext(
+  const context = await loadSalesAssistantContextForLead(
     supabase,
     profile.organization_id,
     leadId,
@@ -212,7 +101,7 @@ export async function generateAiSalesAssistant(formData: FormData) {
       await supabase.from("follow_ups").insert({
         organization_id: profile.organization_id,
         created_by: profile.id,
-        lead_id: context.lead.id,
+        lead_id: context.leadId,
         generated_body: text,
         status: "draft",
         channel: "whatsapp",
@@ -224,14 +113,14 @@ export async function generateAiSalesAssistant(formData: FormData) {
       supabase,
       organizationId: profile.organization_id,
       userId: profile.id,
-      referenceId: context.lead.id,
+      referenceId: context.leadId,
       inputTokens,
       outputTokens,
     });
 
     await supabase.from("lead_activities").insert({
       organization_id: profile.organization_id,
-      lead_id: context.lead.id,
+      lead_id: context.leadId,
       activity_type: "follow_up_generated",
       title: `Draf pesan: ${getSalesAssistantActionLabel(action)}`,
       body: text,

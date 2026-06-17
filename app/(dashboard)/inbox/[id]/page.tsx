@@ -6,6 +6,7 @@ import {
   InboxConversationActions,
   InboxLeadLink,
 } from "@/components/inbox/inbox-conversation-actions";
+import { InboxChatAssistantPanel } from "@/components/inbox/inbox-chat-assistant-panel";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { getOrgCampaignOptions } from "@/lib/campaigns/queries";
@@ -51,6 +52,18 @@ export default async function InboxConversationPage({
   if (!conversation) {
     notFound();
   }
+
+  const linkedLeadPackage = conversation.leadId
+    ? await supabase
+        .from("leads")
+        .select("package_interest")
+        .eq("id", conversation.leadId)
+        .eq("organization_id", profile.organization_id)
+        .is("deleted_at", null)
+        .maybeSingle()
+    : { data: null };
+
+  const packageName = linkedLeadPackage.data?.package_interest ?? null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -112,6 +125,15 @@ export default async function InboxConversationPage({
           </p>
         )}
       </div>
+
+      {canManage && (
+        <InboxChatAssistantPanel
+          conversationId={conversation.id}
+          defaultIncomingMessage={conversation.lastMessage ?? ""}
+          hasLinkedLead={Boolean(conversation.leadId)}
+          packageName={packageName}
+        />
+      )}
 
       {conversation.leadId ? (
         <InboxLeadLink

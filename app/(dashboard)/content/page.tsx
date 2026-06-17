@@ -59,9 +59,14 @@ export default async function ContentPage({
         </div>
 
         {canManageContent && (
-          <Link href="/content/new" className={cn(buttonVariants())}>
-            New Content
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/content/studio" className={cn(buttonVariants({ variant: "outline" }))}>
+              ✨ AI Content Studio
+            </Link>
+            <Link href="/content/new" className={cn(buttonVariants())}>
+              New Content
+            </Link>
+          </div>
         )}
       </div>
 

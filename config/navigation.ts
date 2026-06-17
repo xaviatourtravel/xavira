@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  BookOpen,
   CalendarCheck,
   FileText,
   Inbox,
@@ -9,6 +10,7 @@ import {
   MessageSquare,
   Package,
   Settings,
+  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -39,6 +41,11 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Revenue",
+    href: "/revenue",
+    icon: TrendingUp,
   },
   {
     title: "Leads",
@@ -78,6 +85,11 @@ export const dashboardNav: DashboardNavItem[] = [
     icon: FileText,
   },
   {
+    title: "Knowledge Hub",
+    href: "/knowledge",
+    icon: BookOpen,
+  },
+  {
     title: "Scripts",
     href: "/scripts",
     icon: BarChart3,
@@ -86,6 +98,7 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Settings",
     href: "/settings",
     icon: Settings,
+    items: [{ title: "Integrations", href: "/settings/integrations" }],
   },
 ];
 

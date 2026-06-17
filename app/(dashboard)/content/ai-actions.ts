@@ -17,6 +17,7 @@ import type { ContentGenerationListItem } from "@/lib/content/generations";
 import { parseContentPlatform } from "@/lib/content/constants";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { loadKnowledgeContextForAi } from "@/lib/knowledge/retrieval";
 import {
   buildPackageContentContext,
   type PackageContentSource,
@@ -120,6 +121,16 @@ export async function generateContentStudio(formData: FormData): Promise<{
     referenceId = `free-topic:${profile.organization_id}`;
   }
 
+  const knowledgeQuery = [topic, additionalContext].filter(Boolean).join(" ").trim();
+  const knowledgeContext = await loadKnowledgeContextForAi(
+    supabase,
+    profile.organization_id,
+    { query: knowledgeQuery || undefined, limit: 4 },
+  );
+  const mergedAdditionalContext = [additionalContext, knowledgeContext]
+    .filter((part) => part.trim().length > 0)
+    .join("\n\n");
+
   let prompt: string;
 
   try {
@@ -129,7 +140,7 @@ export async function generateContentStudio(formData: FormData): Promise<{
       goal: goalInput,
       pillar: pillarInput,
       angle: angleInput,
-      additionalContext: additionalContext || undefined,
+      additionalContext: mergedAdditionalContext || undefined,
       packageContext,
       topic: topic || undefined,
     });

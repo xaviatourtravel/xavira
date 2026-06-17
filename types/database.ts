@@ -1021,6 +1021,122 @@ export type Database = {
           },
         ]
       }
+      knowledge_entries: {
+        Row: {
+          ai_metadata: Json
+          ai_status: string
+          category: Database["public"]["Enums"]["knowledge_category"]
+          content: string
+          created_at: string
+          created_by: string | null
+          faq: Json
+          file_name: string | null
+          file_path: string | null
+          file_type: string | null
+          id: string
+          key_points: Json
+          organization_id: string
+          source_type: string
+          summary: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_metadata?: Json
+          ai_status?: string
+          category?: Database["public"]["Enums"]["knowledge_category"]
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          faq?: Json
+          file_name?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          id?: string
+          key_points?: Json
+          organization_id: string
+          source_type?: string
+          summary?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_metadata?: Json
+          ai_status?: string
+          category?: Database["public"]["Enums"]["knowledge_category"]
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          faq?: Json
+          file_name?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          id?: string
+          key_points?: Json
+          organization_id?: string
+          source_type?: string
+          summary?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          organization_id: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_documents: {
         Row: {
           content: string | null
@@ -1655,6 +1771,11 @@ export type Database = {
       inbox_source: "instagram" | "facebook"
       inbox_status: "new" | "qualified" | "converted" | "closed"
       interest_type: "umroh" | "halal_tour" | "both" | "unknown"
+      knowledge_category:
+        | "product_knowledge"
+        | "sop"
+        | "faq"
+        | "marketing_assets"
       lead_priority: "low" | "medium" | "high" | "urgent"
       lead_source:
         | "whatsapp"

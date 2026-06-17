@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { TrendingUp } from "lucide-react";
+
 import { LeadTemperatureOverviewCard } from "@/components/dashboard/lead-temperature-overview-card";
 import { OwnerCampaignPerformanceCard } from "@/components/dashboard/owner-campaign-performance-card";
 import { OwnerExecutiveKpiSection } from "@/components/dashboard/owner-executive-kpi-section";
@@ -26,6 +29,24 @@ export function OwnerDashboardView({ metrics }: OwnerDashboardViewProps) {
       </div>
 
       <OwnerExecutiveKpiSection {...metrics.executiveKpis} />
+
+      <Link
+        href="/revenue"
+        className="flex items-center justify-between gap-4 rounded-xl border bg-primary/5 p-5 transition-colors hover:bg-primary/10"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <TrendingUp className="h-5 w-5 text-primary" />
+          </span>
+          <div>
+            <p className="font-semibold">Revenue Intelligence</p>
+            <p className="text-sm text-muted-foreground">
+              Lihat apa yang mendorong booking: source, paket, sales, dan funnel.
+            </p>
+          </div>
+        </div>
+        <span className="text-sm font-medium text-primary">Buka &rarr;</span>
+      </Link>
 
       <OwnerPipelineFunnelCard funnel={metrics.pipelineFunnel} />
 

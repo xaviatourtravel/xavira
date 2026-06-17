@@ -20,6 +20,7 @@ import {
   type LeadIntelligenceResult,
 } from "@/lib/ai/lead-intelligence";
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
+import { loadKnowledgeContextForAi } from "@/lib/knowledge/retrieval";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -69,9 +70,18 @@ export async function generateAiSalesAssistant(formData: FormData) {
     };
   }
 
+  const knowledgeContext = await loadKnowledgeContextForAi(
+    supabase,
+    profile.organization_id,
+    { query: customerContext || undefined, limit: 4 },
+  );
+  const mergedCustomerContext = [customerContext, knowledgeContext]
+    .filter((part) => part.trim().length > 0)
+    .join("\n\n");
+
   const prompt = buildSalesAssistantPrompt({
     action,
-    customerContext,
+    customerContext: mergedCustomerContext,
     lead: context.lead,
     selectedPackage: context.selectedPackage,
     activities: context.activities,

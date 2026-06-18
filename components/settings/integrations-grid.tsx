@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bot,
   Cloud,
@@ -15,7 +16,7 @@ import {
   disconnectIntegration,
   markIntegrationPendingSetup,
 } from "@/app/(dashboard)/settings/integrations/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { IntegrationProvider } from "@/lib/integrations/constants";
 import type { IntegrationCard } from "@/lib/integrations/queries";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,10 @@ const STATUS_BADGE_CLASSES: Record<IntegrationCard["status"], string> = {
   pending_setup: "bg-amber-100 text-amber-700",
   not_connected: "bg-slate-100 text-slate-600",
 };
+
+function getInstagramConnectHref() {
+  return "/api/integrations/instagram/connect?returnTo=/settings/integrations";
+}
 
 export function IntegrationsGrid({
   integrations,
@@ -81,6 +86,7 @@ export function IntegrationsGrid({
           const Icon = PROVIDER_ICONS[integration.provider];
           const isRowPending = isPending && pendingProvider === integration.provider;
           const isConnected = integration.status === "connected";
+          const isInstagram = integration.provider === "instagram_business";
 
           return (
             <div
@@ -134,6 +140,13 @@ export function IntegrationsGrid({
                       >
                         Disconnect
                       </Button>
+                    ) : isInstagram ? (
+                      <a
+                        href={getInstagramConnectHref()}
+                        className={cn(buttonVariants({ size: "sm" }))}
+                      >
+                        Connect
+                      </a>
                     ) : (
                       <Button
                         type="button"
@@ -147,20 +160,29 @@ export function IntegrationsGrid({
                       </Button>
                     )}
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        runAction(
-                          integration.provider,
-                          markIntegrationPendingSetup,
-                        )
-                      }
-                      disabled={isRowPending}
-                    >
-                      Configure
-                    </Button>
+                    {isInstagram ? (
+                      <Link
+                        href="/content/instagram-analytics"
+                        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                      >
+                        Configure
+                      </Link>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          runAction(
+                            integration.provider,
+                            markIntegrationPendingSetup,
+                          )
+                        }
+                        disabled={isRowPending}
+                      >
+                        Configure
+                      </Button>
+                    )}
                   </>
                 )}
               </div>

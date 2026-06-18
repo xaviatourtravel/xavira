@@ -1,76 +1,91 @@
-import { InboxFilters, InboxConversationsTable, parseInboxPageFilters } from "@/components/inbox/inbox-conversations-table";
-import { NewConversationPanel } from "@/components/inbox/new-conversation-panel";
-import { InboxOverviewCard } from "@/components/inbox/inbox-overview-card";
+import { OmnichannelInboxView } from "@/components/omnichannel-inbox/omnichannel-inbox-view";
+import {
+  canAddOmnichannelConversationNote,
+  canReassignOmnichannelConversation,
+  canReplyToOmnichannelConversation,
+  canUpdateOmnichannelConversationStatus,
+} from "@/lib/omnichannel-inbox/permissions";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
+import {
+  loadOmnichannelConversationDetail,
+  loadOmnichannelConversationList,
+  parseOmnichannelInboxFilter,
+} from "@/lib/omnichannel-inbox/queries";
 import { requireProfile } from "@/lib/auth/session";
-import { getOrgCampaignOptions } from "@/lib/campaigns/queries";
-import { loadInboxDashboardMetrics } from "@/lib/inbox/metrics";
-import { loadInboxConversations } from "@/lib/inbox/queries";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function InboxPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    status?: string;
-    source?: string;
-    assigned?: string;
+    filter?: string;
+    c?: string;
     error?: string;
     success?: string;
   }>;
 }) {
   const params = await searchParams;
   const { profile } = await requireProfile();
-  const canManage = isAdminOrOwner(profile);
-  const filters = parseInboxPageFilters(params);
   const supabase = await createClient();
+  const activeFilter = parseOmnichannelInboxFilter(params.filter);
+  const selectedConversationId = params.c?.trim() || null;
 
-  const [{ data: orgProfiles }, campaigns, conversations, metrics] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("organization_id", profile.organization_id)
-        .order("full_name"),
-      getOrgCampaignOptions(supabase, profile.organization_id),
-      loadInboxConversations(supabase, profile.organization_id, filters),
-      loadInboxDashboardMetrics(supabase, profile.organization_id),
-    ]);
+  const [{ data: orgProfiles }, conversations, detail] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("organization_id", profile.organization_id)
+      .order("full_name"),
+    loadOmnichannelConversationList(
+      supabase,
+      profile.organization_id,
+      activeFilter,
+      profile.id,
+    ),
+    selectedConversationId
+      ? loadOmnichannelConversationDetail(
+          supabase,
+          profile.organization_id,
+          selectedConversationId,
+        )
+      : Promise.resolve(null),
+  ]);
+
+  const permissionsSource = detail ?? conversations.find(
+    (item) => item.id === selectedConversationId,
+  );
+
+  const permissionsConversation = {
+    assigned_user_id: permissionsSource?.assignedUserId ?? null,
+  };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Inbox</h1>
-        <p className="text-sm text-muted-foreground">
-          Lead capture dari Instagram dan Facebook DM sebelum follow up sales.
-        </p>
-      </div>
-
-      {params.error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
-          {decodeURIComponent(params.error)}
-        </div>
+    <OmnichannelInboxView
+      conversations={conversations}
+      detail={detail}
+      activeFilter={activeFilter}
+      selectedConversationId={selectedConversationId}
+      conversationNotFound={Boolean(selectedConversationId && !detail)}
+      orgProfiles={orgProfiles ?? []}
+      canReassign={canReassignOmnichannelConversation(profile)}
+      canUpdateStatus={canUpdateOmnichannelConversationStatus(
+        profile,
+        permissionsConversation,
       )}
-
-      {params.success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
-          {decodeURIComponent(params.success)}
-        </div>
+      canAddNote={canAddOmnichannelConversationNote(
+        profile,
+        permissionsConversation,
       )}
-
-      <InboxOverviewCard metrics={metrics} />
-
-      {canManage && <NewConversationPanel campaigns={campaigns} />}
-
-      <InboxFilters
-        currentStatus={filters.raw.status}
-        currentSource={filters.raw.source}
-        currentAssigned={filters.raw.assigned}
-        showAssignedFilter={canManage}
-        orgProfiles={orgProfiles ?? []}
-      />
-
-      <InboxConversationsTable conversations={conversations} />
-    </div>
+      canReply={canReplyToOmnichannelConversation(
+        profile,
+        permissionsConversation,
+      )}
+      isUnassignedForAgent={
+        !isAdminOrOwner(profile) &&
+        permissionsConversation.assigned_user_id === null
+      }
+      initialError={params.error ?? null}
+      initialSuccess={params.success ?? null}
+    />
   );
 }

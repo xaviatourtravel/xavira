@@ -11,16 +11,24 @@ import {
   type ContentStatus,
 } from "@/lib/content/constants";
 import type { ContentBoardItem } from "@/lib/content/queries";
+import type { ContentInstagramMetrics } from "@/lib/instagram/queries";
 import { cn } from "@/lib/utils";
 
 type ContentBoardProps = {
   items: ContentBoardItem[];
+  instagramMetricsByMediaId?: Record<string, ContentInstagramMetrics>;
+  instagramInsightsGranted?: boolean;
   canManage: boolean;
 };
 
 const DRAG_DATA_KEY = "application/x-xavira-content-id";
 
-export function ContentBoard({ items: initialItems, canManage }: ContentBoardProps) {
+export function ContentBoard({
+  items: initialItems,
+  instagramMetricsByMediaId,
+  instagramInsightsGranted = false,
+  canManage,
+}: ContentBoardProps) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -200,6 +208,12 @@ export function ContentBoard({ items: initialItems, canManage }: ContentBoardPro
                   <ContentBoardCard
                     key={item.id}
                     item={item}
+                    instagramMetrics={
+                      item.instagram_media_id
+                        ? instagramMetricsByMediaId?.[item.instagram_media_id]
+                        : null
+                    }
+                    instagramInsightsGranted={instagramInsightsGranted}
                     canDrag={canManage}
                     isDragging={draggingId === item.id}
                     onDragStart={() => handleDragStart(item.id)}

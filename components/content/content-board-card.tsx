@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GripVertical } from "lucide-react";
 
+import { ContentInstagramMetricsBadge } from "@/components/content/content-instagram-metrics-badge";
 import {
   formatContentPlatformLabel,
   formatContentTypeLabel,
@@ -10,10 +11,13 @@ import {
   getContentRelationName,
   type ContentBoardItem,
 } from "@/lib/content/queries";
+import type { ContentInstagramMetrics } from "@/lib/instagram/queries";
 import { cn } from "@/lib/utils";
 
 type ContentBoardCardProps = {
   item: ContentBoardItem;
+  instagramMetrics?: ContentInstagramMetrics | null;
+  instagramInsightsGranted?: boolean;
   canDrag?: boolean;
   isDragging?: boolean;
   onDragStart?: () => void;
@@ -35,6 +39,8 @@ function formatPublishDate(value: string | null) {
 
 export function ContentBoardCard({
   item,
+  instagramMetrics,
+  instagramInsightsGranted = false,
   canDrag = false,
   isDragging = false,
   onDragStart,
@@ -54,6 +60,14 @@ export function ContentBoardCard({
         {campaignName && <p>Campaign: {campaignName}</p>}
         {assigneeName && <p>Assigned: {assigneeName}</p>}
         {publishDate && <p>Publish: {publishDate}</p>}
+        {item.status === "published" &&
+        item.platform === "instagram" &&
+        instagramMetrics ? (
+          <ContentInstagramMetricsBadge
+            metrics={instagramMetrics}
+            insightsGranted={instagramInsightsGranted}
+          />
+        ) : null}
       </div>
     </>
   );

@@ -53,11 +53,15 @@ export const INTEGRATION_PROVIDER_CONFIGS: ReadonlyArray<IntegrationProviderConf
     {
       provider: "instagram_business",
       name: "Instagram Business",
-      description: "Hubungkan akun Instagram Business untuk publish konten.",
+      description: "Hubungkan akun Instagram Business untuk analytics dan publish konten.",
       defaultStatus: "not_connected",
       detailFields: [
         { key: "connectedAccount", label: "Connected Account" },
+        { key: "pageName", label: "Facebook Page" },
         { key: "username", label: "Instagram Username" },
+        { key: "followersCount", label: "Followers" },
+        { key: "lastSyncedAt", label: "Last Sync" },
+        { key: "connectionMethod", label: "Connection Method" },
         { key: "businessAccountStatus", label: "Business Account Status" },
       ],
     },

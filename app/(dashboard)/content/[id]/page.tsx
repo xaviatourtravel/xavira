@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { ContentAiSectionsDisplay } from "@/components/content/content-ai-sections-display";
 import { ContentDeleteButton } from "@/components/content/content-delete-button";
+import { ContentInstagramLinkPanel } from "@/components/content/content-instagram-link-panel";
+import { ContentInstagramMetricsPanel } from "@/components/content/content-instagram-metrics-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { resolveAiContentSections } from "@/lib/content/ai-sections";
 import {
@@ -15,8 +17,16 @@ import {
   getContentAssigneeName,
   getContentRelationName,
 } from "@/lib/content/queries";
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { isAdminOrOwner, canLinkInstagramContent } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import {
+  loadSuggestedInstagramMatchesForContent,
+  loadUnlinkedInstagramPosts,
+} from "@/lib/instagram/linking";
+import {
+  loadContentInstagramMetrics,
+  loadInstagramConnectionStatus,
+} from "@/lib/instagram/queries";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -36,6 +46,7 @@ type ContentDetail = {
   ai_generation_id: string | null;
   thumbnail_url: string | null;
   thumbnail_headline: string | null;
+  instagram_media_id: string | null;
   created_at: string;
   updated_at: string;
   campaigns: { id: string; name: string } | { id: string; name: string }[] | null;
@@ -91,6 +102,7 @@ export default async function ContentDetailPage({
   const query = await searchParams;
   const { profile } = await requireProfile();
   const canManageContent = isAdminOrOwner(profile);
+  const canLinkInstagram = canLinkInstagramContent(profile);
   const supabase = await createClient();
 
   const { data: content, error } = await supabase
@@ -112,6 +124,7 @@ export default async function ContentDetailPage({
       ai_generation_id,
       thumbnail_url,
       thumbnail_headline,
+      instagram_media_id,
       created_at,
       updated_at,
       campaigns (
@@ -151,6 +164,30 @@ export default async function ContentDetailPage({
     ? resolveAiContentSections(generationRecord.generated_output)
     : null;
   const isAiContent = Boolean(aiSections);
+  const isInstagramContent = detail.platform === "instagram";
+  const instagramConnection = isInstagramContent
+    ? await loadInstagramConnectionStatus(supabase, profile.organization_id)
+    : null;
+  const instagramMetrics =
+    isInstagramContent && detail.instagram_media_id
+      ? await loadContentInstagramMetrics(
+          supabase,
+          profile.organization_id,
+          detail.instagram_media_id,
+          instagramConnection?.insightsGranted ?? false,
+        )
+      : null;
+  const [instagramSuggestions, unlinkedInstagramPosts] =
+    isInstagramContent && canLinkInstagram && !detail.instagram_media_id
+      ? await Promise.all([
+          loadSuggestedInstagramMatchesForContent(
+            supabase,
+            profile.organization_id,
+            detail.id,
+          ),
+          loadUnlinkedInstagramPosts(supabase, profile.organization_id),
+        ])
+      : [[], []];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -224,6 +261,31 @@ export default async function ContentDetailPage({
           </a>
         </div>
       )}
+
+      {instagramMetrics ? (
+        <ContentInstagramMetricsPanel
+          metrics={instagramMetrics}
+          insightsGranted={instagramConnection?.insightsGranted ?? false}
+        />
+      ) : null}
+
+      {isInstagramContent && canLinkInstagram ? (
+        <ContentInstagramLinkPanel
+          contentId={detail.id}
+          contentTitle={detail.title}
+          instagramMediaId={detail.instagram_media_id}
+          canLink={canLinkInstagram}
+          initialSuggestions={instagramSuggestions.map((item) => ({
+            instagramMediaId: item.media.instagramMediaId,
+            caption: item.media.caption,
+            permalink: item.media.permalink,
+            postedAt: item.media.postedAt,
+            score: item.score,
+            reasons: item.reasons,
+          }))}
+          initialUnlinkedPosts={unlinkedInstagramPosts}
+        />
+      ) : null}
 
       <div className="rounded-xl border p-6">
         <dl className="grid gap-4 sm:grid-cols-2">

@@ -583,6 +583,7 @@ export type Database = {
           cta: string | null
           drive_url: string | null
           id: string
+          instagram_media_id: string | null
           notes: string | null
           organization_id: string
           platform: string
@@ -604,6 +605,7 @@ export type Database = {
           cta?: string | null
           drive_url?: string | null
           id?: string
+          instagram_media_id?: string | null
           notes?: string | null
           organization_id: string
           platform: string
@@ -625,6 +627,7 @@ export type Database = {
           cta?: string | null
           drive_url?: string | null
           id?: string
+          instagram_media_id?: string | null
           notes?: string | null
           organization_id?: string
           platform?: string
@@ -666,6 +669,137 @@ export type Database = {
           },
           {
             foreignKeyName: "contents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_notes: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          created_by: string
+          id: string
+          note: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          note: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_notes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_tags: {
+        Row: {
+          conversation_id: string
+          id: string
+          tag: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          tag: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_tags_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          assigned_user_id: string | null
+          channel: Database["public"]["Enums"]["omnichannel_channel"]
+          created_at: string
+          customer_avatar: string | null
+          customer_name: string | null
+          customer_username: string | null
+          external_conversation_id: string
+          external_user_id: string | null
+          id: string
+          last_message_at: string | null
+          organization_id: string
+          status: Database["public"]["Enums"]["omnichannel_conversation_status"]
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          channel: Database["public"]["Enums"]["omnichannel_channel"]
+          created_at?: string
+          customer_avatar?: string | null
+          customer_name?: string | null
+          customer_username?: string | null
+          external_conversation_id: string
+          external_user_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          organization_id: string
+          status?: Database["public"]["Enums"]["omnichannel_conversation_status"]
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          channel?: Database["public"]["Enums"]["omnichannel_channel"]
+          created_at?: string
+          customer_avatar?: string | null
+          customer_name?: string | null
+          customer_username?: string | null
+          external_conversation_id?: string
+          external_user_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          organization_id?: string
+          status?: Database["public"]["Enums"]["omnichannel_conversation_status"]
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -935,6 +1069,54 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          attachments_json: Json
+          conversation_id: string
+          created_at: string
+          direction: Database["public"]["Enums"]["omnichannel_message_direction"]
+          external_message_id: string | null
+          id: string
+          message_text: string | null
+          sent_by_user_id: string | null
+        }
+        Insert: {
+          attachments_json?: Json
+          conversation_id: string
+          created_at?: string
+          direction: Database["public"]["Enums"]["omnichannel_message_direction"]
+          external_message_id?: string | null
+          id?: string
+          message_text?: string | null
+          sent_by_user_id?: string | null
+        }
+        Update: {
+          attachments_json?: Json
+          conversation_id?: string
+          created_at?: string
+          direction?: Database["public"]["Enums"]["omnichannel_message_direction"]
+          external_message_id?: string | null
+          id?: string
+          message_text?: string | null
+          sent_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sent_by_user_id_fkey"
+            columns: ["sent_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       imports: {
         Row: {
           created_at: string
@@ -1095,6 +1277,116 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_account_stats: {
+        Row: {
+          followers_count: number
+          instagram_business_account_id: string
+          last_synced_at: string | null
+          organization_id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          followers_count?: number
+          instagram_business_account_id: string
+          last_synced_at?: string | null
+          organization_id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          followers_count?: number
+          instagram_business_account_id?: string
+          last_synced_at?: string | null
+          organization_id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_account_stats_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_media_insights: {
+        Row: {
+          caption: string | null
+          comments: number
+          content_id: string | null
+          content_pillar: string | null
+          created_at: string
+          id: string
+          impressions: number
+          instagram_media_id: string
+          likes: number
+          media_type: string | null
+          organization_id: string
+          permalink: string | null
+          posted_at: string | null
+          reach: number
+          saves: number
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          comments?: number
+          content_id?: string | null
+          content_pillar?: string | null
+          created_at?: string
+          id?: string
+          impressions?: number
+          instagram_media_id: string
+          likes?: number
+          media_type?: string | null
+          organization_id: string
+          permalink?: string | null
+          posted_at?: string | null
+          reach?: number
+          saves?: number
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          comments?: number
+          content_id?: string | null
+          content_pillar?: string | null
+          created_at?: string
+          id?: string
+          impressions?: number
+          instagram_media_id?: string
+          likes?: number
+          media_type?: string | null
+          organization_id?: string
+          permalink?: string | null
+          posted_at?: string | null
+          reach?: number
+          saves?: number
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_media_insights_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_media_insights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1770,6 +2062,15 @@ export type Database = {
       import_status: "processing" | "completed" | "failed"
       inbox_source: "instagram" | "facebook"
       inbox_status: "new" | "qualified" | "converted" | "closed"
+      omnichannel_channel: "instagram" | "facebook" | "whatsapp"
+      omnichannel_conversation_status:
+        | "new"
+        | "interested"
+        | "hot_lead"
+        | "booking_process"
+        | "paid"
+        | "lost"
+      omnichannel_message_direction: "incoming" | "outgoing"
       interest_type: "umroh" | "halal_tour" | "both" | "unknown"
       knowledge_category:
         | "product_knowledge"
@@ -1969,6 +2270,16 @@ export const Constants = {
       import_status: ["processing", "completed", "failed"],
       inbox_source: ["instagram", "facebook"],
       inbox_status: ["new", "qualified", "converted", "closed"],
+      omnichannel_channel: ["instagram", "facebook", "whatsapp"],
+      omnichannel_conversation_status: [
+        "new",
+        "interested",
+        "hot_lead",
+        "booking_process",
+        "paid",
+        "lost",
+      ],
+      omnichannel_message_direction: ["incoming", "outgoing"],
       interest_type: ["umroh", "halal_tour", "both", "unknown"],
       lead_priority: ["low", "medium", "high", "urgent"],
       lead_source: [

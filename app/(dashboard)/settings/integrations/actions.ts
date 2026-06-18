@@ -9,6 +9,8 @@ import {
   isIntegrationStatus,
   type IntegrationStatus,
 } from "@/lib/integrations/constants";
+import { INSTAGRAM_INTEGRATION_PROVIDER } from "@/lib/instagram/constants";
+import { disconnectInstagramIntegration } from "@/lib/instagram/integration";
 import { createClient } from "@/utils/supabase/server";
 
 type IntegrationActionResult = {
@@ -76,6 +78,15 @@ async function setIntegrationStatus(
 }
 
 export async function connectIntegration(formData: FormData) {
+  const provider = getString(formData, "provider");
+
+  if (provider === INSTAGRAM_INTEGRATION_PROVIDER) {
+    return {
+      success: false,
+      message: "Gunakan tombol Connect untuk membuka alur OAuth Meta.",
+    };
+  }
+
   return setIntegrationStatus(formData, "connected");
 }
 
@@ -84,5 +95,39 @@ export async function markIntegrationPendingSetup(formData: FormData) {
 }
 
 export async function disconnectIntegration(formData: FormData) {
+  const { profile } = await requireProfile();
+
+  if (!isAdminOrOwner(profile)) {
+    return {
+      success: false,
+      message: "Hanya owner atau admin yang dapat mengubah integrasi.",
+    };
+  }
+
+  const provider = getString(formData, "provider");
+
+  if (!isIntegrationProvider(provider)) {
+    return {
+      success: false,
+      message: "Provider tidak valid.",
+    };
+  }
+
+  if (provider === INSTAGRAM_INTEGRATION_PROVIDER) {
+    try {
+      const supabase = await createClient();
+      await disconnectInstagramIntegration(supabase, profile.organization_id);
+      revalidatePath("/settings/integrations");
+      revalidatePath("/content/instagram-analytics");
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Gagal memutuskan Instagram.",
+      };
+    }
+  }
+
   return setIntegrationStatus(formData, "not_connected");
 }

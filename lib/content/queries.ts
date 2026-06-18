@@ -10,6 +10,7 @@ export type ContentBoardItem = {
   status: string;
   publish_date: string | null;
   assigned_to: string | null;
+  instagram_media_id: string | null;
   campaigns: { name: string } | { name: string }[] | null;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
 };

@@ -7,6 +7,10 @@ import {
   type IntegrationProvider,
   type IntegrationStatus,
 } from "@/lib/integrations/constants";
+import { INSTAGRAM_INTEGRATION_PROVIDER } from "@/lib/instagram/constants";
+import { parseInstagramIntegrationMetadata } from "@/lib/instagram/constants";
+import { resolveInstagramIntegrationStatus } from "@/lib/instagram/integration";
+import { SENSITIVE_INSTAGRAM_METADATA_KEYS } from "@/lib/instagram/oauth";
 import type { createClient } from "@/utils/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -48,6 +52,30 @@ function formatMetadataValue(value: unknown) {
   return JSON.stringify(value);
 }
 
+function getPublicMetadataForProvider(
+  provider: IntegrationProvider,
+  metadata: Record<string, unknown>,
+) {
+  if (provider !== INSTAGRAM_INTEGRATION_PROVIDER) {
+    return metadata;
+  }
+
+  const publicMetadata: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (SENSITIVE_INSTAGRAM_METADATA_KEYS.has(key)) {
+      continue;
+    }
+    publicMetadata[key] = value;
+  }
+
+  const parsed = parseInstagramIntegrationMetadata(metadata);
+  if (!publicMetadata.username && parsed.instagramUsername) {
+    publicMetadata.username = parsed.instagramUsername;
+  }
+
+  return publicMetadata;
+}
+
 export async function loadOrganizationIntegrations(
   supabase: SupabaseServerClient,
   organizationId: string,
@@ -68,11 +96,21 @@ export async function loadOrganizationIntegrations(
 
   return INTEGRATION_PROVIDER_CONFIGS.map((config) => {
     const row = rowsByProvider.get(config.provider);
-    const status: IntegrationStatus =
+    const rawMetadata = (row?.metadata ?? {}) as Record<string, unknown>;
+    const metadata = getPublicMetadataForProvider(config.provider, rawMetadata);
+
+    const storedStatus =
       row && isIntegrationStatus(row.status)
         ? row.status
         : config.defaultStatus;
-    const metadata = (row?.metadata ?? {}) as Record<string, unknown>;
+
+    const status: IntegrationStatus =
+      config.provider === INSTAGRAM_INTEGRATION_PROVIDER
+        ? resolveInstagramIntegrationStatus(
+            storedStatus,
+            parseInstagramIntegrationMetadata(rawMetadata),
+          )
+        : storedStatus;
 
     return {
       provider: config.provider,

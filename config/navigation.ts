@@ -83,6 +83,10 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Content",
     href: "/content",
     icon: FileText,
+    items: [
+      { title: "Content Board", href: "/content" },
+      { title: "Instagram Analytics", href: "/content/instagram-analytics" },
+    ],
   },
   {
     title: "Knowledge Hub",

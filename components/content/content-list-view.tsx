@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { ContentInstagramMetricsBadge } from "@/components/content/content-instagram-metrics-badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   formatContentPlatformLabel,
@@ -18,18 +19,23 @@ import {
   getContentRelationName,
   type ContentBoardItem,
 } from "@/lib/content/queries";
+import type { ContentInstagramMetrics } from "@/lib/instagram/queries";
 import { cn } from "@/lib/utils";
 
 type ContentListViewProps = {
   items: ContentBoardItem[];
   canManage: boolean;
   filters: ContentPlanningFilters;
+  instagramMetricsByMediaId?: Record<string, ContentInstagramMetrics>;
+  instagramInsightsGranted?: boolean;
 };
 
 export function ContentListView({
   items,
   canManage,
   filters,
+  instagramMetricsByMediaId,
+  instagramInsightsGranted = false,
 }: ContentListViewProps) {
   const router = useRouter();
 
@@ -52,6 +58,12 @@ export function ContentListView({
           {items.map((item) => {
             const assigneeName = getContentAssigneeName(item.profiles);
             const campaignName = getContentRelationName(item.campaigns);
+            const instagramMetrics =
+              item.status === "published" &&
+              item.platform === "instagram" &&
+              item.instagram_media_id
+                ? instagramMetricsByMediaId?.[item.instagram_media_id]
+                : null;
 
             return (
               <tr
@@ -62,7 +74,15 @@ export function ContentListView({
                 <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                   {formatContentPublishDate(item.publish_date)}
                 </td>
-                <td className="px-4 py-3 font-medium">{item.title}</td>
+                <td className="px-4 py-3 font-medium">
+                  <div>{item.title}</div>
+                  {instagramMetrics ? (
+                    <ContentInstagramMetricsBadge
+                      metrics={instagramMetrics}
+                      insightsGranted={instagramInsightsGranted}
+                    />
+                  ) : null}
+                </td>
                 <td className="px-4 py-3">
                   {formatContentPlatformLabel(item.platform)}
                 </td>

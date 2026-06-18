@@ -16,6 +16,10 @@ import {
 } from "@/lib/content/planning-view";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import {
+  loadContentInstagramMetricsMap,
+  loadInstagramConnectionStatus,
+} from "@/lib/instagram/queries";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -42,6 +46,7 @@ export default async function ContentPage({
         status,
         publish_date,
         assigned_to,
+        instagram_media_id,
         campaigns (
           name
         ),
@@ -64,6 +69,19 @@ export default async function ContentPage({
   }
 
   const items = (contents ?? []) as ContentBoardItem[];
+  const instagramMediaIds = items
+    .filter((item) => item.platform === "instagram" && item.instagram_media_id)
+    .map((item) => item.instagram_media_id as string);
+  const instagramConnection = await loadInstagramConnectionStatus(
+    supabase,
+    profile.organization_id,
+  );
+  const instagramMetricsByMediaId = await loadContentInstagramMetricsMap(
+    supabase,
+    profile.organization_id,
+    instagramMediaIds,
+    instagramConnection.insightsGranted,
+  );
   const filteredItems = filterContentItems(items, filters, profile.id);
   const listItems = sortContentByPublishDate(filteredItems);
   const hasFilters = hasActiveContentPlanningFilters(filters);
@@ -82,19 +100,27 @@ export default async function ContentPage({
           </p>
         </div>
 
-        {canManageContent && (
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/content/studio"
-              className={cn(buttonVariants({ variant: "outline" }))}
-            >
-              ✨ AI Content Studio
-            </Link>
-            <Link href="/content/new" className={cn(buttonVariants())}>
-              New Content
-            </Link>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/content/instagram-analytics"
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Instagram Analytics
+          </Link>
+          {canManageContent && (
+            <>
+              <Link
+                href="/content/studio"
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
+                ✨ AI Content Studio
+              </Link>
+              <Link href="/content/new" className={cn(buttonVariants())}>
+                New Content
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {params?.error && (
@@ -147,11 +173,18 @@ export default async function ContentPage({
           items={listItems}
           canManage={canManageContent}
           filters={filters}
+          instagramMetricsByMediaId={instagramMetricsByMediaId}
+          instagramInsightsGranted={instagramConnection.insightsGranted}
         />
       ) : filters.view === "calendar" ? (
         <ContentCalendarView items={filteredItems} />
       ) : (
-        <ContentBoard items={filteredItems} canManage={canManageContent} />
+        <ContentBoard
+          items={filteredItems}
+          instagramMetricsByMediaId={instagramMetricsByMediaId}
+          instagramInsightsGranted={instagramConnection.insightsGranted}
+          canManage={canManageContent}
+        />
       )}
     </div>
   );

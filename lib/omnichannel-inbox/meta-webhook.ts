@@ -78,10 +78,96 @@ export type MetaWebhookIngestResult = {
 
 export type MetaWebhookSignatureResult =
   | { ok: true; skipped: true }
-  | { ok: true; skipped: false }
-  | { ok: false; reason: "missing_signature" | "invalid_signature" };
+  | { ok: true; skipped: false; algorithm: MetaWebhookSignatureAlgorithm }
+  | {
+      ok: false;
+      reason: "missing_signature" | "invalid_signature";
+      algorithm?: MetaWebhookSignatureAlgorithm;
+      debug?: MetaWebhookSignatureDebug;
+    };
 
-const META_WEBHOOK_BODY_PREVIEW_LENGTH = 200;
+export type MetaWebhookSignatureAlgorithm = "sha256" | "sha1";
+
+export type MetaWebhookSignatureDebug = {
+  algorithm: MetaWebhookSignatureAlgorithm;
+  expectedPrefix: string;
+  receivedPrefix: string;
+  bodyLength: number;
+  expectedDigestLength: number;
+  receivedDigestLength: number;
+};
+
+const SIGNATURE_PREFIX_LENGTH = 12;
+
+function signatureDigestPrefix(digest: string) {
+  return digest.slice(0, SIGNATURE_PREFIX_LENGTH);
+}
+
+function safeEqualHexDigest(expectedHex: string, receivedHex: string): boolean {
+  const expected = expectedHex.toLowerCase();
+  const received = receivedHex.toLowerCase().trim();
+
+  if (expected.length !== received.length) {
+    return false;
+  }
+
+  if (!/^[0-9a-f]+$/.test(received) || !/^[0-9a-f]+$/.test(expected)) {
+    return false;
+  }
+
+  const expectedBuffer = Buffer.from(expected, "hex");
+  const receivedBuffer = Buffer.from(received, "hex");
+
+  if (expectedBuffer.length !== receivedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, receivedBuffer);
+}
+
+function computeHmacHexDigest(
+  rawBody: string,
+  appSecret: string,
+  algorithm: MetaWebhookSignatureAlgorithm,
+) {
+  return createHmac(algorithm, appSecret).update(rawBody, "utf8").digest("hex");
+}
+
+function verifySignatureHeader(
+  rawBody: string,
+  appSecret: string,
+  algorithm: MetaWebhookSignatureAlgorithm,
+  headerPrefix: "sha256=" | "sha1=",
+  signatureHeader: string,
+): { valid: boolean; debug: MetaWebhookSignatureDebug } {
+  const received = signatureHeader.slice(headerPrefix.length).trim();
+  const expected = computeHmacHexDigest(rawBody, appSecret, algorithm);
+
+  return {
+    valid: safeEqualHexDigest(expected, received),
+    debug: {
+      algorithm,
+      expectedPrefix: signatureDigestPrefix(expected),
+      receivedPrefix: signatureDigestPrefix(received),
+      bodyLength: rawBody.length,
+      expectedDigestLength: expected.length,
+      receivedDigestLength: received.length,
+    },
+  };
+}
+
+export function getMetaWebhookSignatureDebugLog(
+  debug: MetaWebhookSignatureDebug,
+) {
+  return {
+    algorithm: debug.algorithm,
+    expectedPrefix: debug.expectedPrefix,
+    receivedPrefix: debug.receivedPrefix,
+    bodyLength: debug.bodyLength,
+    expectedDigestLength: debug.expectedDigestLength,
+    receivedDigestLength: debug.receivedDigestLength,
+  };
+}
 
 export function metaWebhookLog(
   message: string,
@@ -124,7 +210,6 @@ export function getMetaWebhookPostLogContext(
     contentType: request.headers.get("content-type"),
     hasSignature256: Boolean(request.headers.get("x-hub-signature-256")),
     hasSignature: Boolean(request.headers.get("x-hub-signature")),
-    bodyPreview: rawBody.slice(0, META_WEBHOOK_BODY_PREVIEW_LENGTH),
     bodyLength: rawBody.length,
     hasAppSecret: Boolean(process.env.META_APP_SECRET?.trim()),
   };
@@ -174,33 +259,63 @@ export function verifyMetaWebhookSubscription(params: {
 
 export function verifyMetaWebhookSignature(
   rawBody: string,
-  signatureHeader: string | null,
+  headers: {
+    signature256: string | null;
+    signature: string | null;
+  },
   appSecret: string | undefined,
 ): MetaWebhookSignatureResult {
   if (!appSecret?.trim()) {
     return { ok: true, skipped: true };
   }
 
-  if (!signatureHeader?.startsWith("sha256=")) {
-    return { ok: false, reason: "missing_signature" };
-  }
+  const secret = appSecret.trim();
+  const signature256 = headers.signature256?.trim() ?? "";
+  const signature = headers.signature?.trim() ?? "";
 
-  const expected = createHmac("sha256", appSecret.trim())
-    .update(rawBody, "utf8")
-    .digest("hex");
-  const received = signatureHeader.slice("sha256=".length);
-
-  try {
-    const valid = timingSafeEqual(
-      Buffer.from(expected, "hex"),
-      Buffer.from(received, "hex"),
+  if (signature256.startsWith("sha256=")) {
+    const result = verifySignatureHeader(
+      rawBody,
+      secret,
+      "sha256",
+      "sha256=",
+      signature256,
     );
-    return valid
-      ? { ok: true, skipped: false }
-      : { ok: false, reason: "invalid_signature" };
-  } catch {
-    return { ok: false, reason: "invalid_signature" };
+
+    if (result.valid) {
+      return { ok: true, skipped: false, algorithm: "sha256" };
+    }
+
+    return {
+      ok: false,
+      reason: "invalid_signature",
+      algorithm: "sha256",
+      debug: result.debug,
+    };
   }
+
+  if (signature.startsWith("sha1=")) {
+    const result = verifySignatureHeader(
+      rawBody,
+      secret,
+      "sha1",
+      "sha1=",
+      signature,
+    );
+
+    if (result.valid) {
+      return { ok: true, skipped: false, algorithm: "sha1" };
+    }
+
+    return {
+      ok: false,
+      reason: "invalid_signature",
+      algorithm: "sha1",
+      debug: result.debug,
+    };
+  }
+
+  return { ok: false, reason: "missing_signature" };
 }
 
 function isMessagingEvent(value: unknown): value is MetaMessagingEvent {

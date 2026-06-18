@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ingestMetaIncomingMessages } from "@/lib/omnichannel-inbox/meta-ingestion";
 import {
   getMetaWebhookPostLogContext,
+  getMetaWebhookSignatureDebugLog,
   logMetaWebhookReject,
   metaWebhookDevLog,
   metaWebhookLog,
@@ -64,16 +65,21 @@ export async function POST(request: NextRequest) {
 
   metaWebhookLog("POST received", getMetaWebhookPostLogContext(request, rawBody));
 
-  const signatureHeader = request.headers.get("x-hub-signature-256");
   const signatureResult = verifyMetaWebhookSignature(
     rawBody,
-    signatureHeader,
+    {
+      signature256: request.headers.get("x-hub-signature-256"),
+      signature: request.headers.get("x-hub-signature"),
+    },
     process.env.META_APP_SECRET,
   );
 
   if (!signatureResult.ok) {
     logMetaWebhookReject(signatureResult.reason, request, rawBody, {
-      signatureHeaderPresent: Boolean(signatureHeader),
+      algorithm: signatureResult.algorithm ?? null,
+      ...(signatureResult.debug
+        ? getMetaWebhookSignatureDebugLog(signatureResult.debug)
+        : {}),
     });
     return new NextResponse("Forbidden", { status: 403 });
   }
@@ -81,6 +87,12 @@ export async function POST(request: NextRequest) {
   if (signatureResult.skipped) {
     metaWebhookLog("signature validation skipped", {
       reason: "missing_app_secret",
+      bodyLength: rawBody.length,
+    });
+  } else {
+    metaWebhookLog("signature validated", {
+      algorithm: signatureResult.algorithm,
+      bodyLength: rawBody.length,
     });
   }
 

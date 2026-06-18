@@ -76,6 +76,25 @@ export type MetaWebhookIngestResult = {
   unresolved: number;
 };
 
+export type MetaWebhookSignatureResult =
+  | { ok: true; skipped: true }
+  | { ok: true; skipped: false }
+  | { ok: false; reason: "missing_signature" | "invalid_signature" };
+
+const META_WEBHOOK_BODY_PREVIEW_LENGTH = 200;
+
+export function metaWebhookLog(
+  message: string,
+  details?: Record<string, unknown>,
+) {
+  if (details) {
+    console.log(`[META WEBHOOK] ${message}`, details);
+    return;
+  }
+
+  console.log(`[META WEBHOOK] ${message}`);
+}
+
 function devLog(message: string, details?: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") {
     return;
@@ -93,6 +112,34 @@ export function metaWebhookDevLog(
   details?: Record<string, unknown>,
 ) {
   devLog(message, details);
+}
+
+export function getMetaWebhookPostLogContext(
+  request: Request,
+  rawBody: string,
+) {
+  return {
+    method: request.method,
+    userAgent: request.headers.get("user-agent"),
+    contentType: request.headers.get("content-type"),
+    hasSignature256: Boolean(request.headers.get("x-hub-signature-256")),
+    hasSignature: Boolean(request.headers.get("x-hub-signature")),
+    bodyPreview: rawBody.slice(0, META_WEBHOOK_BODY_PREVIEW_LENGTH),
+    bodyLength: rawBody.length,
+    hasAppSecret: Boolean(process.env.META_APP_SECRET?.trim()),
+  };
+}
+
+export function logMetaWebhookReject(
+  reason: string,
+  request: Request,
+  rawBody: string,
+  extra?: Record<string, unknown>,
+) {
+  metaWebhookLog(`reject reason: ${reason}`, {
+    ...getMetaWebhookPostLogContext(request, rawBody),
+    ...extra,
+  });
 }
 
 export function getMetaWebhookVerifyToken() {
@@ -129,13 +176,13 @@ export function verifyMetaWebhookSignature(
   rawBody: string,
   signatureHeader: string | null,
   appSecret: string | undefined,
-) {
+): MetaWebhookSignatureResult {
   if (!appSecret?.trim()) {
-    return { ok: true as const, skipped: true as const };
+    return { ok: true, skipped: true };
   }
 
   if (!signatureHeader?.startsWith("sha256=")) {
-    return { ok: false as const, reason: "missing_signature" };
+    return { ok: false, reason: "missing_signature" };
   }
 
   const expected = createHmac("sha256", appSecret.trim())
@@ -149,10 +196,10 @@ export function verifyMetaWebhookSignature(
       Buffer.from(received, "hex"),
     );
     return valid
-      ? { ok: true as const, skipped: false as const }
-      : { ok: false as const, reason: "invalid_signature" };
+      ? { ok: true, skipped: false }
+      : { ok: false, reason: "invalid_signature" };
   } catch {
-    return { ok: false as const, reason: "invalid_signature" };
+    return { ok: false, reason: "invalid_signature" };
   }
 }
 

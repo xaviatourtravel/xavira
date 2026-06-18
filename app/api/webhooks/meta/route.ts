@@ -2,7 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { ingestMetaIncomingMessages } from "@/lib/omnichannel-inbox/meta-ingestion";
 import {
+  getMetaWebhookPostLogContext,
+  logMetaWebhookReject,
   metaWebhookDevLog,
+  metaWebhookLog,
   parseMetaIncomingMessages,
   parseMetaWebhookPayload,
   verifyMetaWebhookSignature,
@@ -40,10 +43,15 @@ export async function GET(request: NextRequest) {
   });
 
   if (!verification.ok) {
+    metaWebhookLog(`reject reason: ${verification.reason}`, {
+      method: request.method,
+      userAgent: request.headers.get("user-agent"),
+    });
     metaWebhookDevLog("verification failed", { reason: verification.reason });
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  metaWebhookLog("accepted", { method: request.method, type: "subscription_verify" });
   metaWebhookDevLog("verification succeeded");
   return new NextResponse(verification.challenge, {
     status: 200,
@@ -53,8 +61,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const signatureHeader = request.headers.get("x-hub-signature-256");
 
+  metaWebhookLog("POST received", getMetaWebhookPostLogContext(request, rawBody));
+
+  const signatureHeader = request.headers.get("x-hub-signature-256");
   const signatureResult = verifyMetaWebhookSignature(
     rawBody,
     signatureHeader,
@@ -62,28 +72,58 @@ export async function POST(request: NextRequest) {
   );
 
   if (!signatureResult.ok) {
-    metaWebhookDevLog("signature validation failed", {
-      reason: signatureResult.reason,
+    logMetaWebhookReject(signatureResult.reason, request, rawBody, {
+      signatureHeaderPresent: Boolean(signatureHeader),
     });
     return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  if (signatureResult.skipped) {
+    metaWebhookLog("signature validation skipped", {
+      reason: "missing_app_secret",
+    });
   }
 
   let payload;
   try {
     payload = parseMetaWebhookPayload(rawBody);
   } catch (error) {
-    metaWebhookDevLog("invalid payload", {
+    logMetaWebhookReject("invalid_payload", request, rawBody, {
       error: error instanceof Error ? error.message : "parse_error",
     });
     return NextResponse.json({ success: false, error: "invalid_payload" }, { status: 400 });
   }
 
   const incomingMessages = parseMetaIncomingMessages(payload);
+  const entryCount = Array.isArray(payload.entry) ? payload.entry.length : 0;
+  const objectType = typeof payload.object === "string" ? payload.object : null;
+
+  if (objectType !== "page" && objectType !== "instagram") {
+    metaWebhookLog("accepted", {
+      object: objectType,
+      entryCount,
+      parsedMessageCount: 0,
+      note: "unsupported_object",
+    });
+    return NextResponse.json({
+      success: true,
+      processed: 0,
+      skipped: 0,
+      duplicates: 0,
+      unresolved: 0,
+    });
+  }
 
   try {
     const supabase = createAdminClient();
     const result = await ingestMetaIncomingMessages(supabase, incomingMessages);
 
+    metaWebhookLog("accepted", {
+      object: objectType,
+      entryCount,
+      parsedMessageCount: incomingMessages.length,
+      ...result,
+    });
     metaWebhookDevLog("ingestion complete", result);
 
     return NextResponse.json({
@@ -91,7 +131,13 @@ export async function POST(request: NextRequest) {
       ...result,
     });
   } catch (error) {
-    console.error("[meta-webhook] ingestion failed", error);
+    metaWebhookLog("ingestion failed", {
+      object: objectType,
+      entryCount,
+      parsedMessageCount: incomingMessages.length,
+      error: error instanceof Error ? error.message : "ingestion_failed",
+    });
+    console.error("[META WEBHOOK] ingestion failed", error);
     return NextResponse.json(
       {
         success: false,

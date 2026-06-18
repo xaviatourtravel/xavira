@@ -2,7 +2,13 @@ const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password
 
 const GUEST_ONLY_ROUTES = ["/login", "/register", "/forgot-password"] as const;
 
-const PUBLIC_ROUTES = ["/", ...AUTH_ROUTES] as const;
+const PUBLIC_ROUTES = [
+  "/",
+  "/privacy-policy",
+  "/data-deletion",
+  "/terms",
+  ...AUTH_ROUTES,
+] as const;
 
 const PROTECTED_PREFIXES = [
   "/dashboard",

@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       maxAge: 10 * 60,
     });
 
-    return NextResponse.redirect(buildMetaOAuthUrl(state));
+    return NextResponse.redirect(buildMetaOAuthUrl(state, { request }));
   } catch (error) {
     console.error("Instagram OAuth connect failed", error);
     const message = getConnectErrorMessage(error);

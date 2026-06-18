@@ -6,6 +6,7 @@ import {
 import { maskSensitiveGraphValues } from "@/lib/instagram/graph-debug";
 import {
   getInstagramAccessToken,
+  resolveOAuthSiteOrigin,
   type MetaGrantedPermission,
 } from "@/lib/instagram/oauth";
 import type { createClient } from "@/utils/supabase/server";
@@ -412,6 +413,5 @@ export async function loadInstagramWebhookIntegrationContext(
 }
 
 export function getMetaWebhookCallbackUrl() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
-  return siteUrl ? `${siteUrl}/api/webhooks/meta` : "/api/webhooks/meta";
+  return `${resolveOAuthSiteOrigin()}/api/webhooks/meta`;
 }

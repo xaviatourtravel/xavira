@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
   if (process.env.NODE_ENV === "development") {
     console.log("[Instagram OAuth] Callback route hit:", request.nextUrl.pathname);
-    console.log("[Instagram OAuth] Redirect URI expected:", getMetaOAuthRedirectUri());
+    console.log("[Instagram OAuth] Redirect URI expected:", getMetaOAuthRedirectUri({ request }));
     console.log("[Instagram OAuth] Code received:", Boolean(code));
     console.log("[Instagram OAuth] OAuth error param:", errorParam ?? "none");
     console.log("[Instagram OAuth] State validation:", stateIsValid ? "valid" : "invalid");
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const shortLivedToken = await exchangeCodeForUserAccessToken(code);
+    const shortLivedToken = await exchangeCodeForUserAccessToken(code, { request });
     const userAccessToken = await exchangeForLongLivedUserToken(shortLivedToken);
 
     if (process.env.NODE_ENV === "development") {

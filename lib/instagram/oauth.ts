@@ -266,7 +266,9 @@ export function parseSignedCookieValue<T>(value: string | undefined): T | null {
   return payload;
 }
 
-export function getMissingMetaOAuthEnvVars(): string[] {
+export function getMissingMetaOAuthEnvVars(
+  options: OAuthSiteOriginOptions = {},
+): string[] {
   const missing: string[] = [];
   if (!process.env.META_APP_ID?.trim()) {
     missing.push("META_APP_ID");
@@ -274,8 +276,12 @@ export function getMissingMetaOAuthEnvVars(): string[] {
   if (!process.env.META_APP_SECRET?.trim()) {
     missing.push("META_APP_SECRET");
   }
-  if (!process.env.NEXT_PUBLIC_SITE_URL?.trim()) {
-    missing.push("NEXT_PUBLIC_SITE_URL");
+  if (!canResolveOAuthSiteOrigin(options)) {
+    missing.push(
+      process.env.NODE_ENV === "production"
+        ? "SITE_URL"
+        : "NEXT_PUBLIC_SITE_URL",
+    );
   }
   return missing;
 }
@@ -283,8 +289,24 @@ export function getMissingMetaOAuthEnvVars(): string[] {
 export const INSTAGRAM_OAUTH_CALLBACK_PATH =
   "/api/integrations/instagram/callback";
 
-export function normalizeSiteOrigin(siteUrl?: string): string {
-  const raw = (siteUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+const LOCALHOST_ORIGIN = "http://localhost:3000";
+
+export type OAuthSiteOriginOptions = {
+  request?: Request | URL | string;
+  siteUrl?: string;
+};
+
+function isLocalhostOrigin(origin: string) {
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  } catch {
+    return origin.includes("localhost") || origin.includes("127.0.0.1");
+  }
+}
+
+export function normalizeSiteOrigin(siteUrl: string): string {
+  const raw = siteUrl.trim();
   if (!raw) {
     return "";
   }
@@ -300,8 +322,105 @@ export function normalizeSiteOrigin(siteUrl?: string): string {
   }
 }
 
-export function getMetaOAuthRedirectUri(siteUrl?: string): string {
-  const origin = normalizeSiteOrigin(siteUrl);
+function resolveOriginFromRequest(request: Request | URL | string): string | null {
+  try {
+    const url =
+      typeof request === "string"
+        ? new URL(request)
+        : request instanceof URL
+          ? request
+          : new URL(request.url);
+    const origin = url.origin;
+    if (!origin || origin === "null") {
+      return null;
+    }
+
+    if (process.env.NODE_ENV === "production" && isLocalhostOrigin(origin)) {
+      return null;
+    }
+
+    return origin;
+  } catch {
+    return null;
+  }
+}
+
+function resolveOriginFromEnv(): string | null {
+  const serverSiteUrl = process.env.SITE_URL?.trim();
+  if (serverSiteUrl) {
+    const origin = normalizeSiteOrigin(serverSiteUrl);
+    if (origin && !(process.env.NODE_ENV === "production" && isLocalhostOrigin(origin))) {
+      return origin;
+    }
+  }
+
+  const nextPublicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (nextPublicSiteUrl) {
+    const origin = normalizeSiteOrigin(nextPublicSiteUrl);
+    if (origin && !(process.env.NODE_ENV === "production" && isLocalhostOrigin(origin))) {
+      return origin;
+    }
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    const host = vercelUrl.replace(/^https?:\/\//, "");
+    return `https://${host}`;
+  }
+
+  return null;
+}
+
+export function canResolveOAuthSiteOrigin(
+  options: OAuthSiteOriginOptions = {},
+): boolean {
+  if (options.siteUrl?.trim()) {
+    return true;
+  }
+
+  if (options.request && resolveOriginFromRequest(options.request)) {
+    return true;
+  }
+
+  if (resolveOriginFromEnv()) {
+    return true;
+  }
+
+  return process.env.NODE_ENV !== "production";
+}
+
+export function resolveOAuthSiteOrigin(
+  options: OAuthSiteOriginOptions = {},
+): string {
+  if (options.siteUrl?.trim()) {
+    return normalizeSiteOrigin(options.siteUrl);
+  }
+
+  if (options.request) {
+    const requestOrigin = resolveOriginFromRequest(options.request);
+    if (requestOrigin) {
+      return requestOrigin;
+    }
+  }
+
+  const envOrigin = resolveOriginFromEnv();
+  if (envOrigin) {
+    return envOrigin;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return LOCALHOST_ORIGIN;
+  }
+
+  throw new Error(
+    "Production site URL is not configured. Set SITE_URL=https://desklabs.vercel.app on Vercel (runtime env) or redeploy with NEXT_PUBLIC_SITE_URL set before build.",
+  );
+}
+
+export function getMetaOAuthRedirectUri(
+  options: OAuthSiteOriginOptions = {},
+): string {
+  const origin = resolveOAuthSiteOrigin(options);
   return `${origin}${INSTAGRAM_OAUTH_CALLBACK_PATH}`;
 }
 
@@ -320,20 +439,21 @@ export function formatMetaOAuthConfigError(): string {
   return "Konfigurasi Meta OAuth belum lengkap.";
 }
 
-export function getMetaOAuthConfig(): MetaOAuthConfig {
-  const missing = getMissingMetaOAuthEnvVars();
+export function getMetaOAuthConfig(
+  options: OAuthSiteOriginOptions = {},
+): MetaOAuthConfig {
+  const missing = getMissingMetaOAuthEnvVars(options);
   if (missing.length > 0) {
     throw new Error(formatMetaOAuthConfigError());
   }
 
   const appId = process.env.META_APP_ID!.trim();
   const appSecret = process.env.META_APP_SECRET!.trim();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!.trim();
 
   return {
     appId,
     appSecret,
-    redirectUri: getMetaOAuthRedirectUri(siteUrl),
+    redirectUri: getMetaOAuthRedirectUri(options),
   };
 }
 
@@ -349,8 +469,11 @@ export function formatNoFacebookPagesError() {
   return "Tidak ada Facebook Page yang dapat diakses. Pastikan akun Meta Anda mengelola minimal satu Facebook Page.";
 }
 
-export function buildMetaOAuthUrl(state: string) {
-  const { appId, redirectUri } = getMetaOAuthConfig();
+export function buildMetaOAuthUrl(
+  state: string,
+  options: OAuthSiteOriginOptions = {},
+) {
+  const { appId, redirectUri } = getMetaOAuthConfig(options);
   const scopes = META_OAUTH_SCOPES.join(",");
 
   const url = new URL(`https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`);
@@ -360,9 +483,10 @@ export function buildMetaOAuthUrl(state: string) {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", scopes);
 
+  console.log("[Instagram OAuth] Redirect URI resolved:", redirectUri);
+
   if (process.env.NODE_ENV === "development") {
     console.log("[Instagram OAuth] Requested scopes:", scopes);
-    console.log("[Instagram OAuth] Redirect URI:", redirectUri);
     console.log("[Instagram OAuth] Generated OAuth URL:", url.toString());
   }
 
@@ -418,8 +542,11 @@ async function graphOAuthGet<T>(url: string): Promise<T> {
   return result.data as T;
 }
 
-export async function exchangeCodeForUserAccessToken(code: string) {
-  const { appId, appSecret, redirectUri } = getMetaOAuthConfig();
+export async function exchangeCodeForUserAccessToken(
+  code: string,
+  options: OAuthSiteOriginOptions = {},
+) {
+  const { appId, appSecret, redirectUri } = getMetaOAuthConfig(options);
   const url = new URL(`${GRAPH_API_BASE}/oauth/access_token`);
   url.searchParams.set("client_id", appId);
   url.searchParams.set("client_secret", appSecret);

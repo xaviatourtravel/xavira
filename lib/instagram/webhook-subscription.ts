@@ -9,11 +9,7 @@ import type { createClient } from "@/utils/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-export const PAGE_WEBHOOK_SUBSCRIBED_FIELDS = [
-  "messages",
-  "messaging_postbacks",
-  "messaging_handover",
-] as const;
+export const PAGE_WEBHOOK_SUBSCRIBED_FIELDS = ["messages"] as const;
 
 export type MetaGraphErrorDetails = {
   message: string;

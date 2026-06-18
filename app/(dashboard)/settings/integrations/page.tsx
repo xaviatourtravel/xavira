@@ -122,12 +122,23 @@ export default async function IntegrationsSettingsPage({
         </div>
       )}
 
-      {process.env.NODE_ENV === "development" && canManage ? (
-        <p className="text-sm">
-          <Link href="/settings/integrations/instagram/debug">
-            Instagram Graph API Debug
+      {canManage ? (
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link
+            href="/settings/integrations/instagram/webhook"
+            className="font-medium text-primary hover:underline"
+          >
+            Instagram Webhook Subscription
           </Link>
-        </p>
+          {process.env.NODE_ENV === "development" ? (
+            <Link
+              href="/settings/integrations/instagram/debug"
+              className="text-muted-foreground hover:underline"
+            >
+              Instagram Graph API Debug
+            </Link>
+          ) : null}
+        </div>
       ) : null}
 
       <IntegrationsGrid

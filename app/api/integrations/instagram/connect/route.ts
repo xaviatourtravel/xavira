@@ -7,7 +7,9 @@ import {
   createOAuthStatePayload,
   formatMetaOAuthConfigError,
   getMissingMetaOAuthEnvVars,
+  getOAuthRedirectDiagnostics,
   INSTAGRAM_OAUTH_STATE_COOKIE,
+  logOAuthRedirect,
 } from "@/lib/instagram/oauth";
 
 function getSafeReturnTo(value: string | null) {
@@ -36,6 +38,11 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    logOAuthRedirect(
+      "redirect to login",
+      getOAuthRedirectDiagnostics({ request }),
+      { targetPath: "/login" },
+    );
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -46,12 +53,16 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
-    return NextResponse.redirect(
-      new URL(
-        "/settings/integrations?error=Hanya%20admin%20atau%20owner%20yang%20dapat%20menghubungkan%20Instagram.",
-        request.url,
-      ),
+    const target = new URL(
+      "/settings/integrations?error=Hanya%20admin%20atau%20owner%20yang%20dapat%20menghubungkan%20Instagram.",
+      request.url,
     );
+    logOAuthRedirect(
+      "redirect unauthorized connect attempt",
+      getOAuthRedirectDiagnostics({ request }),
+      { target: target.toString() },
+    );
+    return NextResponse.redirect(target);
   }
 
   try {
@@ -73,12 +84,26 @@ export async function GET(request: NextRequest) {
       maxAge: 10 * 60,
     });
 
-    return NextResponse.redirect(buildMetaOAuthUrl(state, { request }));
+    const oauthUrl = buildMetaOAuthUrl(state, { request });
+    logOAuthRedirect(
+      "connect route issuing Meta OAuth redirect",
+      getOAuthRedirectDiagnostics({ request }),
+      { oauthUrl, returnTo },
+    );
+    return NextResponse.redirect(oauthUrl);
   } catch (error) {
     console.error("Instagram OAuth connect failed", error);
     const message = getConnectErrorMessage(error);
     const url = new URL("/settings/integrations", request.url);
     url.searchParams.set("error", message);
+    logOAuthRedirect(
+      "connect route failed",
+      getOAuthRedirectDiagnostics({ request }),
+      {
+        error: error instanceof Error ? error.message : "connect_failed",
+        target: url.toString(),
+      },
+    );
     return NextResponse.redirect(url);
   }
 }

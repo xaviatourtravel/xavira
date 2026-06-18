@@ -11,11 +11,12 @@ import {
   fetchFacebookPages,
   fetchGrantedMetaPermissions,
   formatNoFacebookPagesError,
-  getMetaOAuthRedirectUri,
+  getOAuthRedirectDiagnostics,
   INSTAGRAM_OAUTH_DEBUG_COOKIE,
   INSTAGRAM_OAUTH_PENDING_COOKIE,
   INSTAGRAM_OAUTH_STATE_COOKIE,
   logOAuthPageDiscovery,
+  logOAuthRedirect,
   META_OAUTH_SCOPES,
   parseSignedCookieValue,
   type InstagramOAuthDebugPayload,
@@ -26,6 +27,11 @@ import { createClient } from "@/utils/supabase/server";
 function redirectWithError(request: Request, message: string, returnTo: string) {
   const url = new URL(returnTo, request.url);
   url.searchParams.set("error", message);
+  logOAuthRedirect(
+    "callback redirect with error",
+    getOAuthRedirectDiagnostics({ request }),
+    { target: url.toString(), error: message },
+  );
   return NextResponse.redirect(url);
 }
 
@@ -48,6 +54,11 @@ function redirectToPageSelector(
     request.url,
   );
   selectUrl.searchParams.set("returnTo", returnTo);
+  logOAuthRedirect(
+    "callback redirect to page selector",
+    getOAuthRedirectDiagnostics({ request }),
+    { target: selectUrl.toString(), returnTo },
+  );
   return NextResponse.redirect(selectUrl);
 }
 
@@ -66,13 +77,15 @@ export async function GET(request: NextRequest) {
     statePayload && queryState && statePayload.state === queryState,
   );
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("[Instagram OAuth] Callback route hit:", request.nextUrl.pathname);
-    console.log("[Instagram OAuth] Redirect URI expected:", getMetaOAuthRedirectUri({ request }));
-    console.log("[Instagram OAuth] Code received:", Boolean(code));
-    console.log("[Instagram OAuth] OAuth error param:", errorParam ?? "none");
-    console.log("[Instagram OAuth] State validation:", stateIsValid ? "valid" : "invalid");
-  }
+  logOAuthRedirect(
+    "callback route hit",
+    getOAuthRedirectDiagnostics({ request }),
+    {
+      codeReceived: Boolean(code),
+      oauthErrorParam: errorParam ?? null,
+      stateValid: stateIsValid,
+    },
+  );
 
   cookieStore.delete(INSTAGRAM_OAUTH_STATE_COOKIE);
 

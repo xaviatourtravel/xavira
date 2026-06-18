@@ -296,6 +296,34 @@ export type OAuthSiteOriginOptions = {
   siteUrl?: string;
 };
 
+export type OAuthSiteOriginSource =
+  | "explicit_option"
+  | "site_url_env"
+  | "request_forwarded_host"
+  | "request_url"
+  | "next_public_site_url"
+  | "vercel_url"
+  | "localhost_dev";
+
+export type OAuthRedirectDiagnostics = {
+  redirectUri: string;
+  siteOrigin: string;
+  siteUrlSource: OAuthSiteOriginSource;
+  requestUrl: string | null;
+  requestOrigin: string | null;
+  forwardedHost: string | null;
+  forwardedProto: string | null;
+  hostHeader: string | null;
+  environment: {
+    nodeEnv: string | undefined;
+    siteUrlOrigin: string | null;
+    nextPublicSiteUrlOrigin: string | null;
+    vercelUrl: string | null;
+    metaAppIdPrefix: string | null;
+  };
+  oauthUrl?: string;
+};
+
 function isLocalhostOrigin(origin: string) {
   try {
     const { hostname } = new URL(origin);
@@ -322,7 +350,95 @@ export function normalizeSiteOrigin(siteUrl: string): string {
   }
 }
 
-function resolveOriginFromRequest(request: Request | URL | string): string | null {
+function getRequestHeaderSnapshot(request?: Request) {
+  if (!request) {
+    return {
+      forwardedHost: null,
+      forwardedProto: null,
+      hostHeader: null,
+      requestUrl: null,
+      requestOrigin: null,
+    };
+  }
+
+  let requestUrl: string | null = null;
+  let requestOrigin: string | null = null;
+
+  try {
+    requestUrl = request.url;
+    requestOrigin = new URL(request.url).origin;
+  } catch {
+    requestUrl = null;
+    requestOrigin = null;
+  }
+
+  return {
+    forwardedHost: request.headers.get("x-forwarded-host"),
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+    hostHeader: request.headers.get("host"),
+    requestUrl,
+    requestOrigin,
+  };
+}
+
+function resolveEnvOriginSnapshot() {
+  return {
+    nodeEnv: process.env.NODE_ENV,
+    siteUrlOrigin: process.env.SITE_URL?.trim()
+      ? normalizeSiteOrigin(process.env.SITE_URL)
+      : null,
+    nextPublicSiteUrlOrigin: process.env.NEXT_PUBLIC_SITE_URL?.trim()
+      ? normalizeSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL)
+      : null,
+    vercelUrl: process.env.VERCEL_URL?.trim() ?? null,
+    metaAppIdPrefix: process.env.META_APP_ID?.trim().slice(0, 6) ?? null,
+  };
+}
+
+export function logOAuthRedirect(
+  step: string,
+  diagnostics: OAuthRedirectDiagnostics,
+  extra?: Record<string, unknown>,
+) {
+  console.log(`[Instagram OAuth] ${step}`, {
+    redirectUri: diagnostics.redirectUri,
+    siteOrigin: diagnostics.siteOrigin,
+    siteUrlSource: diagnostics.siteUrlSource,
+    requestUrl: diagnostics.requestUrl,
+    requestOrigin: diagnostics.requestOrigin,
+    forwardedHost: diagnostics.forwardedHost,
+    forwardedProto: diagnostics.forwardedProto,
+    hostHeader: diagnostics.hostHeader,
+    environment: diagnostics.environment,
+    oauthUrl: diagnostics.oauthUrl,
+    ...extra,
+  });
+}
+
+function resolveOriginFromForwardedHeaders(request: Request): string | null {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const host = (forwardedHost ?? request.headers.get("host"))
+    ?.split(",")[0]
+    ?.trim();
+
+  if (!host) {
+    return null;
+  }
+
+  const proto = (forwardedProto ?? "https").split(",")[0].trim();
+  const origin = `${proto}://${host}`;
+
+  if (process.env.NODE_ENV === "production" && isLocalhostOrigin(origin)) {
+    return null;
+  }
+
+  return origin;
+}
+
+function resolveOriginFromRequestUrl(
+  request: Request | URL | string,
+): string | null {
   try {
     const url =
       typeof request === "string"
@@ -345,12 +461,26 @@ function resolveOriginFromRequest(request: Request | URL | string): string | nul
   }
 }
 
-function resolveOriginFromEnv(): string | null {
+function resolveOriginFromRequest(request: Request | URL | string): string | null {
+  if (typeof request !== "string" && !(request instanceof URL) && "headers" in request) {
+    const forwardedOrigin = resolveOriginFromForwardedHeaders(request);
+    if (forwardedOrigin) {
+      return forwardedOrigin;
+    }
+  }
+
+  return resolveOriginFromRequestUrl(request);
+}
+
+function resolveOriginFromEnv(): {
+  origin: string;
+  source: OAuthSiteOriginSource;
+} | null {
   const serverSiteUrl = process.env.SITE_URL?.trim();
   if (serverSiteUrl) {
     const origin = normalizeSiteOrigin(serverSiteUrl);
     if (origin && !(process.env.NODE_ENV === "production" && isLocalhostOrigin(origin))) {
-      return origin;
+      return { origin, source: "site_url_env" };
     }
   }
 
@@ -358,48 +488,54 @@ function resolveOriginFromEnv(): string | null {
   if (nextPublicSiteUrl) {
     const origin = normalizeSiteOrigin(nextPublicSiteUrl);
     if (origin && !(process.env.NODE_ENV === "production" && isLocalhostOrigin(origin))) {
-      return origin;
+      return { origin, source: "next_public_site_url" };
     }
   }
 
   const vercelUrl = process.env.VERCEL_URL?.trim();
   if (vercelUrl) {
     const host = vercelUrl.replace(/^https?:\/\//, "");
-    return `https://${host}`;
+    return { origin: `https://${host}`, source: "vercel_url" };
   }
 
   return null;
 }
 
-export function canResolveOAuthSiteOrigin(
+export function resolveOAuthSiteOriginWithSource(
   options: OAuthSiteOriginOptions = {},
-): boolean {
+): { origin: string; source: OAuthSiteOriginSource } {
   if (options.siteUrl?.trim()) {
-    return true;
+    return {
+      origin: normalizeSiteOrigin(options.siteUrl),
+      source: "explicit_option",
+    };
   }
 
-  if (options.request && resolveOriginFromRequest(options.request)) {
-    return true;
-  }
-
-  if (resolveOriginFromEnv()) {
-    return true;
-  }
-
-  return process.env.NODE_ENV !== "production";
-}
-
-export function resolveOAuthSiteOrigin(
-  options: OAuthSiteOriginOptions = {},
-): string {
-  if (options.siteUrl?.trim()) {
-    return normalizeSiteOrigin(options.siteUrl);
+  if (process.env.NODE_ENV === "production") {
+    const canonicalSiteUrl = process.env.SITE_URL?.trim();
+    if (canonicalSiteUrl) {
+      const origin = normalizeSiteOrigin(canonicalSiteUrl);
+      if (origin && !isLocalhostOrigin(origin)) {
+        return { origin, source: "site_url_env" };
+      }
+    }
   }
 
   if (options.request) {
-    const requestOrigin = resolveOriginFromRequest(options.request);
+    if (
+      typeof options.request !== "string" &&
+      !(options.request instanceof URL) &&
+      "headers" in options.request
+    ) {
+      const forwardedOrigin = resolveOriginFromForwardedHeaders(options.request);
+      if (forwardedOrigin) {
+        return { origin: forwardedOrigin, source: "request_forwarded_host" };
+      }
+    }
+
+    const requestOrigin = resolveOriginFromRequestUrl(options.request);
     if (requestOrigin) {
-      return requestOrigin;
+      return { origin: requestOrigin, source: "request_url" };
     }
   }
 
@@ -409,7 +545,7 @@ export function resolveOAuthSiteOrigin(
   }
 
   if (process.env.NODE_ENV !== "production") {
-    return LOCALHOST_ORIGIN;
+    return { origin: LOCALHOST_ORIGIN, source: "localhost_dev" };
   }
 
   throw new Error(
@@ -417,11 +553,58 @@ export function resolveOAuthSiteOrigin(
   );
 }
 
+export function getOAuthRedirectDiagnostics(
+  options: OAuthSiteOriginOptions = {},
+): OAuthRedirectDiagnostics {
+  const { origin, source } = resolveOAuthSiteOriginWithSource(options);
+  const requestSnapshot =
+    options.request &&
+    typeof options.request !== "string" &&
+    !(options.request instanceof URL)
+      ? getRequestHeaderSnapshot(options.request)
+      : options.request
+        ? {
+            forwardedHost: null,
+            forwardedProto: null,
+            hostHeader: null,
+            requestUrl:
+              typeof options.request === "string"
+                ? options.request
+                : options.request.toString(),
+            requestOrigin: resolveOriginFromRequestUrl(options.request),
+          }
+        : getRequestHeaderSnapshot();
+
+  return {
+    redirectUri: `${origin}${INSTAGRAM_OAUTH_CALLBACK_PATH}`,
+    siteOrigin: origin,
+    siteUrlSource: source,
+    ...requestSnapshot,
+    environment: resolveEnvOriginSnapshot(),
+  };
+}
+
+export function canResolveOAuthSiteOrigin(
+  options: OAuthSiteOriginOptions = {},
+): boolean {
+  try {
+    resolveOAuthSiteOriginWithSource(options);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function resolveOAuthSiteOrigin(
+  options: OAuthSiteOriginOptions = {},
+): string {
+  return resolveOAuthSiteOriginWithSource(options).origin;
+}
+
 export function getMetaOAuthRedirectUri(
   options: OAuthSiteOriginOptions = {},
 ): string {
-  const origin = resolveOAuthSiteOrigin(options);
-  return `${origin}${INSTAGRAM_OAUTH_CALLBACK_PATH}`;
+  return getOAuthRedirectDiagnostics(options).redirectUri;
 }
 
 export function formatMetaOAuthConfigError(): string {
@@ -483,12 +666,9 @@ export function buildMetaOAuthUrl(
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", scopes);
 
-  console.log("[Instagram OAuth] Redirect URI resolved:", redirectUri);
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("[Instagram OAuth] Requested scopes:", scopes);
-    console.log("[Instagram OAuth] Generated OAuth URL:", url.toString());
-  }
+  const diagnostics = getOAuthRedirectDiagnostics(options);
+  diagnostics.oauthUrl = url.toString();
+  logOAuthRedirect("redirect to Meta OAuth dialog", diagnostics);
 
   return url.toString();
 }

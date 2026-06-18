@@ -10,8 +10,11 @@ import type { InstagramGraphDebugSnapshot } from "@/lib/instagram/graph-debug";
 export const META_OAUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
+  "pages_manage_metadata",
   "business_management",
   "instagram_basic",
+  "instagram_manage_messages",
+  "pages_messaging",
 ] as const;
 
 export const INSTAGRAM_OAUTH_STATE_COOKIE = "instagram_oauth_state";
@@ -115,6 +118,11 @@ export type MetaGraphApiError = {
 type MetaPermissionRow = {
   permission?: string;
   status?: string;
+};
+
+export type MetaGrantedPermission = {
+  permission: string;
+  status: string;
 };
 
 type MetaPermissionsResponse = {
@@ -487,15 +495,12 @@ export async function fetchGrantedMetaPermissions(userAccessToken: string) {
   const url = new URL(`${GRAPH_API_BASE}/me/permissions`);
   url.searchParams.set("access_token", userAccessToken);
   const result = await graphOAuthFetchUrl<MetaPermissionsResponse>(url.toString());
-  const permissions = result.data?.data ?? [];
+  const permissions = normalizeGrantedPermissions(result.data?.data ?? []);
 
   if (isDevOAuthLogging()) {
     console.log("[Instagram OAuth] GET /me/permissions:");
     for (const row of permissions) {
-      console.log("[Instagram OAuth] permission:", {
-        permission: row.permission ?? null,
-        status: row.status ?? null,
-      });
+      console.log("[Instagram OAuth] permission:", row);
     }
 
     if (result.error) {
@@ -507,6 +512,22 @@ export async function fetchGrantedMetaPermissions(userAccessToken: string) {
   }
 
   return permissions;
+}
+
+function normalizeGrantedPermissions(
+  rows: MetaPermissionRow[],
+): MetaGrantedPermission[] {
+  return rows
+    .filter(
+      (row): row is MetaPermissionRow & { permission: string; status: string } =>
+        typeof row.permission === "string" &&
+        row.permission.length > 0 &&
+        typeof row.status === "string",
+    )
+    .map((row) => ({
+      permission: row.permission,
+      status: row.status,
+    }));
 }
 
 export async function validateDirectInstagramBusinessAccount(
@@ -716,7 +737,7 @@ export async function enrichFacebookPagesWithInstagram(
 }
 
 export function logOAuthPageDiscovery(input: {
-  permissions: MetaPermissionRow[];
+  permissions: MetaGrantedPermission[];
   rawAccounts: FacebookPageAccount[];
   pages: FacebookOAuthPageOption[];
   pagesWithInstagram: FacebookOAuthPageWithInstagram[];
@@ -728,8 +749,7 @@ export function logOAuthPageDiscovery(input: {
   const requiredPermissions = [...META_OAUTH_SCOPES];
   const grantedPermissions = input.permissions
     .filter((row) => row.status === "granted")
-    .map((row) => row.permission)
-    .filter(Boolean);
+    .map((row) => row.permission);
 
   console.log(
     "[Instagram OAuth] Required permissions check:",

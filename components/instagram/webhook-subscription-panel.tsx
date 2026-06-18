@@ -8,14 +8,18 @@ import {
   type InstagramWebhookActionResult,
 } from "@/app/(dashboard)/settings/integrations/instagram/webhook-actions";
 import { Button } from "@/components/ui/button";
+import { META_OAUTH_SCOPES } from "@/lib/instagram/oauth";
 import {
+  PAGE_MESSAGING_PERMISSION,
   PAGE_WEBHOOK_SUBSCRIBED_FIELDS,
+  type PagePermissionsDebugResult,
   type PageWebhookSubscribeResult,
   type PageWebhookSubscriptionCheckResult,
 } from "@/lib/instagram/webhook-subscription";
 
 type WebhookSubscriptionPanelProps = {
   initialCheck: PageWebhookSubscriptionCheckResult;
+  initialPermissionsDebug: PagePermissionsDebugResult | null;
   metaAppId: string | null;
   webhookCallbackUrl: string;
 };
@@ -46,6 +50,7 @@ function StatusBadge({
 
 export function WebhookSubscriptionPanel({
   initialCheck,
+  initialPermissionsDebug: permissionsDebug,
   metaAppId,
   webhookCallbackUrl,
 }: WebhookSubscriptionPanelProps) {
@@ -92,6 +97,8 @@ export function WebhookSubscriptionPanel({
   }
 
   const hasMessagesField = check.desklabsSubscribedFields.includes("messages");
+  const reconnectHref =
+    "/api/integrations/instagram/connect?returnTo=/settings/integrations/instagram/webhook";
 
   return (
     <div className="space-y-6">
@@ -124,6 +131,16 @@ export function WebhookSubscriptionPanel({
               : "messages field missing"
           }
         />
+        {permissionsDebug ? (
+          <StatusBadge
+            ok={permissionsDebug.hasPagesMessaging}
+            label={
+              permissionsDebug.hasPagesMessaging
+                ? `${PAGE_MESSAGING_PERMISSION} granted`
+                : `${PAGE_MESSAGING_PERMISSION} missing`
+            }
+          />
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -151,12 +168,84 @@ export function WebhookSubscriptionPanel({
           <strong>Fields to subscribe:</strong>{" "}
           {PAGE_WEBHOOK_SUBSCRIBED_FIELDS.join(", ")}
         </p>
+        <p className="mt-2">
+          <strong>OAuth scopes requested on connect:</strong>{" "}
+          {META_OAUTH_SCOPES.join(", ")}
+        </p>
         <p className="mt-2 text-muted-foreground">
           Instagram DM events are delivered only when the connected Facebook Page
-          is subscribed to this Meta app. App-level webhook verification alone is
-          not enough.
+          is subscribed to this Meta app. The stored page access token must
+          include <code className="rounded bg-muted px-1">{PAGE_MESSAGING_PERMISSION}</code>.
+          Disconnect and reconnect Instagram after scope changes.
         </p>
+        {!permissionsDebug?.hasPagesMessaging ? (
+          <p className="mt-3">
+            <a
+              href={reconnectHref}
+              className="font-medium text-primary underline underline-offset-4"
+            >
+              Reconnect Instagram Business
+            </a>
+          </p>
+        ) : null}
       </div>
+
+      {permissionsDebug ? (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-lg font-semibold">Granted permissions</h2>
+            <StatusBadge
+              ok={permissionsDebug.hasPagesMessaging}
+              label={
+                permissionsDebug.hasPagesMessaging
+                  ? `${PAGE_MESSAGING_PERMISSION} granted`
+                  : `${PAGE_MESSAGING_PERMISSION} not granted`
+              }
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {permissionsDebug.request} · HTTP {permissionsDebug.httpStatus} ·
+            source: {permissionsDebug.source}
+          </p>
+          {permissionsDebug.note ? (
+            <p className="text-sm text-muted-foreground">{permissionsDebug.note}</p>
+          ) : null}
+          {permissionsDebug.permissions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No permissions returned for the stored page access token.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="min-w-full divide-y text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Permission</th>
+                    <th className="px-4 py-3 text-left font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y bg-background">
+                  {permissionsDebug.permissions.map((row) => (
+                    <tr key={`${row.permission}-${row.status}`}>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {row.permission}
+                      </td>
+                      <td className="px-4 py-3">{row.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {permissionsDebug.error ? (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+              <strong>Meta error:</strong> {permissionsDebug.error.message}
+            </div>
+          ) : null}
+          <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs">
+            {formatJson(permissionsDebug.rawBody)}
+          </pre>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Subscribed apps</h2>

@@ -7,6 +7,7 @@ import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import {
   checkPageWebhookSubscription,
+  fetchStoredPagePermissionsDebug,
   getMetaWebhookCallbackUrl,
   loadInstagramWebhookIntegrationContext,
 } from "@/lib/instagram/webhook-subscription";
@@ -30,6 +31,10 @@ export default async function InstagramWebhookSubscriptionPage() {
 
   const initialCheck = context
     ? await checkPageWebhookSubscription(context.pageId, context.pageAccessToken)
+    : null;
+
+  const permissionsDebug = context
+    ? await fetchStoredPagePermissionsDebug(context.pageAccessToken)
     : null;
 
   return (
@@ -103,6 +108,7 @@ export default async function InstagramWebhookSubscriptionPage() {
 
             <WebhookSubscriptionPanel
               initialCheck={initialCheck}
+              initialPermissionsDebug={permissionsDebug}
               metaAppId={metaAppId}
               webhookCallbackUrl={webhookCallbackUrl}
             />

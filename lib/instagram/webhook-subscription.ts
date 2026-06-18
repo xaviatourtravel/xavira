@@ -4,10 +4,15 @@ import {
   parseInstagramIntegrationMetadata,
 } from "@/lib/instagram/constants";
 import { maskSensitiveGraphValues } from "@/lib/instagram/graph-debug";
-import { getInstagramAccessToken } from "@/lib/instagram/oauth";
+import {
+  getInstagramAccessToken,
+  type MetaGrantedPermission,
+} from "@/lib/instagram/oauth";
 import type { createClient } from "@/utils/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+export const PAGE_MESSAGING_PERMISSION = "pages_messaging" as const;
 
 export const PAGE_WEBHOOK_SUBSCRIBED_FIELDS = ["messages"] as const;
 
@@ -55,6 +60,18 @@ export type InstagramWebhookIntegrationContext = {
   pageAccessToken: string;
 };
 
+export type PagePermissionsDebugResult = {
+  ok: boolean;
+  httpStatus: number;
+  request: string;
+  source: "me_permissions" | "debug_token";
+  permissions: MetaGrantedPermission[];
+  hasPagesMessaging: boolean;
+  rawBody: unknown;
+  error?: MetaGraphErrorDetails;
+  note?: string;
+};
+
 type MetaGraphErrorBody = {
   error?: {
     message?: string;
@@ -76,6 +93,149 @@ type SubscribedAppsResponse = MetaGraphErrorBody & {
 type SubscribeAppsResponse = MetaGraphErrorBody & {
   success?: boolean;
 };
+
+type DebugTokenResponse = MetaGraphErrorBody & {
+  data?: {
+    scopes?: string[];
+    type?: string;
+  };
+};
+
+function getMetaAppAccessToken() {
+  const appId = process.env.META_APP_ID?.trim();
+  const appSecret = process.env.META_APP_SECRET?.trim();
+  if (!appId || !appSecret) {
+    return null;
+  }
+  return `${appId}|${appSecret}`;
+}
+
+function hasGrantedPermission(
+  permissions: MetaGrantedPermission[],
+  permission: string,
+) {
+  return permissions.some(
+    (row) => row.permission === permission && row.status === "granted",
+  );
+}
+
+function buildPermissionsDebugResult(input: {
+  ok: boolean;
+  httpStatus: number;
+  request: string;
+  source: PagePermissionsDebugResult["source"];
+  permissions: MetaGrantedPermission[];
+  rawBody: unknown;
+  error?: MetaGraphErrorDetails;
+  note?: string;
+}): PagePermissionsDebugResult {
+  return {
+    ok: input.ok,
+    httpStatus: input.httpStatus,
+    request: input.request,
+    source: input.source,
+    permissions: input.permissions,
+    hasPagesMessaging: hasGrantedPermission(
+      input.permissions,
+      PAGE_MESSAGING_PERMISSION,
+    ),
+    rawBody: maskSensitiveGraphValues(input.rawBody),
+    error: input.error,
+    note: input.note,
+  };
+}
+
+async function fetchPagePermissionsViaDebugToken(
+  pageAccessToken: string,
+): Promise<PagePermissionsDebugResult> {
+  const appAccessToken = getMetaAppAccessToken();
+  if (!appAccessToken) {
+    return buildPermissionsDebugResult({
+      ok: false,
+      httpStatus: 0,
+      request: "GET /debug_token",
+      source: "debug_token",
+      permissions: [],
+      rawBody: null,
+      error: {
+        message:
+          "META_APP_ID and META_APP_SECRET are required to inspect page token scopes.",
+      },
+    });
+  }
+
+  const url = new URL(`${GRAPH_API_BASE}/debug_token`);
+  url.searchParams.set("input_token", pageAccessToken);
+  url.searchParams.set("access_token", appAccessToken);
+
+  const request = "GET /debug_token";
+  const { httpStatus, body } = await fetchGraphApi(url.toString());
+  const error = parseMetaGraphError(body);
+  const scopes = (body as DebugTokenResponse).data?.scopes ?? [];
+  const permissions = scopes.map((scope) => ({
+    permission: scope,
+    status: "granted",
+  }));
+
+  return buildPermissionsDebugResult({
+    ok: !error && httpStatus >= 200 && httpStatus < 300,
+    httpStatus,
+    request,
+    source: "debug_token",
+    permissions,
+    rawBody: body,
+    error,
+    note:
+      "Stored integration uses a page access token. Scopes are shown via Meta debug_token because /me/permissions requires a user access token.",
+  });
+}
+
+export async function fetchStoredPagePermissionsDebug(
+  pageAccessToken: string,
+): Promise<PagePermissionsDebugResult> {
+  const mePermissionsUrl = new URL(`${GRAPH_API_BASE}/me/permissions`);
+  mePermissionsUrl.searchParams.set("access_token", pageAccessToken);
+  const meRequest = "GET /me/permissions";
+  const meResult = await fetchGraphApi(mePermissionsUrl.toString());
+  const meError = parseMetaGraphError(meResult.body);
+
+  if (!meError && meResult.httpStatus >= 200 && meResult.httpStatus < 300) {
+    const rows =
+      (meResult.body as { data?: Array<{ permission?: string; status?: string }> })
+        .data ?? [];
+    const permissions = rows
+      .filter(
+        (row): row is { permission: string; status: string } =>
+          typeof row.permission === "string" &&
+          row.permission.length > 0 &&
+          typeof row.status === "string",
+      )
+      .map((row) => ({
+        permission: row.permission,
+        status: row.status,
+      }));
+
+    return buildPermissionsDebugResult({
+      ok: true,
+      httpStatus: meResult.httpStatus,
+      request: meRequest,
+      source: "me_permissions",
+      permissions,
+      rawBody: meResult.body,
+    });
+  }
+
+  const debugResult = await fetchPagePermissionsViaDebugToken(pageAccessToken);
+  if (meError) {
+    return {
+      ...debugResult,
+      note:
+        `${debugResult.note ?? ""} /me/permissions failed: ${meError.message}`.trim(),
+    };
+  }
+
+  return debugResult;
+}
 
 function parseMetaGraphError(body: unknown): MetaGraphErrorDetails | undefined {
   if (!body || typeof body !== "object") {

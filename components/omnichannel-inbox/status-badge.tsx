@@ -21,7 +21,7 @@ export function OmnichannelStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
+        "inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
         STATUS_STYLES[status],
         className,
       )}

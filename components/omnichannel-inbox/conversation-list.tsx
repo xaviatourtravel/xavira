@@ -3,41 +3,15 @@
 import Link from "next/link";
 
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
+import {
+  formatInboxRelativeTime,
+  getConversationDisplayName,
+} from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelStatusBadge } from "@/components/omnichannel-inbox/status-badge";
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
 import { formatAssignedUserLabel } from "@/lib/leads/assignment";
 import { cn } from "@/lib/utils";
-
-function formatRelativeTime(value: string | null) {
-  if (!value) {
-    return "—";
-  }
-
-  const date = new Date(value);
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMinutes = Math.floor(diffMs / 60_000);
-
-  if (diffMinutes < 1) {
-    return "Just now";
-  }
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m`;
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h`;
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    timeZone: "Asia/Jakarta",
-  }).format(date);
-}
 
 function buildConversationHref(
   conversationId: string,
@@ -62,61 +36,71 @@ export function OmnichannelConversationList({
 }) {
   if (conversations.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-        <p className="text-sm font-medium">No conversations yet</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Instagram DM and Facebook Messenger messages will appear here after
-          webhook sync.
+      <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+        <p className="text-sm font-semibold text-foreground">No conversations yet</p>
+        <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+          New Instagram and Facebook customer messages will appear here as your team
+          receives them.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="divide-y">
+    <div className="divide-y divide-border/60">
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedConversationId;
+        const displayName = getConversationDisplayName(conversation);
+        const showUsername =
+          conversation.customerUsername &&
+          displayName !==
+            (conversation.customerUsername.startsWith("@")
+              ? conversation.customerUsername
+              : `@${conversation.customerUsername}`);
 
         return (
           <Link
             key={conversation.id}
             href={buildConversationHref(conversation.id, activeFilter)}
             className={cn(
-              "block px-4 py-3 transition-colors hover:bg-muted/50",
-              isSelected && "bg-muted",
+              "block border-l-2 px-4 py-3.5 transition-colors hover:bg-muted/40",
+              isSelected
+                ? "border-l-primary bg-primary/5"
+                : "border-l-transparent",
             )}
           >
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-sm font-semibold">
-                    {conversation.customerName}
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {displayName}
                   </p>
                   <OmnichannelChannelBadge channel={conversation.channel} />
                 </div>
-                {conversation.customerUsername ? (
+                {showUsername ? (
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    @{conversation.customerUsername}
+                    @
+                    {conversation.customerUsername?.replace(/^@/, "")}
                   </p>
                 ) : null}
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-[11px] text-muted-foreground">
-                  {formatRelativeTime(conversation.lastMessageAt)}
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  {formatInboxRelativeTime(conversation.lastMessageAt)}
                 </p>
                 {conversation.unreadCount > 0 ? (
-                  <span className="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                  <span className="mt-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
                     {conversation.unreadCount}
                   </span>
                 ) : null}
               </div>
             </div>
 
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+            <p className="mt-2 line-clamp-2 text-sm leading-snug text-muted-foreground">
               {conversation.lastMessagePreview ?? "No messages yet"}
             </p>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <OmnichannelStatusBadge status={conversation.status} />
               <span className="text-[11px] text-muted-foreground">
                 {formatAssignedUserLabel(conversation.assignedUserName)}

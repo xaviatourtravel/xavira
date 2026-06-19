@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Info, MessageSquareText } from "lucide-react";
 
 import {
   addOmnichannelConversationNote,
@@ -9,10 +10,18 @@ import {
   updateOmnichannelConversationStatus,
 } from "@/app/(dashboard)/inbox/omnichannel-actions";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
+import {
+  ConversationDetailsSidebar,
+  type ConversationDetailsSidebarHandle,
+} from "@/components/omnichannel-inbox/conversation-details-sidebar";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
+import {
+  formatInboxMessageTime,
+  formatInboxRelativeTime,
+  getConversationDisplayName,
+} from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelStatusBadge } from "@/components/omnichannel-inbox/status-badge";
 import { buttonVariants } from "@/components/ui/button";
-import { OMNICHANNEL_CONVERSATION_STATUSES, formatOmnichannelConversationStatusLabel } from "@/lib/omnichannel-inbox/constants";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { formatAssignedUserLabel } from "@/lib/leads/assignment";
 import type { MessageRow } from "@/types/omnichannel-inbox";
@@ -32,14 +41,6 @@ type OmnichannelConversationDetailPanelProps = {
   canReply: boolean;
   isUnassignedForAgent?: boolean;
 };
-
-function formatMessageTime(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
-}
 
 function getAttachmentLabel(message: MessageRow) {
   const attachments = Array.isArray(message.attachments_json)
@@ -62,6 +63,7 @@ export function OmnichannelConversationDetailPanel({
   canReply,
   isUnassignedForAgent = false,
 }: OmnichannelConversationDetailPanelProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -70,6 +72,9 @@ export function OmnichannelConversationDetailPanel({
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const markedReadRef = useRef<string | null>(null);
+  const detailsSidebarRef = useRef<ConversationDetailsSidebarHandle>(null);
+
+  const displayName = getConversationDisplayName(conversation);
 
   const displayMessages: MessageRow[] = optimisticMessageText
     ? [
@@ -115,7 +120,7 @@ export function OmnichannelConversationDetailPanel({
         return;
       }
 
-      setError(result.message ?? "Action failed.");
+      setError(result.message ?? "Unable to save changes.");
     });
   }
 
@@ -145,202 +150,165 @@ export function OmnichannelConversationDetailPanel({
     });
   }
 
+  function openDetails(focusNote = false) {
+    setDetailsOpen(true);
+    if (focusNote) {
+      window.setTimeout(() => {
+        detailsSidebarRef.current?.focusNoteTextarea();
+      }, 150);
+    }
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b px-5 py-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">{conversation.customerName}</h2>
-            {conversation.customerUsername ? (
-              <p className="text-sm text-muted-foreground">
-                @{conversation.customerUsername}
-              </p>
-            ) : null}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+    <div className="flex h-full min-h-0 bg-background">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/95 px-6 py-2.5 backdrop-blur sm:px-8">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h2 className="truncate text-sm font-semibold text-foreground">
+                {displayName}
+              </h2>
               <OmnichannelChannelBadge channel={conversation.channel} />
               <OmnichannelStatusBadge status={conversation.status} />
             </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+              <span>{formatAssignedUserLabel(conversation.assignedUserName)}</span>
+              <span aria-hidden>·</span>
+              <span>Active {formatInboxRelativeTime(conversation.lastMessageAt)}</span>
+            </div>
           </div>
-          <div className="text-right text-sm">
-            <p className="text-muted-foreground">Assigned</p>
-            <p className="font-medium">
-              {formatAssignedUserLabel(conversation.assignedUserName)}
-            </p>
-          </div>
-        </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {canReassign ? (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleAssign(new FormData(event.currentTarget));
-              }}
-              className="space-y-1"
-            >
-              <label className="text-xs font-medium text-muted-foreground">
-                Assign to
-              </label>
-              <div className="flex gap-2">
-                <select
-                  name="assigned_user_id"
-                  defaultValue={conversation.assignedUserId ?? ""}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  disabled={isPending}
-                >
-                  <option value="">Unassigned</option>
-                  {orgProfiles.map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.full_name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                >
-                  Save
-                </button>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((open) => !open)}
+            className={cn(
+              buttonVariants({ variant: detailsOpen ? "default" : "outline", size: "sm" }),
+              "h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs",
+            )}
+            aria-expanded={detailsOpen}
+          >
+            <Info className="h-3.5 w-3.5" />
+            Details
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#efeae2]/30 dark:bg-muted/20">
+          <div className="flex w-full flex-col gap-1.5 px-6 py-3 sm:px-8">
+            {displayMessages.length === 0 ? (
+              <div className="flex flex-col py-10">
+                <MessageSquareText className="h-6 w-6 text-muted-foreground/50" />
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  No messages yet
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Customer messages will appear here.
+                </p>
               </div>
-            </form>
-          ) : null}
+            ) : (
+              displayMessages.map((message) => {
+                const isIncoming = message.direction === "incoming";
+                const isOptimistic = message.id === "optimistic-outgoing";
+                const attachmentLabel = getAttachmentLabel(message);
 
-          {canUpdateStatus ? (
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                Status
-              </label>
-              <select
-                value={conversation.status}
-                onChange={(event) => handleStatusChange(event.target.value)}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                disabled={isPending}
-              >
-                {OMNICHANNEL_CONVERSATION_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {formatOmnichannelConversationStatusLabel(status)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-        </div>
-
-        {feedback ? (
-          <p className="mt-3 text-sm text-green-700">{feedback}</p>
-        ) : null}
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        <div className="space-y-3">
-          {displayMessages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No messages yet.</p>
-          ) : (
-            displayMessages.map((message) => {
-              const isIncoming = message.direction === "incoming";
-              const isOptimistic = message.id === "optimistic-outgoing";
-              const attachmentLabel = getAttachmentLabel(message);
-
-              return (
-                <div
-                  key={message.id}
-                  className={cn("flex", isIncoming ? "justify-start" : "justify-end")}
-                >
+                return (
                   <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm",
-                      isIncoming
-                        ? "bg-muted text-foreground"
-                        : "bg-primary text-primary-foreground",
-                      isOptimistic && "opacity-80",
-                    )}
+                    key={message.id}
+                    className={cn("flex w-full", isIncoming ? "justify-start" : "justify-end")}
                   >
-                    {message.message_text ? (
-                      <p className="whitespace-pre-wrap">{message.message_text}</p>
-                    ) : null}
-                    {attachmentLabel ? (
-                      <p className="mt-1 text-xs opacity-80">{attachmentLabel}</p>
-                    ) : null}
-                    <p className="mt-1 text-[10px] opacity-70">
-                      {isOptimistic
-                        ? "Sending…"
-                        : formatMessageTime(message.created_at)}
-                    </p>
+                    <div
+                      className={cn(
+                        "max-w-[70%] rounded-2xl px-3 py-1.5 text-sm shadow-sm",
+                        isIncoming
+                          ? "rounded-tl-sm bg-white text-foreground ring-1 ring-black/5 dark:bg-card"
+                          : "rounded-tr-sm bg-primary text-primary-foreground",
+                        isOptimistic && "opacity-75",
+                      )}
+                    >
+                      {message.message_text ? (
+                        <p className="whitespace-pre-wrap leading-relaxed">
+                          {message.message_text}
+                        </p>
+                      ) : null}
+                      {attachmentLabel ? (
+                        <p
+                          className={cn(
+                            "mt-1 text-xs",
+                            isIncoming ? "text-muted-foreground" : "opacity-80",
+                          )}
+                        >
+                          {attachmentLabel}
+                        </p>
+                      ) : null}
+                      <p
+                        className={cn(
+                          "mt-1 text-right text-[10px]",
+                          isIncoming ? "text-muted-foreground" : "opacity-70",
+                        )}
+                      >
+                        {isOptimistic
+                          ? "Sending…"
+                          : formatInboxMessageTime(message.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 z-10">
+          <OmnichannelConversationReplyBox
+            conversationId={conversation.id}
+            canReply={canReply}
+            isUnassignedForAgent={isUnassignedForAgent}
+            onOptimisticMessage={setOptimisticMessageText}
+            onOpenDetails={openDetails}
+          />
         </div>
       </div>
 
-      <div className="border-t px-5 py-4">
-        <div className="mb-4 space-y-3">
-          <h3 className="text-sm font-semibold">Internal Notes</h3>
-          {conversation.notes.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No internal notes yet.</p>
-          ) : (
-            <div className="max-h-36 space-y-2 overflow-y-auto">
-              {conversation.notes.map((note) => (
-                <div key={note.id} className="rounded-lg border bg-amber-50/60 p-3">
-                  <p className="text-sm whitespace-pre-wrap">{note.note}</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {note.authorName} · {formatMessageTime(note.created_at)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {canAddNote ? (
-            <form
-              id="omnichannel-note-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleAddNote(new FormData(event.currentTarget));
-              }}
-              className="space-y-2"
-            >
-              <textarea
-                name="note"
-                rows={2}
-                placeholder="Add internal note for your team…"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                disabled={isPending}
-                required
-              />
-              <button
-                type="submit"
-                disabled={isPending}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                Add Note
-              </button>
-            </form>
-          ) : null}
-        </div>
-
-        <OmnichannelConversationReplyBox
-          conversationId={conversation.id}
-          canReply={canReply}
-          isUnassignedForAgent={isUnassignedForAgent}
-          onOptimisticMessage={setOptimisticMessageText}
-        />
-      </div>
+      {detailsOpen ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-black/20 lg:hidden"
+            aria-label="Close details"
+            onClick={() => setDetailsOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 z-40 flex w-[min(100%,320px)] lg:static lg:z-auto lg:w-72 lg:shrink-0">
+            <ConversationDetailsSidebar
+              ref={detailsSidebarRef}
+              conversation={conversation}
+              orgProfiles={orgProfiles}
+              canReassign={canReassign}
+              canUpdateStatus={canUpdateStatus}
+              canAddNote={canAddNote}
+              isPending={isPending}
+              feedback={feedback}
+              error={error}
+              onClose={() => setDetailsOpen(false)}
+              onAssign={handleAssign}
+              onStatusChange={handleStatusChange}
+              onAddNote={handleAddNote}
+            />
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
 
 export function OmnichannelConversationEmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-      <p className="text-base font-medium">Select a conversation</p>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        Choose a thread from the list to view message history, update status, and
-        add internal notes.
+    <div className="flex h-full flex-col items-center justify-center bg-muted/10 px-8 text-center">
+      <MessageSquareText className="h-10 w-10 text-muted-foreground/50" />
+      <p className="mt-4 text-base font-semibold text-foreground">
+        Select a conversation
+      </p>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+        Choose a customer thread to view messages and send a reply.
       </p>
     </div>
   );

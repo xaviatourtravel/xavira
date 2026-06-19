@@ -30,12 +30,18 @@ export default async function InboxPage({
   const activeFilter = parseOmnichannelInboxFilter(params.filter);
   const selectedConversationId = params.c?.trim() || null;
 
-  const [{ data: orgProfiles }, conversations, detail] = await Promise.all([
+  const [{ data: orgProfiles }, allConversations, conversations, detail] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name")
       .eq("organization_id", profile.organization_id)
       .order("full_name"),
+    loadOmnichannelConversationList(
+      supabase,
+      profile.organization_id,
+      "all",
+      profile.id,
+    ),
     loadOmnichannelConversationList(
       supabase,
       profile.organization_id,
@@ -62,10 +68,12 @@ export default async function InboxPage({
   return (
     <OmnichannelInboxView
       conversations={conversations}
+      allConversations={allConversations}
       detail={detail}
       activeFilter={activeFilter}
       selectedConversationId={selectedConversationId}
       conversationNotFound={Boolean(selectedConversationId && !detail)}
+      currentUserId={profile.id}
       orgProfiles={orgProfiles ?? []}
       canReassign={canReassignOmnichannelConversation(profile)}
       canUpdateStatus={canUpdateOmnichannelConversationStatus(

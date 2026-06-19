@@ -1,6 +1,7 @@
 import {
   getJakartaDateString,
   getJakartaDaysAgoDateString,
+  getJakartaMonthKey,
   isOnOrAfterJakartaDate,
   isSameJakartaMonth,
   toJakartaDateString,
@@ -34,6 +35,7 @@ type Profile = Tables<"profiles">;
 
 type LeadRow = {
   id: string;
+  full_name: string | null;
   lead_date: string | null;
   created_at: string;
   status: string;
@@ -41,6 +43,7 @@ type LeadRow = {
   lead_temperature: string | null;
   assigned_to: string | null;
   package_interest: string | null;
+  budget_idr: number | null;
 };
 
 type BookingRow = {
@@ -55,6 +58,27 @@ type PaymentRow = {
   created_at: string;
   payment_date: string | null;
   bookings: { package_name: string | null } | { package_name: string | null }[] | null;
+};
+
+type OmnichannelConversationRow = {
+  id: string;
+  customer_name: string | null;
+  channel: string;
+  status: string;
+  created_at: string;
+  last_message_at: string | null;
+};
+
+export type OwnerRecentActivityItem = {
+  id: string;
+  type: "lead" | "conversation" | "booking" | "payment";
+  label: string;
+  timestamp: string;
+};
+
+export type OwnerOmnichannelMetrics = {
+  activeConversations: number;
+  newConversations: number;
 };
 
 export type OwnerExecutiveKpis = {
@@ -111,6 +135,10 @@ export type OwnerDashboardMetrics = {
   topPackages: OwnerTopPackageRow[];
   topCampaigns: TopCampaignRow[];
   inboxMetrics: InboxDashboardMetrics;
+  omnichannel: OwnerOmnichannelMetrics;
+  estimatedPipelineValue: number;
+  revenuePreviousMonth: number;
+  recentActivity: OwnerRecentActivityItem[];
   followUpHealth: {
     totalLeads: number;
     overdueLeads: number;
@@ -147,6 +175,103 @@ function getBookingPackageName(
   }
 
   return booking.package_name?.trim() || "Tanpa Paket";
+}
+
+function isPreviousJakartaMonth(
+  dateString: string,
+  referenceDateString: string,
+) {
+  const referenceKey = getJakartaMonthKey(referenceDateString);
+  const [year, month] = referenceKey.split("-").map(Number);
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  const previousKey = `${previousYear}-${String(previousMonth).padStart(2, "0")}`;
+
+  return getJakartaMonthKey(dateString) === previousKey;
+}
+
+function buildEstimatedPipelineValue(leads: LeadRow[]) {
+  return leads
+    .filter((lead) => !["won", "lost"].includes(lead.status))
+    .reduce((sum, lead) => sum + Number(lead.budget_idr ?? 0), 0);
+}
+
+function buildOmnichannelMetrics(
+  conversations: OmnichannelConversationRow[],
+): OwnerOmnichannelMetrics {
+  const activeConversations = conversations.filter(
+    (conversation) => conversation.status !== "lost",
+  ).length;
+
+  const newConversations = conversations.filter(
+    (conversation) => conversation.status === "new",
+  ).length;
+
+  return {
+    activeConversations,
+    newConversations,
+  };
+}
+
+function buildRecentActivity(
+  leads: LeadRow[],
+  bookings: BookingRow[],
+  payments: PaymentRow[],
+  conversations: OmnichannelConversationRow[],
+): OwnerRecentActivityItem[] {
+  const items: OwnerRecentActivityItem[] = [];
+
+  for (const lead of leads) {
+    items.push({
+      id: `lead-${lead.id}`,
+      type: "lead",
+      label: `New lead: ${lead.full_name?.trim() || "Unnamed lead"}`,
+      timestamp: lead.created_at,
+    });
+  }
+
+  for (const booking of bookings) {
+    items.push({
+      id: `booking-${booking.id}`,
+      type: "booking",
+      label: `Booking created: ${booking.package_name?.trim() || "Package booking"}`,
+      timestamp: booking.created_at,
+    });
+  }
+
+  for (const [index, payment] of payments.entries()) {
+    const packageName = getBookingPackageName(payment.bookings);
+    items.push({
+      id: `payment-${payment.created_at}-${index}`,
+      type: "payment",
+      label: `Payment recorded: ${packageName}`,
+      timestamp: payment.payment_date ?? payment.created_at,
+    });
+  }
+
+  for (const conversation of conversations) {
+    const customerName = conversation.customer_name?.trim() || "Customer";
+    const channelLabel =
+      conversation.channel === "instagram"
+        ? "Instagram"
+        : conversation.channel === "facebook"
+          ? "Facebook"
+          : "WhatsApp";
+
+    items.push({
+      id: `conversation-${conversation.id}`,
+      type: "conversation",
+      label: `New ${channelLabel} conversation: ${customerName}`,
+      timestamp: conversation.last_message_at ?? conversation.created_at,
+    });
+  }
+
+  return items
+    .sort(
+      (left, right) =>
+        new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+    )
+    .slice(0, 8);
 }
 
 function buildPipelineFunnel(leads: LeadRow[]): OwnerPipelineFunnel {
@@ -275,11 +400,12 @@ export async function loadOwnerDashboardMetrics(
     compliance,
     queueItems,
     { count: totalActiveLeads },
+    { data: omnichannelConversations },
   ] = await Promise.all([
     supabase
       .from("leads")
       .select(
-        "id, lead_date, created_at, status, updated_at, lead_temperature, assigned_to, package_interest",
+        "id, full_name, lead_date, created_at, status, updated_at, lead_temperature, assigned_to, package_interest, budget_idr",
       )
       .eq("organization_id", organizationId)
       .is("deleted_at", null),
@@ -320,6 +446,12 @@ export async function loadOwnerDashboardMetrics(
       .eq("organization_id", organizationId)
       .is("deleted_at", null)
       .not("status", "in", "(won,lost)"),
+    supabase
+      .from("conversations")
+      .select(
+        "id, customer_name, channel, status, created_at, last_message_at",
+      )
+      .eq("organization_id", organizationId),
   ]);
 
   const leadRows = (leads ?? []) as LeadRow[];
@@ -330,6 +462,9 @@ export async function loadOwnerDashboardMetrics(
       .map((task) => task.lead_id)
       .filter((leadId): leadId is string => Boolean(leadId)),
   );
+
+  const omnichannelRows = (omnichannelConversations ??
+    []) as OmnichannelConversationRow[];
 
   const leadsToday = leadRows.filter(
     (lead) => getLeadAcquisitionDate(lead) === todayJakarta,
@@ -344,6 +479,7 @@ export async function loadOwnerDashboardMetrics(
   ).length;
 
   let revenueThisMonth = 0;
+  let revenuePreviousMonth = 0;
   let revenueLast30Days = 0;
   const revenueByPackageMap = new Map<string, number>();
 
@@ -354,6 +490,10 @@ export async function loadOwnerDashboardMetrics(
 
     if (isSameJakartaMonth(paymentDate, todayJakarta)) {
       revenueThisMonth += amount;
+    }
+
+    if (isPreviousJakartaMonth(paymentDate, todayJakarta)) {
+      revenuePreviousMonth += amount;
     }
 
     if (isOnOrAfterJakartaDate(paymentDate, last30DaysJakarta)) {
@@ -422,6 +562,15 @@ export async function loadOwnerDashboardMetrics(
     topPackages: buildTopPackages(leadRows, bookingRows),
     topCampaigns: buildTopCampaigns(campaigns ?? [], metricsByCampaignId),
     inboxMetrics,
+    omnichannel: buildOmnichannelMetrics(omnichannelRows),
+    estimatedPipelineValue: buildEstimatedPipelineValue(leadRows),
+    revenuePreviousMonth,
+    recentActivity: buildRecentActivity(
+      leadRows,
+      bookingRows,
+      paymentRows,
+      omnichannelRows,
+    ),
     followUpHealth: {
       totalLeads: totalActiveLeads ?? 0,
       overdueLeads: queueSummary.overdueLeads,

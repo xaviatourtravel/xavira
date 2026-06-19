@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ingestMetaIncomingMessages } from "@/lib/omnichannel-inbox/meta-ingestion";
 import {
   getMetaWebhookPostLogContext,
+  getMetaWebhookAppSecret,
   getMetaWebhookSignatureDebugLog,
+  getMetaWebhookSignatureSecretContext,
   logMetaWebhookReject,
   metaWebhookDevLog,
   metaWebhookLog,
@@ -25,7 +27,10 @@ export const dynamic = "force-dynamic";
  * Verify token env:
  *   META_WEBHOOK_VERIFY_TOKEN
  *
- * Optional signature validation:
+ * Webhook signature validation:
+ *   META_WEBHOOK_APP_SECRET
+ *
+ * OAuth/token exchange (not used here):
  *   META_APP_SECRET
  *
  * Do not configure auto-reply here — ingestion only.
@@ -71,7 +76,7 @@ export async function POST(request: NextRequest) {
       signature256: request.headers.get("x-hub-signature-256"),
       signature: request.headers.get("x-hub-signature"),
     },
-    process.env.META_APP_SECRET,
+    getMetaWebhookAppSecret(),
   );
 
   if (!signatureResult.ok) {
@@ -86,13 +91,15 @@ export async function POST(request: NextRequest) {
 
   if (signatureResult.skipped) {
     metaWebhookLog("signature validation skipped", {
-      reason: "missing_app_secret",
+      reason: "missing_webhook_app_secret",
       bodyLength: rawBody.length,
+      ...getMetaWebhookSignatureSecretContext(),
     });
   } else {
     metaWebhookLog("signature validated", {
       algorithm: signatureResult.algorithm,
       bodyLength: rawBody.length,
+      ...getMetaWebhookSignatureSecretContext(),
     });
   }
 

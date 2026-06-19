@@ -11,9 +11,15 @@ import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
  * Verify token env:
  *   META_WEBHOOK_VERIFY_TOKEN
  *
- * Subscribe to `messages` (and optionally `messaging_postbacks`) on the Page /
- * Instagram app in Meta Developer Console.
+ * Signature validation env:
+ *   META_WEBHOOK_APP_SECRET (webhook POST signature only)
+ *
+ * OAuth/token exchange uses META_APP_SECRET separately — not for webhooks.
+ *
+ * Subscribe to `messages` on the connected Page in Meta Developer Console.
  */
+
+export type MetaWebhookSignatureSecretSource = "META_WEBHOOK_APP_SECRET" | "none";
 
 export type MetaWebhookObject = "page" | "instagram";
 
@@ -200,6 +206,24 @@ export function metaWebhookDevLog(
   devLog(message, details);
 }
 
+export function getMetaWebhookSignatureSecretContext() {
+  const hasWebhookAppSecret = Boolean(process.env.META_WEBHOOK_APP_SECRET?.trim());
+  const hasMetaAppSecret = Boolean(process.env.META_APP_SECRET?.trim());
+
+  return {
+    secretSource: hasWebhookAppSecret
+      ? ("META_WEBHOOK_APP_SECRET" as const)
+      : ("none" as const),
+    hasMetaAppSecret,
+    hasWebhookAppSecret,
+  };
+}
+
+export function getMetaWebhookAppSecret(): string | undefined {
+  const secret = process.env.META_WEBHOOK_APP_SECRET?.trim();
+  return secret || undefined;
+}
+
 export function getMetaWebhookPostLogContext(
   request: Request,
   rawBody: string,
@@ -211,7 +235,7 @@ export function getMetaWebhookPostLogContext(
     hasSignature256: Boolean(request.headers.get("x-hub-signature-256")),
     hasSignature: Boolean(request.headers.get("x-hub-signature")),
     bodyLength: rawBody.length,
-    hasAppSecret: Boolean(process.env.META_APP_SECRET?.trim()),
+    ...getMetaWebhookSignatureSecretContext(),
   };
 }
 

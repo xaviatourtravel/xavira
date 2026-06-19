@@ -72,6 +72,7 @@ async function setIntegrationStatus(
     };
   }
 
+  revalidatePath("/settings");
   revalidatePath("/settings/integrations");
 
   return { success: true };
@@ -117,7 +118,8 @@ export async function disconnectIntegration(formData: FormData) {
     try {
       const supabase = await createClient();
       await disconnectInstagramIntegration(supabase, profile.organization_id);
-      revalidatePath("/settings/integrations");
+      revalidatePath("/settings");
+  revalidatePath("/settings/integrations");
       revalidatePath("/content/instagram-analytics");
       return { success: true };
     } catch (error) {

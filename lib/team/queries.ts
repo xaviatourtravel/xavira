@@ -9,6 +9,7 @@ export type TeamMemberRow = {
   role: UserRole;
   status: string;
   created_at: string;
+  lastActiveAt?: string;
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;

@@ -101,7 +101,7 @@ export function TeamMembersTable({
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Created At</th>
+              <th className="px-4 py-3 font-medium">Last active</th>
             </tr>
           </thead>
           <tbody>
@@ -136,8 +136,8 @@ export function TeamMembersTable({
                   </select>
                 </td>
                 <td className="px-4 py-3">{TEAM_MEMBER_STATUS_LABEL}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {formatCreatedAt(member.created_at)}
+                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                  {formatCreatedAt(member.lastActiveAt ?? member.created_at)}
                 </td>
               </tr>
             ))}

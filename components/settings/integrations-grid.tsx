@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 type IntegrationsGridProps = {
   integrations: IntegrationCard[];
   canManage: boolean;
+  settingsReturnPath?: string;
 };
 
 const PROVIDER_ICONS: Record<IntegrationProvider, LucideIcon> = {
@@ -40,13 +41,14 @@ const STATUS_BADGE_CLASSES: Record<IntegrationCard["status"], string> = {
   not_connected: "bg-slate-100 text-slate-600",
 };
 
-function getInstagramConnectHref() {
-  return "/api/integrations/instagram/connect?returnTo=/settings/integrations";
+function getInstagramConnectHref(returnPath = "/settings?section=integrations") {
+  return `/api/integrations/instagram/connect?returnTo=${encodeURIComponent(returnPath)}`;
 }
 
 export function IntegrationsGrid({
   integrations,
   canManage,
+  settingsReturnPath = "/settings?section=integrations",
 }: IntegrationsGridProps) {
   const [detail, setDetail] = useState<IntegrationCard | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -142,7 +144,7 @@ export function IntegrationsGrid({
                       </Button>
                     ) : isInstagram ? (
                       <a
-                        href={getInstagramConnectHref()}
+                        href={getInstagramConnectHref(settingsReturnPath)}
                         className={cn(buttonVariants({ size: "sm" }))}
                       >
                         Connect

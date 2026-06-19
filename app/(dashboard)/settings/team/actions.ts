@@ -113,6 +113,7 @@ export async function updateTeamMemberRole(formData: FormData) {
     };
   }
 
+  revalidatePath("/settings");
   revalidatePath("/settings/team");
 
   return {
@@ -193,6 +194,7 @@ export async function createOrganizationInvite(formData: FormData) {
     };
   }
 
+  revalidatePath("/settings");
   revalidatePath("/settings/team");
 
   return {

@@ -102,7 +102,6 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Settings",
     href: "/settings",
     icon: Settings,
-    items: [{ title: "Integrations", href: "/settings/integrations" }],
   },
 ];
 

@@ -238,7 +238,7 @@ export function buildThumbnailCopyPrompt(input: ThumbnailStudioInputs) {
   const coverLabel = getThumbnailCoverFormatLabel(input.coverFormat);
   const customHeadline = input.customHeadline?.trim();
 
-  return `Kamu adalah creative director thumbnail untuk travel brand Xavira (Umroh, Halal Tour, Muslim-friendly travel).
+  return `Kamu adalah creative director thumbnail untuk travel brand Desklabs (Umroh, Halal Tour, Muslim-friendly travel).
 
 Buat thumbnail copy untuk Reels cover berdasarkan input berikut.
 
@@ -256,7 +256,7 @@ ATURAN HEADLINE:
 - Maksimal 6-8 kata per headline
 - Pendek, high curiosity, cocok untuk Reels cover
 - Bahasa Indonesia natural, bukan clickbait cheap
-- Spesifik ke travel/muslim audience Xavira
+- Spesifik ke travel/muslim audience Desklabs
 
 ATURAN CONCEPT:
 - Jelaskan konsep visual thumbnail yang kuat untuk ${coverLabel}

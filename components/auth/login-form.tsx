@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { siteConfig } from "@/config/site";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
@@ -19,9 +20,9 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Masuk ke Xavira</CardTitle>
+        <CardTitle>Masuk ke {siteConfig.name}</CardTitle>
         <CardDescription>
-          Kelola lead dan follow-up travel Umroh & Halal Tour Anda.
+          {siteConfig.description}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -1,6 +1,7 @@
 export const siteConfig = {
-  name: "Xavira",
-  description: "AI Revenue Engine for travel companies",
+  name: "Desklabs",
+  description:
+    "AI-Powered CRM, Omnichannel Inbox, Campaign Management, Content Management, Booking, and Revenue Operations Platform.",
   defaultLocale: "id",
   defaultTimezone: "Asia/Jakarta",
   defaultCurrency: "IDR",

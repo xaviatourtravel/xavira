@@ -30,7 +30,7 @@ export function buildKnowledgeProcessingPrompt(input: {
   const categoryLabel = formatKnowledgeCategoryLabel(input.category);
 
   return [
-    "Kamu adalah analis knowledge base untuk travel agency Xavira (Umroh & Halal Tour).",
+    "Kamu adalah analis knowledge base untuk travel agency Desklabs (Umroh & Halal Tour).",
     "Tugasmu mengubah dokumen perusahaan menjadi konteks yang mudah dipakai ulang oleh AI.",
     "",
     "STRICT RULES:",

@@ -158,7 +158,7 @@ export default async function BookingsPage({ searchParams }: BookingsPageProps) 
       <div>
         <h1 className="text-2xl font-semibold">Bookings</h1>
         <p className="text-sm text-muted-foreground">
-          Daftar booking customer Xavia.
+          Daftar booking customer di Desklabs.
         </p>
       </div>
 

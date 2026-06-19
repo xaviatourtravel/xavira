@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { siteConfig } from "@/config/site";
 import type { OrganizationInvitePreview } from "@/lib/team/invites";
 import { formatInviteRoleLabel } from "@/lib/team/invites";
 
@@ -30,13 +31,13 @@ export function RegisterForm({
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Daftar Xavira</CardTitle>
+        <CardTitle>Daftar {siteConfig.name}</CardTitle>
         <CardDescription>
           {inviteMode
             ? `Bergabung ke ${invitePreview?.organizationName} sebagai anggota tim.`
             : betaJoinMode
-              ? "Buat akun untuk bergabung dengan tim Xavira yang sudah ada."
-              : "Buat akun travel agency dan mulai kelola lead dalam hitungan menit."}
+              ? "Buat akun untuk bergabung dengan tim Desklabs yang sudah ada."
+              : "Buat akun dan mulai kelola CRM, inbox, dan operasi bisnis Anda."}
         </CardDescription>
       </CardHeader>
       <CardContent>

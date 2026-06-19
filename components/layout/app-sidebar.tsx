@@ -8,6 +8,7 @@ import {
   isNavGroup,
   isNavItemActive,
 } from "@/config/navigation";
+import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
@@ -17,7 +18,7 @@ export function AppSidebar() {
     <aside className="hidden w-64 shrink-0 border-r bg-background md:block">
       <div className="flex h-14 items-center border-b px-6">
         <Link href="/dashboard" className="text-lg font-semibold">
-          Xavira
+          {siteConfig.name}
         </Link>
       </div>
       <nav className="space-y-1 p-4">

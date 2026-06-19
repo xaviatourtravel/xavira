@@ -176,7 +176,7 @@ export function getRecommendationWhatsAppDraft({
 
   switch (status) {
     case "new":
-      return `Assalamualaikum Kak ${name}, terima kasih sudah menghubungi Xavia Tour. Saya bantu informasikan paket yang Kakak minati ya.`;
+      return `Assalamualaikum Kak ${name}, terima kasih sudah menghubungi Desklabs. Saya bantu informasikan paket yang Kakak minati ya.`;
 
     case "contacted":
       return `Assalamualaikum Kak ${name}, saya ingin memastikan kembali kebutuhan perjalanannya. Rencana berangkat berapa orang dan perkiraan bulan apa ya?`;
@@ -191,13 +191,13 @@ export function getRecommendationWhatsAppDraft({
       return `Assalamualaikum Kak ${name}, izin follow up kembali terkait paket ${packageLabel}. Jika ada concern harga, jadwal, atau fasilitas, boleh kami bantu jelaskan.`;
 
     case "won":
-      return `Assalamualaikum Kak ${name}, terima kasih sudah mempercayakan perjalanan bersama Xavia Tour. Kami bantu proses booking dan administrasinya ya.`;
+      return `Assalamualaikum Kak ${name}, terima kasih sudah mempercayakan perjalanan bersama Desklabs. Kami bantu proses booking dan administrasinya ya.`;
 
     case "lost":
       return `Assalamualaikum Kak ${name}, terima kasih sebelumnya sudah berdiskusi dengan kami. Semoga ke depannya kami bisa bantu perjalanan Kakak di kesempatan berikutnya.`;
 
     default:
-      return `Assalamualaikum Kak ${name}, terima kasih sudah menghubungi Xavia Tour. Saya bantu informasikan paket yang Kakak minati ya.`;
+      return `Assalamualaikum Kak ${name}, terima kasih sudah menghubungi Desklabs. Saya bantu informasikan paket yang Kakak minati ya.`;
   }
 }
 

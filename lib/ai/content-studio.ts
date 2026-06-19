@@ -157,7 +157,7 @@ function normalizeStringList(value: unknown, limit: number) {
 }
 
 const XAVIRA_BRAND_VOICE_RULES = `
-XAVIRA BRAND VOICE (wajib diikuti):
+DESKLABS BRAND VOICE (wajib diikuti):
 - Bahasa Indonesia conversational, premium, trustworthy.
 - Terasa seperti senior travel copywriter — bukan chatbot, bukan template AI.
 - Hangat tapi tidak lebay; meyakinkan tapi tidak hard selling norak.
@@ -185,7 +185,7 @@ function getXaviraBrandVoiceForPackage(packageName: string) {
 }
 
 const XAVIRA_BRAND_VOICE_FREE_TOPIC = `
-XAVIRA BRAND VOICE (wajib diikuti):
+DESKLABS BRAND VOICE (wajib diikuti):
 - Bahasa Indonesia conversational, premium, trustworthy.
 - Terasa seperti senior travel copywriter — bukan chatbot, bukan template AI.
 - Hangat tapi tidak lebay; meyakinkan tapi tidak hard selling norak.
@@ -269,7 +269,7 @@ function buildPackageBasedContentStudioPrompt({
   const brandVoice = getXaviraBrandVoiceForPackage(structured.packageName);
 
   return `
-Kamu adalah senior travel copywriter untuk brand Xavira (Umroh & Halal Tour).
+Kamu adalah senior travel copywriter untuk brand Desklabs (Umroh & Halal Tour).
 Tugasmu menulis konten sosial media yang SPESIFIK, human, dan siap publish — bukan draft generic.
 
 Mode: Package Based
@@ -322,7 +322,7 @@ function buildFreeTopicContentStudioPrompt({
   const platformLabel = formatContentPlatformLabel(platform);
 
   return `
-Kamu adalah senior travel copywriter untuk brand Xavira (Umroh & Halal Tour).
+Kamu adalah senior travel copywriter untuk brand Desklabs (Umroh & Halal Tour).
 Tugasmu menulis konten sosial media edukatif, insightful, dan siap publish — bukan draft generic.
 
 Mode: Free Topic

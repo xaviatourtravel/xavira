@@ -75,7 +75,7 @@ export async function GET(
     y -= size + 10;
   }
 
-  drawText("Xavia Tour", 22, true);
+  drawText("Desklabs", 22, true);
   drawText("Penawaran Perjalanan", 16, true);
 
   y -= 15;
@@ -91,7 +91,7 @@ export async function GET(
   y -= 20;
 
   drawText("Terima kasih atas ketertarikannya.", 12);
-  drawText("Tim Xavia Tour siap membantu proses reservasi dan informasi lebih lanjut.", 12);
+  drawText("Tim Desklabs siap membantu proses reservasi dan informasi lebih lanjut.", 12);
 
   const pdfBytes = await pdfDoc.save();
 const pdfBuffer = Buffer.from(pdfBytes);

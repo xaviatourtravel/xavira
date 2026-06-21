@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { auditFromProfile } from "@/lib/audit";
 import { saveInstagramConnection } from "@/lib/instagram/integration";
 import {
   formatNoInstagramBusinessAccountError,
@@ -111,6 +112,16 @@ export async function finalizeInstagramPageSelection(formData: FormData) {
       )}`,
     );
   }
+
+  await auditFromProfile(supabase, profile, {
+    action: "integration_connected",
+    entityType: "integration",
+    entityId: "instagram_business",
+    entityLabel: result.username ? `@${result.username}` : "Instagram",
+    metadata: {
+      connection_method: "oauth",
+    },
+  });
 
   revalidateInstagramPaths();
   redirect(

@@ -4,6 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
+import { hasPermission } from "@/lib/auth/permissions";
+import { auditFromProfile } from "@/lib/audit";
+import type { Profile } from "@/types/app-types";
+import {
+  BOOKING_PAYMENT_METHODS,
+  formatPaymentTypeLabel,
+  normalizeBookingPaymentType,
+} from "@/lib/bookings/payment-fields";
 import { calculateBookingPaymentStatus } from "@/lib/bookings/payment-status";
 import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
 import { createClient } from "@/utils/supabase/server";
@@ -33,11 +41,24 @@ function getOptionalNumber(formData: FormData, key: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function assertBookingPermission(
+  profile: Awaited<ReturnType<typeof requireProfile>>["profile"],
+  permission: "bookings.edit" | "payments.create",
+  bookingId: string,
+) {
+  if (!hasPermission(profile, permission)) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("You do not have permission to perform this action.")}`,
+    );
+  }
+}
+
 export async function updateBooking(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
 
   const bookingId = getString(formData, "booking_id");
+  assertBookingPermission(profile, "bookings.edit", bookingId || "unknown");
   const packageName = getString(formData, "package_name");
   const departureDate = getString(formData, "departure_date");
   const totalPax = getOptionalInt(formData, "total_pax");
@@ -102,6 +123,21 @@ export async function updateBooking(formData: FormData) {
     redirect("/bookings?error=Booking tidak ditemukan");
   }
 
+  const { data: bookingLabel } = await supabase
+    .from("bookings")
+    .select("booking_code, customer_name")
+    .eq("id", bookingId)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+
+  await auditFromProfile(supabase, profile, {
+    action: "booking_updated",
+    entityType: "booking",
+    entityId: bookingId,
+    entityLabel:
+      bookingLabel?.booking_code || bookingLabel?.customer_name || bookingId,
+  });
+
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${bookingId}`);
   redirect(
@@ -116,22 +152,12 @@ async function getBookingForOrg(
 ) {
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, lead_id, organization_id")
+    .select("id, lead_id, organization_id, booking_code, customer_name")
     .eq("id", bookingId)
     .eq("organization_id", organizationId)
     .maybeSingle();
 
   return booking;
-}
-
-function formatPaymentTypeLabel(value: string) {
-  const labels: Record<string, string> = {
-    dp: "DP",
-    installment: "Installment",
-    final: "Final",
-  };
-
-  return labels[value] ?? value;
 }
 
 function formatPaymentActivityBody(paymentType: string, amount: number) {
@@ -200,10 +226,11 @@ async function syncBookingPaymentStatus(
   supabase: Awaited<ReturnType<typeof createClient>>,
   bookingId: string,
   organizationId: string,
+  profile?: Profile,
 ) {
   const { data: booking } = await supabase
     .from("bookings")
-    .select("total_amount")
+    .select("total_amount, payment_status, booking_code, customer_name")
     .eq("id", bookingId)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -227,11 +254,30 @@ async function syncBookingPaymentStatus(
     totalPayments,
   );
 
+  const previousStatus = booking.payment_status;
+
+  if (previousStatus === paymentStatus) {
+    return;
+  }
+
   await supabase
     .from("bookings")
     .update({ payment_status: paymentStatus })
     .eq("id", bookingId)
     .eq("organization_id", organizationId);
+
+  if (profile) {
+    await auditFromProfile(supabase, profile, {
+      action: "payment_status_changed",
+      entityType: "payment",
+      entityId: bookingId,
+      entityLabel: booking.booking_code || booking.customer_name || bookingId,
+      metadata: {
+        from: previousStatus,
+        to: paymentStatus,
+      },
+    });
+  }
 }
 
 export async function createBookingParticipant(formData: FormData) {
@@ -431,25 +477,42 @@ export async function deleteBookingParticipant(formData: FormData) {
   );
 }
 
-const PAYMENT_TYPES = ["dp", "installment", "final"] as const;
+function parseBookingPaymentFields(formData: FormData) {
+  const paymentTypeRaw = getString(formData, "payment_type");
+  const paymentMethodRaw = getString(formData, "payment_method");
+  const paymentType = normalizeBookingPaymentType(paymentTypeRaw);
+  const paymentMethod = paymentMethodRaw || null;
 
-export async function createBookingPayment(formData: FormData) {
-  const { profile } = await requireProfile();
-  const supabase = await createClient();
+  return {
+    paymentType,
+    paymentMethod,
+    paymentDate: getString(formData, "payment_date"),
+    referenceNumber: getString(formData, "reference_number"),
+    notes: getString(formData, "notes"),
+    amount: getOptionalNumber(formData, "amount"),
+  };
+}
 
-  const bookingId = getString(formData, "booking_id");
-  const paymentType = getString(formData, "payment_type");
-  const amount = getOptionalNumber(formData, "amount");
-  const paymentDate = getString(formData, "payment_date");
-  const notes = getString(formData, "notes");
-
-  if (!bookingId) {
-    redirect("/bookings?error=Booking tidak ditemukan");
-  }
-
-  if (!PAYMENT_TYPES.includes(paymentType as (typeof PAYMENT_TYPES)[number])) {
+function validateBookingPaymentInput(
+  bookingId: string,
+  paymentType: ReturnType<typeof normalizeBookingPaymentType>,
+  paymentMethod: string | null,
+  amount: number | null,
+) {
+  if (!paymentType) {
     redirect(
       `/bookings/${bookingId}?error=${encodeURIComponent("Jenis pembayaran tidak valid")}`,
+    );
+  }
+
+  if (
+    paymentMethod &&
+    !BOOKING_PAYMENT_METHODS.includes(
+      paymentMethod as (typeof BOOKING_PAYMENT_METHODS)[number],
+    )
+  ) {
+    redirect(
+      `/bookings/${bookingId}?error=${encodeURIComponent("Metode pembayaran tidak valid")}`,
     );
   }
 
@@ -458,6 +521,28 @@ export async function createBookingPayment(formData: FormData) {
       `/bookings/${bookingId}?error=${encodeURIComponent("Jumlah pembayaran tidak valid")}`,
     );
   }
+}
+
+export async function createBookingPayment(formData: FormData) {
+  const { profile } = await requireProfile();
+  const supabase = await createClient();
+
+  const bookingId = getString(formData, "booking_id");
+  assertBookingPermission(profile, "payments.create", bookingId || "unknown");
+  const {
+    paymentType,
+    paymentMethod,
+    paymentDate,
+    referenceNumber,
+    notes,
+    amount,
+  } = parseBookingPaymentFields(formData);
+
+  if (!bookingId) {
+    redirect("/bookings?error=Booking tidak ditemukan");
+  }
+
+  validateBookingPaymentInput(bookingId, paymentType, paymentMethod, amount);
 
   const booking = await getBookingForOrg(
     supabase,
@@ -471,8 +556,10 @@ export async function createBookingPayment(formData: FormData) {
 
   const { error } = await supabase.from("booking_payments").insert({
     booking_id: bookingId,
-    payment_type: paymentType,
-    amount,
+    payment_type: paymentType!,
+    payment_method: paymentMethod,
+    reference_number: referenceNumber || null,
+    amount: amount!,
     payment_date: paymentDate || null,
     notes: notes || null,
   });
@@ -487,14 +574,26 @@ export async function createBookingPayment(formData: FormData) {
     supabase,
     booking,
     profile.id,
-    paymentType,
-    amount,
+    paymentType!,
+    amount!,
   );
+
+  await auditFromProfile(supabase, profile, {
+    action: "payment_added",
+    entityType: "payment",
+    entityId: bookingId,
+    entityLabel: booking.booking_code || booking.customer_name || bookingId,
+    metadata: {
+      payment_type: paymentType!,
+      amount: amount!,
+    },
+  });
 
   await syncBookingPaymentStatus(
     supabase,
     bookingId,
     profile.organization_id,
+    profile,
   );
 
   revalidatePath("/bookings");
@@ -512,27 +611,22 @@ export async function updateBookingPayment(formData: FormData) {
   const supabase = await createClient();
 
   const bookingId = getString(formData, "booking_id");
+  assertBookingPermission(profile, "payments.create", bookingId || "unknown");
   const paymentId = getString(formData, "payment_id");
-  const paymentType = getString(formData, "payment_type");
-  const amount = getOptionalNumber(formData, "amount");
-  const paymentDate = getString(formData, "payment_date");
-  const notes = getString(formData, "notes");
+  const {
+    paymentType,
+    paymentMethod,
+    paymentDate,
+    referenceNumber,
+    notes,
+    amount,
+  } = parseBookingPaymentFields(formData);
 
   if (!bookingId || !paymentId) {
     redirect("/bookings?error=Payment tidak ditemukan");
   }
 
-  if (!PAYMENT_TYPES.includes(paymentType as (typeof PAYMENT_TYPES)[number])) {
-    redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent("Jenis pembayaran tidak valid")}`,
-    );
-  }
-
-  if (amount == null || amount < 0) {
-    redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent("Jumlah pembayaran tidak valid")}`,
-    );
-  }
+  validateBookingPaymentInput(bookingId, paymentType, paymentMethod, amount);
 
   const booking = await getBookingForOrg(
     supabase,
@@ -560,8 +654,10 @@ export async function updateBookingPayment(formData: FormData) {
   const { data: updatedPayment, error } = await supabase
     .from("booking_payments")
     .update({
-      payment_type: paymentType,
-      amount,
+      payment_type: paymentType!,
+      payment_method: paymentMethod,
+      reference_number: referenceNumber || null,
+      amount: amount!,
       payment_date: paymentDate || null,
       notes: notes || null,
     })
@@ -586,14 +682,15 @@ export async function updateBookingPayment(formData: FormData) {
     supabase,
     booking,
     profile.id,
-    paymentType,
-    amount,
+    paymentType!,
+    amount!,
   );
 
   await syncBookingPaymentStatus(
     supabase,
     bookingId,
     profile.organization_id,
+    profile,
   );
 
   revalidatePath("/bookings");
@@ -611,6 +708,7 @@ export async function deleteBookingPayment(formData: FormData) {
   const supabase = await createClient();
 
   const bookingId = getString(formData, "booking_id");
+  assertBookingPermission(profile, "payments.create", bookingId || "unknown");
   const paymentId = getString(formData, "payment_id");
 
   if (!bookingId || !paymentId) {
@@ -664,10 +762,14 @@ export async function deleteBookingPayment(formData: FormData) {
     supabase,
     bookingId,
     profile.organization_id,
+    profile,
   );
 
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${bookingId}`, "page");
+  if (booking.lead_id) {
+    revalidatePath(`/leads/${booking.lead_id}`);
+  }
   redirect(
     `/bookings/${bookingId}?success=${encodeURIComponent("Payment berhasil dihapus.")}`,
   );

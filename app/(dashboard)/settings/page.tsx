@@ -12,6 +12,11 @@ export default async function SettingsPage({
     message?: string;
     error?: string;
     instagram?: string;
+    entity_type?: string;
+    actor?: string;
+    action?: string;
+    from?: string;
+    to?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -21,7 +26,13 @@ export default async function SettingsPage({
     ? (params.section as SettingsSectionId)
     : "general";
 
-  const data = await loadSettingsWorkspaceData(activeSection);
+  const data = await loadSettingsWorkspaceData(activeSection, {
+    entityType: params.entity_type,
+    actorUserId: params.actor,
+    action: params.action,
+    fromDate: params.from,
+    toDate: params.to,
+  });
   const flashMessage =
     params.message ??
     (params.instagram === "connected"

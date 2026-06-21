@@ -1,6 +1,6 @@
 import type { Enums } from "@/types/database";
 
-export type DashboardVariant = "owner" | "admin" | "agent";
+export type DashboardVariant = "owner" | "admin" | "sales" | "marketing" | "finance";
 
 export function resolveDashboardVariant(
   role: Enums<"user_role"> | string,
@@ -10,10 +10,15 @@ export function resolveDashboardVariant(
       return "owner";
     case "admin":
       return "admin";
+    case "sales":
     case "agent":
-      return "agent";
+      return "sales";
+    case "marketing":
+      return "marketing";
+    case "finance":
+      return "finance";
     default:
-      return "agent";
+      return "sales";
   }
 }
 
@@ -25,13 +30,11 @@ export function isAdminDashboardVariant(variant: DashboardVariant): boolean {
   return variant === "admin";
 }
 
-export function isAgentDashboardVariant(variant: DashboardVariant): boolean {
-  return variant === "agent";
+export function isSalesDashboardVariant(variant: DashboardVariant): boolean {
+  return variant === "sales";
 }
 
-/**
- * Section visibility by dashboard variant:
- * - owner: executive org-wide KPIs, health, sales, booking, pipeline, sources, analytics, AI usage, content
- * - admin: need attention, sales performance, booking, content, follow-up overview, pipeline
- * - agent: personal leads, follow-ups, critical leads, shortcuts, AI sales assistant
- */
+/** @deprecated Use isSalesDashboardVariant */
+export function isAgentDashboardVariant(variant: DashboardVariant): boolean {
+  return isSalesDashboardVariant(variant);
+}

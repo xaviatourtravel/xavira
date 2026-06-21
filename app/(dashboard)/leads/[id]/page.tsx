@@ -16,31 +16,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
+import { AiFollowUpAssistantCard } from "@/components/leads/ai-follow-up-assistant-card";
+import { AiSalesIntelligenceCard } from "@/components/leads/ai-sales-intelligence-card";
+import { LeadBookingReadinessCard } from "@/components/leads/lead-booking-readiness-card";
+import {
+  LeadConversationContextCard,
+  LeadDetailHeader,
+  LeadDetailSummaryCard,
+} from "@/components/leads/lead-customer-360-sections";
+import { LeadFollowUpHistoryCard } from "@/components/leads/lead-follow-up-history-card";
+import { LeadHealthScoreCard } from "@/components/leads/lead-health-score-card";
+import { LeadTimelineCard } from "@/components/leads/lead-timeline-card";
+import { QuotationCard } from "@/components/leads/quotation-card";
+import { SnoozeLeadCard } from "@/components/leads/snooze-lead-card";
+import { resolveLeadIntelligenceFromLeadData } from "@/lib/ai/lead-intelligence";
 import { requireProfile } from "@/lib/auth/session";
+import { buildBookingPaymentTotals } from "@/lib/bookings/payment-summary";
 import {
   formatAssignedUserLabel,
   getLeadAssigneeName,
 } from "@/lib/leads/assignment";
+import { calculateLeadHealthScore } from "@/lib/leads/health-score";
+import {
+  buildBookingReadiness,
+  buildExtendedLeadTimeline,
+  buildLeadFollowUpHistory,
+  loadLeadConversationContext,
+  mapActivitiesForTimeline,
+} from "@/lib/leads/lead-customer-360";
+import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
+import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
+import { formatLeadTimelineDateTime } from "@/lib/leads/timeline";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
-import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
-import { QuotationCard } from "@/components/leads/quotation-card";
-import { AiSalesIntelligenceCard } from "@/components/leads/ai-sales-intelligence-card";
-import { hasPendingRecommendedFollowUpTask } from "@/lib/leads/next-best-action";
-import { calculateLeadHealthScore } from "@/lib/leads/health-score";
-import { LeadTemperatureBadge } from "@/components/leads/lead-temperature-badge";
-import { formatLeadDate } from "@/lib/leads/lead-date";
-import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
-import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
-import { resolveLeadIntelligenceFromLeadData } from "@/lib/ai/lead-intelligence";
-import { LeadHealthScoreCard } from "@/components/leads/lead-health-score-card";
-import { SnoozeLeadCard } from "@/components/leads/snooze-lead-card";
-import { FollowUpTasksCard } from "@/components/leads/follow-up-tasks-card";
-import { LeadTimelineCard } from "@/components/leads/lead-timeline-card";
-import {
-  buildLeadTimeline,
-  resolveLeadActivityActorName,
-} from "@/lib/leads/timeline";
 
 type LeadDetail = {
   id: string;
@@ -77,12 +86,8 @@ type LeadActivityRow = {
   occurred_at: string;
   metadata: Record<string, unknown> | null;
   profiles:
-    | {
-        full_name: string | null;
-      }
-    | {
-        full_name: string | null;
-      }[]
+    | { full_name: string | null }
+    | { full_name: string | null }[]
     | null;
 };
 
@@ -92,32 +97,34 @@ type FollowUpTask = {
   description: string | null;
   due_date: string;
   status: string;
+  created_by: string | null;
 };
 
 type RelatedBooking = {
   id: string;
   booking_code: string | null;
   package_name: string | null;
+  total_amount: number;
   payment_status: string;
   booking_status: string;
 };
 
-
-function formatLabel(value: string) {
-  return value.replace(/_/g, " ");
-}
-
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZone: "Asia/Jakarta",
   }).format(new Date(value));
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "long",
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
     timeZone: "Asia/Jakarta",
   }).format(new Date(value));
 }
@@ -135,34 +142,11 @@ function formatContact(lead: LeadDetail) {
     return `${lead.whatsapp_number} / ${lead.phone}`;
   }
 
-  return lead.whatsapp_number || lead.phone || "-";
+  return lead.whatsapp_number || lead.phone || "—";
 }
 
-function getCampaignName(detail: LeadDetail) {
-  if (!detail.campaign_id) {
-    return null;
-  }
-
-  const campaign = Array.isArray(detail.campaigns)
-    ? detail.campaigns[0]
-    : detail.campaigns;
-
-  return campaign?.name ?? null;
-}
-
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-sm font-medium">{value}</dd>
-    </div>
-  );
+function formatLabel(value: string) {
+  return value.replace(/_/g, " ");
 }
 
 export default async function LeadDetailPage({
@@ -183,10 +167,10 @@ export default async function LeadDetailPage({
     { data: followUps, error: followUpsError },
     { data: relatedBooking, error: relatedBookingError },
   ] = await Promise.all([
-      supabase
-        .from("leads")
-        .select(
-          `
+    supabase
+      .from("leads")
+      .select(
+        `
           id,
           full_name,
           phone,
@@ -216,34 +200,34 @@ export default async function LeadDetailPage({
             full_name
           )
         `,
-        )
-        .eq("id", id)
-        .eq("organization_id", profile.organization_id)
-        .is("deleted_at", null)
-        .maybeSingle(),
-      supabase
-        .from("lead_activities")
-        .select(
-          "id, activity_type, title, body, occurred_at, metadata, profiles:actor_id(full_name)",
-        )
-        .eq("lead_id", id)
-        .eq("organization_id", profile.organization_id)
-        .order("occurred_at", { ascending: false }),
-        supabase
-  .from("follow_up_tasks")
-  .select("id, title, description, due_date, status")
-  .eq("lead_id", id)
-  .eq("organization_id", profile.organization_id)
-  .order("due_date", { ascending: true }),
-      supabase
-        .from("bookings")
-        .select("id, booking_code, package_name, payment_status, booking_status")
-        .eq("lead_id", id)
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+      )
+      .eq("id", id)
+      .eq("organization_id", profile.organization_id)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    supabase
+      .from("lead_activities")
+      .select(
+        "id, activity_type, title, body, occurred_at, metadata, profiles:actor_id(full_name)",
+      )
+      .eq("lead_id", id)
+      .eq("organization_id", profile.organization_id)
+      .order("occurred_at", { ascending: false }),
+    supabase
+      .from("follow_up_tasks")
+      .select("id, title, description, due_date, status, created_by")
+      .eq("lead_id", id)
+      .eq("organization_id", profile.organization_id)
+      .order("due_date", { ascending: true }),
+    supabase
+      .from("bookings")
+      .select("id, booking_code, package_name, total_amount, payment_status, booking_status")
+      .eq("lead_id", id)
+      .eq("organization_id", profile.organization_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (error || activitiesError || followUpsError || relatedBookingError) {
     throw new Error("Gagal memuat detail lead.");
@@ -255,37 +239,83 @@ export default async function LeadDetailPage({
 
   const detail = lead as LeadDetail;
   const activityRows = (activities ?? []) as LeadActivityRow[];
-  const timelineEvents = buildLeadTimeline({
+  const followUpTasks = (followUps ?? []) as FollowUpTask[];
+  const booking = relatedBooking as RelatedBooking | null;
+  let bookingPaymentSummary: {
+    outstandingBalance: number;
+    lastPaymentDate: string | null;
+  } | null = null;
+
+  if (booking) {
+    const { data: bookingPayments, error: bookingPaymentsError } = await supabase
+      .from("booking_payments")
+      .select("payment_type, amount, payment_date")
+      .eq("booking_id", booking.id)
+      .order("payment_date", { ascending: false, nullsFirst: false });
+
+    if (bookingPaymentsError) {
+      throw new Error("Gagal memuat data pembayaran booking.");
+    }
+
+    bookingPaymentSummary = buildBookingPaymentTotals(
+      Number(booking.total_amount),
+      bookingPayments ?? [],
+    );
+  }
+
+  const assignedToLabel = formatAssignedUserLabel(
+    getLeadAssigneeName(detail.profiles),
+  );
+
+  const conversationContext = await loadLeadConversationContext(
+    supabase,
+    profile.organization_id,
+    detail,
+  );
+
+  const timelineActivities = mapActivitiesForTimeline(activityRows);
+  const timelineEvents = buildExtendedLeadTimeline({
     leadId: detail.id,
     leadCreatedAt: detail.created_at,
     leadMetadata: detail.metadata,
-    activities: activityRows.map((activity) => ({
-      id: activity.id,
-      activity_type: activity.activity_type,
-      title: activity.title,
-      body: activity.body,
-      occurred_at: activity.occurred_at,
-      metadata: activity.metadata,
-      actorName: resolveLeadActivityActorName(activity.profiles),
-    })),
+    activities: timelineActivities,
+    conversation: conversationContext,
   });
-  const followUpTasks = (followUps ?? []) as FollowUpTask[];
-  const booking = relatedBooking as RelatedBooking | null;
-  const hasPendingRecommendedTask = hasPendingRecommendedFollowUpTask(
-    detail.status,
+
+  const followUpHistory = buildLeadFollowUpHistory(
     followUpTasks,
+    activityRows,
+    getLeadAssigneeName(detail.profiles),
   );
+
+  const { data: selectedPackage } = detail.package_interest
+    ? await supabase
+        .from("packages")
+        .select("name, destination, departure_date, duration_days, price_idr, quota")
+        .eq("organization_id", profile.organization_id)
+        .eq("name", detail.package_interest)
+        .maybeSingle()
+    : { data: null };
+
+  const bookingReadiness = buildBookingReadiness(
+    detail,
+    Boolean(selectedPackage),
+  );
+
   const healthScore = calculateLeadHealthScore({
     assignedTo: detail.assigned_to,
     updatedAt: detail.updated_at,
     status: detail.status,
-    followUpTaskCount: followUpTasks.length,
+    followUpTaskCount: followUpTasks.filter((task) => task.status !== "completed")
+      .length,
   });
+
   const leadTemperature = getEffectiveLeadTemperature({
     lead_temperature: detail.lead_temperature,
     status: detail.status,
     updated_at: detail.updated_at,
   });
+
   const leadIntelligence = resolveLeadIntelligenceFromLeadData({
     metadata: detail.metadata,
     updatedAt: detail.updated_at,
@@ -301,17 +331,14 @@ export default async function LeadDetailPage({
     })),
     followUpTasks,
   });
-  const { data: selectedPackage } = detail.package_interest
-  ? await supabase
-      .from("packages")
-      .select("name, destination, departure_date, duration_days, price_idr, quota")
-      .eq("organization_id", profile.organization_id)
-      .eq("name", detail.package_interest)
-      .maybeSingle()
-  : { data: null };
 
-const quotationText = selectedPackage
-  ? `Assalamualaikum ${detail.full_name},
+  const hasPendingRecommendedTask = hasPendingRecommendedFollowUpTask(
+    detail.status,
+    followUpTasks,
+  );
+
+  const quotationText = selectedPackage
+    ? `Assalamualaikum ${detail.full_name},
 
 Terima kasih atas ketertarikannya pada paket:
 
@@ -343,312 +370,249 @@ ${selectedPackage.quota ?? "-"} pax
 Apabila berkenan, kami siap membantu proses reservasi dan menjawab pertanyaan lebih lanjut.
 
 Terima kasih.`
-  : "";
+    : "";
 
-  return (
-    <div className="mx-auto w-full max-w-screen-2xl space-y-6">
-      {query?.error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
-          {decodeURIComponent(query.error)}
-        </div>
-      )}
-
-      {query?.success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
-          {decodeURIComponent(query.success)}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-  <Link
-    href="/leads"
-    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-  >
-    Kembali
-  </Link>
-
-  <Link
-    href={`/leads/${detail.id}/edit`}
-    className={cn(buttonVariants({ size: "sm" }))}
-  >
-    Edit Lead
-  </Link>
-
-  {!booking && (
+  const createBookingAction = (
     <form action={convertLeadToBooking}>
       <input type="hidden" name="lead_id" value={detail.id} />
       <button
         type="submit"
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
       >
-        Convert to Booking
+        Create booking
       </button>
     </form>
-  )}
-</div>
+  );
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>{detail.full_name}</CardTitle>
-          <div className="mt-3">
-  {formatContact(detail) !== "-" && (
-    <a
-      href={`https://wa.me/${formatContact(detail).replace(/\D/g, "")}`}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex rounded bg-green-600 px-3 py-2 text-sm text-white"
-    >
-      Buka WhatsApp
-    </a>
-  )}
-</div>
-          <CardDescription>Detail lead</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-5 sm:grid-cols-2">
-            <DetailItem label="WhatsApp / Telepon" value={formatContact(detail)} />
-            <DetailItem label="Email" value={detail.email || "-"} />
-            <DetailItem
-              label="Lead Source"
-              value={formatLeadSourceLabel(detail.source)}
-            />
-            <DetailItem
-              label="Campaign"
-              value={
-                getCampaignName(detail) ? (
-                  <Link
-                    href={`/campaigns/${detail.campaign_id}`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    {getCampaignName(detail)}
-                  </Link>
-                ) : (
-                  "-"
-                )
-              }
-            />
-            <DetailItem
-              label="Minat"
-              value={
-                <span className="capitalize">{formatLabel(detail.interest_type)}</span>
-              }
-            />
-            <DetailItem
-              label="Paket Diminati"
-              value={detail.package_interest || "-"}
-            />
-            <DetailItem
-              label="Status"
-              value={<span className="capitalize">{formatLabel(detail.status)}</span>}
-            />
-            <DetailItem
-              label="Lead Temperature"
-              value={
-                <LeadTemperatureBadge
-                  value={leadTemperature.value}
-                  isSuggested={leadTemperature.isSuggested}
-                />
-              }
-            />
-            <DetailItem
-              label="Prioritas"
-              value={<span className="capitalize">{formatLabel(detail.priority)}</span>}
-            />
-            <DetailItem
-              label="Assigned User"
-              value={formatAssignedUserLabel(
-                getLeadAssigneeName(detail.profiles),
-              )}
-            />
-            <DetailItem
-              label="Budget"
-              value={
-                detail.budget_idr != null
-                  ? formatCurrency(detail.budget_idr)
-                  : "-"
-              }
-            />
-            <DetailItem
-              label="Tanggal Keberangkatan"
-              value={
-                detail.travel_date_preference
-                  ? formatDate(detail.travel_date_preference)
-                  : "-"
-              }
-            />
-            <DetailItem
-              label="Jumlah Peserta"
-              value={detail.party_size ?? "-"}
-            />
-            <DetailItem
-              label="Tanggal Lead Masuk"
-              value={
-                detail.lead_date ? formatLeadDate(detail.lead_date) : "-"
-              }
-            />
-            <DetailItem
-              label="Dibuat di CRM"
-              value={formatDateTime(detail.created_at)}
-            />
-            <div className="space-y-1 sm:col-span-2">
-              <dt className="text-sm text-muted-foreground">Catatan</dt>
-              <dd className="whitespace-pre-wrap text-sm font-medium">
-                {detail.notes || "-"}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
-
-      {booking && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking Terkait</CardTitle>
-            <CardDescription>
-              Lead ini sudah dikonversi menjadi booking.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-5 sm:grid-cols-2">
-              <DetailItem
-                label="Booking Code"
-                value={booking.booking_code || booking.id}
-              />
-              <DetailItem
-                label="Package Name"
-                value={booking.package_name || "-"}
-              />
-              <DetailItem
-                label="Payment Status"
-                value={<PaymentStatusBadge status={booking.payment_status} />}
-              />
-              <DetailItem
-                label="Booking Status"
-                value={
-                  <span className="capitalize">
-                    {formatLabel(booking.booking_status)}
-                  </span>
-                }
-              />
-            </dl>
-
-            <div className="mt-4">
-              <Link
-                href={`/bookings/${booking.id}`}
-                className={cn(buttonVariants({ size: "sm" }))}
-              >
-                Lihat Booking
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <LeadTimelineCard
-        leadId={detail.id}
-        events={timelineEvents}
-        createLeadActivity={createLeadActivity}
-      />
+  return (
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 overflow-x-hidden pb-24 lg:pb-0">
+      {query?.error ? (
+        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
+          {decodeURIComponent(query.error)}
         </div>
+      ) : null}
 
-        <div className="space-y-6 lg:col-span-1">
-      <LeadHealthScoreCard healthScore={healthScore} />
+      {query?.success ? (
+        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+          {decodeURIComponent(query.success)}
+        </div>
+      ) : null}
 
-      <AiSalesIntelligenceCard
+      <LeadDetailHeader
         leadId={detail.id}
         fullName={detail.full_name}
-        packageInterest={detail.package_interest}
-        whatsappNumber={detail.whatsapp_number}
-        phone={detail.phone}
         status={detail.status}
-        updatedAt={detail.updated_at}
-        hasPendingRecommendedTask={hasPendingRecommendedTask}
-        createFollowUpFromRecommendation={createFollowUpFromRecommendation}
-        initialIntelligence={leadIntelligence}
+        source={detail.source}
+        assignedToLabel={assignedToLabel}
+        createdAtLabel={formatDateTime(detail.created_at)}
+        leadTemperature={leadTemperature}
+        conversationHref={conversationContext?.inboxHref ?? null}
+        hasBooking={Boolean(booking)}
+        createBookingAction={createBookingAction}
       />
 
-      <QuotationCard
-        leadId={detail.id}
-        selectedPackage={selectedPackage}
-        quotationText={quotationText}
-        contactPhone={formatContact(detail)}
-      />
-      
-      <SnoozeLeadCard leadId={detail.id} snoozeUntil={detail.snooze_until} />
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-6">
+          <LeadDetailSummaryCard
+            phone={formatContact(detail)}
+            email={detail.email || "—"}
+            destinationInterest={detail.package_interest || "—"}
+            travelDate={
+              detail.travel_date_preference
+                ? formatDate(detail.travel_date_preference)
+                : "—"
+            }
+            pax={detail.party_size != null ? String(detail.party_size) : "—"}
+            budgetLabel={
+              detail.budget_idr != null
+                ? formatCurrency(detail.budget_idr)
+                : "—"
+            }
+            packageInterest={detail.package_interest || "—"}
+            leadScore={healthScore.score}
+            leadScoreBadge={healthScore.badge}
+            intentLevel={leadTemperature.value}
+            intentSuggested={leadTemperature.isSuggested}
+            notes={detail.notes || "—"}
+          />
 
-      <Card>
-  <CardHeader>
-    <CardTitle>Jadwalkan Follow Up</CardTitle>
-    <CardDescription>
-      Buat pengingat follow up untuk lead ini.
-    </CardDescription>
-  </CardHeader>
+          {conversationContext ? (
+            <LeadConversationContextCard
+              channelLabel={conversationContext.channelLabel}
+              customerName={conversationContext.customerName}
+              status={conversationContext.status}
+              lastMessageAtLabel={
+                conversationContext.lastMessageAt
+                  ? formatDateTime(conversationContext.lastMessageAt)
+                  : "—"
+              }
+              inboxHref={conversationContext.inboxHref}
+              messages={conversationContext.recentMessages.map((message) => ({
+                ...message,
+                createdAtLabel: formatLeadTimelineDateTime(message.createdAt),
+              }))}
+            />
+          ) : null}
 
-  <CardContent>
-    <form action={createFollowUpTask} className="space-y-4">
+          <LeadTimelineCard
+            leadId={detail.id}
+            events={timelineEvents}
+            createLeadActivity={createLeadActivity}
+          />
 
-      <input
-        type="hidden"
-        name="lead_id"
-        value={detail.id}
-      />
+          {booking ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Related booking</CardTitle>
+                <CardDescription>
+                  This lead has been converted to a booking.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Booking code</dt>
+                    <dd className="text-sm font-medium">
+                      {booking.booking_code || booking.id}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Package</dt>
+                    <dd className="text-sm font-medium">
+                      {booking.package_name || "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Payment</dt>
+                    <dd>
+                      <PaymentStatusBadge status={booking.payment_status} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">
+                      Outstanding balance
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {bookingPaymentSummary
+                        ? formatCurrency(bookingPaymentSummary.outstandingBalance)
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">
+                      Last payment date
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {bookingPaymentSummary?.lastPaymentDate
+                        ? formatDate(bookingPaymentSummary.lastPaymentDate)
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Status</dt>
+                    <dd className="text-sm font-medium capitalize">
+                      {formatLabel(booking.booking_status)}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-4">
+                  <Link
+                    href={`/bookings/${booking.id}`}
+                    className={cn(buttonVariants({ size: "sm" }))}
+                  >
+                    View booking
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
 
-      <div>
-        <label className="text-sm font-medium">
-          Judul
-        </label>
+        <div className="space-y-6">
+          <LeadBookingReadinessCard
+            readiness={bookingReadiness}
+            leadId={detail.id}
+            hasBooking={Boolean(booking)}
+            createBookingAction={createBookingAction}
+          />
 
-        <input
-          name="title"
-          required
-          placeholder="Telepon kembali"
-          className="mt-1 w-full rounded-md border px-3 py-2"
-        />
-      </div>
+          <LeadFollowUpHistoryCard
+            followUpTasks={followUpHistory}
+            leadId={detail.id}
+            completeFollowUpTask={completeFollowUpTask}
+          />
 
-      <div>
-        <label className="text-sm font-medium">
-          Tanggal Follow Up
-        </label>
+          <Card id="create-follow-up">
+            <CardHeader>
+              <CardTitle>Create follow up</CardTitle>
+              <CardDescription>
+                Schedule a reminder for this lead.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={createFollowUpTask} className="space-y-4">
+                <input type="hidden" name="lead_id" value={detail.id} />
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <input
+                    name="title"
+                    required
+                    placeholder="Call back customer"
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Due date</label>
+                  <input
+                    type="datetime-local"
+                    name="due_date"
+                    required
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Notes</label>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className={cn(buttonVariants({ size: "sm" }), "w-full")}
+                >
+                  Save follow up
+                </button>
+              </form>
+            </CardContent>
+          </Card>
 
-        <input
-          type="datetime-local"
-          name="due_date"
-          required
-          className="mt-1 w-full rounded-md border px-3 py-2"
-        />
-      </div>
+          <LeadHealthScoreCard healthScore={healthScore} />
 
-      <div>
-        <label className="text-sm font-medium">
-          Catatan
-        </label>
+          <AiFollowUpAssistantCard leadId={detail.id} />
 
-        <textarea
-          name="description"
-          rows={3}
-          className="mt-1 w-full rounded-md border px-3 py-2"
-        />
-      </div>
+          <AiSalesIntelligenceCard
+            leadId={detail.id}
+            fullName={detail.full_name}
+            packageInterest={detail.package_interest}
+            whatsappNumber={detail.whatsapp_number}
+            phone={detail.phone}
+            status={detail.status}
+            updatedAt={detail.updated_at}
+            hasPendingRecommendedTask={hasPendingRecommendedTask}
+            createFollowUpFromRecommendation={createFollowUpFromRecommendation}
+            initialIntelligence={leadIntelligence}
+          />
 
-      <button
-        type="submit"
-        className="rounded-md bg-blue-600 px-4 py-2 text-white"
-      >
-        Simpan Follow Up
-      </button>
+          <QuotationCard
+            leadId={detail.id}
+            selectedPackage={selectedPackage}
+            quotationText={quotationText}
+            contactPhone={formatContact(detail)}
+          />
 
-    </form>
-  </CardContent>
-</Card>
-
-<FollowUpTasksCard
-  leadId={detail.id}
-  followUpTasks={followUpTasks}
-  completeFollowUpTask={completeFollowUpTask}
-/>
+          <SnoozeLeadCard leadId={detail.id} snoozeUntil={detail.snooze_until} />
         </div>
       </div>
     </div>

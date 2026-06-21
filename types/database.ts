@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_name: string
+          actor_role: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          id: string
+          metadata_json: Json
+          organization_id: string
+        }
+        Insert: {
+          action: string
+          actor_name: string
+          actor_role: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          metadata_json?: Json
+          organization_id: string
+        }
+        Update: {
+          action?: string
+          actor_name?: string
+          actor_role?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          metadata_json?: Json
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_generation_logs: {
         Row: {
           created_at: string
@@ -275,8 +332,10 @@ export type Database = {
           id: string
           notes: string | null
           payment_date: string | null
+          payment_method: string | null
           payment_type: string
           proof_url: string | null
+          reference_number: string | null
         }
         Insert: {
           amount?: number
@@ -285,8 +344,10 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_date?: string | null
+          payment_method?: string | null
           payment_type: string
           proof_url?: string | null
+          reference_number?: string | null
         }
         Update: {
           amount?: number
@@ -295,8 +356,10 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_date?: string | null
+          payment_method?: string | null
           payment_type?: string
           proof_url?: string | null
+          reference_number?: string | null
         }
         Relationships: [
           {
@@ -753,6 +816,7 @@ export type Database = {
           external_user_id: string | null
           id: string
           last_message_at: string | null
+          lead_id: string | null
           organization_id: string
           status: Database["public"]["Enums"]["omnichannel_conversation_status"]
           unread_count: number
@@ -769,6 +833,7 @@ export type Database = {
           external_user_id?: string | null
           id?: string
           last_message_at?: string | null
+          lead_id?: string | null
           organization_id: string
           status?: Database["public"]["Enums"]["omnichannel_conversation_status"]
           unread_count?: number
@@ -785,6 +850,7 @@ export type Database = {
           external_user_id?: string | null
           id?: string
           last_message_at?: string | null
+          lead_id?: string | null
           organization_id?: string
           status?: Database["public"]["Enums"]["omnichannel_conversation_status"]
           unread_count?: number
@@ -2107,7 +2173,7 @@ export type Database = {
         | "custom"
       score_tier: "cold" | "warm" | "hot"
       subscription_status: "trialing" | "active" | "past_due" | "canceled"
-      user_role: "owner" | "admin" | "agent"
+      user_role: "owner" | "admin" | "agent" | "sales" | "marketing" | "finance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2314,7 +2380,7 @@ export const Constants = {
       ],
       score_tier: ["cold", "warm", "hot"],
       subscription_status: ["trialing", "active", "past_due", "canceled"],
-      user_role: ["owner", "admin", "agent"],
+      user_role: ["owner", "admin", "agent", "sales", "marketing", "finance"],
     },
   },
 } as const

@@ -6,7 +6,13 @@ import type { UserRole } from "@/types/app-types";
 import type { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
-export const INVITE_ROLES = ["admin", "agent"] as const;
+export const INVITE_ROLES = [
+  "admin",
+  "agent",
+  "sales",
+  "marketing",
+  "finance",
+] as const;
 
 export type InviteRole = (typeof INVITE_ROLES)[number];
 

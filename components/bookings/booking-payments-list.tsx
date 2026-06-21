@@ -6,10 +6,18 @@ import {
   deleteBookingPayment,
   updateBookingPayment,
 } from "@/app/(dashboard)/bookings/[id]/actions";
+import {
+  BOOKING_PAYMENT_METHODS,
+  BOOKING_PAYMENT_TYPES,
+  formatPaymentMethodLabel,
+  formatPaymentTypeLabel,
+} from "@/lib/bookings/payment-fields";
 
 export type BookingPaymentItem = {
   id: string;
   payment_type: string;
+  payment_method: string | null;
+  reference_number: string | null;
   amount: number;
   payment_date: string | null;
   notes: string | null;
@@ -18,6 +26,7 @@ export type BookingPaymentItem = {
 type BookingPaymentsListProps = {
   bookingId: string;
   payments: BookingPaymentItem[];
+  canManagePayments?: boolean;
 };
 
 const inputClassName =
@@ -38,16 +47,6 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function formatPaymentType(value: string) {
-  const labels: Record<string, string> = {
-    dp: "DP",
-    installment: "Installment",
-    final: "Final",
-  };
-
-  return labels[value] ?? value;
-}
-
 function toDateInputValue(value: string | null) {
   if (!value) {
     return "";
@@ -56,9 +55,22 @@ function toDateInputValue(value: string | null) {
   return value.slice(0, 10);
 }
 
+function resolvePaymentTypeValue(paymentType: string) {
+  if (paymentType === "dp") {
+    return "down_payment";
+  }
+
+  if (paymentType === "final") {
+    return "final_payment";
+  }
+
+  return paymentType;
+}
+
 export function BookingPaymentsList({
   bookingId,
   payments,
+  canManagePayments = true,
 }: BookingPaymentsListProps) {
   const [editingPayment, setEditingPayment] =
     useState<BookingPaymentItem | null>(null);
@@ -74,21 +86,28 @@ export function BookingPaymentsList({
   return (
     <>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[960px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="px-4 py-3 font-medium">Payment Type</th>
+              <th className="px-4 py-3 font-medium">Method</th>
               <th className="px-4 py-3 font-medium">Amount</th>
               <th className="px-4 py-3 font-medium">Payment Date</th>
+              <th className="px-4 py-3 font-medium">Reference</th>
               <th className="px-4 py-3 font-medium">Notes</th>
-              <th className="px-4 py-3 font-medium">Aksi</th>
+              {canManagePayments ? (
+                <th className="px-4 py-3 font-medium">Aksi</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
             {payments.map((payment) => (
               <tr key={payment.id} className="border-b last:border-b-0">
                 <td className="px-4 py-3 font-medium">
-                  {formatPaymentType(payment.payment_type)}
+                  {formatPaymentTypeLabel(payment.payment_type)}
+                </td>
+                <td className="px-4 py-3">
+                  {formatPaymentMethodLabel(payment.payment_method)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   {formatCurrency(Number(payment.amount))}
@@ -98,43 +117,46 @@ export function BookingPaymentsList({
                     ? formatDate(payment.payment_date)
                     : "-"}
                 </td>
+                <td className="px-4 py-3">{payment.reference_number || "-"}</td>
                 <td className="px-4 py-3">{payment.notes || "-"}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingPayment(payment)}
-                      className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-600"
-                    >
-                      Edit
-                    </button>
-                    <form action={deleteBookingPayment}>
-                      <input
-                        type="hidden"
-                        name="booking_id"
-                        value={bookingId}
-                      />
-                      <input
-                        type="hidden"
-                        name="payment_id"
-                        value={payment.id}
-                      />
+                {canManagePayments ? (
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
                       <button
-                        type="submit"
-                        className="rounded border border-red-600 px-2 py-1 text-xs text-red-600"
+                        type="button"
+                        onClick={() => setEditingPayment(payment)}
+                        className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-600"
                       >
-                        Hapus
+                        Edit
                       </button>
-                    </form>
-                  </div>
-                </td>
+                      <form action={deleteBookingPayment}>
+                        <input
+                          type="hidden"
+                          name="booking_id"
+                          value={bookingId}
+                        />
+                        <input
+                          type="hidden"
+                          name="payment_id"
+                          value={payment.id}
+                        />
+                        <button
+                          type="submit"
+                          className="rounded border border-red-600 px-2 py-1 text-xs text-red-600"
+                        >
+                          Hapus
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {editingPayment && (
+      {editingPayment && canManagePayments && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"
@@ -156,39 +178,73 @@ export function BookingPaymentsList({
                 value={editingPayment.id}
               />
 
-              <div>
-                <label className="text-sm font-medium">Payment Type</label>
-                <select
-                  name="payment_type"
-                  required
-                  defaultValue={editingPayment.payment_type}
-                  className={inputClassName}
-                >
-                  <option value="dp">DP</option>
-                  <option value="installment">Installment</option>
-                  <option value="final">Final</option>
-                </select>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium">Payment Date</label>
+                  <input
+                    name="payment_date"
+                    type="date"
+                    defaultValue={toDateInputValue(editingPayment.payment_date)}
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Amount</label>
+                  <input
+                    name="amount"
+                    type="number"
+                    min={0}
+                    required
+                    defaultValue={Number(editingPayment.amount)}
+                    className={inputClassName}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium">Payment Method</label>
+                  <select
+                    name="payment_method"
+                    defaultValue={editingPayment.payment_method ?? "bank_transfer"}
+                    className={inputClassName}
+                  >
+                    {BOOKING_PAYMENT_METHODS.map((method) => (
+                      <option key={method} value={method}>
+                        {formatPaymentMethodLabel(method)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Payment Type</label>
+                  <select
+                    name="payment_type"
+                    required
+                    defaultValue={resolvePaymentTypeValue(
+                      editingPayment.payment_type,
+                    )}
+                    className={inputClassName}
+                  >
+                    {BOOKING_PAYMENT_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {formatPaymentTypeLabel(type)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Amount</label>
+                <label className="text-sm font-medium">Reference Number</label>
                 <input
-                  name="amount"
-                  type="number"
-                  min={0}
-                  required
-                  defaultValue={Number(editingPayment.amount)}
+                  name="reference_number"
+                  type="text"
+                  defaultValue={editingPayment.reference_number ?? ""}
                   className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Payment Date</label>
-                <input
-                  name="payment_date"
-                  type="date"
-                  defaultValue={toDateInputValue(editingPayment.payment_date)}
-                  className={inputClassName}
+                  placeholder="No. transfer / invoice"
                 />
               </div>
 

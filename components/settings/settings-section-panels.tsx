@@ -11,6 +11,7 @@ import {
   saveInboxSettings,
   saveNotificationSettings,
 } from "@/app/(dashboard)/settings/actions";
+import { AuditLogsPanel } from "@/components/settings/audit-logs-panel";
 import { IntegrationsGrid } from "@/components/settings/integrations-grid";
 import { InviteMemberPanel } from "@/components/settings/invite-member-panel";
 import { TeamInvitesTable } from "@/components/settings/team-invites-table";
@@ -146,11 +147,8 @@ function formatLastActive(value: string) {
 
 function PermissionBadge({ level }: { level: PermissionLevel }) {
   const styles: Record<PermissionLevel, string> = {
-    full: "bg-emerald-100 text-emerald-800",
-    limited: "bg-blue-100 text-blue-800",
-    view: "bg-slate-100 text-slate-700",
-    none: "bg-red-50 text-red-700",
-    planned: "bg-amber-100 text-amber-800",
+    allowed: "bg-emerald-100 text-emerald-800",
+    denied: "bg-red-50 text-red-700",
   };
 
   return (
@@ -282,17 +280,17 @@ function GeneralSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
 }
 
 function TeamSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
-  const { teamMembers, invites, profile, canManage } = data;
+  const { teamMembers, invites, profile, canManageTeam } = data;
 
   return (
     <div className="space-y-6">
-      {canManage ? <InviteMemberPanel /> : null}
+      {canManageTeam ? <InviteMemberPanel /> : null}
 
       <SettingsCard
         title="Team members"
         description="People with access to this Desklabs workspace."
       >
-        {canManage ? (
+        {canManageTeam ? (
           <TeamMembersTable
             members={teamMembers}
             currentUserId={profile.id}
@@ -331,7 +329,7 @@ function TeamSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
         )}
       </SettingsCard>
 
-      {canManage && invites.length > 0 ? (
+      {canManageTeam && invites.length > 0 ? (
         <SettingsCard title="Pending invites" description="Outstanding team invitations.">
           <TeamInvitesTable invites={invites} />
         </SettingsCard>
@@ -345,7 +343,7 @@ function RolesSettingsPanel() {
     <div className="space-y-6">
       <SettingsCard
         title="Role overview"
-        description="How access is structured across Desklabs today. Marketing and Finance roles are planned for a future release."
+        description="Default role mapping enforced across Desklabs. Custom per-user overrides will come in a future release."
       >
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {PERMISSION_MATRIX_ROLES.map((role) => (
@@ -353,10 +351,12 @@ function RolesSettingsPanel() {
               <p className="font-semibold">{role}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {role === "Sales"
-                  ? "Maps to the current Agent role in Desklabs."
-                  : role === "Marketing" || role === "Finance"
-                    ? "Planned role — shown for workspace planning."
-                    : "Full workspace administration access."}
+                  ? "Includes legacy Agent users mapped to Sales permissions."
+                  : role === "Admin"
+                    ? "Full workspace access except owner-only billing actions."
+                    : role === "Owner"
+                      ? "Full access to all modules and settings."
+                      : `${role} role with module-specific defaults.`}
               </p>
             </div>
           ))}
@@ -365,7 +365,7 @@ function RolesSettingsPanel() {
 
       <SettingsCard
         title="Permission matrix"
-        description="A quick view of what each role can do in the product."
+        description="Read-only view of default capabilities by role."
       >
         <div className="overflow-x-auto rounded-xl border">
           <table className="w-full min-w-[920px] text-sm">
@@ -463,12 +463,12 @@ function IntegrationsSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
 
         <IntegrationsGrid
           integrations={orderedIntegrations}
-          canManage={data.canManage}
+          canManage={data.canManageIntegrations}
           settingsReturnPath="/settings?section=integrations"
         />
       </SettingsCard>
 
-      {data.canManage ? (
+      {data.canManageIntegrations ? (
         <div className="flex flex-wrap gap-4 text-sm">
           <Link
             href="/settings/integrations/instagram/webhook"
@@ -523,7 +523,7 @@ function ToggleRow({
 }
 
 function AiSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
-  const { workspaceSettings, canManage } = data;
+  const { workspaceSettings, canManageAi } = data;
   const { message, error, isPending, handleSubmit } =
     useSettingsFormAction(saveAiSettings);
 
@@ -539,15 +539,15 @@ function AiSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
             label="AI Auto Reply"
             description="Allow AI to send replies automatically when auto reply mode is enabled."
             defaultChecked={workspaceSettings.ai.autoReplyEnabled}
-            disabled={!canManage || isPending}
+            disabled={!canManageAi || isPending}
           />
 
           <Field label="Response Mode">
             <select
               name="responseMode"
               defaultValue={workspaceSettings.ai.responseMode}
-              disabled={!canManage || isPending}
-              className={inputClassName(!canManage)}
+              disabled={!canManageAi || isPending}
+              className={inputClassName(!canManageAi)}
             >
               <option value="manual_assist">Manual Assist</option>
               <option value="suggested_reply">Suggested Reply</option>
@@ -559,8 +559,8 @@ function AiSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
             <select
               name="tone"
               defaultValue={workspaceSettings.ai.tone}
-              disabled={!canManage || isPending}
-              className={inputClassName(!canManage)}
+              disabled={!canManageAi || isPending}
+              className={inputClassName(!canManageAi)}
             >
               <option value="professional">Professional</option>
               <option value="friendly">Friendly</option>
@@ -579,7 +579,7 @@ function AiSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
           label="Use Knowledge Hub context"
           description="When enabled, AI features can reference approved knowledge entries."
           defaultChecked={workspaceSettings.ai.knowledgeBaseEnabled}
-          disabled={!canManage || isPending}
+          disabled={!canManageAi || isPending}
         />
         <div className="mt-4 rounded-xl border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
           Advanced knowledge routing and per-channel AI policies are coming soon.
@@ -593,7 +593,7 @@ function AiSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
 
       <SettingsFeedback message={message} error={error} />
 
-      {canManage ? (
+      {canManageAi ? (
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending}>
             {isPending ? "Saving..." : "Save AI settings"}
@@ -773,6 +773,22 @@ export function SettingsSectionPanel({
       return <InboxSettingsPanel data={data} />;
     case "notifications":
       return <NotificationsSettingsPanel data={data} />;
+    case "audit":
+      if (!data.canViewAuditLogs) {
+        return (
+          <div className="rounded-2xl border bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+            Only owners and admins can view audit logs.
+          </div>
+        );
+      }
+
+      return (
+        <AuditLogsPanel
+          logs={data.auditLogs}
+          actors={data.auditActors}
+          filters={data.auditFilters}
+        />
+      );
     default:
       return <GeneralSettingsPanel data={data} />;
   }

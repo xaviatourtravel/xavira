@@ -13,16 +13,16 @@ type AdminDashboardViewProps = {
 
 export function AdminDashboardView({ metrics }: AdminDashboardViewProps) {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
+    <div className="mx-auto w-full max-w-7xl space-y-6 overflow-x-hidden">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
         <p className="text-muted-foreground">
           Ringkasan operasional tim dan performa sales organisasi.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <div className="rounded-xl border p-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
+        <div className="rounded-xl border p-4 md:p-6">
           <p className="text-sm text-muted-foreground">Total Leads</p>
           <h2 className="mt-2 text-3xl font-bold">{metrics.totalLeads}</h2>
         </div>

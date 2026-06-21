@@ -8,7 +8,7 @@ import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
 import { cn } from "@/lib/utils";
 
 const FILTERS: Array<{ value: OmnichannelInboxFilter; label: string }> = [
-  { value: "all", label: "All Conversations" },
+  { value: "all", label: "All" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
   { value: "unassigned", label: "Unassigned" },
@@ -39,43 +39,47 @@ export function OmnichannelInboxFilters({
 }) {
   const searchParams = useSearchParams();
   const currentConversationId = searchParams.get("c") ?? selectedConversationId;
+  const visibleActiveFilter = FILTERS.some((filter) => filter.value === activeFilter)
+    ? activeFilter
+    : "all";
 
   return (
-    <nav className="space-y-2">
-      <p className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Inbox Filters
-      </p>
-      <div className="space-y-1">
-        {FILTERS.map((filter) => {
-          const isActive = activeFilter === filter.value;
-          const count = filterCounts[filter.value];
+    <div
+      className="-mx-4 flex flex-nowrap gap-2 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      role="tablist"
+      aria-label="Conversation filters"
+    >
+      {FILTERS.map((filter) => {
+        const isActive = visibleActiveFilter === filter.value;
+        const count = filterCounts[filter.value];
 
-          return (
-            <Link
-              key={filter.value}
-              href={buildInboxHref(filter.value, currentConversationId)}
+        return (
+          <Link
+            key={filter.value}
+            href={buildInboxHref(filter.value, currentConversationId)}
+            role="tab"
+            aria-selected={isActive}
+            className={cn(
+              "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-xs font-medium transition-colors",
+              isActive
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted/50 text-foreground hover:bg-muted/80",
+            )}
+          >
+            <span>{filter.label}</span>
+            <span
               className={cn(
-                "flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-medium transition-all",
+                "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
                 isActive
-                  ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
-                  : "border-transparent bg-muted/40 text-foreground hover:border-border hover:bg-muted",
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-background text-muted-foreground",
               )}
             >
-              <span>{filter.label}</span>
-              <span
-                className={cn(
-                  "inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  isActive
-                    ? "bg-primary-foreground/20 text-primary-foreground"
-                    : "bg-background text-muted-foreground",
-                )}
-              >
-                {count}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+              {count}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }

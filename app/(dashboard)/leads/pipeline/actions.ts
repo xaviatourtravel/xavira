@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
+import { auditFromProfile } from "@/lib/audit";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -70,6 +71,18 @@ export async function updateLeadStatus(formData: FormData) {
     activity_type: "status_change",
     title: "Status lead berubah",
     body: `Status berubah dari ${existingLead.status} menjadi ${nextStatus}.`,
+  });
+
+  await auditFromProfile(supabase, profile, {
+    action: "lead_status_changed",
+    entityType: "lead",
+    entityId: leadId,
+    entityLabel: existingLead.full_name,
+    metadata: {
+      from: existingLead.status,
+      to: nextStatus,
+      source: "pipeline",
+    },
   });
 
   revalidatePath("/leads");

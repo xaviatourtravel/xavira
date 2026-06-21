@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 
 import { bulkDeleteLeads } from "@/app/(dashboard)/leads/actions";
 import { EditLeadModal } from "@/components/leads/edit-lead-modal";
@@ -118,7 +119,92 @@ export function LeadsListTable({
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="space-y-3 md:hidden">
+        {rows.map((lead) => (
+          <article
+            key={lead.id}
+            className="rounded-2xl border bg-card p-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link
+                  href={`/leads/${lead.id}`}
+                  className="block truncate text-base font-semibold text-primary hover:underline"
+                >
+                  {lead.fullName}
+                </Link>
+                <p className="mt-1 text-sm capitalize text-muted-foreground">
+                  {lead.statusLabel}
+                </p>
+              </div>
+
+              <details className="relative">
+                <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg border hover:bg-muted [&::-webkit-details-marker]:hidden">
+                  <MoreHorizontal className="h-4 w-4" />
+                </summary>
+                <div className="absolute right-0 z-10 mt-2 min-w-[160px] rounded-xl border bg-background p-1 shadow-lg">
+                  <Link
+                    href={`/leads/${lead.id}`}
+                    className="flex min-h-[44px] items-center rounded-lg px-3 text-sm hover:bg-muted"
+                  >
+                    View detail
+                  </Link>
+                  {lead.whatsAppHref ? (
+                    <a
+                      href={lead.whatsAppHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex min-h-[44px] items-center rounded-lg px-3 text-sm hover:bg-muted"
+                    >
+                      WhatsApp
+                    </a>
+                  ) : null}
+                  {lead.canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditingLeadId(lead.id)}
+                      className="flex min-h-[44px] w-full items-center rounded-lg px-3 text-left text-sm hover:bg-muted"
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
+              </details>
+            </div>
+
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">Source</dt>
+                <dd className="font-medium">{lead.sourceLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Assigned</dt>
+                <dd className="font-medium">{lead.assignedUserLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Package</dt>
+                <dd className="font-medium">{lead.packageInterest}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Lead date</dt>
+                <dd className="font-medium">{lead.leadDateLabel}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-4 border-t pt-3">
+              <LeadTemperatureInlineSelect
+                leadId={lead.id}
+                leadTemperature={lead.leadTemperature}
+                status={lead.status}
+                updatedAt={lead.updatedAt}
+                canEdit={lead.canEdit}
+              />
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <table className="w-full min-w-[1240px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>

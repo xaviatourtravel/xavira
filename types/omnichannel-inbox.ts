@@ -22,6 +22,7 @@ export type ConversationRow = {
   customer_username: string | null;
   customer_avatar: string | null;
   assigned_user_id: string | null;
+  lead_id: string | null;
   status: OmnichannelConversationStatus;
   unread_count: number;
   last_message_at: string | null;
@@ -39,6 +40,7 @@ export type ConversationInsert = {
   customer_username?: string | null;
   customer_avatar?: string | null;
   assigned_user_id?: string | null;
+  lead_id?: string | null;
   status?: OmnichannelConversationStatus;
   unread_count?: number;
   last_message_at?: string | null;
@@ -52,6 +54,7 @@ export type ConversationUpdate = {
   customer_username?: string | null;
   customer_avatar?: string | null;
   assigned_user_id?: string | null;
+  lead_id?: string | null;
   status?: OmnichannelConversationStatus;
   unread_count?: number;
   last_message_at?: string | null;

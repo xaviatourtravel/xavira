@@ -1,5 +1,16 @@
 import { AI_MODEL } from "@/lib/ai/client";
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import {
+  loadAuditLogActors,
+  loadAuditLogs,
+  type AuditLogRow,
+} from "@/lib/audit";
+import {
+  canManageIntegrations,
+  canManageTeam,
+  canManageWorkspaceSettings,
+  hasPermission,
+  isAdminOrOwner,
+} from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { loadOrganizationIntegrations } from "@/lib/integrations/queries";
 import {
@@ -22,15 +33,36 @@ export type SettingsTeamMember = TeamMemberRow & {
   lastActiveAt: string;
 };
 
+export type AuditLogFilterParams = {
+  entityType?: string;
+  actorUserId?: string;
+  action?: string;
+  fromDate?: string;
+  toDate?: string;
+};
+
 export type SettingsWorkspaceData = {
   activeSection: SettingsSectionId;
   canManage: boolean;
+  canManageTeam: boolean;
+  canManageIntegrations: boolean;
+  canManageAi: boolean;
+  canViewAuditLogs: boolean;
   profile: Profile;
   organization: Organization;
   workspaceSettings: OrganizationWorkspaceSettings;
   teamMembers: SettingsTeamMember[];
   invites: OrganizationInviteRow[];
   integrations: IntegrationCard[];
+  auditLogs: AuditLogRow[];
+  auditActors: Array<{ id: string; name: string }>;
+  auditFilters: {
+    entityType: string;
+    actorUserId: string;
+    action: string;
+    fromDate: string;
+    toDate: string;
+  };
 };
 
 function formatDateTime(value: string) {
@@ -102,10 +134,22 @@ function enrichIntegrations(
 
 export async function loadSettingsWorkspaceData(
   activeSection: SettingsSectionId,
+  auditFilterParams: AuditLogFilterParams = {},
 ): Promise<SettingsWorkspaceData> {
   const { profile } = await requireProfile();
-  const canManage = isAdminOrOwner(profile);
+  const canManage = canManageWorkspaceSettings(profile);
+  const canManageTeamAccess = canManageTeam(profile);
+  const canManageIntegrationsAccess = canManageIntegrations(profile);
+  const canManageAi = hasPermission(profile, "ai_settings.manage");
+  const canViewAuditLogs = isAdminOrOwner(profile);
   const supabase = await createClient();
+  const auditFilters = {
+    entityType: auditFilterParams.entityType ?? "",
+    actorUserId: auditFilterParams.actorUserId ?? "",
+    action: auditFilterParams.action ?? "",
+    fromDate: auditFilterParams.fromDate ?? "",
+    toDate: auditFilterParams.toDate ?? "",
+  };
 
   const [
     { data: organization, error: organizationError },
@@ -121,7 +165,7 @@ export async function loadSettingsWorkspaceData(
       .eq("id", profile.organization_id)
       .maybeSingle(),
     loadOrganizationTeamMembers(supabase, profile.organization_id),
-    canManage
+    canManageTeamAccess
       ? loadOrganizationInvites(supabase, profile.organization_id)
       : Promise.resolve([]),
     loadOrganizationIntegrations(supabase, profile.organization_id),
@@ -151,14 +195,34 @@ export async function loadSettingsWorkspaceData(
     lastActiveAt: activityByUserId.get(member.id) ?? member.created_at,
   }));
 
+  const [auditLogs, auditActors] = canViewAuditLogs
+    ? await Promise.all([
+        loadAuditLogs(supabase, profile.organization_id, {
+          entityType: auditFilters.entityType || undefined,
+          actorUserId: auditFilters.actorUserId || undefined,
+          action: auditFilters.action || undefined,
+          fromDate: auditFilters.fromDate || undefined,
+          toDate: auditFilters.toDate || undefined,
+        }),
+        loadAuditLogActors(supabase, profile.organization_id),
+      ])
+    : [[], []];
+
   return {
     activeSection,
     canManage,
+    canManageTeam: canManageTeamAccess,
+    canManageIntegrations: canManageIntegrationsAccess,
+    canManageAi,
+    canViewAuditLogs,
     profile,
     organization,
     workspaceSettings: parseOrganizationWorkspaceSettings(organization.settings),
     teamMembers,
     invites,
     integrations: enrichIntegrations(integrations, lastAiLog),
+    auditLogs,
+    auditActors,
+    auditFilters,
   };
 }

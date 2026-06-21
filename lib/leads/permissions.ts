@@ -1,10 +1,22 @@
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/permissions";
 import type { Profile } from "@/types/app-types";
 
 type LeadPermissionRecord = {
   organization_id: string;
   assigned_to: string | null;
 };
+
+export function canViewLead(profile: Profile) {
+  return hasPermission(profile, "leads.view");
+}
+
+export function canCreateLead(profile: Profile) {
+  return hasPermission(profile, "leads.create");
+}
+
+export function canDeleteLead(profile: Profile) {
+  return hasPermission(profile, "leads.delete");
+}
 
 export function canEditLead(
   profile: Profile,
@@ -14,7 +26,11 @@ export function canEditLead(
     return false;
   }
 
-  if (isAdminOrOwner(profile)) {
+  if (!hasPermission(profile, "leads.edit")) {
+    return false;
+  }
+
+  if (hasPermission(profile, "leads.delete")) {
     return true;
   }
 

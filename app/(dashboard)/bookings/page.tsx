@@ -1,9 +1,7 @@
-import Link from "next/link";
-
 import { BookingsFilters } from "@/components/bookings/bookings-filters";
-import { BookingRowActions } from "@/components/bookings/booking-row-actions";
-import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
+import { BookingsList, type BookingListRow } from "@/components/bookings/bookings-list";
 import { requireProfile } from "@/lib/auth/session";
+import { BOOKING_PAYMENT_STATUSES } from "@/lib/bookings/payment-status";
 import { createClient } from "@/utils/supabase/server";
 
 type BookingRow = {
@@ -20,7 +18,6 @@ type BookingRow = {
   created_at: string;
 };
 
-const PAYMENT_STATUS_FILTERS = ["pending", "partial_paid", "paid"] as const;
 const BOOKING_STATUS_FILTERS = [
   "new",
   "confirmed",
@@ -88,11 +85,9 @@ function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
-function isPaymentStatusFilter(
-  value: string,
-): value is (typeof PAYMENT_STATUS_FILTERS)[number] {
-  return PAYMENT_STATUS_FILTERS.includes(
-    value as (typeof PAYMENT_STATUS_FILTERS)[number],
+function isPaymentStatusFilter(value: string) {
+  return BOOKING_PAYMENT_STATUSES.includes(
+    value as (typeof BOOKING_PAYMENT_STATUSES)[number],
   );
 }
 
@@ -147,11 +142,55 @@ export default async function BookingsPage({ searchParams }: BookingsPageProps) 
   }
 
   const rows = (bookings ?? []) as BookingRow[];
+  const bookingIds = rows.map((booking) => booking.id);
+  const paymentsByBookingId = new Map<string, number>();
+
+  if (bookingIds.length > 0) {
+    const { data: paymentRows, error: paymentsError } = await supabase
+      .from("booking_payments")
+      .select("booking_id, amount")
+      .in("booking_id", bookingIds);
+
+    if (paymentsError) {
+      throw new Error("Gagal memuat data pembayaran booking.");
+    }
+
+    for (const payment of paymentRows ?? []) {
+      const currentTotal = paymentsByBookingId.get(payment.booking_id) ?? 0;
+      paymentsByBookingId.set(
+        payment.booking_id,
+        currentTotal + Number(payment.amount ?? 0),
+      );
+    }
+  }
+
   const returnTo = buildReturnPath(
     search,
     paymentStatusFilter,
     bookingStatusFilter,
   );
+
+  const listRows: BookingListRow[] = rows.map((booking) => {
+    const amountPaid = paymentsByBookingId.get(booking.id) ?? 0;
+    const outstandingBalance = Number(booking.total_amount) - amountPaid;
+
+    return {
+      id: booking.id,
+      leadId: booking.lead_id,
+      bookingCode: booking.booking_code || "-",
+      customerName: booking.customer_name,
+      packageName: booking.package_name || "-",
+      departureDateLabel: booking.departure_date
+        ? formatDate(booking.departure_date)
+        : "-",
+      totalPax: booking.total_pax,
+      totalAmountLabel: formatCurrency(Number(booking.total_amount)),
+      paymentStatus: booking.payment_status,
+      outstandingLabel: formatCurrency(outstandingBalance),
+      bookingStatusLabel: formatLabel(booking.booking_status),
+      createdAtLabel: formatDateTime(booking.created_at),
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -192,72 +231,7 @@ export default async function BookingsPage({ searchParams }: BookingsPageProps) 
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[1200px] text-sm">
-            <thead className="border-b bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Booking Code</th>
-                <th className="px-4 py-3 font-medium">Customer Name</th>
-                <th className="px-4 py-3 font-medium">Package Name</th>
-                <th className="px-4 py-3 font-medium">Departure Date</th>
-                <th className="px-4 py-3 font-medium">Total Pax</th>
-                <th className="px-4 py-3 font-medium">Total Amount</th>
-                <th className="px-4 py-3 font-medium">Payment Status</th>
-                <th className="px-4 py-3 font-medium">Booking Status</th>
-                <th className="px-4 py-3 font-medium">Created At</th>
-                <th className="px-4 py-3 font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((booking) => (
-                <tr key={booking.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">
-                    <Link
-                      href={`/bookings/${booking.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {booking.booking_code || "-"}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/bookings/${booking.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {booking.customer_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">{booking.package_name || "-"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {booking.departure_date
-                      ? formatDate(booking.departure_date)
-                      : "-"}
-                  </td>
-                  <td className="px-4 py-3">{booking.total_pax}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatCurrency(Number(booking.total_amount))}
-                  </td>
-                  <td className="px-4 py-3">
-                    <PaymentStatusBadge status={booking.payment_status} />
-                  </td>
-                  <td className="px-4 py-3 capitalize">
-                    {formatLabel(booking.booking_status)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                    {formatDateTime(booking.created_at)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <BookingRowActions
-                      bookingId={booking.id}
-                      leadId={booking.lead_id}
-                      returnTo={returnTo}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <BookingsList rows={listRows} returnTo={returnTo} />
       )}
     </div>
   );

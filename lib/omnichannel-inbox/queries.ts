@@ -12,6 +12,8 @@ import {
   type ConversationListFilters,
   type OmnichannelSupabaseClient,
 } from "@/lib/omnichannel-inbox/repository";
+import { loadInboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
+import type { InboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
 import type {
   ConversationNoteRow,
   MessageRow,
@@ -36,11 +38,13 @@ export type OmnichannelConversationListItem = {
   customerAvatar: string | null;
   assignedUserId: string | null;
   assignedUserName: string | null;
+  leadId: string | null;
   status: OmnichannelConversationStatus;
   statusLabel: string;
   unreadCount: number;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -50,8 +54,10 @@ export type OmnichannelConversationNote = ConversationNoteRow & {
 
 export type OmnichannelConversationDetail = OmnichannelConversationListItem & {
   externalUserId: string | null;
+  tags: string[];
   messages: MessageRow[];
   notes: OmnichannelConversationNote[];
+  leadContext: InboxLeadPanelContext | null;
 };
 
 export type OmnichannelInboxSearchParams = {
@@ -192,6 +198,7 @@ function mapConversationListItem(
     customerAvatar: row.customer_avatar,
     assignedUserId: row.assigned_user_id,
     assignedUserName: row.assignedUserName,
+    leadId: row.lead_id ?? null,
     status,
     statusLabel: formatOmnichannelConversationStatusLabel(status),
     unreadCount: row.unread_count,
@@ -200,6 +207,7 @@ function mapConversationListItem(
       preview?.messageText ?? null,
       preview?.attachmentsCount ?? 0,
     ),
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
@@ -287,10 +295,23 @@ export async function loadOmnichannelConversationDetail(
       }
     : undefined;
 
-  return {
+  const detailBase = {
     ...mapConversationListItem(conversation, preview),
     externalUserId: conversation.external_user_id,
+    tags: conversation.tags ?? [],
     messages,
     notes,
+    leadContext: null as OmnichannelConversationDetail["leadContext"],
+  };
+
+  const leadContext = detailBase.leadId
+    ? await loadInboxLeadPanelContext(supabase, organizationId, {
+        ...detailBase,
+      })
+    : null;
+
+  return {
+    ...detailBase,
+    leadContext,
   } satisfies OmnichannelConversationDetail;
 }

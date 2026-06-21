@@ -13,7 +13,8 @@ import {
   getRecommendationFollowUpDueDays,
   getRecommendationFollowUpTaskTitle,
 } from "@/lib/leads/next-best-action";
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { hasPermission, isAdminOrOwner } from "@/lib/auth/permissions";
+import { auditFromProfile } from "@/lib/audit";
 import { resolveCampaignIdForOrganization } from "@/lib/campaigns/queries";
 import { requireProfile } from "@/lib/auth/session";
 import { buildLeadsActionRedirectPath } from "@/lib/leads/bulk-delete";
@@ -120,6 +121,12 @@ export async function createLeadActivity(formData: FormData) {
     const supabase = await createClient();
   
     const leadId = getString(formData, "lead_id");
+
+    if (!hasPermission(profile, "followups.create")) {
+      redirect(
+        `/leads/${leadId || ""}?error=${encodeURIComponent("You do not have permission to create follow-ups.")}`,
+      );
+    }
     const title = getString(formData, "title");
     const description = getString(formData, "description");
     const dueDate = getString(formData, "due_date");
@@ -142,7 +149,7 @@ export async function createLeadActivity(formData: FormData) {
   
     const { data: lead } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, full_name")
       .eq("id", leadId)
       .eq("organization_id", profile.organization_id)
       .is("deleted_at", null)
@@ -173,6 +180,17 @@ export async function createLeadActivity(formData: FormData) {
       activity_type: "note",
       title: "Follow up dijadwalkan",
       body: `${title} pada ${dueDate}.`,
+    });
+
+    await auditFromProfile(supabase, profile, {
+      action: "follow_up_created",
+      entityType: "lead",
+      entityId: leadId,
+      entityLabel: lead.full_name,
+      metadata: {
+        source: "lead_detail",
+        due_date: dueDate,
+      },
     });
   
     revalidatePath(`/leads/${leadId}`);
@@ -480,6 +498,25 @@ export async function updateLead(formData: FormData) {
       previousStatus,
       fields.status,
     );
+
+    await auditFromProfile(supabase, profile, {
+      action: "lead_status_changed",
+      entityType: "lead",
+      entityId: leadId,
+      entityLabel: fields.fullName,
+      metadata: {
+        from: previousStatus,
+        to: fields.status,
+        source: "lead_edit",
+      },
+    });
+  } else {
+    await auditFromProfile(supabase, profile, {
+      action: "lead_updated",
+      entityType: "lead",
+      entityId: leadId,
+      entityLabel: fields.fullName,
+    });
   }
 
   revalidatePath("/leads");
@@ -502,6 +539,12 @@ export async function convertLeadToBooking(formData: FormData) {
   const { profile } = await requireProfile();
   const supabase = await createClient();
   const leadId = getString(formData, "lead_id");
+
+  if (!hasPermission(profile, "bookings.create")) {
+    redirect(
+      `/leads/${leadId || ""}?error=${encodeURIComponent("You do not have permission to create bookings.")}`,
+    );
+  }
 
   if (!leadId) {
     redirect("/leads?error=Lead tidak ditemukan");
@@ -567,7 +610,7 @@ export async function convertLeadToBooking(formData: FormData) {
       departure_date: departureDate,
       booking_code: generateBookingCode(),
       booking_status: "new",
-      payment_status: "pending",
+      payment_status: "unpaid",
       total_pax: totalPax,
       total_amount: totalAmount,
     })
@@ -590,6 +633,18 @@ export async function convertLeadToBooking(formData: FormData) {
       booking.booking_code,
       lead.package_interest,
     ),
+  });
+
+  await auditFromProfile(supabase, profile, {
+    action: "booking_created",
+    entityType: "booking",
+    entityId: booking.id,
+    entityLabel: booking.booking_code,
+    metadata: {
+      lead_id: leadId,
+      booking_status: "new",
+      payment_status: "unpaid",
+    },
   });
 
   revalidatePath("/bookings");

@@ -1,6 +1,10 @@
 import { formatPaymentStatusLabel } from "@/lib/bookings/payment-status";
 
 const statusStyles: Record<string, string> = {
+  unpaid: "bg-amber-100 text-amber-800",
+  dp_paid: "bg-blue-100 text-blue-800",
+  fully_paid: "bg-green-100 text-green-800",
+  overpaid: "bg-purple-100 text-purple-800",
   pending: "bg-amber-100 text-amber-800",
   partial_paid: "bg-blue-100 text-blue-800",
   paid: "bg-green-100 text-green-800",

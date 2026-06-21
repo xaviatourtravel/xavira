@@ -30,16 +30,16 @@ export function formatDashboardDate(date = new Date()) {
   }).format(date);
 }
 
-export function buildRevenueTrendLabel(
+export function buildRevenueTrendShort(
   revenueThisMonth: number,
   revenuePreviousMonth: number,
 ) {
   if (revenuePreviousMonth === 0 && revenueThisMonth === 0) {
-    return "Trend data will appear after more activity.";
+    return "No revenue yet";
   }
 
   if (revenuePreviousMonth === 0) {
-    return "Revenue started this period — no comparison from the previous month yet.";
+    return "Started this month";
   }
 
   const changePercent = Math.round(
@@ -47,14 +47,131 @@ export function buildRevenueTrendLabel(
   );
 
   if (changePercent > 0) {
-    return `Up ${changePercent}% compared with previous period.`;
+    return `+${changePercent}% vs last month`;
   }
 
   if (changePercent < 0) {
-    return `Down ${Math.abs(changePercent)}% compared with previous period.`;
+    return `${changePercent}% vs last month`;
   }
 
-  return "Flat compared with previous period.";
+  return "Flat vs last month";
+}
+
+export type TodayPriorityItem = {
+  id: string;
+  label: string;
+  count: number;
+  detail: string;
+  href: string;
+  tone: "urgent" | "action" | "neutral" | "opportunity";
+};
+
+export function buildTodaysPriorities(
+  metrics: OwnerDashboardMetrics,
+): TodayPriorityItem[] {
+  const waitingForReply =
+    metrics.omnichannel.waitingForReply > 0
+      ? metrics.omnichannel.waitingForReply
+      : metrics.inboxMetrics.newConversations;
+
+  return [
+    {
+      id: "overdue-follow-ups",
+      label: "Overdue follow ups",
+      count: metrics.followUpHealth.overdueLeads,
+      detail:
+        metrics.followUpHealth.overdueLeads > 0
+          ? "Leads past their follow-up window"
+          : "Nothing overdue right now",
+      href: "/follow-ups?filter=overdue",
+      tone: metrics.followUpHealth.overdueLeads > 0 ? "urgent" : "neutral",
+    },
+    {
+      id: "waiting-reply",
+      label: "Customers waiting for reply",
+      count: waitingForReply,
+      detail:
+        waitingForReply > 0
+          ? "New or unread inbox conversations"
+          : "Inbox is caught up",
+      href: "/inbox",
+      tone: waitingForReply > 0 ? "action" : "neutral",
+    },
+    {
+      id: "due-today",
+      label: "Follow ups due today",
+      count: metrics.followUpHealth.dueTodayLeads,
+      detail:
+        metrics.followUpHealth.dueTodayLeads > 0
+          ? "Scheduled for today"
+          : "No follow ups due today",
+      href: "/follow-ups?filter=today",
+      tone: metrics.followUpHealth.dueTodayLeads > 0 ? "action" : "neutral",
+    },
+    {
+      id: "negotiating",
+      label: "Negotiating leads",
+      count: metrics.pipelineFunnel.negotiating,
+      detail:
+        metrics.pipelineFunnel.negotiating > 0
+          ? "Deals in active negotiation"
+          : "No leads in negotiation",
+      href: "/leads?status=negotiating",
+      tone:
+        metrics.pipelineFunnel.negotiating > 0 ? "opportunity" : "neutral",
+    },
+  ];
+}
+
+export type PipelineFunnelCard = {
+  key: keyof OwnerPipelineFunnel;
+  label: string;
+  count: number;
+  sharePercent: number;
+  conversionPercent: number | null;
+};
+
+const FUNNEL_STAGE_ORDER: Array<{
+  key: keyof OwnerPipelineFunnel;
+  label: string;
+}> = [
+  { key: "new", label: "New" },
+  { key: "contacted", label: "Contacted" },
+  { key: "qualified", label: "Qualified" },
+  { key: "negotiating", label: "Negotiating" },
+  { key: "won", label: "Won" },
+];
+
+export function buildPipelineFunnelCards(
+  funnel: OwnerPipelineFunnel,
+): PipelineFunnelCard[] {
+  const total = FUNNEL_STAGE_ORDER.reduce(
+    (sum, stage) => sum + funnel[stage.key],
+    0,
+  );
+
+  return FUNNEL_STAGE_ORDER.map((stage, index) => {
+    const count = funnel[stage.key];
+    const sharePercent = total > 0 ? Math.round((count / total) * 100) : 0;
+    const previousCount =
+      index > 0 ? funnel[FUNNEL_STAGE_ORDER[index - 1].key] : funnel.new;
+    const conversionPercent =
+      index === 0
+        ? total > 0
+          ? 100
+          : 0
+        : previousCount > 0
+          ? Math.round((count / previousCount) * 100)
+          : null;
+
+    return {
+      key: stage.key,
+      label: stage.label,
+      count,
+      sharePercent,
+      conversionPercent,
+    };
+  });
 }
 
 export function buildPipelineTakeaway(funnel: OwnerPipelineFunnel) {
@@ -65,61 +182,143 @@ export function buildPipelineTakeaway(funnel: OwnerPipelineFunnel) {
   const total = stages.reduce((sum, [, count]) => sum + count, 0);
 
   if (total === 0) {
-    return "No active pipeline stages yet. Leads will appear here as your team works them.";
+    return "Add leads to start building your pipeline.";
   }
 
   const [topStage] = [...stages].sort((a, b) => b[1] - a[1]);
   const [stageKey, stageCount] = topStage;
 
   if (stageCount === 0) {
-    return "Pipeline activity is light. Focus on moving new leads into contact.";
+    return "Move new leads into contact to build momentum.";
   }
 
-  return `Most leads are currently in the ${PIPELINE_STAGE_LABELS[stageKey]} stage.`;
+  return `Most leads are in ${PIPELINE_STAGE_LABELS[stageKey]}.`;
 }
 
-export function buildExecutiveInsights(metrics: OwnerDashboardMetrics) {
-  const insights: string[] = [];
+export type HeroKpiItem = {
+  label: string;
+  value: string;
+  trend: string;
+  tone?: "default" | "warning" | "success";
+  emptyState?: boolean;
+  href?: string;
+};
 
-  if (metrics.followUpHealth.overdueLeads > 0) {
-    insights.push(
-      `${metrics.followUpHealth.overdueLeads} lead${metrics.followUpHealth.overdueLeads === 1 ? "" : "s"} ${metrics.followUpHealth.overdueLeads === 1 ? "is" : "are"} overdue for follow-up.`,
-    );
-  }
+export function buildHeroKpis(metrics: OwnerDashboardMetrics): HeroKpiItem[] {
+  const activeConversations =
+    metrics.omnichannel.activeConversations > 0
+      ? metrics.omnichannel.activeConversations
+      : metrics.inboxMetrics.totalConversations;
 
-  if (metrics.executiveKpis.bookingsThisMonth > 0) {
-    insights.push(
-      `${metrics.executiveKpis.bookingsThisMonth} booking${metrics.executiveKpis.bookingsThisMonth === 1 ? "" : "s"} recorded this month.`,
-    );
-  } else {
-    insights.push("No bookings recorded this month yet.");
-  }
+  const newConversations =
+    metrics.omnichannel.newConversations > 0
+      ? metrics.omnichannel.newConversations
+      : metrics.inboxMetrics.newConversations;
 
-  if (metrics.followUpHealth.totalLeads > 0) {
-    insights.push(
-      `${metrics.followUpHealth.totalLeads} lead${metrics.followUpHealth.totalLeads === 1 ? "" : "s"} ${metrics.followUpHealth.totalLeads === 1 ? "is" : "are"} active in the pipeline.`,
-    );
-  }
+  return [
+    {
+      label: "New Leads",
+      value: String(metrics.executiveKpis.leadsThisMonth),
+      trend:
+        metrics.executiveKpis.leadsToday > 0
+          ? `+${metrics.executiveKpis.leadsToday} today`
+          : `${metrics.followUpHealth.totalLeads} active in pipeline`,
+      tone: "default",
+    },
+    {
+      label: "Active Conversations",
+      value: String(activeConversations),
+      trend:
+        newConversations > 0
+          ? `${newConversations} new awaiting reply`
+          : activeConversations > 0
+            ? "Inbox is active"
+            : "Connect channels to start",
+      tone: activeConversations > 0 ? "success" : "default",
+    },
+    {
+      label: "Follow Ups Due",
+      value: String(metrics.followUpHealth.overdueLeads),
+      trend:
+        metrics.followUpHealth.overdueLeads > 0
+          ? "Requires attention"
+          : "All caught up",
+      tone: metrics.followUpHealth.overdueLeads > 0 ? "warning" : "success",
+    },
+    {
+      label: "Revenue This Month",
+      value:
+        metrics.executiveKpis.revenueThisMonth > 0
+          ? formatDashboardCurrency(metrics.executiveKpis.revenueThisMonth)
+          : "—",
+      trend:
+        metrics.executiveKpis.revenueThisMonth > 0
+          ? buildRevenueTrendShort(
+              metrics.executiveKpis.revenueThisMonth,
+              metrics.revenuePreviousMonth,
+            )
+          : metrics.executiveKpis.bookingsThisMonth > 0
+            ? "Bookings recorded — add payment to track revenue"
+            : "Close a deal or record a payment to start tracking",
+      tone:
+        metrics.executiveKpis.revenueThisMonth > 0 ? "success" : "default",
+      emptyState: metrics.executiveKpis.revenueThisMonth === 0,
+      href: "/bookings",
+    },
+  ];
+}
 
-  if (metrics.omnichannel.activeConversations > 0) {
-    insights.push(
-      `Instagram/Facebook inbox has ${metrics.omnichannel.activeConversations} active conversation${metrics.omnichannel.activeConversations === 1 ? "" : "s"}.`,
-    );
-  }
+export type ExecutiveSummaryItem = {
+  id: string;
+  icon: "alert" | "message" | "trend" | "money";
+  text: string;
+  tone: "warning" | "info" | "success" | "neutral";
+};
 
-  if (metrics.executiveKpis.revenueThisMonth > 0) {
-    insights.push(
-      `${formatDashboardCurrency(metrics.executiveKpis.revenueThisMonth)} in revenue collected this month.`,
-    );
-  }
+export function buildExecutiveSummaryItems(
+  metrics: OwnerDashboardMetrics,
+): ExecutiveSummaryItem[] {
+  const activeConversations =
+    metrics.omnichannel.activeConversations > 0
+      ? metrics.omnichannel.activeConversations
+      : metrics.inboxMetrics.totalConversations;
 
-  if (insights.length === 0) {
-    insights.push(
-      "Your executive overview will populate as your team uses Desklabs.",
-    );
-  }
+  const items: ExecutiveSummaryItem[] = [
+    {
+      id: "follow-ups",
+      icon: "alert",
+      text:
+        metrics.followUpHealth.overdueLeads > 0
+          ? `${metrics.followUpHealth.overdueLeads} follow ups require attention`
+          : "Follow ups are on track",
+      tone:
+        metrics.followUpHealth.overdueLeads > 0 ? "warning" : "success",
+    },
+    {
+      id: "conversations",
+      icon: "message",
+      text:
+        activeConversations > 0
+          ? `${activeConversations} active conversation${activeConversations === 1 ? "" : "s"}`
+          : "No active conversations yet",
+      tone: activeConversations > 0 ? "info" : "neutral",
+    },
+    {
+      id: "leads",
+      icon: "trend",
+      text: `${metrics.followUpHealth.totalLeads} active lead${metrics.followUpHealth.totalLeads === 1 ? "" : "s"}`,
+      tone: metrics.followUpHealth.totalLeads > 0 ? "success" : "neutral",
+    },
+    {
+      id: "bookings",
+      icon: "money",
+      text: `${metrics.executiveKpis.bookingsThisMonth} booking${metrics.executiveKpis.bookingsThisMonth === 1 ? "" : "s"} this month`,
+      tone:
+        metrics.executiveKpis.bookingsThisMonth > 0 ? "success" : "neutral",
+    },
+  ];
 
-  return insights.slice(0, 4);
+  return items;
 }
 
 export function formatRecentActivityTime(timestamp: string) {
@@ -137,17 +336,17 @@ export function formatRecentActivityTime(timestamp: string) {
   }).format(date);
 }
 
-export function getRecentActivityIcon(type: OwnerRecentActivityItem["type"]) {
-  switch (type) {
+export function getActivityFeedMeta(item: OwnerRecentActivityItem) {
+  switch (item.type) {
     case "lead":
-      return "Lead";
+      return { category: "Lead", tone: "sky" as const };
     case "conversation":
-      return "Inbox";
+      return { category: "Inbox", tone: "violet" as const };
     case "booking":
-      return "Booking";
+      return { category: "Booking", tone: "emerald" as const };
     case "payment":
-      return "Payment";
+      return { category: "Payment", tone: "amber" as const };
     default:
-      return "Activity";
+      return { category: "Activity", tone: "neutral" as const };
   }
 }

@@ -8,13 +8,13 @@ export default async function DashboardPage() {
   const { profile } = await requireProfile();
   const dashboardVariant = resolveDashboardVariant(profile.role);
 
-  if (dashboardVariant === "agent") {
-    return <SalesDashboard profile={profile} />;
+  if (dashboardVariant === "owner") {
+    return <OwnerDashboard profile={profile} />;
   }
 
   if (dashboardVariant === "admin") {
     return <AdminDashboard profile={profile} />;
   }
 
-  return <OwnerDashboard profile={profile} />;
+  return <SalesDashboard profile={profile} />;
 }

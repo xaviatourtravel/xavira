@@ -1,16 +1,27 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
 import {
   OmnichannelConversationDetailPanel,
   OmnichannelConversationEmptyState,
 } from "@/components/omnichannel-inbox/conversation-detail";
 import { OmnichannelConversationList } from "@/components/omnichannel-inbox/conversation-list";
-import { buildOmnichannelFilterCounts } from "@/components/omnichannel-inbox/inbox-display";
+import { InboxConversationSearch } from "@/components/omnichannel-inbox/inbox-conversation-search";
+import {
+  buildOmnichannelFilterCounts,
+  filterConversationsBySearch,
+} from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
+import { InboxLeadPanel } from "@/components/omnichannel-inbox/inbox-lead-panel";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import type {
   OmnichannelConversationListItem,
   OmnichannelInboxFilter,
 } from "@/lib/omnichannel-inbox/queries";
-import { CheckCircle2, MessageCircle, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const LEAD_PANEL_WIDTH = "280px";
 
 type OrgProfile = {
   id: string;
@@ -30,37 +41,17 @@ type OmnichannelInboxViewProps = {
   canUpdateStatus: boolean;
   canAddNote: boolean;
   canReply: boolean;
+  canSuggestReply: boolean;
+  canConvert: boolean;
+  canCreateFollowUp: boolean;
   isUnassignedForAgent?: boolean;
   initialError?: string | null;
   initialSuccess?: string | null;
 };
 
-function InboxStatusBadge({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "success" | "info" | "neutral";
-}) {
-  const styles = {
-    success: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    info: "border-blue-200 bg-blue-50 text-blue-800",
-    neutral: "border-amber-200 bg-amber-50 text-amber-900",
-  } as const;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${styles[tone]}`}
-    >
-      <CheckCircle2 className="h-3.5 w-3.5" />
-      {label}
-    </span>
-  );
-}
-
 function OmnichannelConversationNotFoundState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-muted/10 px-8 text-center">
+    <div className="flex h-full flex-col items-center justify-center bg-[#f4f6f8] px-8 text-center dark:bg-muted/10">
       <p className="text-base font-semibold text-foreground">Conversation not found</p>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         This conversation may have been removed or is not available to your account.
@@ -82,107 +73,167 @@ export function OmnichannelInboxView({
   canUpdateStatus,
   canAddNote,
   canReply,
+  canSuggestReply,
+  canConvert,
+  canCreateFollowUp,
   isUnassignedForAgent = false,
   initialError = null,
   initialSuccess = null,
 }: OmnichannelInboxViewProps) {
+  const [leadPanelOpen, setLeadPanelOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const filterCounts = buildOmnichannelFilterCounts(allConversations, currentUserId);
+  const filteredConversations = useMemo(
+    () => filterConversationsBySearch(conversations, searchQuery),
+    [conversations, searchQuery],
+  );
+
+  const inboxListHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (activeFilter !== "all") {
+      params.set("filter", activeFilter);
+    }
+    const query = params.toString();
+    return query ? `/inbox?${query}` : "/inbox";
+  }, [activeFilter]);
+
+  const showMobileChat = Boolean(selectedConversationId);
+
+  function toggleLeadPanel() {
+    setLeadPanelOpen((open) => !open);
+  }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Omnichannel Inbox
-          </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Manage Instagram and Facebook customer conversations from one dashboard.
-          </p>
-          <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
-            This inbox receives messages through Meta webhooks and replies are sent
-            manually by authorized team members.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <InboxStatusBadge label="Instagram Connected" tone="success" />
-          <InboxStatusBadge label="Facebook Messenger Ready" tone="info" />
-          <InboxStatusBadge label="Manual Reply Mode" tone="neutral" />
-        </div>
-      </div>
-
+    <div className="flex h-[calc(100dvh-6.5rem)] min-h-[420px] flex-col gap-2 lg:h-[calc(100vh-3.75rem)] lg:min-h-[760px]">
       {initialError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+        <div className="shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {decodeURIComponent(initialError)}
         </div>
       ) : null}
 
       {initialSuccess ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+        <div className="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {decodeURIComponent(initialSuccess)}
         </div>
       ) : null}
 
-      <div className="grid h-[calc(100vh-11rem)] min-h-[680px] overflow-hidden rounded-2xl border bg-card shadow-sm lg:grid-cols-[248px_minmax(300px,360px)_minmax(0,1fr)]">
-        <aside className="hidden min-h-0 border-r bg-muted/20 p-4 lg:block">
-          <OmnichannelInboxFilters
-            activeFilter={activeFilter}
-            selectedConversationId={selectedConversationId}
-            filterCounts={filterCounts}
-          />
-        </aside>
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 overflow-hidden rounded-2xl border bg-card shadow-sm",
+          leadPanelOpen
+            ? "lg:grid-cols-[320px_minmax(0,1fr)_var(--inbox-lead-panel-width)]"
+            : "lg:grid-cols-[320px_minmax(0,1fr)]",
+        )}
+        style={{ ["--inbox-lead-panel-width" as string]: LEAD_PANEL_WIDTH }}
+      >
+        <section
+          className={cn(
+            "flex min-h-0 flex-col border-r bg-background",
+            showMobileChat ? "hidden lg:flex" : "flex",
+          )}
+        >
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">Conversations</p>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {filteredConversations.length}
+            </span>
+          </div>
 
-        <section className="flex min-h-0 flex-col border-r bg-background">
-          <div className="border-b bg-muted/10 px-4 py-3 lg:hidden">
+          <div className="mt-4 px-4">
+            <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
+          </div>
+
+          <div className="mt-3 px-4">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}
               filterCounts={filterCounts}
             />
           </div>
-          <div className="flex items-center justify-between border-b px-4 py-3.5">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm font-semibold text-foreground">Conversations</p>
-            </div>
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              {conversations.length}
-            </span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t border-border/50">
             <OmnichannelConversationList
-              conversations={conversations}
+              conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
               activeFilter={activeFilter}
+              searchQuery={searchQuery}
             />
           </div>
         </section>
 
-        <section className="h-full min-h-0 bg-background">
+        <section
+          className={cn(
+            "relative min-h-0 bg-background",
+            showMobileChat ? "flex flex-col" : "hidden lg:block",
+          )}
+        >
           {detail ? (
-            <OmnichannelConversationDetailPanel
-              conversation={detail}
-              orgProfiles={orgProfiles}
-              canReassign={canReassign}
-              canUpdateStatus={canUpdateStatus}
-              canAddNote={canAddNote}
-              canReply={canReply}
-              isUnassignedForAgent={isUnassignedForAgent}
-            />
+            <>
+              <OmnichannelConversationDetailPanel
+                conversation={detail}
+                canReply={canReply}
+                canSuggestReply={canSuggestReply}
+                isUnassignedForAgent={isUnassignedForAgent}
+                leadPanelOpen={leadPanelOpen}
+                onToggleLeadPanel={toggleLeadPanel}
+                showDetailsToggle
+                backHref={inboxListHref}
+                showBackButton
+              />
+              {leadPanelOpen ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close lead details"
+                    className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+                    onClick={() => setLeadPanelOpen(false)}
+                  />
+                  <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[85vh] flex-col rounded-t-2xl border-t bg-background shadow-2xl lg:hidden">
+                    <div className="flex items-center justify-between border-b px-4 py-3">
+                      <p className="text-sm font-semibold">Lead details</p>
+                      <button
+                        type="button"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted"
+                        onClick={() => setLeadPanelOpen(false)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      <InboxLeadPanel
+                        conversation={detail}
+                        orgProfiles={orgProfiles}
+                        canConvert={canConvert}
+                        canCreateFollowUp={canCreateFollowUp}
+                        canReassign={canReassign}
+                        canUpdateStatus={canUpdateStatus}
+                        canAddNote={canAddNote}
+                      />
+                    </div>
+                  </aside>
+                </>
+              ) : null}
+            </>
           ) : conversationNotFound ? (
             <OmnichannelConversationNotFoundState />
           ) : (
             <OmnichannelConversationEmptyState />
           )}
         </section>
-      </div>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Send className="h-3.5 w-3.5" />
-        <span>
-          Customer support workflow for Instagram and Facebook Messenger — receive,
-          review, assign, and reply from Desklabs.
-        </span>
+        {leadPanelOpen ? (
+          <section className="hidden min-h-0 border-l bg-background lg:block">
+            <InboxLeadPanel
+              conversation={detail}
+              orgProfiles={orgProfiles}
+              canConvert={canConvert}
+              canCreateFollowUp={canCreateFollowUp}
+              canReassign={canReassign}
+              canUpdateStatus={canUpdateStatus}
+              canAddNote={canAddNote}
+            />
+          </section>
+        ) : null}
       </div>
     </div>
   );

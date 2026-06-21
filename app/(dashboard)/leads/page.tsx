@@ -409,7 +409,7 @@ function LeadsPageContent({
         </Link>
       </div>
 
-      <form method="GET" className="flex flex-wrap gap-2">
+      <form method="GET" className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
         {filters.assignedTo && (
           <input type="hidden" name="assigned_to" value={filters.assignedTo} />
         )}
@@ -435,13 +435,13 @@ function LeadsPageContent({
           name="q"
           defaultValue={filters.q}
           placeholder="Cari nama atau WA..."
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
         />
 
         <select
           name="status"
           defaultValue={filters.status}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">Semua Status</option>
           <option value="new">New</option>
@@ -456,7 +456,7 @@ function LeadsPageContent({
         <select
           name="source"
           defaultValue={filters.source}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">All Sources</option>
           {LEAD_SOURCE_OPTIONS.map((option) => (
@@ -469,7 +469,7 @@ function LeadsPageContent({
         <select
           name="campaign"
           defaultValue={filters.campaign}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">All Campaigns</option>
           {campaigns.map((campaign) => (
@@ -482,7 +482,7 @@ function LeadsPageContent({
         <select
           name="assigned"
           defaultValue={filters.assigned}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">All Users</option>
           <option value="unassigned">Unassigned</option>
@@ -496,7 +496,7 @@ function LeadsPageContent({
         <select
           name="temperature"
           defaultValue={filters.temperature}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">All Temperatures</option>
           <option value="hot">Hot</option>
@@ -507,7 +507,7 @@ function LeadsPageContent({
 
         <button
           type="submit"
-          className="rounded-md border px-3 py-2 text-sm"
+          className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           Filter
         </button>

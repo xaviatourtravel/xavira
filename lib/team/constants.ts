@@ -1,6 +1,14 @@
 import type { UserRole } from "@/types/app-types";
 
-export const TEAM_ROLES = ["owner", "admin", "agent"] as const;
+export const TEAM_INVITE_ROLES = [
+  "admin",
+  "agent",
+  "sales",
+  "marketing",
+  "finance",
+] as const satisfies readonly UserRole[];
+
+export const TEAM_ROLES = ["owner", "admin", "agent", "sales", "marketing", "finance"] as const;
 
 export function isTeamRole(value: string): value is UserRole {
   return TEAM_ROLES.includes(value as UserRole);
@@ -19,6 +27,12 @@ export function formatTeamRoleLabel(role: UserRole) {
       return "Admin";
     case "agent":
       return "Agent";
+    case "sales":
+      return "Sales";
+    case "marketing":
+      return "Marketing";
+    case "finance":
+      return "Finance";
   }
 }
 

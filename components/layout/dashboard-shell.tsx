@@ -1,6 +1,8 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { PermissionProvider } from "@/components/auth/permission-provider";
+import { getProfilePermissions } from "@/lib/auth/permissions";
 import type { Profile } from "@/types/app-types";
 
 export function DashboardShell({
@@ -10,14 +12,18 @@ export function DashboardShell({
   children: React.ReactNode;
   profile: Profile;
 }) {
+  const permissions = getProfilePermissions(profile);
+
   return (
-    <div className="flex min-h-screen">
-      <AppSidebar />
-      <div className="flex min-h-screen flex-1 flex-col pb-16 md:pb-0">
-        <AppHeader profile={profile} />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+    <PermissionProvider permissions={permissions}>
+      <div className="flex min-h-screen overflow-x-hidden">
+        <AppSidebar permissions={permissions} />
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-[4.5rem] md:pb-0">
+          <AppHeader profile={profile} />
+          <main className="flex-1 overflow-x-hidden p-3 md:p-6">{children}</main>
+        </div>
+        <MobileNav permissions={permissions} />
       </div>
-      <MobileNav />
-    </div>
+    </PermissionProvider>
   );
 }

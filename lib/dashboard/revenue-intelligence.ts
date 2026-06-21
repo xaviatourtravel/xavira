@@ -1,3 +1,4 @@
+import { isBookingPaymentSettled } from "@/lib/bookings/payment-status";
 import {
   getEffectiveLeadTemperature,
   type LeadTemperature,
@@ -277,7 +278,7 @@ export function buildRevenueFunnel(
       continue;
     }
     leadsWithBooking.add(booking.lead_id);
-    if (booking.payment_status === "paid") {
+    if (isBookingPaymentSettled(booking.payment_status)) {
       leadsWithPaidBooking.add(booking.lead_id);
     }
   }

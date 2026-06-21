@@ -1,15 +1,11 @@
 import type { OwnerDashboardMetrics } from "@/lib/dashboard/owner-dashboard-data";
 
 import {
-  OwnerCustomerConversationsSection,
   OwnerDashboardHeader,
-  OwnerExecutiveSummarySection,
-  OwnerFollowUpRiskSection,
-  OwnerHeroRevenueSection,
-  OwnerKpiStrip,
-  OwnerRecentActivitySection,
-  OwnerSalesPipelineSection,
-  OwnerStrategicActionsSection,
+  OwnerExecutiveSummaryCard,
+  OwnerHeroKpiRow,
+  OwnerPerformanceSection,
+  OwnerTodaysPriorities,
 } from "@/components/dashboard/owner-dashboard-sections";
 
 type OwnerDashboardViewProps = {
@@ -18,25 +14,16 @@ type OwnerDashboardViewProps = {
 
 export function OwnerDashboardView({ metrics }: OwnerDashboardViewProps) {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8">
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 overflow-x-hidden pb-8 md:space-y-8">
       <OwnerDashboardHeader />
 
-      <OwnerHeroRevenueSection metrics={metrics} />
+      <OwnerHeroKpiRow metrics={metrics} />
 
-      <OwnerExecutiveSummarySection metrics={metrics} />
+      <OwnerTodaysPriorities metrics={metrics} />
 
-      <OwnerKpiStrip metrics={metrics} />
+      <OwnerExecutiveSummaryCard metrics={metrics} />
 
-      <OwnerSalesPipelineSection metrics={metrics} />
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <OwnerCustomerConversationsSection metrics={metrics} />
-        <OwnerFollowUpRiskSection metrics={metrics} />
-      </div>
-
-      <OwnerRecentActivitySection metrics={metrics} />
-
-      <OwnerStrategicActionsSection />
+      <OwnerPerformanceSection metrics={metrics} />
     </div>
   );
 }

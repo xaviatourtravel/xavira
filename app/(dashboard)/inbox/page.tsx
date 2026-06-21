@@ -1,8 +1,11 @@
 import { OmnichannelInboxView } from "@/components/omnichannel-inbox/omnichannel-inbox-view";
 import {
   canAddOmnichannelConversationNote,
+  canConvertOmnichannelConversationToLead,
+  canCreateInboxFollowUpFromLead,
   canReassignOmnichannelConversation,
   canReplyToOmnichannelConversation,
+  canSuggestOmnichannelReply,
   canUpdateOmnichannelConversationStatus,
 } from "@/lib/omnichannel-inbox/permissions";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
@@ -85,6 +88,18 @@ export default async function InboxPage({
         permissionsConversation,
       )}
       canReply={canReplyToOmnichannelConversation(
+        profile,
+        permissionsConversation,
+      )}
+      canSuggestReply={canSuggestOmnichannelReply(
+        profile,
+        permissionsConversation,
+      )}
+      canConvert={canConvertOmnichannelConversationToLead(
+        profile,
+        permissionsConversation,
+      )}
+      canCreateFollowUp={canCreateInboxFollowUpFromLead(
         profile,
         permissionsConversation,
       )}

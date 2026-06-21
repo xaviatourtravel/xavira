@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { auditFromProfile } from "@/lib/audit";
 import { requireProfile } from "@/lib/auth/session";
 import { createAutomaticFirstFollowUpTask } from "@/lib/leads/first-follow-up";
 import {
@@ -93,6 +94,17 @@ export async function createLead(formData: FormData) {
   });
 
   await createAutomaticFirstFollowUpTask(supabase, profile, createdLead.id);
+
+  await auditFromProfile(supabase, profile, {
+    action: "lead_created",
+    entityType: "lead",
+    entityId: createdLead.id,
+    entityLabel: fields.fullName,
+    metadata: {
+      source: fields.source,
+      status: fields.status,
+    },
+  });
 
   revalidatePath("/leads");
   redirect("/leads");

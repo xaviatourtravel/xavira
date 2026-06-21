@@ -85,13 +85,13 @@ export function BookingsFilters({
   }, [search, initialSearch, pushFilters]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
       <input
         type="text"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Cari kode, customer, atau paket..."
-        className="min-w-[220px] flex-1 rounded-md border px-3 py-2 text-sm"
+        className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:min-w-[220px] sm:flex-1"
       />
 
       <select
@@ -99,12 +99,13 @@ export function BookingsFilters({
         onChange={(event) =>
           pushFilters({ payment_status: event.target.value })
         }
-        className="rounded-md border px-3 py-2 text-sm"
+        className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
       >
         <option value="">All Payment Status</option>
-        <option value="pending">Pending</option>
-        <option value="partial_paid">Partial Paid</option>
-        <option value="paid">Paid</option>
+        <option value="unpaid">Unpaid</option>
+        <option value="dp_paid">DP Paid</option>
+        <option value="fully_paid">Fully Paid</option>
+        <option value="overpaid">Overpaid</option>
       </select>
 
       <select
@@ -112,7 +113,7 @@ export function BookingsFilters({
         onChange={(event) =>
           pushFilters({ booking_status: event.target.value })
         }
-        className="rounded-md border px-3 py-2 text-sm"
+        className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
       >
         <option value="">All Booking Status</option>
         <option value="new">New</option>
@@ -124,7 +125,7 @@ export function BookingsFilters({
       {hasFilters && (
         <Link
           href="/bookings"
-          className="rounded-md border px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex min-h-[44px] items-center rounded-md border px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
         >
           Reset
         </Link>

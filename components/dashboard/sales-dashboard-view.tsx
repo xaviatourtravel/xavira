@@ -62,25 +62,27 @@ type SalesDashboardViewProps = {
 
 export function SalesDashboardView({ metrics }: SalesDashboardViewProps) {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
+    <div className="mx-auto w-full max-w-7xl space-y-6 overflow-x-hidden">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground md:text-base">
           Ringkasan lead dan follow up yang di-assign ke Anda.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {KPI_ITEMS.map((item) => (
           <Link
             key={item.key}
             href={item.href}
-            className="rounded-xl border p-6 transition-colors hover:bg-accent/50"
+            className="rounded-xl border p-4 transition-colors hover:bg-accent/50 sm:p-6"
           >
-            <p className="text-sm text-muted-foreground">{item.label}</p>
-            <p className="text-xs text-muted-foreground">{item.description}</p>
+            <p className="text-xs text-muted-foreground sm:text-sm">{item.label}</p>
+            <p className="text-[11px] text-muted-foreground sm:text-xs">
+              {item.description}
+            </p>
             <h2
-              className={`mt-2 text-3xl font-bold ${item.valueClassName}`.trim()}
+              className={`mt-2 text-2xl font-bold sm:text-3xl ${item.valueClassName}`.trim()}
             >
               {metrics[item.key]}
             </h2>
@@ -88,13 +90,23 @@ export function SalesDashboardView({ metrics }: SalesDashboardViewProps) {
         ))}
       </div>
 
-      <MyLeadsCard metrics={metrics.myLeadsMetrics} />
+      <div className="flex flex-col gap-6">
+        <div className="order-1">
+          <SalesTodayTasksCard {...metrics.todayTasks} />
+        </div>
 
-      <SalesTodayTasksCard {...metrics.todayTasks} />
+        <div className="order-2">
+          <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
+        </div>
 
-      <FollowUpTodayCard todayFollowUps={metrics.todayFollowUps} />
+        <div className="order-3">
+          <MyLeadsCard metrics={metrics.myLeadsMetrics} />
+        </div>
 
-      <AiSalesAssistantCard leads={metrics.priorityLeads} />
+        <div className="order-4">
+          <AiSalesAssistantCard leads={metrics.priorityLeads} />
+        </div>
+      </div>
 
       <div>
         <h2 className="text-lg font-semibold">Quick Actions</h2>

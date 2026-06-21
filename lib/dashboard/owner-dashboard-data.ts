@@ -11,6 +11,7 @@ import {
   shouldShowSalesPerformanceEmptyState,
   type SalesPerformanceRow,
 } from "@/lib/dashboard/sales-performance";
+import { isBookingPaymentSettled } from "@/lib/bookings/payment-status";
 import { getLeadAgingCutoffIso } from "@/lib/leads/assignment";
 import {
   getEffectiveLeadTemperature,
@@ -63,10 +64,21 @@ type PaymentRow = {
 type OmnichannelConversationRow = {
   id: string;
   customer_name: string | null;
+  customer_username: string | null;
+  external_user_id: string | null;
   channel: string;
   status: string;
+  unread_count: number;
   created_at: string;
   last_message_at: string | null;
+};
+
+type LegacyInboxConversationRow = {
+  id: string;
+  contact_name: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  source: string;
 };
 
 export type OwnerRecentActivityItem = {
@@ -79,6 +91,17 @@ export type OwnerRecentActivityItem = {
 export type OwnerOmnichannelMetrics = {
   activeConversations: number;
   newConversations: number;
+  waitingForReply: number;
+};
+
+export type OwnerRecentConversationItem = {
+  id: string;
+  customerName: string;
+  lastMessagePreview: string;
+  channel: string;
+  channelLabel: string;
+  lastMessageAt: string | null;
+  href: string;
 };
 
 export type OwnerExecutiveKpis = {
@@ -139,9 +162,11 @@ export type OwnerDashboardMetrics = {
   estimatedPipelineValue: number;
   revenuePreviousMonth: number;
   recentActivity: OwnerRecentActivityItem[];
+  recentConversations: OwnerRecentConversationItem[];
   followUpHealth: {
     totalLeads: number;
     overdueLeads: number;
+    dueTodayLeads: number;
     hotLeadsOverdue: number;
     compliance: FollowUpComplianceMetrics;
   };
@@ -207,10 +232,159 @@ function buildOmnichannelMetrics(
     (conversation) => conversation.status === "new",
   ).length;
 
+  const waitingForReply = conversations.filter(
+    (conversation) =>
+      conversation.status !== "lost" &&
+      (conversation.status === "new" || conversation.unread_count > 0),
+  ).length;
+
   return {
     activeConversations,
     newConversations,
+    waitingForReply,
   };
+}
+
+function buildConversationMessagePreview(
+  messageText: string | null,
+  attachmentsCount: number,
+) {
+  if (messageText?.trim()) {
+    const text = messageText.trim();
+    return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+  }
+
+  if (attachmentsCount > 0) {
+    return attachmentsCount === 1 ? "Attachment" : `${attachmentsCount} attachments`;
+  }
+
+  return "No messages yet";
+}
+
+function getOmnichannelCustomerName(
+  conversation: Pick<
+    OmnichannelConversationRow,
+    "customer_name" | "customer_username" | "external_user_id"
+  >,
+) {
+  if (conversation.customer_name?.trim()) {
+    return conversation.customer_name.trim();
+  }
+
+  if (conversation.customer_username?.trim()) {
+    return `@${conversation.customer_username.trim()}`;
+  }
+
+  if (conversation.external_user_id?.trim()) {
+    return `Customer ${conversation.external_user_id.slice(-6)}`;
+  }
+
+  return "Customer";
+}
+
+function formatOmnichannelChannelLabel(channel: string) {
+  switch (channel) {
+    case "instagram":
+      return "Instagram";
+    case "facebook":
+      return "Facebook";
+    case "whatsapp":
+      return "WhatsApp";
+    default:
+      return "Inbox";
+  }
+}
+
+function formatLegacyInboxSourceLabel(source: string) {
+  switch (source) {
+    case "instagram":
+      return "Instagram";
+    case "facebook":
+      return "Facebook";
+    case "whatsapp":
+      return "WhatsApp";
+    default:
+      return "Inbox";
+  }
+}
+
+async function loadLatestMessagePreviewsByConversationIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  conversationIds: string[],
+) {
+  const previews = new Map<string, string>();
+
+  if (conversationIds.length === 0) {
+    return previews;
+  }
+
+  const { data, error } = await supabase
+    .from("messages")
+    .select("conversation_id, message_text, attachments_json, created_at")
+    .in("conversation_id", conversationIds)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Load dashboard conversation previews error:", error);
+    return previews;
+  }
+
+  for (const row of data ?? []) {
+    if (previews.has(row.conversation_id)) {
+      continue;
+    }
+
+    const attachments = Array.isArray(row.attachments_json)
+      ? row.attachments_json
+      : [];
+
+    previews.set(
+      row.conversation_id,
+      buildConversationMessagePreview(row.message_text, attachments.length),
+    );
+  }
+
+  return previews;
+}
+
+function buildRecentConversations(
+  conversations: OmnichannelConversationRow[],
+  messagePreviews: Map<string, string>,
+  legacyInboxRows: LegacyInboxConversationRow[],
+): OwnerRecentConversationItem[] {
+  const omnichannelItems = [...conversations]
+    .filter((conversation) => conversation.status !== "lost")
+    .sort((left, right) => {
+      const leftTime = left.last_message_at ?? left.created_at;
+      const rightTime = right.last_message_at ?? right.created_at;
+      return new Date(rightTime).getTime() - new Date(leftTime).getTime();
+    })
+    .slice(0, 5)
+    .map((conversation) => ({
+      id: conversation.id,
+      customerName: getOmnichannelCustomerName(conversation),
+      lastMessagePreview:
+        messagePreviews.get(conversation.id) ?? "No messages yet",
+      channel: conversation.channel,
+      channelLabel: formatOmnichannelChannelLabel(conversation.channel),
+      lastMessageAt: conversation.last_message_at ?? conversation.created_at,
+      href: `/inbox?c=${conversation.id}`,
+    }));
+
+  if (omnichannelItems.length > 0) {
+    return omnichannelItems;
+  }
+
+  return legacyInboxRows.slice(0, 5).map((conversation) => ({
+    id: conversation.id,
+    customerName: conversation.contact_name?.trim() || "Customer",
+    lastMessagePreview:
+      conversation.last_message?.trim() || "No messages yet",
+    channel: conversation.source,
+    channelLabel: formatLegacyInboxSourceLabel(conversation.source),
+    lastMessageAt: conversation.last_message_at,
+    href: "/inbox",
+  }));
 }
 
 function buildRecentActivity(
@@ -401,6 +575,7 @@ export async function loadOwnerDashboardMetrics(
     queueItems,
     { count: totalActiveLeads },
     { data: omnichannelConversations },
+    { data: legacyInboxConversations },
   ] = await Promise.all([
     supabase
       .from("leads")
@@ -449,9 +624,15 @@ export async function loadOwnerDashboardMetrics(
     supabase
       .from("conversations")
       .select(
-        "id, customer_name, channel, status, created_at, last_message_at",
+        "id, customer_name, customer_username, external_user_id, channel, status, unread_count, created_at, last_message_at",
       )
       .eq("organization_id", organizationId),
+    supabase
+      .from("inbox_conversations")
+      .select("id, contact_name, last_message, last_message_at, source")
+      .eq("organization_id", organizationId)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(5),
   ]);
 
   const leadRows = (leads ?? []) as LeadRow[];
@@ -465,6 +646,21 @@ export async function loadOwnerDashboardMetrics(
 
   const omnichannelRows = (omnichannelConversations ??
     []) as OmnichannelConversationRow[];
+  const legacyInboxRows = (legacyInboxConversations ??
+    []) as LegacyInboxConversationRow[];
+  const recentConversationCandidates = [...omnichannelRows]
+    .filter((conversation) => conversation.status !== "lost")
+    .sort((left, right) => {
+      const leftTime = left.last_message_at ?? left.created_at;
+      const rightTime = right.last_message_at ?? right.created_at;
+      return new Date(rightTime).getTime() - new Date(leftTime).getTime();
+    })
+    .slice(0, 5);
+  const recentConversationPreviews =
+    await loadLatestMessagePreviewsByConversationIds(
+      supabase,
+      recentConversationCandidates.map((conversation) => conversation.id),
+    );
 
   const leadsToday = leadRows.filter(
     (lead) => getLeadAcquisitionDate(lead) === todayJakarta,
@@ -520,7 +716,7 @@ export async function loadOwnerDashboardMetrics(
   ).length;
 
   const unpaidBookings = bookingRows.filter(
-    (booking) => booking.payment_status !== "paid",
+    (booking) => !isBookingPaymentSettled(booking.payment_status),
   ).length;
 
   const salesPerformanceRows = buildSalesPerformanceRows(
@@ -571,9 +767,15 @@ export async function loadOwnerDashboardMetrics(
       paymentRows,
       omnichannelRows,
     ),
+    recentConversations: buildRecentConversations(
+      omnichannelRows,
+      recentConversationPreviews,
+      legacyInboxRows,
+    ),
     followUpHealth: {
       totalLeads: totalActiveLeads ?? 0,
       overdueLeads: queueSummary.overdueLeads,
+      dueTodayLeads: queueSummary.dueTodayLeads,
       hotLeadsOverdue: queueSummary.hotOverdueLeads,
       compliance,
     },

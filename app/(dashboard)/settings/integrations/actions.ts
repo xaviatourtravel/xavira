@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { canManageIntegrations } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { auditFromProfile } from "@/lib/audit";
 import {
   isIntegrationProvider,
   isIntegrationStatus,
@@ -29,10 +30,10 @@ async function setIntegrationStatus(
 ): Promise<IntegrationActionResult> {
   const { profile } = await requireProfile();
 
-  if (!isAdminOrOwner(profile)) {
+  if (!canManageIntegrations(profile)) {
     return {
       success: false,
-      message: "Hanya owner atau admin yang dapat mengubah integrasi.",
+      message: "You do not have permission to manage integrations.",
     };
   }
 
@@ -72,6 +73,25 @@ async function setIntegrationStatus(
     };
   }
 
+  const auditAction =
+    nextStatus === "connected"
+      ? "integration_connected"
+      : nextStatus === "not_connected"
+        ? "integration_disconnected"
+        : null;
+
+  if (auditAction) {
+    await auditFromProfile(supabase, profile, {
+      action: auditAction,
+      entityType: "integration",
+      entityId: provider,
+      entityLabel: provider,
+      metadata: {
+        status: nextStatus,
+      },
+    });
+  }
+
   revalidatePath("/settings");
   revalidatePath("/settings/integrations");
 
@@ -98,10 +118,10 @@ export async function markIntegrationPendingSetup(formData: FormData) {
 export async function disconnectIntegration(formData: FormData) {
   const { profile } = await requireProfile();
 
-  if (!isAdminOrOwner(profile)) {
+  if (!canManageIntegrations(profile)) {
     return {
       success: false,
-      message: "Hanya owner atau admin yang dapat mengubah integrasi.",
+      message: "You do not have permission to manage integrations.",
     };
   }
 
@@ -118,6 +138,14 @@ export async function disconnectIntegration(formData: FormData) {
     try {
       const supabase = await createClient();
       await disconnectInstagramIntegration(supabase, profile.organization_id);
+
+      await auditFromProfile(supabase, profile, {
+        action: "integration_disconnected",
+        entityType: "integration",
+        entityId: provider,
+        entityLabel: provider,
+      });
+
       revalidatePath("/settings");
   revalidatePath("/settings/integrations");
       revalidatePath("/content/instagram-analytics");

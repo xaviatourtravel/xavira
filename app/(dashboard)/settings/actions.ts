@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { auditFromProfile } from "@/lib/audit";
 import {
   mergeOrganizationWorkspaceSettings,
   type AiTone,
@@ -136,6 +137,19 @@ export async function saveAiSettings(
   if (error) {
     return { success: false, message: error.message };
   }
+
+  await auditFromProfile(organizationRow.supabase, organizationRow.profile, {
+    action: "ai_settings_updated",
+    entityType: "settings",
+    entityId: organizationRow.organizationId,
+    entityLabel: "AI Settings",
+    metadata: {
+      response_mode: aiPatch.responseMode,
+      tone: aiPatch.tone,
+      auto_reply_enabled: aiPatch.autoReplyEnabled,
+      knowledge_base_enabled: aiPatch.knowledgeBaseEnabled,
+    },
+  });
 
   revalidateSettingsPaths();
   return { success: true, message: "AI settings saved." };

@@ -11,8 +11,12 @@ import {
   BookingPaymentsSection,
   type BookingPaymentItem,
 } from "@/components/bookings/booking-payments-section";
+import { AiPaymentReminderCard } from "@/components/bookings/ai-payment-reminder-card";
 import { PaymentStatusBadge } from "@/components/bookings/payment-status-badge";
+import { hasPermission } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { getBookingPaymentReminderType } from "@/lib/ai/follow-up-assistant";
+import { buildBookingPaymentTotals } from "@/lib/bookings/payment-summary";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -126,7 +130,7 @@ export default async function BookingDetailPage({
       .order("created_at", { ascending: true }),
     supabase
       .from("booking_payments")
-      .select("id, payment_type, amount, payment_date, notes")
+      .select("id, payment_type, payment_method, reference_number, amount, payment_date, notes")
       .eq("booking_id", id)
       .order("created_at", { ascending: true }),
   ]);
@@ -143,6 +147,15 @@ export default async function BookingDetailPage({
   const participantRows = (participants ?? []) as BookingParticipantItem[];
   const paymentRows = (payments ?? []) as BookingPaymentItem[];
   const bookingTotalAmount = Number(detail.total_amount);
+  const paymentTotals = buildBookingPaymentTotals(
+    bookingTotalAmount,
+    paymentRows,
+  );
+  const paymentReminderType = getBookingPaymentReminderType(
+    detail.payment_status,
+    paymentTotals.amountPaid,
+  );
+  const canCreatePayment = hasPermission(profile, "payments.create");
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -245,12 +258,20 @@ export default async function BookingDetailPage({
 
           <BookingPaymentSummary
             bookingTotalAmount={bookingTotalAmount}
+            paymentStatus={detail.payment_status}
             payments={paymentRows}
           />
 
           <BookingPaymentsSection
             bookingId={detail.id}
             payments={paymentRows}
+            canCreatePayment={canCreatePayment}
+          />
+
+          <AiPaymentReminderCard
+            bookingId={detail.id}
+            leadId={detail.lead_id}
+            reminderType={paymentReminderType}
           />
         </div>
       </div>

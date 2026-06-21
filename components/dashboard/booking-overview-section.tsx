@@ -47,7 +47,7 @@ export function BookingOverviewSection({ metrics }: BookingOverviewSectionProps)
         </Link>
 
         <Link
-          href="/bookings?payment_status=partial_paid"
+          href="/bookings?payment_status=dp_paid"
           className="rounded-xl border p-4 transition-colors hover:bg-accent/50"
         >
           <p className="text-sm text-muted-foreground">Outstanding</p>

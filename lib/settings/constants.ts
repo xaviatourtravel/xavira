@@ -4,10 +4,20 @@ import {
   Building2,
   Inbox,
   Plug,
+  ScrollText,
   Shield,
   Users,
   type LucideIcon,
 } from "lucide-react";
+
+import {
+  EFFECTIVE_ROLES,
+  PERMISSION_GROUPS,
+  PERMISSION_LABELS,
+  roleHasPermission,
+  type EffectiveRole,
+  type Permission,
+} from "@/lib/auth/permission-matrix";
 
 export const SETTINGS_SECTIONS = [
   {
@@ -52,6 +62,13 @@ export const SETTINGS_SECTIONS = [
     description: "Alerts for leads, inbox, and bookings",
     icon: Bell,
   },
+  {
+    id: "audit",
+    label: "Audit Logs",
+    description: "Monitor team activity and changes",
+    icon: ScrollText,
+    requiresAdminOrOwner: true,
+  },
 ] as const;
 
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
@@ -70,87 +87,57 @@ export function getSettingsSectionIcon(
   return SETTINGS_SECTIONS.find((section) => section.id === sectionId)!.icon;
 }
 
-export const PERMISSION_MATRIX_ROLES = [
-  "Owner",
-  "Admin",
-  "Sales",
-  "Marketing",
-  "Finance",
-] as const;
+export const PERMISSION_MATRIX_ROLES = EFFECTIVE_ROLES.map((role) =>
+  role.charAt(0).toUpperCase() + role.slice(1),
+) as Array<Capitalize<EffectiveRole>>;
 
-export const PERMISSION_MATRIX_FEATURES = [
-  { key: "dashboard", label: "Owner dashboard & revenue" },
-  { key: "leads", label: "Lead management" },
-  { key: "inbox", label: "Omnichannel inbox" },
-  { key: "bookings", label: "Bookings & payments" },
-  { key: "content", label: "Content studio" },
-  { key: "integrations", label: "Manage integrations" },
-  { key: "team", label: "Team & role management" },
-  { key: "settings", label: "Workspace settings" },
-] as const;
+export const PERMISSION_MATRIX_FEATURES = PERMISSION_GROUPS.map((group) => ({
+  key: group.id,
+  label: group.label,
+  permissions: group.permissions,
+}));
 
-export type PermissionLevel = "full" | "limited" | "view" | "none" | "planned";
+export type PermissionLevel = "allowed" | "denied";
 
 export const PERMISSION_MATRIX: Record<
-  (typeof PERMISSION_MATRIX_ROLES)[number],
+  Capitalize<EffectiveRole>,
   Record<(typeof PERMISSION_MATRIX_FEATURES)[number]["key"], PermissionLevel>
-> = {
-  Owner: {
-    dashboard: "full",
-    leads: "full",
-    inbox: "full",
-    bookings: "full",
-    content: "full",
-    integrations: "full",
-    team: "full",
-    settings: "full",
-  },
-  Admin: {
-    dashboard: "full",
-    leads: "full",
-    inbox: "full",
-    bookings: "full",
-    content: "full",
-    integrations: "full",
-    team: "full",
-    settings: "full",
-  },
-  Sales: {
-    dashboard: "limited",
-    leads: "full",
-    inbox: "full",
-    bookings: "limited",
-    content: "view",
-    integrations: "view",
-    team: "view",
-    settings: "view",
-  },
-  Marketing: {
-    dashboard: "view",
-    leads: "view",
-    inbox: "view",
-    bookings: "view",
-    content: "full",
-    integrations: "planned",
-    team: "view",
-    settings: "view",
-  },
-  Finance: {
-    dashboard: "view",
-    leads: "view",
-    inbox: "view",
-    bookings: "full",
-    content: "view",
-    integrations: "view",
-    team: "view",
-    settings: "view",
-  },
-};
+> = Object.fromEntries(
+  EFFECTIVE_ROLES.map((role) => {
+    const displayRole = (role.charAt(0).toUpperCase() +
+      role.slice(1)) as Capitalize<EffectiveRole>;
+
+    const featureMap = Object.fromEntries(
+      PERMISSION_GROUPS.map((group) => {
+        const allowed = group.permissions.some((permission) =>
+          roleHasPermission(role, permission),
+        );
+        return [group.id, allowed ? "allowed" : "denied"] as const;
+      }),
+    ) as Record<
+      (typeof PERMISSION_MATRIX_FEATURES)[number]["key"],
+      PermissionLevel
+    >;
+
+    return [displayRole, featureMap];
+  }),
+) as Record<
+  Capitalize<EffectiveRole>,
+  Record<(typeof PERMISSION_MATRIX_FEATURES)[number]["key"], PermissionLevel>
+>;
 
 export const PERMISSION_LEVEL_LABELS: Record<PermissionLevel, string> = {
-  full: "Full access",
-  limited: "Limited",
-  view: "View only",
-  none: "No access",
-  planned: "Coming soon",
+  allowed: "Allowed",
+  denied: "No access",
 };
+
+export const PERMISSION_MATRIX_DETAIL_ROWS = PERMISSION_GROUPS.flatMap(
+  (group) =>
+    group.permissions.map((permission) => ({
+      group: group.label,
+      permission,
+      label: PERMISSION_LABELS[permission],
+    })),
+);
+
+export type { Permission };

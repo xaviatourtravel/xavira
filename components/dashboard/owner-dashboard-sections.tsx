@@ -3,23 +3,26 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarDays,
+  ChevronRight,
   CircleDollarSign,
-  Inbox,
+  Clock3,
+  Facebook,
+  Instagram,
   MessageSquare,
-  Sparkles,
-  Target,
   TrendingUp,
-  Users,
+  UserPlus,
 } from "lucide-react";
 
+import { formatInboxRelativeTime } from "@/components/omnichannel-inbox/inbox-display";
 import {
-  buildExecutiveInsights,
+  buildExecutiveSummaryItems,
+  buildHeroKpis,
+  buildPipelineFunnelCards,
   buildPipelineTakeaway,
-  buildRevenueTrendLabel,
-  formatDashboardCurrency,
+  buildTodaysPriorities,
   formatDashboardDate,
   formatRecentActivityTime,
-  getRecentActivityIcon,
+  getActivityFeedMeta,
 } from "@/lib/dashboard/owner-executive-insights";
 import type { OwnerDashboardMetrics } from "@/lib/dashboard/owner-dashboard-data";
 import { cn } from "@/lib/utils";
@@ -28,7 +31,7 @@ type DashboardSectionProps = {
   metrics: OwnerDashboardMetrics;
 };
 
-function DashboardCard({
+function Surface({
   className,
   children,
 }: {
@@ -36,516 +39,480 @@ function DashboardCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn("rounded-2xl border bg-card shadow-sm", className)}>
+    <section
+      className={cn(
+        "rounded-2xl bg-card p-6 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/10",
+        className,
+      )}
+    >
       {children}
     </section>
   );
 }
 
+const PRIORITY_TONE_CLASSES = {
+  urgent:
+    "border-amber-200/80 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50",
+  action:
+    "border-sky-200/80 bg-sky-50/70 hover:border-sky-300 hover:bg-sky-50",
+  opportunity:
+    "border-emerald-200/80 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-50",
+  neutral: "border-border/60 bg-muted/20 hover:border-border hover:bg-muted/30",
+} as const;
+
+const PRIORITY_COUNT_CLASSES = {
+  urgent: "bg-amber-100 text-amber-900",
+  action: "bg-sky-100 text-sky-900",
+  opportunity: "bg-emerald-100 text-emerald-900",
+  neutral: "bg-muted text-muted-foreground",
+} as const;
+
 export function OwnerDashboardHeader() {
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Owner Dashboard
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Desklabs
+        </p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
+          Action Center
         </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Executive overview of revenue, pipeline, inbox, and follow-up
-          performance.
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          What needs your attention today — follow-ups, inbox, and deals in motion.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-        <div className="flex items-center gap-2 rounded-full border bg-background px-3 py-1.5 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
           <CalendarDays className="h-3.5 w-3.5" />
-          <span>{formatDashboardDate()}</span>
-        </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Live data
+          {formatDashboardDate()}
         </span>
+        <Link
+          href="/inbox"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Open Inbox
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+        <Link
+          href="/follow-ups/queue"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/80"
+        >
+          Follow-up Queue
+        </Link>
       </div>
     </div>
   );
 }
 
-export function OwnerHeroRevenueSection({ metrics }: DashboardSectionProps) {
-  const { executiveKpis, estimatedPipelineValue, revenuePreviousMonth } = metrics;
-  const trendLabel = buildRevenueTrendLabel(
-    executiveKpis.revenueThisMonth,
-    revenuePreviousMonth,
-  );
+export function OwnerHeroKpiRow({ metrics }: DashboardSectionProps) {
+  const items = buildHeroKpis(metrics);
 
   return (
-    <DashboardCard className="overflow-hidden">
-      <div className="grid gap-0 lg:grid-cols-[1.4fr_1fr]">
-        <div className="border-b bg-gradient-to-br from-emerald-50/80 via-background to-background p-6 sm:p-8 lg:border-b-0 lg:border-r">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Revenue This Month
-              </p>
-              <p className="mt-3 text-4xl font-bold tracking-tight text-emerald-700 sm:text-5xl">
-                {formatDashboardCurrency(executiveKpis.revenueThisMonth)}
-              </p>
-            </div>
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-              <CircleDollarSign className="h-5 w-5" />
-            </span>
-          </div>
-
-          <p className="mt-4 text-sm text-muted-foreground">{trendLabel}</p>
-        </div>
-
-        <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-1">
-          <div className="bg-card p-5 sm:p-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Bookings This Month
-            </p>
-            <p className="mt-2 text-2xl font-semibold">
-              {executiveKpis.bookingsThisMonth}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Confirmed customer bookings
-            </p>
-          </div>
-
-          <div className="bg-card p-5 sm:p-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Estimated Pipeline Value
-            </p>
-            <p className="mt-2 text-2xl font-semibold">
-              {estimatedPipelineValue > 0
-                ? formatDashboardCurrency(estimatedPipelineValue)
-                : "—"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {estimatedPipelineValue > 0
-                ? "Based on active lead budgets"
-                : "Add lead budgets to estimate pipeline value"}
-            </p>
-          </div>
-        </div>
-      </div>
-    </DashboardCard>
-  );
-}
-
-export function OwnerExecutiveSummarySection({ metrics }: DashboardSectionProps) {
-  const insights = buildExecutiveInsights(metrics);
-
-  return (
-    <DashboardCard className="p-6 sm:p-7">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Sparkles className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold">Executive Summary</h2>
-              <p className="text-sm text-muted-foreground">
-                What needs your attention right now
-              </p>
-            </div>
-          </div>
-
-          <ul className="space-y-2.5">
-            {insights.map((insight) => (
-              <li
-                key={insight}
-                className="flex items-start gap-2.5 text-sm leading-relaxed text-foreground"
-              >
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                <span>{insight}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex flex-wrap gap-2 lg:max-w-xs lg:flex-col">
-          <Link
-            href="/inbox"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
-          >
-            Open Inbox
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/follow-ups/queue"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
-          >
-            Review Follow Ups
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/leads"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            View Leads
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-    </DashboardCard>
-  );
-}
-
-export function OwnerKpiStrip({ metrics }: DashboardSectionProps) {
-  const items = [
-    {
-      label: "Active Leads",
-      value: metrics.followUpHealth.totalLeads,
-      helper: "Open opportunities in pipeline",
-      icon: Users,
-    },
-    {
-      label: "Bookings This Month",
-      value: metrics.executiveKpis.bookingsThisMonth,
-      helper: "New bookings recorded",
-      icon: Target,
-    },
-    {
-      label: "New Conversations",
-      value:
-        metrics.omnichannel.newConversations > 0
-          ? metrics.omnichannel.newConversations
-          : metrics.inboxMetrics.newConversations,
-      helper: "Unread customer conversations",
-      icon: MessageSquare,
-    },
-    {
-      label: "Follow-up Overdue",
-      value: metrics.followUpHealth.overdueLeads,
-      helper: "Leads needing immediate action",
-      icon: AlertTriangle,
-      emphasis: metrics.followUpHealth.overdueLeads > 0,
-    },
-  ];
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
-        const Icon = item.icon;
+        const content = (
+          <>
+            <p
+              className={cn(
+                "text-3xl font-bold tracking-tight",
+                item.emptyState ? "text-muted-foreground" : "text-foreground",
+              )}
+            >
+              {item.value}
+            </p>
+            <p className="mt-2 text-sm font-medium text-foreground">{item.label}</p>
+            <p
+              className={cn(
+                "mt-1 text-xs",
+                item.tone === "warning" && "font-medium text-amber-700",
+                item.tone === "success" && "text-emerald-700",
+                item.emptyState && "text-muted-foreground",
+                (!item.tone || item.tone === "default") &&
+                  !item.emptyState &&
+                  "text-muted-foreground",
+              )}
+            >
+              {item.trend}
+            </p>
+            {item.emptyState && item.href ? (
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+                View bookings
+                <ChevronRight className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+          </>
+        );
+
+        if (item.href && item.emptyState) {
+          return (
+            <Link key={item.label} href={item.href} className="block">
+              <Surface className="p-5 transition-colors hover:bg-muted/20">{content}</Surface>
+            </Link>
+          );
+        }
 
         return (
-          <DashboardCard key={item.label} className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {item.label}
-                </p>
-                <p
-                  className={cn(
-                    "mt-2 text-3xl font-bold",
-                    item.emphasis && "text-amber-700",
-                  )}
-                >
-                  {item.value}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {item.helper}
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-xl",
-                  item.emphasis
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-muted text-muted-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
-            </div>
-          </DashboardCard>
+          <Surface key={item.label} className="p-5">
+            {content}
+          </Surface>
         );
       })}
     </div>
   );
 }
 
-const PIPELINE_STAGES = [
-  { key: "new", label: "New", href: "/leads/kanban?status=new" },
-  { key: "contacted", label: "Contacted", href: "/leads/kanban?status=contacted" },
-  { key: "qualified", label: "Qualified", href: "/leads/kanban?status=qualified" },
-  {
-    key: "negotiating",
-    label: "Negotiating",
-    href: "/leads/kanban?status=negotiating",
-  },
-  { key: "won", label: "Won", href: "/leads/kanban?status=won" },
-] as const;
-
-export function OwnerSalesPipelineSection({ metrics }: DashboardSectionProps) {
-  const { pipelineFunnel } = metrics;
-  const total = PIPELINE_STAGES.reduce(
-    (sum, stage) => sum + pipelineFunnel[stage.key],
-    0,
-  );
-  const takeaway = buildPipelineTakeaway(pipelineFunnel);
+export function OwnerTodaysPriorities({ metrics }: DashboardSectionProps) {
+  const items = buildTodaysPriorities(metrics);
+  const urgentCount = items.filter(
+    (item) => item.tone === "urgent" || item.tone === "action",
+  ).reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <DashboardCard className="p-6 sm:p-7">
+    <Surface>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Sales Pipeline</h2>
-          <p className="text-sm text-muted-foreground">
-            Lead distribution across each stage
+          <h2 className="text-base font-semibold text-foreground">
+            Today&apos;s Priorities
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {urgentCount > 0
+              ? `${urgentCount} item${urgentCount === 1 ? "" : "s"} need action now`
+              : "You're caught up — focus on growth"}
           </p>
         </div>
-        <Link
-          href="/leads/kanban"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          View pipeline
-        </Link>
       </div>
 
-      <div className="mt-6 space-y-4">
-        {PIPELINE_STAGES.map((stage) => {
-          const count = pipelineFunnel[stage.key];
-          const widthPercent = total > 0 ? Math.max((count / total) * 100, 4) : 0;
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            className={cn(
+              "group flex items-start justify-between gap-3 rounded-xl border p-4 transition-colors",
+              PRIORITY_TONE_CLASSES[item.tone],
+            )}
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">{item.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex min-w-8 items-center justify-center rounded-full px-2 py-1 text-sm font-bold tabular-nums",
+                  PRIORITY_COUNT_CLASSES[item.tone],
+                )}
+              >
+                {item.count}
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </Surface>
+  );
+}
+
+const SUMMARY_ICON_MAP = {
+  alert: AlertTriangle,
+  message: MessageSquare,
+  trend: TrendingUp,
+  money: CircleDollarSign,
+} as const;
+
+const SUMMARY_TONE_CLASSES = {
+  warning: "bg-amber-50 text-amber-800 ring-amber-100",
+  info: "bg-sky-50 text-sky-800 ring-sky-100",
+  success: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+  neutral: "bg-muted/50 text-foreground ring-border",
+} as const;
+
+export function OwnerExecutiveSummaryCard({ metrics }: DashboardSectionProps) {
+  const items = buildExecutiveSummaryItems(metrics);
+  const hasEmptyWorkspace =
+    metrics.followUpHealth.totalLeads === 0 &&
+    metrics.omnichannel.activeConversations === 0 &&
+    metrics.inboxMetrics.totalConversations === 0;
+
+  return (
+    <Surface className="bg-gradient-to-br from-background via-background to-muted/20">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Quick Snapshot</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Status across follow-ups, inbox, leads, and bookings
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => {
+          const Icon = SUMMARY_ICON_MAP[item.icon];
 
           return (
-            <Link
-              key={stage.key}
-              href={stage.href}
-              className="block rounded-xl border bg-muted/20 p-4 transition-colors hover:bg-muted/40"
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-4 py-3 ring-1",
+                SUMMARY_TONE_CLASSES[item.tone],
+              )}
             >
-              <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium">{stage.label}</span>
-                <span className="font-semibold tabular-nums">{count}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all",
-                    stage.key === "won" ? "bg-emerald-500" : "bg-primary/70",
-                  )}
-                  style={{ width: `${widthPercent}%` }}
-                />
-              </div>
-            </Link>
+              <Icon className="h-4 w-4 shrink-0" />
+              <p className="text-sm font-medium leading-snug">{item.text}</p>
+            </div>
           );
         })}
       </div>
 
-      <p className="mt-5 rounded-xl bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-        {takeaway}
-      </p>
-    </DashboardCard>
+      {hasEmptyWorkspace ? (
+        <div className="mt-5 rounded-xl bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          Connect Instagram in{" "}
+          <Link
+            href="/settings?section=integrations"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Settings
+          </Link>{" "}
+          to start receiving customer conversations.
+        </div>
+      ) : null}
+    </Surface>
   );
 }
 
-export function OwnerCustomerConversationsSection({
-  metrics,
-}: DashboardSectionProps) {
-  const { inboxMetrics, omnichannel } = metrics;
-  const newConversations =
-    omnichannel.newConversations > 0
-      ? omnichannel.newConversations
-      : inboxMetrics.newConversations;
-  const activeConversations =
-    omnichannel.activeConversations > 0
-      ? omnichannel.activeConversations
-      : inboxMetrics.totalConversations;
+function ChannelBadge({ channel, label }: { channel: string; label: string }) {
+  const isInstagram = channel === "instagram";
+  const isFacebook = channel === "facebook";
 
   return (
-    <DashboardCard className="p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Customer Conversations</h2>
-          <p className="text-sm text-muted-foreground">
-            Instagram and Facebook inbox performance
-          </p>
-        </div>
-        <Link
-          href="/inbox"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Open Inbox
-        </Link>
-      </div>
-
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">New</p>
-          <p className="mt-1 text-2xl font-bold">{newConversations}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Converted</p>
-          <p className="mt-1 text-2xl font-bold">{inboxMetrics.convertedLeads}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Conversion</p>
-          <p className="mt-1 text-2xl font-bold">{inboxMetrics.conversionRate}%</p>
-        </div>
-      </div>
-
-      <p className="mt-4 text-xs text-muted-foreground">
-        {activeConversations} active conversation
-        {activeConversations === 1 ? "" : "s"} across connected channels.
-      </p>
-    </DashboardCard>
-  );
-}
-
-export function OwnerFollowUpRiskSection({ metrics }: DashboardSectionProps) {
-  const { followUpHealth } = metrics;
-  const hasRisk = followUpHealth.overdueLeads > 0;
-
-  return (
-    <DashboardCard
+    <span
       className={cn(
-        "p-6",
-        hasRisk && "border-amber-200 bg-amber-50/30",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+        isInstagram && "bg-pink-50 text-pink-700",
+        isFacebook && "bg-blue-50 text-blue-700",
+        !isInstagram && !isFacebook && "bg-muted text-muted-foreground",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Follow-up Risk</h2>
-          <p className="text-sm text-muted-foreground">
-            Leads that may be slipping through the cracks
-          </p>
-        </div>
-        <Link
-          href="/follow-ups/queue"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Open Follow-up Queue
-        </Link>
-      </div>
-
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">Overdue Leads</p>
-          <p
-            className={cn(
-              "mt-1 text-2xl font-bold",
-              hasRisk && "text-amber-700",
-            )}
-          >
-            {followUpHealth.overdueLeads}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Hot Leads Overdue</p>
-          <p className="mt-1 text-2xl font-bold text-orange-700">
-            {followUpHealth.hotLeadsOverdue}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Compliance</p>
-          <p className="mt-1 text-2xl font-bold">
-            {followUpHealth.compliance.today.complianceRate}%
-          </p>
-        </div>
-      </div>
-
-      {hasRisk ? (
-        <p className="mt-4 flex items-center gap-2 text-sm font-medium text-amber-800">
-          <AlertTriangle className="h-4 w-4" />
-          Follow-up attention required today.
-        </p>
+      {isInstagram ? (
+        <Instagram className="h-3 w-3" />
+      ) : isFacebook ? (
+        <Facebook className="h-3 w-3" />
       ) : (
-        <p className="mt-4 text-xs text-muted-foreground">
-          No overdue follow-ups right now. Keep momentum with today&apos;s queue.
-        </p>
+        <MessageSquare className="h-3 w-3" />
       )}
-    </DashboardCard>
+      {label}
+    </span>
   );
 }
 
-export function OwnerRecentActivitySection({ metrics }: DashboardSectionProps) {
-  const { recentActivity } = metrics;
+function OwnerPipelineFunnelCards({ metrics }: DashboardSectionProps) {
+  const cards = buildPipelineFunnelCards(metrics.pipelineFunnel);
+  const total = cards.reduce((sum, card) => sum + card.count, 0);
+  const takeaway = buildPipelineTakeaway(metrics.pipelineFunnel);
 
   return (
-    <DashboardCard className="p-6 sm:p-7">
-      <div>
-        <h2 className="text-lg font-semibold">Recent Activity</h2>
-        <p className="text-sm text-muted-foreground">
-          Latest movement across leads, inbox, bookings, and payments
-        </p>
+    <Surface>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Lead Pipeline</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Stage counts and conversion at a glance
+          </p>
+        </div>
+        <Link href="/leads/kanban" className="text-xs font-medium text-primary hover:underline">
+          Open pipeline
+        </Link>
       </div>
 
-      {recentActivity.length > 0 ? (
-        <div className="mt-5 divide-y rounded-xl border">
-          {recentActivity.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium text-foreground">{item.label}</p>
-                <p className="text-xs text-muted-foreground">
-                  {getRecentActivityIcon(item.type)}
+      {total > 0 ? (
+        <>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {cards.map((card, index) => (
+              <Link
+                key={card.key}
+                href={`/leads?status=${card.key === "negotiating" ? "negotiating" : card.key}`}
+                className="group rounded-xl bg-muted/25 p-4 transition-colors hover:bg-muted/40"
+              >
+                <p className="text-2xl font-bold tabular-nums text-foreground">
+                  {card.count}
                 </p>
+                <p className="mt-1 text-sm font-medium text-foreground">{card.label}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {card.sharePercent}% of pipeline
+                </p>
+                {index > 0 ? (
+                  <p className="mt-1 text-xs font-medium text-primary">
+                    {card.conversionPercent === null
+                      ? "No prior stage volume"
+                      : `${card.conversionPercent}% from ${cards[index - 1].label.toLowerCase()}`}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs font-medium text-primary">Top of funnel</p>
+                )}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">{takeaway}</p>
+        </>
+      ) : (
+        <div className="mt-5 rounded-xl bg-muted/30 px-4 py-8 text-center">
+          <UserPlus className="mx-auto h-5 w-5 text-muted-foreground/60" />
+          <p className="mt-3 text-sm font-medium text-foreground">No leads in pipeline yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Import leads or connect inbox to convert conversations into opportunities.
+          </p>
+          <Link
+            href="/leads/new"
+            className="mt-4 inline-flex text-xs font-medium text-primary hover:underline"
+          >
+            Add your first lead
+          </Link>
+        </div>
+      )}
+    </Surface>
+  );
+}
+
+function OwnerRecentConversationsPanel({ metrics }: DashboardSectionProps) {
+  const { recentConversations } = metrics;
+
+  return (
+    <Surface>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Recent Conversations</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Latest customer messages across channels
+          </p>
+        </div>
+        <Link href="/inbox" className="text-xs font-medium text-primary hover:underline">
+          View all
+        </Link>
+      </div>
+
+      {recentConversations.length > 0 ? (
+        <div className="mt-5 divide-y divide-border/60">
+          {recentConversations.map((conversation) => (
+            <Link
+              key={conversation.id}
+              href={conversation.href}
+              className="group flex gap-3 py-4 first:pt-0 last:pb-0 transition-colors hover:bg-muted/20"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
+                {conversation.customerName.charAt(0).toUpperCase()}
               </div>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {formatRecentActivityTime(item.timestamp)}
-              </span>
-            </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {conversation.customerName}
+                  </p>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatInboxRelativeTime(conversation.lastMessageAt)}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+                  {conversation.lastMessagePreview}
+                </p>
+                <div className="mt-2">
+                  <ChannelBadge
+                    channel={conversation.channel}
+                    label={conversation.channelLabel}
+                  />
+                </div>
+              </div>
+              <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
           ))}
         </div>
       ) : (
-        <div className="mt-5 rounded-xl border border-dashed px-4 py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            No recent activity yet. Activity will appear as your team uses
-            Desklabs.
+        <div className="mt-5 rounded-xl bg-muted/30 px-4 py-8 text-center">
+          <MessageSquare className="mx-auto h-5 w-5 text-muted-foreground/60" />
+          <p className="mt-3 text-sm font-medium text-foreground">No conversations yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Connect Instagram to start receiving customer conversations.
           </p>
+          <Link
+            href="/settings?section=integrations"
+            className="mt-4 inline-flex text-xs font-medium text-primary hover:underline"
+          >
+            Connect Instagram
+          </Link>
         </div>
       )}
-    </DashboardCard>
+    </Surface>
   );
 }
 
-const STRATEGIC_ACTIONS = [
-  {
-    title: "Revenue Intelligence",
-    description: "Understand what drives bookings, packages, and conversion.",
-    href: "/revenue",
-    icon: TrendingUp,
-  },
-  {
-    title: "Inbox Management",
-    description: "Review Instagram and Facebook conversations in one place.",
-    href: "/inbox",
-    icon: Inbox,
-  },
-  {
-    title: "Lead Follow-up Queue",
-    description: "Prioritize overdue and high-intent leads for your sales team.",
-    href: "/follow-ups/queue",
-    icon: Target,
-  },
-] as const;
+function OwnerActivityTimeline({ metrics }: DashboardSectionProps) {
+  const { recentActivity } = metrics;
 
-export function OwnerStrategicActionsSection() {
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {STRATEGIC_ACTIONS.map((action) => {
-        const Icon = action.icon;
+    <Surface>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Recent Activity</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Latest movement across inbox, leads, and bookings
+          </p>
+        </div>
+        <Clock3 className="h-4 w-4 text-muted-foreground" />
+      </div>
 
-        return (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="group rounded-2xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-            </div>
-            <h3 className="mt-4 font-semibold text-foreground">{action.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {action.description}
-            </p>
-          </Link>
-        );
-      })}
+      {recentActivity.length > 0 ? (
+        <div className="mt-5 space-y-0">
+          {recentActivity.slice(0, 6).map((item, index) => {
+            const meta = getActivityFeedMeta(item);
+            const isLast = index === recentActivity.slice(0, 6).length - 1;
+
+            return (
+              <div key={item.id} className="relative flex gap-3 pb-5">
+                {!isLast ? (
+                  <span className="absolute left-[11px] top-6 h-[calc(100%-8px)] w-px bg-border" />
+                ) : null}
+                <span
+                  className={cn(
+                    "relative z-10 mt-0.5 h-6 w-6 shrink-0 rounded-full ring-4 ring-card",
+                    meta.tone === "sky" && "bg-sky-100",
+                    meta.tone === "violet" && "bg-violet-100",
+                    meta.tone === "emerald" && "bg-emerald-100",
+                    meta.tone === "amber" && "bg-amber-100",
+                    meta.tone === "neutral" && "bg-muted",
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-snug text-foreground">
+                    {item.label}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <span>{meta.category}</span>
+                    <span aria-hidden>·</span>
+                    <span>{formatRecentActivityTime(item.timestamp)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-xl bg-muted/30 px-4 py-8 text-center">
+          <p className="text-sm font-medium text-foreground">No recent activity</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Activity will appear as your team uses Desklabs.
+          </p>
+        </div>
+      )}
+    </Surface>
+  );
+}
+
+export function OwnerPerformanceSection({ metrics }: DashboardSectionProps) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+      <OwnerPipelineFunnelCards metrics={metrics} />
+      <div className="space-y-6">
+        <OwnerRecentConversationsPanel metrics={metrics} />
+        <OwnerActivityTimeline metrics={metrics} />
+      </div>
     </div>
   );
 }

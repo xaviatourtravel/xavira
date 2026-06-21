@@ -48,11 +48,17 @@ export function SettingsWorkspace({
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
     SETTINGS_SECTIONS[0];
 
+  const visibleSections = SETTINGS_SECTIONS.filter(
+    (section) =>
+      !("requiresAdminOrOwner" in section && section.requiresAdminOrOwner) ||
+      data.canViewAuditLogs,
+  );
+
   return (
-    <div className="mx-auto w-full max-w-7xl">
-      <div className="mb-8 space-y-2">
+    <div className="mx-auto w-full max-w-7xl overflow-x-hidden">
+      <div className="mb-6 space-y-2 md:mb-8">
         <p className="text-sm font-medium text-muted-foreground">Desklabs</p>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Manage your workspace profile, team access, integrations, and automation
           preferences from one place.
@@ -78,10 +84,27 @@ export function SettingsWorkspace({
         </div>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <nav className="space-y-1 rounded-2xl border bg-card p-2 shadow-sm">
-            {SETTINGS_SECTIONS.map((section) => {
+          <label className="mb-2 block text-sm font-medium lg:hidden">
+            Section
+          </label>
+          <select
+            value={activeSection}
+            onChange={(event) =>
+              navigateToSection(event.target.value as SettingsSectionId)
+            }
+            className="mb-4 flex h-11 w-full rounded-xl border bg-card px-3 text-sm lg:hidden"
+          >
+            {visibleSections.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.label}
+              </option>
+            ))}
+          </select>
+
+          <nav className="hidden space-y-1 rounded-2xl border bg-card p-2 shadow-sm lg:block">
+            {visibleSections.map((section) => {
               const Icon = section.icon;
               const isActive = section.id === activeSection;
 

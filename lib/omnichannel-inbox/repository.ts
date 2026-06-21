@@ -39,6 +39,7 @@ const CONVERSATION_COLUMNS = `
   customer_username,
   customer_avatar,
   assigned_user_id,
+  lead_id,
   status,
   unread_count,
   last_message_at,

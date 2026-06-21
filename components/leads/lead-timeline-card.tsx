@@ -119,6 +119,7 @@ export function LeadTimelineCard({
   const [eventTypeFilter, setEventTypeFilter] = useState<
     LeadTimelineEventType | "all"
   >("all");
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   const filteredEvents = useMemo(() => {
     if (eventTypeFilter === "all") {
@@ -131,14 +132,23 @@ export function LeadTimelineCard({
   return (
     <Card>
       <CardHeader className="space-y-4">
-        <div>
-          <CardTitle>📜 Timeline</CardTitle>
-          <CardDescription>
-            Riwayat kronologis lengkap untuk lead ini.
-          </CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle>📜 Timeline</CardTitle>
+            <CardDescription>
+              Riwayat kronologis lengkap untuk lead ini.
+            </CardDescription>
+          </div>
+          <button
+            type="button"
+            className="min-h-[44px] rounded-lg border px-3 text-sm font-medium lg:hidden"
+            onClick={() => setMobileExpanded((value) => !value)}
+          >
+            {mobileExpanded ? "Hide" : `Show (${events.length})`}
+          </button>
         </div>
 
-        <div className="max-w-xs">
+        <div className={cn("max-w-xs", !mobileExpanded && "hidden lg:block")}>
           <label
             htmlFor="timeline-event-filter"
             className="text-sm font-medium"
@@ -165,7 +175,7 @@ export function LeadTimelineCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className={cn("space-y-6", !mobileExpanded && "hidden lg:block")}>
         {filteredEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {events.length === 0

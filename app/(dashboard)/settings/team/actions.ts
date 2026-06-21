@@ -12,8 +12,9 @@ import {
 } from "@/lib/team/invites";
 import { getTeamRoleChangeErrorMessage } from "@/lib/team/permissions";
 import { countOrganizationOwners } from "@/lib/team/queries";
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { canManageTeam } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { auditFromProfile } from "@/lib/audit";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -24,10 +25,10 @@ function getString(formData: FormData, key: string) {
 export async function updateTeamMemberRole(formData: FormData) {
   const { profile } = await requireProfile();
 
-  if (!isAdminOrOwner(profile)) {
+  if (!canManageTeam(profile)) {
     return {
       success: false,
-      message: "Hanya owner atau admin yang dapat mengelola tim.",
+      message: "You do not have permission to manage the team.",
     };
   }
 
@@ -52,7 +53,7 @@ export async function updateTeamMemberRole(formData: FormData) {
 
   const { data: member, error: memberError } = await supabase
     .from("profiles")
-    .select("id, role, organization_id")
+    .select("id, role, organization_id, full_name")
     .eq("id", memberId)
     .eq("organization_id", profile.organization_id)
     .maybeSingle();
@@ -113,6 +114,17 @@ export async function updateTeamMemberRole(formData: FormData) {
     };
   }
 
+  await auditFromProfile(supabase, profile, {
+    action: "role_updated",
+    entityType: "team",
+    entityId: memberId,
+    entityLabel: member.full_name?.trim() || memberId,
+    metadata: {
+      from: member.role,
+      to: newRole,
+    },
+  });
+
   revalidatePath("/settings");
   revalidatePath("/settings/team");
 
@@ -125,10 +137,10 @@ export async function updateTeamMemberRole(formData: FormData) {
 export async function createOrganizationInvite(formData: FormData) {
   const { profile } = await requireProfile();
 
-  if (!isAdminOrOwner(profile)) {
+  if (!canManageTeam(profile)) {
     return {
       success: false,
-      message: "Hanya owner atau admin yang dapat mengundang anggota tim.",
+      message: "You do not have permission to manage the team.",
     };
   }
 
@@ -193,6 +205,16 @@ export async function createOrganizationInvite(formData: FormData) {
       message: "Gagal membuat undangan tim.",
     };
   }
+
+  await auditFromProfile(supabase, profile, {
+    action: "team_member_invited",
+    entityType: "team",
+    entityId: email,
+    entityLabel: email,
+    metadata: {
+      role,
+    },
+  });
 
   revalidatePath("/settings");
   revalidatePath("/settings/team");

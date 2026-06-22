@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { auditFromProfile } from "@/lib/audit";
+import { buildDuplicatePackageName } from "@/lib/packages/duplicate-name";
 import {
   parseOptionalDurationDays,
   parseOptionalPriceIdr,
@@ -148,6 +150,97 @@ export async function updatePackage(formData: FormData) {
 
   revalidatePath("/packages");
   redirect("/packages");
+}
+
+export async function duplicatePackage(formData: FormData) {
+  const { profile } = await requireProfile();
+
+  if (!isAdminOrOwner(profile)) {
+    redirect(
+      "/packages?error=Hanya admin atau owner yang dapat menduplikasi paket.",
+    );
+  }
+
+  const packageId = getString(formData, "package_id");
+
+  if (!packageId) {
+    redirect("/packages?error=Paket tidak ditemukan");
+  }
+
+  const supabase = await createClient();
+
+  const { data: originalPackage, error: loadError } = await supabase
+    .from("packages")
+    .select(
+      "id, name, destination, departure_date, duration_days, price_idr, quota",
+    )
+    .eq("id", packageId)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+
+  if (loadError) {
+    redirect(
+      `/packages?error=${encodeURIComponent(loadError.message)}`,
+    );
+  }
+
+  if (!originalPackage) {
+    redirect("/packages?error=Paket tidak ditemukan");
+  }
+
+  const { data: existingPackages, error: namesError } = await supabase
+    .from("packages")
+    .select("name")
+    .eq("organization_id", profile.organization_id);
+
+  if (namesError) {
+    redirect(
+      `/packages?error=${encodeURIComponent(namesError.message)}`,
+    );
+  }
+
+  const duplicateName = buildDuplicatePackageName(
+    originalPackage.name,
+    (existingPackages ?? []).map((pkg) => pkg.name),
+  );
+
+  const { data: createdPackage, error: createError } = await supabase
+    .from("packages")
+    .insert({
+      organization_id: profile.organization_id,
+      name: duplicateName,
+      destination: originalPackage.destination,
+      departure_date: originalPackage.departure_date,
+      duration_days: originalPackage.duration_days,
+      price_idr: originalPackage.price_idr,
+      quota: originalPackage.quota,
+      status: "draft",
+    })
+    .select("id, name")
+    .single();
+
+  if (createError || !createdPackage) {
+    redirect(
+      `/packages?error=${encodeURIComponent(createError?.message ?? "Gagal menduplikasi paket")}`,
+    );
+  }
+
+  await auditFromProfile(supabase, profile, {
+    action: "package_duplicated",
+    entityType: "package",
+    entityId: createdPackage.id,
+    entityLabel: createdPackage.name,
+    metadata: {
+      original_package_id: packageId,
+      new_package_id: createdPackage.id,
+      package_name: createdPackage.name,
+    },
+  });
+
+  revalidatePath("/packages");
+  redirect(
+    `/packages/${createdPackage.id}/edit?success=${encodeURIComponent("Package duplicated. Update the departure date before publishing.")}`,
+  );
 }
 
 export async function deletePackage(formData: FormData) {

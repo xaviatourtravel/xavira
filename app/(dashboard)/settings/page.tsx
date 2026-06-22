@@ -13,7 +13,9 @@ export default async function SettingsPage({
     error?: string;
     instagram?: string;
     entity_type?: string;
+    module?: string;
     actor?: string;
+    role?: string;
     action?: string;
     from?: string;
     to?: string;
@@ -27,8 +29,10 @@ export default async function SettingsPage({
     : "general";
 
   const data = await loadSettingsWorkspaceData(activeSection, {
+    module: params.module,
     entityType: params.entity_type,
     actorUserId: params.actor,
+    actorRole: params.role,
     action: params.action,
     fromDate: params.from,
     toDate: params.to,

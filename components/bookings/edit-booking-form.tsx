@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import { updateBooking } from "@/app/(dashboard)/bookings/[id]/actions";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  calculateBookingFinalTotal,
+  resolveBookingSubtotal,
+} from "@/lib/bookings/discount";
 import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +23,9 @@ type EditBookingFormProps = {
     package_name: string | null;
     departure_date: string | null;
     total_pax: number;
+    subtotal_amount: number | null;
+    discount_amount: number | null;
+    discount_note: string | null;
     total_amount: number;
     notes: string | null;
   };
@@ -35,10 +42,27 @@ function toDateInputValue(value: string | null) {
   return value.slice(0, 10);
 }
 
+function formatCurrencyPreview(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function EditBookingForm({ booking, packages }: EditBookingFormProps) {
+  const initialSubtotal = resolveBookingSubtotal(
+    booking.subtotal_amount,
+    booking.total_amount,
+    booking.discount_amount,
+  );
+
   const [packageName, setPackageName] = useState(booking.package_name ?? "");
   const [totalPax, setTotalPax] = useState(booking.total_pax);
-  const [totalAmount, setTotalAmount] = useState(booking.total_amount);
+  const [subtotalAmount, setSubtotalAmount] = useState(initialSubtotal);
+  const [discountAmount, setDiscountAmount] = useState(
+    booking.discount_amount ?? 0,
+  );
 
   const matchedPackage = useMemo(() => {
     const trimmed = packageName.trim();
@@ -50,17 +74,20 @@ export function EditBookingForm({ booking, packages }: EditBookingFormProps) {
   }, [packageName, packages]);
 
   const pricePerPax = matchedPackage?.price_idr ?? null;
-  const isAutoTotal = matchedPackage != null && pricePerPax != null;
+  const isAutoSubtotal = matchedPackage != null && pricePerPax != null;
+  const finalTotal = calculateBookingFinalTotal(subtotalAmount, discountAmount);
 
   useEffect(() => {
-    if (isAutoTotal) {
-      setTotalAmount(calculateBookingTotalAmount(pricePerPax, totalPax));
+    if (isAutoSubtotal) {
+      setSubtotalAmount(calculateBookingTotalAmount(pricePerPax, totalPax));
     }
-  }, [isAutoTotal, pricePerPax, totalPax]);
+  }, [isAutoSubtotal, pricePerPax, totalPax]);
 
   return (
     <form action={updateBooking} className="space-y-5 rounded-lg border p-6">
       <input type="hidden" name="booking_id" value={booking.id} />
+      <input type="hidden" name="subtotal_amount" value={subtotalAmount} />
+      <input type="hidden" name="total_amount" value={finalTotal} />
 
       <div>
         <label className="text-sm font-medium">Package Name</label>
@@ -99,27 +126,85 @@ export function EditBookingForm({ booking, packages }: EditBookingFormProps) {
         />
       </div>
 
-      <div>
-        <label className="text-sm font-medium">Total Amount</label>
-        <input
-          name="total_amount"
-          type="number"
-          min={0}
-          required
-          value={totalAmount}
-          readOnly={isAutoTotal}
-          onChange={(event) => {
-            if (!isAutoTotal) {
+      <div className="space-y-4 rounded-lg border p-4">
+        <div>
+          <h3 className="text-sm font-semibold">Discount</h3>
+          <p className="text-xs text-muted-foreground">
+            Atur subtotal dan diskon untuk menghitung final total booking.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Subtotal / Original Amount</label>
+          <input
+            type="number"
+            min={0}
+            required
+            value={subtotalAmount}
+            readOnly={isAutoSubtotal}
+            onChange={(event) => {
+              if (!isAutoSubtotal) {
+                const parsed = Number(event.target.value);
+                setSubtotalAmount(Number.isNaN(parsed) ? 0 : parsed);
+              }
+            }}
+            className={cn(inputClassName, isAutoSubtotal && "bg-muted")}
+            placeholder="Contoh: 25000000"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {isAutoSubtotal
+              ? "Subtotal mengikuti harga paket x jumlah pax."
+              : "Masukkan subtotal manual jika paket tidak ditemukan."}
+          </p>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Discount Amount</label>
+          <input
+            name="discount_amount"
+            type="number"
+            min={0}
+            value={discountAmount}
+            onChange={(event) => {
               const parsed = Number(event.target.value);
-              setTotalAmount(Number.isNaN(parsed) ? 0 : parsed);
-            }
-          }}
-          className={cn(inputClassName, isAutoTotal && "bg-muted")}
-          placeholder="Contoh: 25000000"
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Harga mengikuti harga paket x jumlah pax jika paket ditemukan.
-        </p>
+              setDiscountAmount(Number.isNaN(parsed) ? 0 : parsed);
+            }}
+            className={inputClassName}
+            placeholder="0"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Discount Note</label>
+          <textarea
+            name="discount_note"
+            rows={2}
+            defaultValue={booking.discount_note ?? ""}
+            className={inputClassName}
+            placeholder="Alasan diskon (opsional)"
+          />
+        </div>
+
+        <div className="rounded-md bg-muted/40 p-4 text-sm">
+          <div className="flex items-center justify-between gap-4 py-1">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span className="whitespace-nowrap tabular-nums font-medium">
+              {formatCurrencyPreview(subtotalAmount)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 py-1">
+            <span className="text-muted-foreground">Discount</span>
+            <span className="whitespace-nowrap tabular-nums font-medium text-red-600">
+              - {formatCurrencyPreview(Math.min(discountAmount, subtotalAmount))}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-4 border-t pt-3">
+            <span className="font-medium">Final Total</span>
+            <span className="whitespace-nowrap tabular-nums text-base font-bold">
+              {formatCurrencyPreview(finalTotal)}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div>

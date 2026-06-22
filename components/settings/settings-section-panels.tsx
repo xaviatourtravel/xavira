@@ -786,6 +786,8 @@ export function SettingsSectionPanel({
         <AuditLogsPanel
           logs={data.auditLogs}
           actors={data.auditActors}
+          roles={data.auditRoles}
+          activitySummary={data.auditActivitySummary}
           filters={data.auditFilters}
         />
       );

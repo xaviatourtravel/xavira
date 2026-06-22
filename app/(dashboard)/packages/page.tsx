@@ -144,7 +144,11 @@ export default async function PackagesPage({
                   </td>
                   {canManagePackages && (
                     <td className="px-4 py-3">
-                      <PackageRowActions packageId={pkg.id} />
+                      <PackageRowActions
+                        packageId={pkg.id}
+                        canEdit={canManagePackages}
+                        canDelete={canManagePackages}
+                      />
                     </td>
                   )}
                 </tr>

@@ -13,7 +13,9 @@ import {
 import {
   calculateBookingPaymentStatus,
 } from "@/lib/bookings/payment-status";
+import { resolveBookingSubtotal } from "@/lib/bookings/discount";
 import { buildBookingPaymentTotals } from "@/lib/bookings/payment-summary";
+import { cn } from "@/lib/utils";
 
 export type { BookingPaymentItem };
 
@@ -34,18 +36,69 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function getOutstandingValueClass(balance: number) {
+  if (balance === 0) {
+    return "text-emerald-700";
+  }
+
+  return "text-orange-600";
+}
+
+function PaymentSummaryRow({
+  label,
+  value,
+  valueClassName,
+  emphasized = false,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+  emphasized?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 py-3",
+        emphasized && "border-t bg-muted/20 px-1 -mx-1",
+      )}
+    >
+      <span
+        className={cn(
+          "text-sm text-muted-foreground",
+          emphasized && "font-medium text-foreground",
+        )}
+      >
+        {label}
+      </span>
+      <span
+        className={cn(
+          "shrink-0 whitespace-nowrap tabular-nums text-sm font-semibold sm:text-base",
+          emphasized && "text-base font-bold sm:text-lg",
+          valueClassName ?? "text-foreground",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 type BookingPaymentSummaryProps = {
+  subtotalAmount: number;
+  discountAmount: number;
   bookingTotalAmount: number;
   paymentStatus: string;
   payments: BookingPaymentItem[];
 };
 
 export function BookingPaymentSummary({
+  subtotalAmount,
+  discountAmount,
   bookingTotalAmount,
   paymentStatus,
   payments,
 }: BookingPaymentSummaryProps) {
-  const { amountPaid, dpAmount, outstandingBalance } = buildBookingPaymentTotals(
+  const { amountPaid, outstandingBalance } = buildBookingPaymentTotals(
     bookingTotalAmount,
     payments,
   );
@@ -53,46 +106,49 @@ export function BookingPaymentSummary({
     bookingTotalAmount,
     amountPaid,
   );
+  const resolvedStatus = paymentStatus || computedStatus;
+  const normalizedDiscount = Math.min(
+    Math.max(0, Number(discountAmount)),
+    Number(subtotalAmount),
+  );
 
   return (
-    <div className="rounded-lg border p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Payment Summary</h2>
-          <p className="text-sm text-muted-foreground">
-            Ringkasan pembayaran booking ini.
-          </p>
-        </div>
-        <PaymentStatusBadge status={paymentStatus || computedStatus} />
+    <div className="rounded-2xl border bg-card p-4 shadow-sm md:p-6">
+      <div className="flex items-start justify-between gap-3 border-b pb-4">
+        <h2 className="text-lg font-semibold">Payment Summary</h2>
+        <PaymentStatusBadge status={resolvedStatus} />
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Total Price</p>
-          <p className="text-lg font-semibold">
-            {formatCurrency(Number(bookingTotalAmount))}
-          </p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">DP Amount</p>
-          <p className="text-lg font-semibold">{formatCurrency(dpAmount)}</p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Amount Paid</p>
-          <p className="text-lg font-semibold">{formatCurrency(amountPaid)}</p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Outstanding Balance</p>
-          <p className="text-lg font-semibold">
-            {formatCurrency(outstandingBalance)}
-          </p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Payment Status</p>
-          <div className="mt-1">
-            <PaymentStatusBadge status={paymentStatus || computedStatus} />
-          </div>
-        </div>
+      <div className="divide-y">
+        <PaymentSummaryRow
+          label="Subtotal"
+          value={formatCurrency(Number(subtotalAmount))}
+        />
+        <PaymentSummaryRow
+          label="Discount"
+          value={
+            normalizedDiscount > 0
+              ? `- ${formatCurrency(normalizedDiscount)}`
+              : formatCurrency(0)
+          }
+          valueClassName={
+            normalizedDiscount > 0 ? "text-red-600" : "text-foreground"
+          }
+        />
+        <PaymentSummaryRow
+          label="Final Total"
+          value={formatCurrency(Number(bookingTotalAmount))}
+        />
+        <PaymentSummaryRow
+          label="Amount Paid"
+          value={formatCurrency(amountPaid)}
+        />
+        <PaymentSummaryRow
+          label="Outstanding Balance"
+          value={formatCurrency(outstandingBalance)}
+          valueClassName={getOutstandingValueClass(outstandingBalance)}
+          emphasized
+        />
       </div>
     </div>
   );
@@ -226,4 +282,24 @@ export function BookingPaymentsSection({
       />
     </div>
   );
+}
+
+export function buildBookingPaymentSummaryProps(booking: {
+  subtotal_amount: number | null;
+  discount_amount: number | null;
+  total_amount: number;
+}) {
+  const subtotalAmount = resolveBookingSubtotal(
+    booking.subtotal_amount,
+    booking.total_amount,
+    booking.discount_amount,
+  );
+  const discountAmount = Number(booking.discount_amount ?? 0);
+  const bookingTotalAmount = Number(booking.total_amount);
+
+  return {
+    subtotalAmount,
+    discountAmount,
+    bookingTotalAmount,
+  };
 }

@@ -4,7 +4,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   reply_sent: "Reply sent",
   conversation_assigned: "Conversation assigned",
   conversation_status_changed: "Conversation status changed",
-  conversation_converted_to_lead: "Converted to lead",
+  conversation_converted_to_lead: "Converted Lead",
   note_added: "Note added",
   lead_created: "Lead created",
   lead_updated: "Lead updated",
@@ -13,6 +13,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   booking_created: "Booking created",
   booking_updated: "Booking updated",
   booking_status_changed: "Booking status changed",
+  booking_discount_updated: "Booking discount updated",
   payment_added: "Payment added",
   payment_status_changed: "Payment status changed",
   integration_connected: "Integration connected",
@@ -20,6 +21,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   team_member_invited: "Team member invited",
   role_updated: "Role updated",
   ai_settings_updated: "AI settings updated",
+  package_duplicated: "Package duplicated",
 };
 
 export const AUDIT_ENTITY_TYPE_LABELS: Record<AuditEntityType, string> = {
@@ -30,6 +32,7 @@ export const AUDIT_ENTITY_TYPE_LABELS: Record<AuditEntityType, string> = {
   settings: "Settings",
   integration: "Integrations",
   team: "Team",
+  package: "Packages",
 };
 
 export function formatAuditActionLabel(action: string) {

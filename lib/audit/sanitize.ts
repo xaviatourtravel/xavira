@@ -4,6 +4,7 @@ const BLOCKED_METADATA_KEYS = new Set([
   "token",
   "access_token",
   "refresh_token",
+  "page_access_token",
   "api_key",
   "apikey",
   "secret",
@@ -13,6 +14,10 @@ const BLOCKED_METADATA_KEYS = new Set([
   "message_body",
   "reply_body",
   "notes_body",
+  "credential",
+  "credentials",
+  "webhook_secret",
+  "app_secret",
 ]);
 
 function isBlockedKey(key: string) {
@@ -21,7 +26,9 @@ function isBlockedKey(key: string) {
     BLOCKED_METADATA_KEYS.has(normalized) ||
     normalized.includes("token") ||
     normalized.includes("secret") ||
-    normalized.includes("password")
+    normalized.includes("password") ||
+    normalized.includes("credential") ||
+    normalized.includes("meta_")
   );
 }
 

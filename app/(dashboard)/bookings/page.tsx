@@ -2,6 +2,7 @@ import { BookingsFilters } from "@/components/bookings/bookings-filters";
 import { BookingsList, type BookingListRow } from "@/components/bookings/bookings-list";
 import { requireProfile } from "@/lib/auth/session";
 import { BOOKING_PAYMENT_STATUSES } from "@/lib/bookings/payment-status";
+import { normalizeOutstandingBalance } from "@/lib/bookings/payment-summary";
 import { createClient } from "@/utils/supabase/server";
 
 type BookingRow = {
@@ -172,7 +173,9 @@ export default async function BookingsPage({ searchParams }: BookingsPageProps) 
 
   const listRows: BookingListRow[] = rows.map((booking) => {
     const amountPaid = paymentsByBookingId.get(booking.id) ?? 0;
-    const outstandingBalance = Number(booking.total_amount) - amountPaid;
+    const outstandingBalance = normalizeOutstandingBalance(
+      Number(booking.total_amount) - amountPaid,
+    );
 
     return {
       id: booking.id,

@@ -54,9 +54,9 @@ export function isBookingPaymentSettled(status: string) {
 export function formatPaymentStatusLabel(status: string) {
   const normalized = normalizeBookingPaymentStatus(status);
   const labels: Record<BookingPaymentStatus, string> = {
-    unpaid: "Unpaid",
-    dp_paid: "DP Paid",
-    fully_paid: "Fully Paid",
+    unpaid: "New",
+    dp_paid: "Partial",
+    fully_paid: "Paid",
     overpaid: "Overpaid",
   };
 

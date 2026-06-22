@@ -9,6 +9,7 @@ import {
 import {
   BookingPaymentSummary,
   BookingPaymentsSection,
+  buildBookingPaymentSummaryProps,
   type BookingPaymentItem,
 } from "@/components/bookings/booking-payments-section";
 import { AiPaymentReminderCard } from "@/components/bookings/ai-payment-reminder-card";
@@ -28,6 +29,9 @@ type BookingDetail = {
   package_name: string | null;
   departure_date: string | null;
   total_pax: number;
+  subtotal_amount: number | null;
+  discount_amount: number | null;
+  discount_note: string | null;
   total_amount: number;
   payment_status: string;
   booking_status: string;
@@ -116,7 +120,7 @@ export default async function BookingDetailPage({
     supabase
       .from("bookings")
       .select(
-        "id, lead_id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, payment_status, booking_status, created_at",
+        "id, lead_id, booking_code, customer_name, package_name, departure_date, total_pax, subtotal_amount, discount_amount, discount_note, total_amount, payment_status, booking_status, created_at",
       )
       .eq("id", id)
       .eq("organization_id", profile.organization_id)
@@ -146,7 +150,8 @@ export default async function BookingDetailPage({
   const detail = booking as BookingDetail;
   const participantRows = (participants ?? []) as BookingParticipantItem[];
   const paymentRows = (payments ?? []) as BookingPaymentItem[];
-  const bookingTotalAmount = Number(detail.total_amount);
+  const paymentSummaryProps = buildBookingPaymentSummaryProps(detail);
+  const bookingTotalAmount = paymentSummaryProps.bookingTotalAmount;
   const paymentTotals = buildBookingPaymentTotals(
     bookingTotalAmount,
     paymentRows,
@@ -218,11 +223,35 @@ export default async function BookingDetailPage({
                 <dd className="text-sm font-medium">{detail.total_pax}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Total Amount</dt>
+                <dt className="text-sm text-muted-foreground">Final Total</dt>
                 <dd className="text-sm font-medium">
                   {formatCurrency(bookingTotalAmount)}
                 </dd>
               </div>
+              {Number(detail.discount_amount ?? 0) > 0 ? (
+                <>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Subtotal</dt>
+                    <dd className="text-sm font-medium">
+                      {formatCurrency(paymentSummaryProps.subtotalAmount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Discount</dt>
+                    <dd className="text-sm font-medium text-red-600">
+                      - {formatCurrency(Number(detail.discount_amount))}
+                    </dd>
+                  </div>
+                  {detail.discount_note ? (
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm text-muted-foreground">
+                        Discount Note
+                      </dt>
+                      <dd className="text-sm font-medium">{detail.discount_note}</dd>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
               <div>
                 <dt className="text-sm text-muted-foreground">Payment Status</dt>
                 <dd className="text-sm font-medium">
@@ -257,6 +286,8 @@ export default async function BookingDetailPage({
           </div>
 
           <BookingPaymentSummary
+            subtotalAmount={paymentSummaryProps.subtotalAmount}
+            discountAmount={paymentSummaryProps.discountAmount}
             bookingTotalAmount={bookingTotalAmount}
             paymentStatus={detail.payment_status}
             payments={paymentRows}

@@ -11,6 +11,9 @@ type BookingEdit = {
   package_name: string | null;
   departure_date: string | null;
   total_pax: number;
+  subtotal_amount: number | null;
+  discount_amount: number | null;
+  discount_note: string | null;
   total_amount: number;
   notes: string | null;
 };
@@ -36,7 +39,7 @@ export default async function EditBookingPage({
     supabase
       .from("bookings")
       .select(
-        "id, booking_code, customer_name, package_name, departure_date, total_pax, total_amount, notes",
+        "id, booking_code, customer_name, package_name, departure_date, total_pax, subtotal_amount, discount_amount, discount_note, total_amount, notes",
       )
       .eq("id", id)
       .eq("organization_id", profile.organization_id)

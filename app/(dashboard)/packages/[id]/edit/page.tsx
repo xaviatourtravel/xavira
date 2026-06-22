@@ -13,7 +13,7 @@ export default async function EditPackagePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -52,6 +52,12 @@ export default async function EditPackagePage({
           Perbarui informasi paket travel.
         </p>
       </div>
+
+      {query?.success && (
+        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+          {decodeURIComponent(query.success)}
+        </div>
+      )}
 
       {query?.error && (
         <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">

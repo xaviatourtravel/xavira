@@ -612,6 +612,8 @@ export async function convertLeadToBooking(formData: FormData) {
       booking_status: "new",
       payment_status: "unpaid",
       total_pax: totalPax,
+      subtotal_amount: totalAmount,
+      discount_amount: 0,
       total_amount: totalAmount,
     })
     .select("id, booking_code")

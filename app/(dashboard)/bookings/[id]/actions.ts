@@ -13,6 +13,11 @@ import {
   normalizeBookingPaymentType,
 } from "@/lib/bookings/payment-fields";
 import { calculateBookingPaymentStatus } from "@/lib/bookings/payment-status";
+import {
+  calculateBookingFinalTotal,
+  normalizeDiscountAmount,
+  validateBookingDiscount,
+} from "@/lib/bookings/discount";
 import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
 import { createClient } from "@/utils/supabase/server";
 
@@ -62,7 +67,9 @@ export async function updateBooking(formData: FormData) {
   const packageName = getString(formData, "package_name");
   const departureDate = getString(formData, "departure_date");
   const totalPax = getOptionalInt(formData, "total_pax");
-  const totalAmount = getOptionalNumber(formData, "total_amount");
+  const subtotalAmountInput = getOptionalNumber(formData, "subtotal_amount");
+  const discountAmountInput = getOptionalNumber(formData, "discount_amount");
+  const discountNote = getString(formData, "discount_note");
   const notes = getString(formData, "notes");
 
   if (!bookingId) {
@@ -75,7 +82,20 @@ export async function updateBooking(formData: FormData) {
     );
   }
 
-  let resolvedTotalAmount = totalAmount ?? 0;
+  const { data: existingBooking } = await supabase
+    .from("bookings")
+    .select(
+      "id, subtotal_amount, discount_amount, discount_note, total_amount, booking_code, customer_name",
+    )
+    .eq("id", bookingId)
+    .eq("organization_id", profile.organization_id)
+    .maybeSingle();
+
+  if (!existingBooking) {
+    redirect("/bookings?error=Booking tidak ditemukan");
+  }
+
+  let resolvedSubtotal = subtotalAmountInput ?? 0;
 
   if (packageName) {
     const { data: matchedPackage } = await supabase
@@ -86,18 +106,29 @@ export async function updateBooking(formData: FormData) {
       .maybeSingle();
 
     if (matchedPackage?.price_idr != null) {
-      resolvedTotalAmount = calculateBookingTotalAmount(
+      resolvedSubtotal = calculateBookingTotalAmount(
         matchedPackage.price_idr,
         totalPax,
       );
     }
   }
 
-  if (resolvedTotalAmount < 0) {
+  const resolvedDiscount = normalizeDiscountAmount(discountAmountInput);
+  const discountValidationError = validateBookingDiscount(
+    resolvedSubtotal,
+    resolvedDiscount,
+  );
+
+  if (discountValidationError) {
     redirect(
-      `/bookings/${bookingId}/edit?error=${encodeURIComponent("Total amount tidak valid")}`,
+      `/bookings/${bookingId}/edit?error=${encodeURIComponent(discountValidationError)}`,
     );
   }
+
+  const resolvedTotalAmount = calculateBookingFinalTotal(
+    resolvedSubtotal,
+    resolvedDiscount,
+  );
 
   const { data: updatedBooking, error } = await supabase
     .from("bookings")
@@ -105,6 +136,9 @@ export async function updateBooking(formData: FormData) {
       package_name: packageName || null,
       departure_date: departureDate || null,
       total_pax: totalPax,
+      subtotal_amount: resolvedSubtotal,
+      discount_amount: resolvedDiscount,
+      discount_note: resolvedDiscount > 0 ? discountNote || null : null,
       total_amount: resolvedTotalAmount,
       notes: notes || null,
     })
@@ -123,19 +157,43 @@ export async function updateBooking(formData: FormData) {
     redirect("/bookings?error=Booking tidak ditemukan");
   }
 
-  const { data: bookingLabel } = await supabase
-    .from("bookings")
-    .select("booking_code, customer_name")
-    .eq("id", bookingId)
-    .eq("organization_id", profile.organization_id)
-    .maybeSingle();
+  const previousDiscount = Number(existingBooking.discount_amount ?? 0);
+  const discountChanged =
+    previousDiscount !== resolvedDiscount ||
+    (existingBooking.discount_note ?? "") !== (resolvedDiscount > 0 ? discountNote : "");
+
+  if (discountChanged) {
+    await auditFromProfile(supabase, profile, {
+      action: "booking_discount_updated",
+      entityType: "booking",
+      entityId: bookingId,
+      entityLabel:
+        existingBooking.booking_code ||
+        existingBooking.customer_name ||
+        bookingId,
+      metadata: {
+        old_discount_amount: previousDiscount,
+        new_discount_amount: resolvedDiscount,
+        discount_note: resolvedDiscount > 0 ? discountNote || null : null,
+      },
+    });
+  }
+
+  await syncBookingPaymentStatus(
+    supabase,
+    bookingId,
+    profile.organization_id,
+    profile,
+  );
 
   await auditFromProfile(supabase, profile, {
     action: "booking_updated",
     entityType: "booking",
     entityId: bookingId,
     entityLabel:
-      bookingLabel?.booking_code || bookingLabel?.customer_name || bookingId,
+      existingBooking.booking_code ||
+      existingBooking.customer_name ||
+      bookingId,
   });
 
   revalidatePath("/bookings");

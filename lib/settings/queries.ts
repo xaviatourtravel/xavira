@@ -1,7 +1,10 @@
 import { AI_MODEL } from "@/lib/ai/client";
 import {
+  loadAuditActivitySummary,
   loadAuditLogActors,
+  loadAuditLogRoles,
   loadAuditLogs,
+  type AuditActivitySummary,
   type AuditLogRow,
 } from "@/lib/audit";
 import {
@@ -34,8 +37,10 @@ export type SettingsTeamMember = TeamMemberRow & {
 };
 
 export type AuditLogFilterParams = {
+  module?: string;
   entityType?: string;
   actorUserId?: string;
+  actorRole?: string;
   action?: string;
   fromDate?: string;
   toDate?: string;
@@ -55,10 +60,13 @@ export type SettingsWorkspaceData = {
   invites: OrganizationInviteRow[];
   integrations: IntegrationCard[];
   auditLogs: AuditLogRow[];
-  auditActors: Array<{ id: string; name: string }>;
+  auditActors: Array<{ id: string; name: string; role: string }>;
+  auditRoles: string[];
+  auditActivitySummary: AuditActivitySummary;
   auditFilters: {
-    entityType: string;
+    module: string;
     actorUserId: string;
+    actorRole: string;
     action: string;
     fromDate: string;
     toDate: string;
@@ -144,8 +152,9 @@ export async function loadSettingsWorkspaceData(
   const canViewAuditLogs = isAdminOrOwner(profile);
   const supabase = await createClient();
   const auditFilters = {
-    entityType: auditFilterParams.entityType ?? "",
+    module: auditFilterParams.module ?? auditFilterParams.entityType ?? "",
     actorUserId: auditFilterParams.actorUserId ?? "",
+    actorRole: auditFilterParams.actorRole ?? "",
     action: auditFilterParams.action ?? "",
     fromDate: auditFilterParams.fromDate ?? "",
     toDate: auditFilterParams.toDate ?? "",
@@ -195,18 +204,28 @@ export async function loadSettingsWorkspaceData(
     lastActiveAt: activityByUserId.get(member.id) ?? member.created_at,
   }));
 
-  const [auditLogs, auditActors] = canViewAuditLogs
-    ? await Promise.all([
-        loadAuditLogs(supabase, profile.organization_id, {
-          entityType: auditFilters.entityType || undefined,
-          actorUserId: auditFilters.actorUserId || undefined,
-          action: auditFilters.action || undefined,
-          fromDate: auditFilters.fromDate || undefined,
-          toDate: auditFilters.toDate || undefined,
-        }),
-        loadAuditLogActors(supabase, profile.organization_id),
-      ])
-    : [[], []];
+  const [auditLogs, auditActors, auditRoles, auditActivitySummary] =
+    canViewAuditLogs
+      ? await Promise.all([
+          loadAuditLogs(supabase, profile.organization_id, {
+            module: auditFilters.module || undefined,
+            actorUserId: auditFilters.actorUserId || undefined,
+            actorRole: auditFilters.actorRole || undefined,
+            action: auditFilters.action || undefined,
+            fromDate: auditFilters.fromDate || undefined,
+            toDate: auditFilters.toDate || undefined,
+          }),
+          loadAuditLogActors(supabase, profile.organization_id),
+          loadAuditLogRoles(supabase, profile.organization_id),
+          loadAuditActivitySummary(supabase, profile.organization_id),
+        ])
+      : [[], [], [], {
+          repliesSent: 0,
+          leadsConverted: 0,
+          followUpsCreated: 0,
+          bookingsCreated: 0,
+          paymentsAdded: 0,
+        }];
 
   return {
     activeSection,
@@ -223,6 +242,8 @@ export async function loadSettingsWorkspaceData(
     integrations: enrichIntegrations(integrations, lastAiLog),
     auditLogs,
     auditActors,
+    auditRoles,
+    auditActivitySummary,
     auditFilters,
   };
 }

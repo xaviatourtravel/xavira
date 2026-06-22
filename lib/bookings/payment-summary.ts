@@ -34,17 +34,34 @@ export function getLastPaymentDate(payments: BookingPaymentLike[]) {
   return datedPayments[0] ?? null;
 }
 
+export function getDpRequiredAmount(totalAmount: number) {
+  return Math.round(Number(totalAmount) * 0.35);
+}
+
+const OUTSTANDING_ROUNDING_TOLERANCE = 100;
+
+export function normalizeOutstandingBalance(balance: number) {
+  if (Math.abs(balance) <= OUTSTANDING_ROUNDING_TOLERANCE) {
+    return 0;
+  }
+
+  return balance;
+}
+
 export function buildBookingPaymentTotals(
   totalAmount: number,
   payments: BookingPaymentLike[],
 ) {
   const amountPaid = sumBookingPayments(payments);
   const dpAmount = sumDownPayments(payments);
-  const outstandingBalance = getOutstandingBalance(totalAmount, payments);
+  const outstandingBalance = normalizeOutstandingBalance(
+    getOutstandingBalance(totalAmount, payments),
+  );
 
   return {
     amountPaid,
     dpAmount,
+    dpRequired: getDpRequiredAmount(totalAmount),
     outstandingBalance,
     lastPaymentDate: getLastPaymentDate(payments),
   };

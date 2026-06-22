@@ -379,12 +379,15 @@ export type Database = {
           created_by: string | null
           customer_name: string
           departure_date: string | null
+          discount_amount: number
+          discount_note: string | null
           id: string
           lead_id: string | null
           notes: string | null
           organization_id: string
           package_name: string | null
           payment_status: string
+          subtotal_amount: number
           total_amount: number
           total_pax: number
           updated_at: string
@@ -396,12 +399,15 @@ export type Database = {
           created_by?: string | null
           customer_name: string
           departure_date?: string | null
+          discount_amount?: number
+          discount_note?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
           organization_id: string
           package_name?: string | null
           payment_status?: string
+          subtotal_amount?: number
           total_amount?: number
           total_pax?: number
           updated_at?: string
@@ -413,12 +419,15 @@ export type Database = {
           created_by?: string | null
           customer_name?: string
           departure_date?: string | null
+          discount_amount?: number
+          discount_note?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
           organization_id?: string
           package_name?: string | null
           payment_status?: string
+          subtotal_amount?: number
           total_amount?: number
           total_pax?: number
           updated_at?: string

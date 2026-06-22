@@ -6,6 +6,8 @@ import {
   deleteBookingParticipant,
   updateBookingParticipant,
 } from "@/app/(dashboard)/bookings/[id]/actions";
+import { ParticipantFormFields } from "@/components/bookings/participant-form-fields";
+import { ParticipantModalShell } from "@/components/bookings/participant-modal-shell";
 import { ParticipantDocumentChecklist } from "@/components/bookings/participant-document-checklist";
 
 export type BookingParticipantItem = {
@@ -23,9 +25,6 @@ type BookingParticipantsListProps = {
   bookingId: string;
   participants: BookingParticipantItem[];
 };
-
-const inputClassName =
-  "mt-1 w-full rounded-md border px-3 py-2 text-sm";
 
 export function BookingParticipantsList({
   bookingId,
@@ -111,118 +110,49 @@ export function BookingParticipantsList({
         </table>
       </div>
 
-      {editingParticipant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50"
-            aria-label="Tutup modal"
-            onClick={() => setEditingParticipant(null)}
-          />
-          <div className="relative z-10 w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg">
-            <h3 className="text-lg font-semibold">Edit Participant</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Perbarui data peserta booking.
-            </p>
+      {editingParticipant ? (
+        <ParticipantModalShell
+          title="Edit Participant"
+          description="Perbarui data peserta booking."
+          onClose={() => setEditingParticipant(null)}
+          ariaLabelledBy="edit-participant-modal-title"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingParticipant(null)}
+                className="rounded-md border px-4 py-2 text-sm"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="edit-participant-form"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white"
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          }
+        >
+          <form
+            id="edit-participant-form"
+            action={updateBookingParticipant}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <input type="hidden" name="booking_id" value={bookingId} />
+            <input
+              type="hidden"
+              name="participant_id"
+              value={editingParticipant.id}
+            />
 
-            <form
-              action={updateBookingParticipant}
-              className="mt-4 space-y-4"
-            >
-              <input type="hidden" name="booking_id" value={bookingId} />
-              <input
-                type="hidden"
-                name="participant_id"
-                value={editingParticipant.id}
-              />
-
-              <div>
-                <label className="text-sm font-medium">Full Name *</label>
-                <input
-                  name="full_name"
-                  required
-                  defaultValue={editingParticipant.full_name}
-                  className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Phone</label>
-                <input
-                  name="phone"
-                  defaultValue={editingParticipant.phone ?? ""}
-                  className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Passport Number</label>
-                <input
-                  name="passport_number"
-                  defaultValue={editingParticipant.passport_number ?? ""}
-                  className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Passport Photo URL</label>
-                <input
-                  name="passport_photo_url"
-                  type="url"
-                  defaultValue={editingParticipant.passport_photo_url ?? ""}
-                  className={inputClassName}
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Address</label>
-                <textarea
-                  name="address"
-                  rows={2}
-                  defaultValue={editingParticipant.address ?? ""}
-                  className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Emergency Contact</label>
-                <input
-                  name="emergency_contact"
-                  defaultValue={editingParticipant.emergency_contact ?? ""}
-                  className={inputClassName}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Notes</label>
-                <textarea
-                  name="notes"
-                  rows={3}
-                  defaultValue={editingParticipant.notes ?? ""}
-                  className={inputClassName}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingParticipant(null)}
-                  className="rounded-md border px-4 py-2 text-sm"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white"
-                >
-                  Simpan Perubahan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
+              <ParticipantFormFields participant={editingParticipant} />
+            </div>
+          </form>
+        </ParticipantModalShell>
+      ) : null}
     </>
   );
 }

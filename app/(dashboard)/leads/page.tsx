@@ -14,6 +14,8 @@ import {
   CLOSED_LEAD_STATUS_FILTER,
   type OrgProfileOption,
 } from "@/lib/leads/assignment";
+import { getUserFriendlyErrorMessage } from "@/lib/errors/get-user-friendly-error-message";
+import { logServerError } from "@/lib/errors/log-server-error";
 import {
   buildLeadsListHref,
   getActiveLeadFilterBadges,
@@ -334,8 +336,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     .range(from, to);
 
   if (error) {
-    console.error("Leads query error:", error);
-    throw new Error(`Gagal memuat data lead: ${error.message}`);
+    logServerError("leadsPage", error);
+    throw new Error(getUserFriendlyErrorMessage(error));
   }
 
   const rows = (leads ?? []) as LeadRow[];

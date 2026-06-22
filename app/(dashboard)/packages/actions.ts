@@ -12,6 +12,7 @@ import {
   parseOptionalQuota,
 } from "@/lib/packages/parse-numeric";
 import { requireProfile } from "@/lib/auth/session";
+import { encodeActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 import type { Database, TablesInsert } from "@/types/database";
 
@@ -91,7 +92,7 @@ export async function createPackage(formData: FormData) {
   const { error } = await supabase.from("packages").insert(payload);
 
   if (error) {
-    redirect(`/packages/new?error=${encodeURIComponent(error.message)}`);
+    redirect(`/packages/new?error=${encodeActionError(error)}`);
   }
 
   revalidatePath("/packages");
@@ -140,7 +141,7 @@ export async function updatePackage(formData: FormData) {
 
   if (error) {
     redirect(
-      `/packages/${packageId}/edit?error=${encodeURIComponent(error.message)}`,
+      `/packages/${packageId}/edit?error=${encodeActionError(error)}`,
     );
   }
 
@@ -180,7 +181,7 @@ export async function duplicatePackage(formData: FormData) {
 
   if (loadError) {
     redirect(
-      `/packages?error=${encodeURIComponent(loadError.message)}`,
+      `/packages?error=${encodeActionError(loadError, "duplicatePackage")}`,
     );
   }
 
@@ -195,7 +196,7 @@ export async function duplicatePackage(formData: FormData) {
 
   if (namesError) {
     redirect(
-      `/packages?error=${encodeURIComponent(namesError.message)}`,
+      `/packages?error=${encodeActionError(namesError, "duplicatePackage")}`,
     );
   }
 
@@ -221,7 +222,7 @@ export async function duplicatePackage(formData: FormData) {
 
   if (createError || !createdPackage) {
     redirect(
-      `/packages?error=${encodeURIComponent(createError?.message ?? "Gagal menduplikasi paket")}`,
+      `/packages?error=${encodeActionError(createError ?? "Gagal menduplikasi paket", "duplicatePackage")}`,
     );
   }
 
@@ -268,7 +269,7 @@ export async function deletePackage(formData: FormData) {
     .maybeSingle();
 
   if (error) {
-    redirect(`/packages?error=${encodeURIComponent(error.message)}`);
+    redirect(`/packages?error=${encodeActionError(error)}`);
   }
 
   if (!deletedPackage) {

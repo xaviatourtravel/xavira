@@ -13,6 +13,7 @@ import {
   parseFollowUpAssistantTone,
 } from "@/lib/ai/follow-up-assistant";
 import { requireProfile } from "@/lib/auth/session";
+import { formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 export type FollowUpAssistantActionResult = {
@@ -304,7 +305,7 @@ export async function saveFollowUpAssistantNote(
   });
 
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "generateFollowUpSuggestion") };
   }
 
   revalidatePath(`/leads/${resolvedLeadId}`);

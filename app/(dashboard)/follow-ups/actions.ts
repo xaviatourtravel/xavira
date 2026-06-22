@@ -8,6 +8,7 @@ import {
   isFollowUpCenterFilter,
   type FollowUpCenterFilter,
 } from "@/lib/follow-ups/list-filters";
+import { formatActionError } from "@/lib/errors";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -85,7 +86,12 @@ export async function completeFollowUpTaskFromCenter(formData: FormData) {
     .eq("organization_id", profile.organization_id);
 
   if (error) {
-    redirectWithMessage(returnFilter, returnAssigned, "error", error.message);
+    redirectWithMessage(
+      returnFilter,
+      returnAssigned,
+      "error",
+      formatActionError(error, "completeFollowUpTaskFromCenter"),
+    );
   }
 
   const completionNote = getString(formData, "completion_note");
@@ -139,7 +145,7 @@ export async function completeFollowUpFromQueue(formData: FormData) {
     .eq("status", "pending");
 
   if (pendingTasksError) {
-    return { success: false, message: pendingTasksError.message };
+    return { success: false, message: formatActionError(pendingTasksError, "completeFollowUpFromQueue") };
   }
 
   if (pendingTasks && pendingTasks.length > 0) {
@@ -154,7 +160,7 @@ export async function completeFollowUpFromQueue(formData: FormData) {
       .eq("status", "pending");
 
     if (completeTasksError) {
-      return { success: false, message: completeTasksError.message };
+      return { success: false, message: formatActionError(completeTasksError, "completeFollowUpFromQueue") };
     }
   }
 
@@ -171,7 +177,7 @@ export async function completeFollowUpFromQueue(formData: FormData) {
   });
 
   if (activityError) {
-    return { success: false, message: activityError.message };
+    return { success: false, message: formatActionError(activityError, "completeFollowUpFromQueue") };
   }
 
   const { error: leadUpdateError } = await supabase
@@ -184,7 +190,7 @@ export async function completeFollowUpFromQueue(formData: FormData) {
     .eq("organization_id", profile.organization_id);
 
   if (leadUpdateError) {
-    return { success: false, message: leadUpdateError.message };
+    return { success: false, message: formatActionError(leadUpdateError, "completeFollowUpFromQueue") };
   }
 
   revalidatePath("/follow-ups/queue");

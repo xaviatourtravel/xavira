@@ -10,6 +10,7 @@ import {
   type AiTone,
   type OrganizationWorkspaceSettings,
 } from "@/lib/settings/organization-settings";
+import { formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 type SettingsActionResult = {
@@ -91,7 +92,7 @@ export async function saveGeneralSettings(
     .eq("id", organizationId);
 
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "updateOrganizationSettings") };
   }
 
   revalidateSettingsPaths();
@@ -135,7 +136,7 @@ export async function saveAiSettings(
     .eq("id", organizationRow.organizationId);
 
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "updateOrganizationSettings") };
   }
 
   await auditFromProfile(organizationRow.supabase, organizationRow.profile, {
@@ -187,7 +188,7 @@ export async function saveInboxSettings(
     .eq("id", organizationRow.organizationId);
 
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "updateOrganizationSettings") };
   }
 
   revalidateSettingsPaths();
@@ -224,7 +225,7 @@ export async function saveNotificationSettings(
     .eq("id", organizationRow.organizationId);
 
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "updateOrganizationSettings") };
   }
 
   revalidateSettingsPaths();

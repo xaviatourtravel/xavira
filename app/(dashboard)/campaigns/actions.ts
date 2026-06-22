@@ -7,6 +7,7 @@ import { parseCampaignStatus } from "@/lib/campaigns/constants";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { parseLeadSourceForSave } from "@/lib/leads/source-tracking";
+import { encodeActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 import type { TablesInsert } from "@/types/database";
 
@@ -76,7 +77,7 @@ export async function createCampaign(formData: FormData) {
   const { error } = await supabase.from("campaigns").insert(payload);
 
   if (error) {
-    redirect(`/campaigns/new?error=${encodeURIComponent(error.message)}`);
+    redirect(`/campaigns/new?error=${encodeActionError(error)}`);
   }
 
   revalidatePath("/campaigns");
@@ -125,7 +126,7 @@ export async function updateCampaign(formData: FormData) {
 
   if (error) {
     redirect(
-      `/campaigns/${campaignId}/edit?error=${encodeURIComponent(error.message)}`,
+      `/campaigns/${campaignId}/edit?error=${encodeActionError(error)}`,
     );
   }
 
@@ -163,7 +164,7 @@ export async function deleteCampaign(formData: FormData) {
     .maybeSingle();
 
   if (error) {
-    redirect(`/campaigns?error=${encodeURIComponent(error.message)}`);
+    redirect(`/campaigns?error=${encodeActionError(error)}`);
   }
 
   if (!deletedCampaign) {

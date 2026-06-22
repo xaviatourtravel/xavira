@@ -11,6 +11,7 @@ import {
 } from "@/lib/leads/critical-leads";
 import { getFollowUpDueDateInDays } from "@/lib/leads/first-follow-up";
 import { requireProfile } from "@/lib/auth/session";
+import { encodeActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 export async function createBulkCriticalFollowUps() {
@@ -75,7 +76,7 @@ export async function createBulkCriticalFollowUps() {
 
   if (existingTasksError) {
     redirect(
-      `/leads/critical?error=${encodeURIComponent(existingTasksError.message)}`,
+      `/leads/critical?error=${encodeActionError(existingTasksError, "bulkCreateCriticalFollowUps")}`,
     );
   }
 

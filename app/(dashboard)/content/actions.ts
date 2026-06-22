@@ -21,6 +21,7 @@ import {
   serializeContentStudioOutput,
 } from "@/lib/content/ai-sections";
 import { parseStoredContentStudioOutput } from "@/lib/content/generations";
+import { encodeActionError, formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 import type { TablesInsert } from "@/types/database";
 
@@ -125,7 +126,7 @@ export async function createContent(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/content/new?error=${encodeURIComponent(error.message)}`);
+    redirect(`/content/new?error=${encodeActionError(error)}`);
   }
 
   revalidatePath("/content");
@@ -188,7 +189,7 @@ export async function updateContent(formData: FormData) {
 
   if (existingContentError) {
     redirect(
-      `/content/${contentId}/edit?error=${encodeURIComponent(existingContentError.message)}`,
+      `/content/${contentId}/edit?error=${encodeActionError(existingContentError, "updateContent")}`,
     );
   }
 
@@ -238,7 +239,7 @@ export async function updateContent(formData: FormData) {
 
     if (generationUpdateError) {
       redirect(
-        `/content/${contentId}/edit?error=${encodeURIComponent(generationUpdateError.message)}`,
+        `/content/${contentId}/edit?error=${encodeActionError(generationUpdateError, "updateContent")}`,
       );
     }
   }
@@ -266,7 +267,7 @@ export async function updateContent(formData: FormData) {
 
   if (error) {
     redirect(
-      `/content/${contentId}/edit?error=${encodeURIComponent(error.message)}`,
+      `/content/${contentId}/edit?error=${encodeActionError(error)}`,
     );
   }
 
@@ -305,7 +306,7 @@ export async function deleteContent(formData: FormData) {
     .maybeSingle();
 
   if (error) {
-    redirect(`/content?error=${encodeURIComponent(error.message)}`);
+    redirect(`/content?error=${encodeActionError(error)}`);
   }
 
   if (!deletedContent) {
@@ -358,7 +359,7 @@ export async function updateContentBoardStatus(
   if (error) {
     return {
       success: false,
-      message: error.message,
+      message: formatActionError(error, "updateContentStatus"),
     };
   }
 

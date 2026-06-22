@@ -12,6 +12,7 @@ import {
 } from "@/lib/integrations/constants";
 import { INSTAGRAM_INTEGRATION_PROVIDER } from "@/lib/instagram/constants";
 import { disconnectInstagramIntegration } from "@/lib/instagram/integration";
+import { formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 type IntegrationActionResult = {
@@ -69,7 +70,7 @@ async function setIntegrationStatus(
   if (error) {
     return {
       success: false,
-      message: error.message,
+      message: formatActionError(error, "updateIntegrationStatus"),
     };
   }
 

@@ -16,6 +16,7 @@ import { loadInboxConversationRawById } from "@/lib/inbox/queries";
 import { mapInboxSourceToLeadSource } from "@/lib/inbox/source-mapping";
 import { createAutomaticFirstFollowUpTask } from "@/lib/leads/first-follow-up";
 import { getTodayLeadDateValue } from "@/lib/leads/lead-date";
+import { formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -123,7 +124,7 @@ export async function updateInboxConversationStatus(formData: FormData) {
 
   if (error) {
     console.error("Update inbox status error:", error);
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "updateInboxStatus") };
   }
 
   if (!updated) {
@@ -171,7 +172,7 @@ export async function assignInboxConversation(formData: FormData) {
 
   if (error) {
     console.error("Assign inbox conversation error:", error);
-    return { success: false, message: error.message };
+    return { success: false, message: formatActionError(error, "updateInboxStatus") };
   }
 
   if (!updated) {

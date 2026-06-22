@@ -29,6 +29,7 @@ import {
   parseSnoozePreset,
   resolveSnoozeUntil,
 } from "@/lib/automation/snooze";
+import { encodeActionError, formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -109,7 +110,7 @@ export async function createLeadActivity(formData: FormData) {
     });
   
     if (error) {
-      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/leads/${leadId}?error=${encodeActionError(error)}`);
     }
   
     revalidatePath(`/leads/${leadId}`);
@@ -170,7 +171,7 @@ export async function createLeadActivity(formData: FormData) {
     });
   
     if (error) {
-      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/leads/${leadId}?error=${encodeActionError(error)}`);
     }
   
     await supabase.from("lead_activities").insert({
@@ -251,7 +252,7 @@ export async function createLeadActivity(formData: FormData) {
     });
 
     if (error) {
-      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/leads/${leadId}?error=${encodeActionError(error)}`);
     }
 
     await supabase.from("lead_activities").insert({
@@ -302,7 +303,7 @@ export async function createLeadActivity(formData: FormData) {
       .eq("organization_id", profile.organization_id);
   
     if (error) {
-      redirect(`/leads/${leadId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/leads/${leadId}?error=${encodeActionError(error)}`);
     }
   
     await supabase.from("lead_activities").insert({
@@ -465,7 +466,13 @@ export async function updateLead(formData: FormData) {
     .maybeSingle();
 
   if (error) {
-    redirect(buildUpdateLeadErrorRedirect(leadId, returnTo, error.message));
+    redirect(
+      buildUpdateLeadErrorRedirect(
+        leadId,
+        returnTo,
+        formatActionError(error, "updateLead"),
+      ),
+    );
   }
 
   if (!updatedLead) {
@@ -621,7 +628,7 @@ export async function convertLeadToBooking(formData: FormData) {
 
   if (error || !booking) {
     redirect(
-      `/leads/${leadId}?error=${encodeURIComponent(error?.message ?? "Gagal membuat booking")}`,
+      `/leads/${leadId}?error=${encodeActionError(error ?? "Gagal membuat booking", "convertLeadToBooking")}`,
     );
   }
 
@@ -710,7 +717,7 @@ export async function snoozeLead(formData: FormData) {
 
   if (updateError) {
     redirect(
-      `/leads/${leadId}?error=${encodeURIComponent(updateError.message)}`,
+      `/leads/${leadId}?error=${encodeActionError(updateError, "snoozeLead")}`,
     );
   }
 

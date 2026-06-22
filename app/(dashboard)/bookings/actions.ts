@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
+import { formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -52,7 +53,7 @@ export async function deleteBooking(formData: FormData) {
     .maybeSingle();
 
   if (error) {
-    redirect(buildReturnPath(returnTo, error.message, "error"));
+    redirect(buildReturnPath(returnTo, formatActionError(error, "deleteBooking"), "error"));
   }
 
   if (!deletedBooking) {

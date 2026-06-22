@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
 import { auditFromProfile } from "@/lib/audit";
+import { encodeActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -61,7 +62,7 @@ export async function updateLeadStatus(formData: FormData) {
     .eq("organization_id", profile.organization_id);
 
   if (error) {
-    redirect(`/leads/pipeline?error=${encodeURIComponent(error.message)}`);
+    redirect(`/leads/pipeline?error=${encodeActionError(error)}`);
   }
 
   await supabase.from("lead_activities").insert({

@@ -16,6 +16,7 @@ import { parseLeadFormFields, getLeadFormString } from "@/lib/leads/lead-form-pa
 import { canEditLead } from "@/lib/leads/permissions";
 import { parseLeadTemperatureInput } from "@/lib/leads/lead-temperature";
 import { resolveCampaignIdForOrganization } from "@/lib/campaigns/queries";
+import { encodeActionError, formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 export async function createLead(formData: FormData) {
@@ -80,7 +81,7 @@ export async function createLead(formData: FormData) {
 
   if (error || !createdLead) {
     redirect(
-      `/leads/new?error=${encodeURIComponent(error?.message ?? "Gagal membuat lead")}`,
+      `/leads/new?error=${encodeActionError(error ?? "Gagal membuat lead", "createLead")}`,
     );
   }
 
@@ -130,7 +131,7 @@ export async function updateLeadTemperature(
     .maybeSingle();
 
   if (lookupError) {
-    return { error: lookupError.message };
+    return { error: formatActionError(lookupError, "updateLeadTemperature") };
   }
 
   if (!existingLead || !canEditLead(profile, existingLead)) {
@@ -147,7 +148,7 @@ export async function updateLeadTemperature(
     .is("deleted_at", null);
 
   if (error) {
-    return { error: error.message };
+    return { error: formatActionError(error, "updateLeadTemperature") };
   }
 
   revalidatePath("/leads");
@@ -191,7 +192,11 @@ export async function bulkDeleteLeads(formData: FormData) {
 
   if (lookupError) {
     redirect(
-      buildLeadsActionRedirectPath(returnTo, "error", lookupError.message),
+      buildLeadsActionRedirectPath(
+        returnTo,
+        "error",
+        formatActionError(lookupError, "bulkDeleteLeads"),
+      ),
     );
   }
 
@@ -224,7 +229,7 @@ export async function bulkDeleteLeads(formData: FormData) {
       failures.push(
         formatBulkDeleteFailureMessage({
           leadId,
-          message: error.message,
+          message: formatActionError(error, "bulkDeleteLeads"),
         }),
       );
       continue;

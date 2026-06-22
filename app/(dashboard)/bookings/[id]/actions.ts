@@ -19,6 +19,7 @@ import {
   validateBookingDiscount,
 } from "@/lib/bookings/discount";
 import { calculateBookingTotalAmount } from "@/lib/bookings/total-amount";
+import { encodeActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -149,7 +150,7 @@ export async function updateBooking(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}/edit?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}/edit?error=${encodeActionError(error)}`,
     );
   }
 
@@ -384,7 +385,7 @@ export async function createBookingParticipant(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}?error=${encodeActionError(error)}`,
     );
   }
 
@@ -459,7 +460,7 @@ export async function updateBookingParticipant(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}?error=${encodeActionError(error)}`,
     );
   }
 
@@ -519,7 +520,7 @@ export async function deleteBookingParticipant(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}?error=${encodeActionError(error)}`,
     );
   }
 
@@ -624,7 +625,7 @@ export async function createBookingPayment(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}?error=${encodeActionError(error)}`,
     );
   }
 
@@ -726,7 +727,7 @@ export async function updateBookingPayment(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}?error=${encodeActionError(error)}`,
     );
   }
 
@@ -806,7 +807,7 @@ export async function deleteBookingPayment(formData: FormData) {
 
   if (error) {
     redirect(
-      `/bookings/${bookingId}?error=${encodeURIComponent(error.message)}`,
+      `/bookings/${bookingId}?error=${encodeActionError(error)}`,
     );
   }
 

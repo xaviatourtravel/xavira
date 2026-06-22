@@ -25,6 +25,7 @@ import {
   uploadKnowledgeFile,
 } from "@/lib/knowledge/storage";
 import type { Profile } from "@/types/app-types";
+import { encodeActionError, formatActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 const openai = new OpenAI({
@@ -146,11 +147,10 @@ async function extractUploadedFile(
     const extracted = await extractKnowledgeText(buffer, kind);
     text = extracted.text;
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Gagal membaca isi dokumen.";
-    return { ok: false, error: message };
+    return {
+      ok: false,
+      error: formatActionError(error, "extractKnowledgeText"),
+    };
   }
 
   try {
@@ -162,9 +162,10 @@ async function extractUploadedFile(
     });
     return { ok: true, text, filePath, fileName: file.name, fileType: kind };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Gagal mengunggah file.";
-    return { ok: false, error: message };
+    return {
+      ok: false,
+      error: formatActionError(error, "uploadKnowledgeFile"),
+    };
   }
 }
 
@@ -224,7 +225,7 @@ export async function createKnowledgeEntry(formData: FormData) {
       await removeKnowledgeFile(upload.filePath);
     }
     redirect(
-      `/knowledge/new?error=${encodeURIComponent(error?.message ?? "Gagal menyimpan knowledge.")}`,
+      `/knowledge/new?error=${encodeActionError(error ?? "Gagal menyimpan knowledge.", "createKnowledge")}`,
     );
   }
 
@@ -281,7 +282,7 @@ export async function updateKnowledgeEntry(formData: FormData) {
 
   if (error || !updated) {
     redirect(
-      `/knowledge/${id}/edit?error=${encodeURIComponent(error?.message ?? "Gagal menyimpan perubahan.")}`,
+      `/knowledge/${id}/edit?error=${encodeActionError(error ?? "Gagal menyimpan perubahan.", "updateKnowledge")}`,
     );
   }
 

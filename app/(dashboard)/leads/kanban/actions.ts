@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
 import { auditFromProfile } from "@/lib/audit";
+import { encodeActionError } from "@/lib/errors";
 import { createClient } from "@/utils/supabase/server";
 
 function getString(formData: FormData, key: string) {
@@ -67,7 +68,7 @@ export async function updateKanbanLeadStatus(formData: FormData) {
 
   if (error) {
     redirect(
-      `/leads/kanban?error=${encodeURIComponent(error.message)}`,
+      `/leads/kanban?error=${encodeActionError(error)}`,
     );
   }
 

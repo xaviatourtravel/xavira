@@ -6,6 +6,7 @@ import {
   FileText,
   Inbox,
   LayoutDashboard,
+  Sun,
   Megaphone,
   MessageSquare,
   Package,
@@ -42,6 +43,12 @@ export function isNavGroup(item: DashboardNavItem): item is NavGroupItem {
 
 export const dashboardNav: DashboardNavItem[] = [
   {
+    title: "Today",
+    href: "/today",
+    icon: Sun,
+    permission: "today.view",
+  },
+  {
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
@@ -58,7 +65,9 @@ export const dashboardNav: DashboardNavItem[] = [
     href: "/leads",
     icon: Users,
     permission: "leads.view",
-    items: [{ title: "Lead Kanban", href: "/leads/kanban" }],
+    items: [
+      { title: "Lead Kanban", href: "/leads/kanban" },
+    ],
   },
   {
     title: "Packages",
@@ -122,7 +131,12 @@ export const dashboardNav: DashboardNavItem[] = [
 ];
 
 export function isLeadsNavPath(pathname: string) {
-  return pathname === "/leads" || pathname.startsWith("/leads/");
+  return (
+    pathname === "/leads" ||
+    pathname.startsWith("/leads/") ||
+    pathname === "/customers" ||
+    pathname.startsWith("/customers/")
+  );
 }
 
 export function isKanbanNavActive(pathname: string) {

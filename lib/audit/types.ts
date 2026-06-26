@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = [
   "role_updated",
   "ai_settings_updated",
   "package_duplicated",
+  "ai_customer_summary_generated",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

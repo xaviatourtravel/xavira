@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
 ] as const;
 
 const PROTECTED_PREFIXES = [
+  "/today",
   "/dashboard",
   "/leads",
   "/follow-ups",

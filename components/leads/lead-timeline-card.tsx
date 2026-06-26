@@ -25,6 +25,9 @@ type LeadTimelineCardProps = {
   leadId: string;
   events: LeadTimelineEvent[];
   createLeadActivity: (formData: FormData) => Promise<void>;
+  showComposer?: boolean;
+  title?: string;
+  description?: string;
 };
 
 const inputClassName = "mt-1 w-full rounded-md border px-3 py-2 text-sm";
@@ -115,6 +118,9 @@ export function LeadTimelineCard({
   leadId,
   events,
   createLeadActivity,
+  showComposer = true,
+  title = "📜 Timeline",
+  description = "Riwayat kronologis lengkap untuk lead ini.",
 }: LeadTimelineCardProps) {
   const [eventTypeFilter, setEventTypeFilter] = useState<
     LeadTimelineEventType | "all"
@@ -134,10 +140,8 @@ export function LeadTimelineCard({
       <CardHeader className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle>📜 Timeline</CardTitle>
-            <CardDescription>
-              Riwayat kronologis lengkap untuk lead ini.
-            </CardDescription>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
           </div>
           <button
             type="button"
@@ -190,6 +194,7 @@ export function LeadTimelineCard({
           </ol>
         )}
 
+        {showComposer ? (
         <form
           action={createLeadActivity}
           className="space-y-4 rounded-lg border p-4"
@@ -240,6 +245,7 @@ export function LeadTimelineCard({
             Tambah Aktivitas
           </button>
         </form>
+        ) : null}
       </CardContent>
     </Card>
   );

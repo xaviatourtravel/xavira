@@ -18,8 +18,10 @@ const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: Permission }> 
     { prefix: "/follow-ups", permission: "followups.view" },
     { prefix: "/inbox", permission: "inbox.view" },
     { prefix: "/leads", permission: "leads.view" },
+    { prefix: "/customers", permission: "leads.view" },
     { prefix: "/revenue", permission: "dashboard.view" },
     { prefix: "/scripts", permission: "leads.view" },
+    { prefix: "/today", permission: "today.view" },
     { prefix: "/dashboard", permission: "dashboard.view" },
   ];
 

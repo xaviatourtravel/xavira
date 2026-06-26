@@ -92,6 +92,13 @@ export function LeadDetailHeader({
           {!hasBooking && createBookingAction ? createBookingAction : null}
 
           <Link
+            href={`/customers/${leadId}`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Customer Workspace
+          </Link>
+
+          <Link
             href={`/leads/${leadId}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >

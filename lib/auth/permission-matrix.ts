@@ -1,4 +1,5 @@
 export const PERMISSIONS = [
+  "today.view",
   "dashboard.view",
   "leads.view",
   "leads.create",
@@ -53,6 +54,7 @@ export const ROLE_PERMISSIONS: Record<EffectiveRole, ReadonlySet<Permission>> = 
   owner: ALL_PERMISSIONS,
   admin: ALL_PERMISSIONS,
   sales: permissionsOf([
+    "today.view",
     "dashboard.view",
     "leads.view",
     "leads.create",
@@ -74,6 +76,7 @@ export const ROLE_PERMISSIONS: Record<EffectiveRole, ReadonlySet<Permission>> = 
     "knowledge.view",
   ]),
   finance: permissionsOf([
+    "today.view",
     "dashboard.view",
     "bookings.view",
     "payments.view",
@@ -118,6 +121,7 @@ export function formatEffectiveRoleLabel(role: EffectiveRole | string) {
 }
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
+  "today.view": "View today workspace",
   "dashboard.view": "View dashboard",
   "leads.view": "View leads",
   "leads.create": "Create leads",
@@ -149,7 +153,7 @@ export const PERMISSION_GROUPS = [
   {
     id: "dashboard",
     label: "Dashboard",
-    permissions: ["dashboard.view"] as Permission[],
+    permissions: ["today.view", "dashboard.view"] as Permission[],
   },
   {
     id: "leads",

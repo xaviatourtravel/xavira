@@ -22,6 +22,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   role_updated: "Role updated",
   ai_settings_updated: "AI settings updated",
   package_duplicated: "Package duplicated",
+  ai_customer_summary_generated: "AI customer summary generated",
 };
 
 export const AUDIT_ENTITY_TYPE_LABELS: Record<AuditEntityType, string> = {

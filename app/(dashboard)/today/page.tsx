@@ -17,12 +17,12 @@ export default async function TodayPage({ searchParams }: TodayPageProps) {
   return (
     <div className="space-y-4">
       {params.error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mx-auto max-w-6xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {params.error}
         </div>
       ) : null}
       {params.success ? (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div className="mx-auto max-w-6xl rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
           {params.success}
         </div>
       ) : null}

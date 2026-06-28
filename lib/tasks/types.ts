@@ -49,6 +49,58 @@ export type TodaySummaryMetrics = {
   paymentsToConfirm: number;
 };
 
+export type NextBestAction = {
+  task: WorkspaceTask;
+  reason: string;
+  estimatedMinutes: number;
+  businessImpact: string;
+};
+
+export type TodayProgressMetrics = {
+  completedTasks: number;
+  remainingTasks: number;
+  totalTasksToday: number;
+  progressPercent: number;
+  estimatedMinutesRemaining: number;
+};
+
+export type WorkspaceHealthStatus = "healthy" | "attention" | "critical";
+
+export type WorkspaceHealthIndicator = {
+  id: string;
+  label: string;
+  status: WorkspaceHealthStatus;
+  detail: string;
+  href: string;
+};
+
+export type PriorityQueueGroup = {
+  id: string;
+  label: string;
+  description: string;
+  tasks: WorkspaceTask[];
+};
+
+export type TodayAiInsight = {
+  message: string;
+  actionLabel: string;
+  actionHref: string;
+};
+
+export type TodayActivityItem = {
+  id: string;
+  label: string;
+  detail: string | null;
+  timestamp: string;
+  href: string | null;
+};
+
+export type TodayMorningBrief = {
+  greeting: string;
+  brief: string;
+  dailyObjective: string;
+};
+
 export type TodayFocusSection = {
   id: string;
   title: string;
@@ -62,4 +114,11 @@ export type TodayWorkspaceData = {
   summary: TodaySummaryMetrics;
   focusSections: TodayFocusSection[];
   usingDerivedTasks: boolean;
+  morningBrief: TodayMorningBrief;
+  nextBestAction: NextBestAction | null;
+  progress: TodayProgressMetrics;
+  healthIndicators: WorkspaceHealthIndicator[];
+  priorityQueue: PriorityQueueGroup[];
+  aiInsight: TodayAiInsight;
+  activityTimeline: TodayActivityItem[];
 };

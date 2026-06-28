@@ -1,168 +1,266 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
-  BookOpen,
-  CalendarCheck,
-  FileText,
-  Inbox,
-  LayoutDashboard,
-  Sun,
-  Megaphone,
-  MessageSquare,
-  Package,
+  Home,
+  MessageCircle,
   Settings,
-  TrendingUp,
   Users,
+  Wallet,
+  Workflow,
 } from "lucide-react";
 
 import type { Permission } from "@/lib/auth/permission-matrix";
 
-export type NavLinkItem = {
+/** Business Operating System workspaces — max 6 + settings */
+export type WorkspaceId =
+  | "today"
+  | "communication"
+  | "customer"
+  | "operational"
+  | "finance"
+  | "performance"
+  | "settings";
+
+export type NavAttentionBadgeKey = "communication" | "operational" | "finance";
+
+export type WorkspaceNavChild = {
+  title: string;
+  href: string;
+  permission?: Permission;
+};
+
+export type WorkspaceNavItem = {
+  id: WorkspaceId;
   title: string;
   href: string;
   icon: LucideIcon;
   permission: Permission;
+  /** One-line business question this workspace answers */
+  businessQuestion: string;
+  badgeKey?: NavAttentionBadgeKey;
+  items: readonly WorkspaceNavChild[];
 };
 
-export type NavGroupItem = {
-  title: string;
-  href: string;
-  icon: LucideIcon;
-  permission: Permission;
-  items: ReadonlyArray<{
-    title: string;
-    href: string;
-  }>;
-};
-
-export type DashboardNavItem = NavLinkItem | NavGroupItem;
-
-export function isNavGroup(item: DashboardNavItem): item is NavGroupItem {
-  return "items" in item;
-}
-
-export const dashboardNav: DashboardNavItem[] = [
+export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
   {
-    title: "Today",
+    id: "today",
+    title: "Hari Ini",
     href: "/today",
-    icon: Sun,
+    icon: Home,
     permission: "today.view",
+    businessQuestion: "Apa yang harus saya kerjakan sekarang?",
+    items: [],
   },
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    permission: "dashboard.view",
+    id: "communication",
+    title: "Komunikasi",
+    href: "/inbox",
+    icon: MessageCircle,
+    permission: "inbox.view",
+    businessQuestion: "Siapa yang menunggu respons?",
+    badgeKey: "communication",
+    items: [
+      { title: "Inbox", href: "/inbox" },
+      { title: "WhatsApp", href: "/inbox?channel=whatsapp" },
+      { title: "Instagram", href: "/inbox?channel=instagram" },
+      { title: "Email", href: "/inbox?channel=email" },
+    ],
   },
   {
-    title: "Revenue",
-    href: "/revenue",
-    icon: TrendingUp,
-    permission: "dashboard.view",
-  },
-  {
-    title: "Leads",
+    id: "customer",
+    title: "Customer",
     href: "/leads",
     icon: Users,
     permission: "leads.view",
+    businessQuestion: "Bagaimana perjalanan customer saya?",
     items: [
-      { title: "Lead Kanban", href: "/leads/kanban" },
+      { title: "Customer", href: "/leads" },
+      { title: "Pipeline", href: "/leads/kanban" },
+      { title: "Booking", href: "/bookings" },
+      { title: "Package", href: "/packages", permission: "bookings.view" },
     ],
   },
   {
-    title: "Packages",
-    href: "/packages",
-    icon: Package,
-    permission: "bookings.view",
-  },
-  {
-    title: "Bookings",
-    href: "/bookings",
-    icon: CalendarCheck,
-    permission: "bookings.view",
-  },
-  {
-    title: "Follow Ups",
-    href: "/follow-ups",
-    icon: MessageSquare,
-    permission: "followups.view",
-    items: [{ title: "Follow Up Queue", href: "/follow-ups/queue" }],
-  },
-  {
-    title: "Inbox",
-    href: "/inbox",
-    icon: Inbox,
-    permission: "inbox.view",
-  },
-  {
-    title: "Campaigns",
-    href: "/campaigns",
-    icon: Megaphone,
-    permission: "content.view",
-  },
-  {
-    title: "Content",
-    href: "/content",
-    icon: FileText,
-    permission: "content.view",
+    id: "operational",
+    title: "Operasional",
+    href: "/operations",
+    icon: Workflow,
+    permission: "today.view",
+    businessQuestion: "Apa yang harus diselesaikan operasional hari ini?",
+    badgeKey: "operational",
     items: [
-      { title: "Content Board", href: "/content" },
-      { title: "Instagram Analytics", href: "/content/instagram-analytics" },
+      { title: "Tasks", href: "/today", permission: "today.view" },
+      { title: "Follow Up", href: "/follow-ups", permission: "followups.view" },
+      {
+        title: "Calendar",
+        href: "/follow-ups/queue",
+        permission: "followups.view",
+      },
     ],
   },
   {
-    title: "Knowledge Hub",
-    href: "/knowledge",
-    icon: BookOpen,
-    permission: "knowledge.view",
+    id: "finance",
+    title: "Keuangan",
+    href: "/finance",
+    icon: Wallet,
+    permission: "payments.view",
+    businessQuestion: "Bagaimana kondisi pembayaran customer?",
+    badgeKey: "finance",
+    items: [
+      { title: "Payments", href: "/revenue" },
+      { title: "Invoices", href: "/revenue?view=invoices" },
+    ],
   },
   {
-    title: "Scripts",
-    href: "/scripts",
+    id: "performance",
+    title: "Performance",
+    href: "/performance",
     icon: BarChart3,
-    permission: "leads.view",
+    permission: "dashboard.view",
+    businessQuestion: "Apakah bisnis saya bergerak ke arah yang benar?",
+    items: [
+      { title: "Dashboard", href: "/dashboard" },
+      { title: "Campaign", href: "/campaigns", permission: "content.view" },
+      { title: "Content", href: "/content", permission: "content.view" },
+      {
+        title: "Analytics",
+        href: "/content/instagram-analytics",
+        permission: "content.view",
+      },
+    ],
   },
   {
-    title: "Settings",
+    id: "settings",
+    title: "Pengaturan",
     href: "/settings",
     icon: Settings,
     permission: "settings.view",
+    businessQuestion: "Bagaimana workspace saya dikonfigurasi?",
+    items: [],
   },
-];
+] as const;
 
-export function isLeadsNavPath(pathname: string) {
-  return (
-    pathname === "/leads" ||
-    pathname.startsWith("/leads/") ||
-    pathname === "/customers" ||
-    pathname.startsWith("/customers/")
-  );
+/** Route prefixes owned by each workspace (for active-state detection) */
+export const WORKSPACE_ROUTE_PREFIXES: Record<WorkspaceId, readonly string[]> = {
+  today: ["/today"],
+  communication: ["/inbox"],
+  customer: ["/leads", "/customers", "/bookings", "/packages"],
+  operational: ["/operations", "/follow-ups"],
+  finance: ["/finance", "/revenue"],
+  performance: ["/performance", "/dashboard", "/campaigns", "/content", "/scripts"],
+  settings: ["/settings"],
+};
+
+export type NavAttentionBadges = Record<NavAttentionBadgeKey, number>;
+
+export const EMPTY_NAV_ATTENTION_BADGES: NavAttentionBadges = {
+  communication: 0,
+  operational: 0,
+  finance: 0,
+};
+
+export function getWorkspaceForPath(pathname: string): WorkspaceId | null {
+  const normalized =
+    pathname.endsWith("/") && pathname.length > 1
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  for (const workspace of WORKSPACE_NAV) {
+    const prefixes = WORKSPACE_ROUTE_PREFIXES[workspace.id];
+    if (
+      prefixes.some(
+        (prefix) =>
+          normalized === prefix || normalized.startsWith(`${prefix}/`),
+      )
+    ) {
+      return workspace.id;
+    }
+  }
+
+  return null;
 }
 
-export function isKanbanNavActive(pathname: string) {
-  return (
-    pathname === "/leads/kanban" || pathname.startsWith("/leads/kanban/")
-  );
+export function isNavPathActive(pathname: string, href: string): boolean {
+  const path = href.split("?")[0] ?? href;
+  const normalizedPath =
+    pathname.endsWith("/") && pathname.length > 1
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  if (normalizedPath === path) {
+    return true;
+  }
+
+  if (path === "/leads" && normalizedPath.startsWith("/customers/")) {
+    return true;
+  }
+
+  if (path === "/revenue" && normalizedPath.startsWith("/revenue")) {
+    return true;
+  }
+
+  if (path === "/finance" && normalizedPath.startsWith("/finance")) {
+    return true;
+  }
+
+  if (path === "/operations" && normalizedPath.startsWith("/operations")) {
+    return true;
+  }
+
+  if (path === "/performance" && normalizedPath.startsWith("/performance")) {
+    return true;
+  }
+
+  return normalizedPath.startsWith(`${path}/`);
 }
 
-export function isFollowUpsNavPath(pathname: string) {
-  return pathname === "/follow-ups" || pathname.startsWith("/follow-ups/");
+export function isWorkspaceActive(workspace: WorkspaceNavItem, pathname: string) {
+  if (getWorkspaceForPath(pathname) === workspace.id) {
+    return true;
+  }
+
+  return workspace.items.some((item) => isNavPathActive(pathname, item.href));
 }
 
-export function isFollowUpQueueNavActive(pathname: string) {
-  return (
-    pathname === "/follow-ups/queue" ||
-    pathname.startsWith("/follow-ups/queue/")
-  );
+export function filterWorkspaceNav(
+  items: readonly WorkspaceNavItem[],
+  permissions: ReadonlySet<Permission>,
+): WorkspaceNavItem[] {
+  return items
+    .filter((workspace) => permissions.has(workspace.permission))
+    .map((workspace) => ({
+      ...workspace,
+      items: workspace.items.filter(
+        (item) => !item.permission || permissions.has(item.permission),
+      ),
+    }));
 }
 
-export function isNavItemActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+export function filterNavChildByPermission(
+  item: WorkspaceNavChild,
+  permissions: ReadonlySet<Permission>,
+  fallbackPermission: Permission,
+) {
+  const permission = item.permission ?? fallbackPermission;
+  return permissions.has(permission);
 }
 
-export function filterDashboardNav<T extends DashboardNavItem>(
+/** @deprecated Use WORKSPACE_NAV — kept for gradual migration */
+export const dashboardNav = WORKSPACE_NAV;
+
+export type DashboardNavItem = WorkspaceNavItem;
+
+export function isNavGroup(item: WorkspaceNavItem) {
+  return item.items.length > 0;
+}
+
+export function filterDashboardNav<T extends WorkspaceNavItem>(
   items: readonly T[],
   permissions: ReadonlySet<Permission>,
 ): T[] {
-  return items.filter((item) => permissions.has(item.permission));
+  return filterWorkspaceNav(items, permissions) as T[];
+}
+
+export function isNavItemActive(pathname: string, href: string) {
+  return isNavPathActive(pathname, href);
 }

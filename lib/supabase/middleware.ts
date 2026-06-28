@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isGuestOnlyRoute(pathname)) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
+    redirectUrl.pathname = "/today";
     redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }

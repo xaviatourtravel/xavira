@@ -1,10 +1,11 @@
 import {
-  CalendarCheck,
-  Inbox,
-  LayoutDashboard,
+  BarChart3,
+  Home,
+  MessageCircle,
   Settings,
   Users,
-  type LucideIcon,
+  Wallet,
+  Workflow,
 } from "lucide-react";
 
 import type { Permission } from "@/lib/auth/permission-matrix";
@@ -12,37 +13,53 @@ import type { Permission } from "@/lib/auth/permission-matrix";
 export type MobilePrimaryNavItem = {
   title: string;
   href: string;
-  icon: LucideIcon;
+  icon: typeof Home;
   permission: Permission;
 };
 
+/** Mobile bottom bar — 5 most-used workspaces + More */
 export const MOBILE_PRIMARY_NAV: MobilePrimaryNavItem[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    permission: "dashboard.view",
+    title: "Hari Ini",
+    href: "/today",
+    icon: Home,
+    permission: "today.view",
   },
   {
-    title: "Inbox",
+    title: "Komunikasi",
     href: "/inbox",
-    icon: Inbox,
+    icon: MessageCircle,
     permission: "inbox.view",
   },
   {
-    title: "Leads",
+    title: "Customer",
     href: "/leads",
     icon: Users,
     permission: "leads.view",
   },
   {
-    title: "Bookings",
-    href: "/bookings",
-    icon: CalendarCheck,
-    permission: "bookings.view",
+    title: "Operasional",
+    href: "/operations",
+    icon: Workflow,
+    permission: "today.view",
   },
   {
-    title: "Settings",
+    title: "Keuangan",
+    href: "/finance",
+    icon: Wallet,
+    permission: "payments.view",
+  },
+];
+
+export const MOBILE_MORE_NAV: MobilePrimaryNavItem[] = [
+  {
+    title: "Performance",
+    href: "/performance",
+    icon: BarChart3,
+    permission: "dashboard.view",
+  },
+  {
+    title: "Pengaturan",
     href: "/settings",
     icon: Settings,
     permission: "settings.view",

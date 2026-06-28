@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import {
-  dashboardNav,
-  filterDashboardNav,
-  isNavGroup,
-  isNavItemActive,
-  type DashboardNavItem,
+  EMPTY_NAV_ATTENTION_BADGES,
+  WORKSPACE_NAV,
+  filterWorkspaceNav,
+  getWorkspaceForPath,
+  isNavPathActive,
+  type NavAttentionBadges,
+  type WorkspaceNavItem,
 } from "@/config/navigation";
 import { siteConfig } from "@/config/site";
 import type { Permission } from "@/lib/auth/permission-matrix";
@@ -16,89 +18,183 @@ import { cn } from "@/lib/utils";
 
 type AppSidebarProps = {
   permissions: Permission[];
+  attentionBadges?: NavAttentionBadges;
 };
 
-export function AppSidebar({ permissions }: AppSidebarProps) {
+const PRIMARY_WORKSPACES = WORKSPACE_NAV.filter(
+  (workspace) => workspace.id !== "settings",
+);
+
+export function AppSidebar({
+  permissions,
+  attentionBadges = EMPTY_NAV_ATTENTION_BADGES,
+}: AppSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const permissionSet = new Set(permissions);
-  const visibleNav = filterDashboardNav(dashboardNav, permissionSet);
+  const visibleWorkspaces = filterWorkspaceNav(PRIMARY_WORKSPACES, permissionSet);
+  const settingsWorkspace = WORKSPACE_NAV.find((item) => item.id === "settings");
+  const activeWorkspaceId = getWorkspaceForPath(pathname);
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r bg-background md:block">
-      <div className="flex h-14 items-center border-b px-6">
-        <Link href="/dashboard" className="text-lg font-semibold">
+    <aside className="hidden w-[17.5rem] shrink-0 flex-col border-r border-slate-200/80 bg-slate-50/40 md:flex">
+      <div className="flex h-14 items-center border-b border-slate-200/80 px-5">
+        <Link href="/today" className="text-lg font-semibold tracking-tight text-slate-950">
           {siteConfig.name}
         </Link>
       </div>
-      <nav className="space-y-1 p-4">
-        {visibleNav.map((item) => renderNavItem(item, pathname))}
+
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+          Workspaces
+        </p>
+
+        {visibleWorkspaces.map((workspace) => (
+          <WorkspaceNavSection
+            key={workspace.id}
+            workspace={workspace}
+            pathname={pathname}
+            searchParams={searchParams}
+            isActive={activeWorkspaceId === workspace.id}
+            badgeCount={
+              workspace.badgeKey ? attentionBadges[workspace.badgeKey] : 0
+            }
+          />
+        ))}
       </nav>
+
+      {settingsWorkspace && permissionSet.has(settingsWorkspace.permission) ? (
+        <div className="border-t border-slate-200/80 p-3">
+          <SidebarLink
+            workspace={settingsWorkspace}
+            isActive={activeWorkspaceId === "settings"}
+          />
+        </div>
+      ) : null}
     </aside>
   );
 }
 
-function renderNavItem(item: DashboardNavItem, pathname: string) {
-  if (isNavGroup(item)) {
-    const Icon = item.icon;
-    const isGroupActive =
-      isNavItemActive(pathname, item.href) ||
-      item.items.some((subItem) => isNavItemActive(pathname, subItem.href));
+function WorkspaceNavSection({
+  workspace,
+  pathname,
+  searchParams,
+  isActive,
+  badgeCount,
+}: {
+  workspace: WorkspaceNavItem;
+  pathname: string;
+  searchParams: ReturnType<typeof useSearchParams>;
+  isActive: boolean;
+  badgeCount: number;
+}) {
+  const hasChildren = workspace.items.length > 0;
+  const expanded = isActive && hasChildren;
 
-    return (
-      <div key={item.href} className="space-y-1">
-        <Link
-          href={item.href}
-          className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-            isGroupActive
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-          )}
-        >
-          <Icon className="h-4 w-4" />
-          {item.title}
-        </Link>
+  return (
+    <div className="space-y-0.5">
+      <SidebarLink
+        workspace={workspace}
+        isActive={isActive}
+        badgeCount={badgeCount}
+      />
 
-        <div className="ml-4 space-y-1 border-l pl-3">
-          {item.items.map((subItem) => {
-            const isSubActive = isNavItemActive(pathname, subItem.href);
+      {expanded ? (
+        <ul className="ml-4 space-y-0.5 border-l border-slate-200 pl-3">
+          {workspace.items.map((item) => {
+            const childActive = isChildNavActive(pathname, searchParams, item.href);
 
             return (
-              <Link
-                key={subItem.href}
-                href={subItem.href}
-                className={cn(
-                  "block rounded-md px-3 py-2 text-sm transition-colors",
-                  isSubActive
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                )}
-              >
-                {subItem.title}
-              </Link>
+              <li key={`${item.title}-${item.href}`}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "block rounded-lg px-3 py-2 text-sm transition-colors",
+                    childActive
+                      ? "bg-white font-medium text-slate-950 shadow-sm ring-1 ring-slate-200/80"
+                      : "text-slate-600 hover:bg-white/70 hover:text-slate-900",
+                  )}
+                >
+                  {item.title}
+                </Link>
+              </li>
             );
           })}
-        </div>
-      </div>
-    );
-  }
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
-  const isActive = isNavItemActive(pathname, item.href);
-  const Icon = item.icon;
+function SidebarLink({
+  workspace,
+  isActive,
+  badgeCount = 0,
+}: {
+  workspace: WorkspaceNavItem;
+  isActive: boolean;
+  badgeCount?: number;
+}) {
+  const Icon = workspace.icon;
 
   return (
     <Link
-      key={item.href}
-      href={item.href}
+      href={workspace.href}
+      title={workspace.businessQuestion}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
         isActive
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          ? "bg-slate-950 font-medium text-white shadow-sm"
+          : "text-slate-700 hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-slate-200/80",
       )}
     >
-      <Icon className="h-4 w-4" />
-      {item.title}
+      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-white" : "text-slate-500")} />
+      <span className="min-w-0 flex-1 truncate">{workspace.title}</span>
+      {badgeCount > 0 ? (
+        <AttentionBadge count={badgeCount} inverted={isActive} />
+      ) : null}
     </Link>
   );
+}
+
+function AttentionBadge({
+  count,
+  inverted = false,
+}: {
+  count: number;
+  inverted?: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
+        inverted
+          ? "bg-amber-400 text-slate-950"
+          : "bg-amber-100 text-amber-800 ring-1 ring-amber-200/80",
+      )}
+      aria-label={`${count} items need attention`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+function isChildNavActive(
+  pathname: string,
+  searchParams: ReturnType<typeof useSearchParams>,
+  href: string,
+) {
+  const [path, query] = href.split("?");
+
+  if (query) {
+    const currentQuery = searchParams.toString();
+    const normalizedPath =
+      pathname.endsWith("/") && pathname.length > 1
+        ? pathname.slice(0, -1)
+        : pathname;
+
+    return normalizedPath === path && currentQuery === query;
+  }
+
+  return isNavPathActive(pathname, href);
 }

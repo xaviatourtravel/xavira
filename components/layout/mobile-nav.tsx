@@ -3,53 +3,66 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { Menu, X } from "lucide-react";
 
 import {
+  MOBILE_MORE_NAV,
   MOBILE_PRIMARY_HREFS,
   MOBILE_PRIMARY_NAV,
 } from "@/config/mobile-navigation";
 import {
-  dashboardNav,
-  filterDashboardNav,
-  isNavGroup,
-  isNavItemActive,
+  WORKSPACE_NAV,
+  EMPTY_NAV_ATTENTION_BADGES,
+  filterWorkspaceNav,
+  isNavPathActive,
+  type NavAttentionBadges,
 } from "@/config/navigation";
 import type { Permission } from "@/lib/auth/permission-matrix";
 import { cn } from "@/lib/utils";
 
 type MobileNavProps = {
   permissions: Permission[];
+  attentionBadges?: NavAttentionBadges;
 };
 
-export function MobileNav({ permissions }: MobileNavProps) {
+export function MobileNav({
+  permissions,
+  attentionBadges = EMPTY_NAV_ATTENTION_BADGES,
+}: MobileNavProps) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const permissionSet = new Set(permissions);
 
-  const primaryNav = filterDashboardNav(MOBILE_PRIMARY_NAV, permissionSet);
-  const moreNav = filterDashboardNav(dashboardNav, permissionSet).flatMap(
-    (item) => {
-      if (MOBILE_PRIMARY_HREFS.has(item.href)) {
+  const primaryNav = MOBILE_PRIMARY_NAV.filter((item) =>
+    permissionSet.has(item.permission),
+  );
+
+  const moreNav = dedupeMobileNavItems([
+    ...filterWorkspaceNav(WORKSPACE_NAV, permissionSet).flatMap((workspace) => {
+      if (MOBILE_PRIMARY_HREFS.has(workspace.href)) {
         return [];
       }
 
-      if (isNavGroup(item)) {
-        return [
-          { title: item.title, href: item.href, icon: item.icon },
-          ...item.items.map((subItem) => ({
-            title: subItem.title,
-            href: subItem.href,
-            icon: item.icon,
-          })),
-        ];
-      }
+      return [
+        { title: workspace.title, href: workspace.href, icon: workspace.icon },
+        ...workspace.items.map((item) => ({
+          title: item.title,
+          href: item.href,
+          icon: workspace.icon,
+        })),
+      ];
+    }),
+    ...MOBILE_MORE_NAV.filter((item) => permissionSet.has(item.permission)).map(
+      (item) => ({
+        title: item.title,
+        href: item.href,
+        icon: item.icon,
+      }),
+    ),
+  ]);
 
-      return [{ title: item.title, href: item.href, icon: item.icon }];
-    },
-  );
-
-  const moreActive = moreNav.some((item) => isNavItemActive(pathname, item.href));
+  const moreActive = moreNav.some((item) => isNavPathActive(pathname, item.href));
 
   useEffect(() => {
     setMoreOpen(false);
@@ -67,6 +80,19 @@ export function MobileNav({ permissions }: MobileNavProps) {
       document.body.style.overflow = previousOverflow;
     };
   }, [moreOpen]);
+
+  function badgeForHref(href: string) {
+    if (href === "/inbox") {
+      return attentionBadges.communication;
+    }
+    if (href === "/operations" || href === "/follow-ups" || href === "/today") {
+      return attentionBadges.operational;
+    }
+    if (href === "/finance" || href === "/revenue") {
+      return attentionBadges.finance;
+    }
+    return 0;
+  }
 
   return (
     <>
@@ -86,7 +112,7 @@ export function MobileNav({ permissions }: MobileNavProps) {
         )}
       >
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <p className="text-sm font-semibold">More</p>
+          <p className="text-sm font-semibold">Workspaces</p>
           <button
             type="button"
             aria-label="Close more menu"
@@ -100,7 +126,7 @@ export function MobileNav({ permissions }: MobileNavProps) {
         <nav className="grid gap-1 p-3 pb-6">
           {moreNav.map((item) => {
             const Icon = item.icon;
-            const isActive = isNavItemActive(pathname, item.href);
+            const isActive = isNavPathActive(pathname, item.href);
 
             return (
               <Link
@@ -109,7 +135,7 @@ export function MobileNav({ permissions }: MobileNavProps) {
                 className={cn(
                   "flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm",
                   isActive
-                    ? "bg-primary/10 font-medium text-primary"
+                    ? "bg-slate-950 font-medium text-white"
                     : "text-foreground hover:bg-muted",
                 )}
               >
@@ -129,20 +155,26 @@ export function MobileNav({ permissions }: MobileNavProps) {
           }}
         >
           {primaryNav.map((item) => {
-            const isActive = isNavItemActive(pathname, item.href);
+            const isActive = isNavPathActive(pathname, item.href);
             const Icon = item.icon;
+            const badge = badgeForHref(item.href);
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[10px] font-medium",
-                  isActive ? "text-primary" : "text-muted-foreground",
+                  "relative flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[10px] font-medium",
+                  isActive ? "text-slate-950" : "text-muted-foreground",
                 )}
               >
                 <Icon className="h-5 w-5" />
                 <span className="truncate">{item.title}</span>
+                {badge > 0 ? (
+                  <span className="absolute right-2 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold text-slate-950">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -152,14 +184,29 @@ export function MobileNav({ permissions }: MobileNavProps) {
             onClick={() => setMoreOpen((open) => !open)}
             className={cn(
               "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[10px] font-medium",
-              moreOpen || moreActive ? "text-primary" : "text-muted-foreground",
+              moreOpen || moreActive ? "text-slate-950" : "text-muted-foreground",
             )}
           >
             <Menu className="h-5 w-5" />
-            <span>More</span>
+            <span>Lainnya</span>
           </button>
         </div>
       </nav>
     </>
   );
+}
+
+function dedupeMobileNavItems<
+  T extends { title: string; href: string; icon: LucideIcon },
+>(items: T[]) {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    if (seen.has(item.href)) {
+      return false;
+    }
+
+    seen.add(item.href);
+    return true;
+  });
 }

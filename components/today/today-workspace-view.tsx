@@ -1,8 +1,12 @@
-import Link from "next/link";
-
-import { TodayEmptyState, TodaySummaryCards } from "@/components/today/today-summary-cards";
-import { TodayFocusSidebar } from "@/components/today/today-focus-sidebar";
-import { TodayTaskCard } from "@/components/today/today-task-card";
+import {
+  TodayHeroSection,
+  TodayNextBestActionSection,
+} from "@/components/today/today-hero-section";
+import { TodayAiInsightSection } from "@/components/today/today-ai-insight";
+import { TodayActivityTimelineSection } from "@/components/today/today-activity-timeline";
+import { TodayPriorityQueueSection } from "@/components/today/today-priority-queue";
+import { TodayProgressSection } from "@/components/today/today-progress-section";
+import { TodayWorkspaceHealthSection } from "@/components/today/today-workspace-health";
 import type { TodayWorkspaceData } from "@/lib/tasks/types";
 
 type TodayWorkspaceViewProps = {
@@ -11,52 +15,32 @@ type TodayWorkspaceViewProps = {
 
 export function TodayWorkspaceView({ data }: TodayWorkspaceViewProps) {
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <p className="text-sm font-medium text-primary">Today Workspace</p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Good morning, {data.userName}
-        </h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Here&apos;s what needs your attention today.
-          {data.usingDerivedTasks
-            ? " Tasks are derived from your live customer data until saved task records exist."
-            : null}
-        </p>
-      </header>
+    <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
+      <TodayHeroSection
+        userName={data.userName}
+        brief={data.morningBrief}
+        hasNextAction={data.nextBestAction != null}
+      />
 
-      <TodaySummaryCards summary={data.summary} />
+      <TodayNextBestActionSection action={data.nextBestAction} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section id="priority-queue" className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold">Priority Queue</h2>
-              <p className="text-sm text-muted-foreground">
-                Work through the highest-impact customer actions first.
-              </p>
-            </div>
-            <Link
-              href="/inbox"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              Open Communication Workspace
-            </Link>
-          </div>
-
-          {data.tasks.length === 0 ? (
-            <TodayEmptyState />
-          ) : (
-            <div className="space-y-4">
-              {data.tasks.map((task) => (
-                <TodayTaskCard key={task.id} task={task} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <TodayFocusSidebar sections={data.focusSections} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <TodayProgressSection progress={data.progress} />
+        <TodayWorkspaceHealthSection indicators={data.healthIndicators} />
       </div>
+
+      <TodayPriorityQueueSection groups={data.priorityQueue} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <TodayAiInsightSection insight={data.aiInsight} />
+        <TodayActivityTimelineSection items={data.activityTimeline} />
+      </div>
+
+      {data.usingDerivedTasks ? (
+        <p className="text-center text-xs text-slate-400">
+          Task dihitung dari data live — akan tersinkron saat task engine aktif penuh.
+        </p>
+      ) : null}
     </div>
   );
 }

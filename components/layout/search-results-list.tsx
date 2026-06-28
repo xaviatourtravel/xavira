@@ -3,23 +3,78 @@
 import type { RefObject } from "react";
 
 import {
-  UNIVERSAL_SEARCH_CATEGORY_LABELS,
+  getDisplayTitle,
+  type SearchResultsView,
   type UniversalSearchItem,
 } from "@/lib/navigation/universal-search";
 import { cn } from "@/lib/utils";
 
 type SearchResultsListProps = {
-  results: UniversalSearchItem[];
+  view: SearchResultsView;
   selectedIndex: number;
   query: string;
   onSelect: (index: number) => void;
-  onNavigate: (href: string) => void;
-  listRef?: RefObject<HTMLUListElement | null>;
+  onNavigate: (item: UniversalSearchItem) => void;
+  listRef?: RefObject<HTMLDivElement | null>;
   compact?: boolean;
 };
 
+function ResultButton({
+  item,
+  flatIndex,
+  isSelected,
+  compact,
+  onSelect,
+  onNavigate,
+}: {
+  item: UniversalSearchItem;
+  flatIndex: number;
+  isSelected: boolean;
+  compact: boolean;
+  onSelect: (index: number) => void;
+  onNavigate: (item: UniversalSearchItem) => void;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={isSelected}
+      data-selected={isSelected}
+      data-flat-index={flatIndex}
+      onMouseEnter={() => onSelect(flatIndex)}
+      onClick={() => onNavigate(item)}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors",
+        isSelected ? "bg-slate-100/90 text-slate-950" : "text-slate-700 hover:bg-slate-50/90",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+          isSelected ? "bg-white text-slate-700 shadow-sm" : "bg-slate-100/80 text-slate-500",
+        )}
+      >
+        <Icon className="h-4 w-4" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{getDisplayTitle(item)}</span>
+        <span
+          className={cn(
+            "mt-0.5 block truncate text-xs text-slate-500",
+            compact && !isSelected && "hidden",
+          )}
+        >
+          {item.subtitle}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export function SearchResultsList({
-  results,
+  view,
   selectedIndex,
   query,
   onSelect,
@@ -27,56 +82,63 @@ export function SearchResultsList({
   listRef,
   compact = false,
 }: SearchResultsListProps) {
-  if (results.length === 0) {
+  if (!view.isEmptyQuery && view.flatItems.length === 0) {
     return (
-      <div className="px-3 py-8 text-center text-sm text-slate-500">
-        Tidak ada hasil untuk &ldquo;{query}&rdquo;
+      <div className="px-4 py-10 text-center">
+        <p className="text-sm font-medium text-slate-700">
+          Tidak ada hasil yang cocok.
+        </p>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Coba gunakan kata kunci lain.
+        </p>
       </div>
     );
   }
 
+  let flatOffset = 0;
+
   return (
-    <ul
+    <div
       ref={listRef}
-      className={cn("overflow-y-auto p-1.5", compact ? "max-h-[280px]" : "max-h-[360px]")}
+      role="listbox"
+      aria-label="Hasil pencarian"
+      className={cn("overflow-y-auto px-1.5 py-1.5", compact ? "max-h-[320px]" : "max-h-[380px]")}
     >
-      {results.map((item, index) => {
-        const Icon = item.icon;
-        const isSelected = index === selectedIndex;
+      {view.sections.map((section) => {
+        const sectionStart = flatOffset;
+        flatOffset += section.items.length;
 
         return (
-          <li key={item.id}>
-            <button
-              type="button"
-              data-selected={isSelected}
-              onMouseEnter={() => onSelect(index)}
-              onClick={() => onNavigate(item.href)}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-                isSelected ? "bg-slate-100 text-slate-950" : "text-slate-700 hover:bg-slate-50",
-              )}
-            >
-              <Icon
-                className={cn(
-                  "h-4 w-4 shrink-0",
-                  isSelected ? "text-slate-700" : "text-slate-400",
-                )}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{item.title}</span>
-                {!compact ? (
-                  <span className="mt-0.5 block truncate text-xs text-slate-500">
-                    {item.subtitle}
-                  </span>
-                ) : null}
-              </span>
-              <span className="shrink-0 rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                {UNIVERSAL_SEARCH_CATEGORY_LABELS[item.category]}
-              </span>
-            </button>
-          </li>
+          <div key={section.id} className="pb-1">
+            <p className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              {section.label}
+            </p>
+            <ul className="space-y-0.5">
+              {section.items.map((item, index) => {
+                const flatIndex = sectionStart + index;
+                return (
+                  <li key={item.id}>
+                    <ResultButton
+                      item={item}
+                      flatIndex={flatIndex}
+                      isSelected={flatIndex === selectedIndex}
+                      compact={compact}
+                      onSelect={onSelect}
+                      onNavigate={onNavigate}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         );
       })}
-    </ul>
+
+      {view.isEmptyQuery && query.trim() === "" ? (
+        <p className="px-2.5 pb-2 pt-1 text-center text-[11px] text-slate-400">
+          Ketik nama customer, halaman, atau perintah seperti /settings
+        </p>
+      ) : null}
+    </div>
   );
 }

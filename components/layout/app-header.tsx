@@ -1,36 +1,31 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import {
-  Bot,
-  ChevronDown,
-  LogOut,
-  Settings,
-  Sparkles,
-} from "lucide-react";
+import { Bot, Sparkles } from "lucide-react";
 
-import { signOut } from "@/actions/auth";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
+import { ProfileMenu } from "@/components/layout/profile-menu";
 import { QuickCreateMenu } from "@/components/layout/quick-create-menu";
 import { UniversalSearch } from "@/components/layout/universal-search";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/config/site";
 import type { NavAttentionBadges } from "@/config/navigation";
 import type { Profile } from "@/types/app-types";
+import type { WorkspaceSwitcherContext } from "@/lib/workspace/types";
 
 type AppHeaderProps = {
   profile: Profile;
+  email?: string | null;
   attentionBadges: NavAttentionBadges;
-  workspaceName?: string;
+  workspaceContext: WorkspaceSwitcherContext;
 };
 
 export function AppHeader({
   profile,
+  email,
   attentionBadges,
-  workspaceName = siteConfig.name,
+  workspaceContext,
 }: AppHeaderProps) {
-  const [profileOpen, setProfileOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
 
   return (
@@ -55,68 +50,9 @@ export function AppHeader({
             <span className="hidden sm:inline">AI</span>
           </button>
 
-          <button
-            type="button"
-            className="hidden h-9 max-w-[140px] items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 text-sm text-slate-700 hover:bg-slate-50 lg:inline-flex"
-            title="Pengalih workspace"
-          >
-            <span className="truncate">{workspaceName}</span>
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-          </button>
+          <WorkspaceSwitcher context={workspaceContext} />
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setProfileOpen((value) => !value)}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 pl-1.5 pr-2.5 hover:bg-slate-50"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-[10px] font-semibold text-white">
-                {(profile.full_name ?? "U").charAt(0).toUpperCase()}
-              </span>
-              <span className="hidden max-w-[100px] truncate text-sm font-medium text-slate-800 sm:inline">
-                {profile.full_name ?? "Pengguna"}
-              </span>
-              <ChevronDown className="hidden h-3.5 w-3.5 text-slate-400 sm:block" />
-            </button>
-
-            {profileOpen ? (
-              <>
-                <button
-                  type="button"
-                  aria-label="Tutup menu profil"
-                  className="fixed inset-0 z-40"
-                  onClick={() => setProfileOpen(false)}
-                />
-                <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                  <div className="border-b border-slate-100 px-3 py-2.5">
-                    <p className="truncate text-sm font-medium text-slate-900">
-                      {profile.full_name ?? "Pengguna"}
-                    </p>
-                    <p className="text-xs capitalize text-slate-500">{profile.role}</p>
-                  </div>
-                  <div className="p-1.5">
-                    <Link
-                      href="/settings"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      <Settings className="h-4 w-4" />
-                      Pengaturan
-                    </Link>
-                    <form action={signOut}>
-                      <button
-                        type="submit"
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Keluar
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
+          <ProfileMenu profile={profile} email={email} />
         </div>
       </header>
 

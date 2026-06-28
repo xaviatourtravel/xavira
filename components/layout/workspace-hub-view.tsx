@@ -4,6 +4,7 @@ import { AppWorkspaceFrame } from "@/components/layout/app-workspace-frame";
 import { WorkspaceHubCard } from "@/components/layout/workspace-hub-card";
 
 export type WorkspaceHubItem = {
+  id: string;
   title: string;
   description: string;
   href: string;
@@ -28,7 +29,7 @@ export function WorkspaceHubView({ title, subtitle, items }: WorkspaceHubViewPro
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
-          <WorkspaceHubCard key={item.href} {...item} />
+          <WorkspaceHubCard key={item.id ?? item.href} {...item} />
         ))}
       </div>
     </AppWorkspaceFrame>

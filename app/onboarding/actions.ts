@@ -3,18 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { provisionWorkspaceForOwner } from "@/lib/auth/provision-workspace";
 import { mergeOrganizationSettingsForFirstRun } from "@/lib/onboarding/settings";
-import { firstRunWizardSchema, parseInviteEmailInput } from "@/lib/onboarding/validate";
+import { firstRunWizardSchema, createWorkspaceSchema, parseInviteEmailInput } from "@/lib/onboarding/validate";
+import {
+  getOnboardingStateAdmin,
+} from "@/lib/onboarding/get-onboarding-state";
 import {
   generateInviteToken,
   getInviteExpiryDate,
   normalizeInviteEmail,
 } from "@/lib/team/invites";
-import { requireProfile } from "@/lib/auth/session";
+import { requireOrganizationProfile, requireProfile } from "@/lib/auth/session";
 import { auditFromProfile } from "@/lib/audit";
 import { createClient } from "@/utils/supabase/server";
 
 export type CompleteFirstRunState =
+  | { success: true }
+  | { success: false; error: string };
+
+export type CreateWorkspaceState =
   | { success: true }
   | { success: false; error: string };
 
@@ -23,11 +31,103 @@ function getString(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+async function finishOnboardingRedirect(userId: string): Promise<never> {
+  revalidatePath("/", "layout");
+  revalidatePath("/onboarding");
+  revalidatePath("/today");
+  revalidatePath("/dashboard");
+
+  const state = await getOnboardingStateAdmin(userId);
+
+  if (
+    state &&
+    (state.shouldCreateWorkspace || state.shouldRunFirstSetup)
+  ) {
+    redirect("/onboarding");
+  }
+
+  redirect("/today");
+}
+
+export async function createWorkspaceAction(
+  _prev: CreateWorkspaceState | null,
+  formData: FormData,
+): Promise<CreateWorkspaceState> {
+  const { profile, user } = await requireProfile({ allowPending: true });
+
+  const existingState = await getOnboardingStateAdmin(profile.id);
+
+  if (
+    existingState?.hasOrganization &&
+    existingState.organizationOnboardingCompleted
+  ) {
+    redirect("/today");
+  }
+
+  if (profile.organization_id) {
+    return {
+      success: false,
+      error:
+        "Workspace sudah ada. Selesaikan setup yang tersisa atau hubungi dukungan.",
+    };
+  }
+
+  const parsed = createWorkspaceSchema.safeParse({
+    workspaceName: getString(formData, "workspaceName"),
+    industry: getString(formData, "industry"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message ?? "Data workspace tidak valid.",
+    };
+  }
+
+  if (parsed.data.industry !== "travel") {
+    return {
+      success: false,
+      error: "Industri ini belum tersedia. Pilih Travel untuk melanjutkan.",
+    };
+  }
+
+  const provisionResult = await provisionWorkspaceForOwner({
+    userId: profile.id,
+    workspaceName: parsed.data.workspaceName,
+    industry: parsed.data.industry,
+  });
+
+  if (!provisionResult.ok) {
+    return { success: false, error: provisionResult.error };
+  }
+
+  const supabase = await createClient();
+  await auditFromProfile(
+    supabase,
+    {
+      ...profile,
+      organization_id: provisionResult.organizationId,
+      role: "owner",
+    },
+    {
+      action: "workspace_created",
+      entityType: "organization",
+      entityId: provisionResult.organizationId,
+      entityLabel: parsed.data.workspaceName,
+      metadata: {
+        industry: parsed.data.industry,
+      },
+    },
+  );
+
+  return finishOnboardingRedirect(user.id);
+}
+
 export async function completeFirstRunAction(
   _prev: CompleteFirstRunState | null,
   formData: FormData,
 ): Promise<CompleteFirstRunState> {
-  const { profile } = await requireProfile();
+  const { profile, user } = await requireOrganizationProfile();
 
   if (profile.role !== "owner") {
     return {
@@ -77,14 +177,30 @@ export async function completeFirstRunAction(
       completedBy: profile.id,
     },
   );
+  const completedAt = new Date().toISOString();
 
-  const { error: updateError } = await supabase
+  const updatePayload = {
+    name: parsed.data.companyName,
+    industry: parsed.data.industry,
+    onboarding_completed: true,
+    onboarding_completed_at: completedAt,
+    settings: mergedSettings,
+  };
+
+  let { error: updateError } = await supabase
     .from("organizations")
-    .update({
-      name: parsed.data.companyName,
-      settings: mergedSettings,
-    })
+    .update(updatePayload)
     .eq("id", organization.id);
+
+  if (updateError?.message?.toLowerCase().includes("onboarding_completed")) {
+    ({ error: updateError } = await supabase
+      .from("organizations")
+      .update({
+        name: parsed.data.companyName,
+        settings: mergedSettings,
+      })
+      .eq("id", organization.id));
+  }
 
   if (updateError) {
     return {
@@ -126,9 +242,5 @@ export async function completeFirstRunAction(
     },
   });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/onboarding");
-  revalidatePath("/settings/team");
-
-  redirect("/dashboard?welcome=1");
+  return finishOnboardingRedirect(user.id);
 }

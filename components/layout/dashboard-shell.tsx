@@ -7,6 +7,7 @@ import { PermissionProvider } from "@/components/auth/permission-provider";
 import { EMPTY_NAV_ATTENTION_BADGES } from "@/config/navigation";
 import type { NavAttentionBadges } from "@/config/navigation";
 import { getProfilePermissions } from "@/lib/auth/permissions";
+import type { WorkspaceSwitcherContext } from "@/lib/workspace/types";
 import type { Profile } from "@/types/app-types";
 
 function SidebarFallback() {
@@ -16,13 +17,15 @@ function SidebarFallback() {
 export function DashboardShell({
   children,
   profile,
+  email,
   attentionBadges = EMPTY_NAV_ATTENTION_BADGES,
-  workspaceName,
+  workspaceContext,
 }: {
   children: React.ReactNode;
   profile: Profile;
+  email?: string | null;
   attentionBadges?: NavAttentionBadges;
-  workspaceName?: string;
+  workspaceContext: WorkspaceSwitcherContext;
 }) {
   const permissions = getProfilePermissions(profile);
 
@@ -35,8 +38,9 @@ export function DashboardShell({
         <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-[4.5rem] md:pb-0">
           <AppHeader
             profile={profile}
+            email={email}
             attentionBadges={attentionBadges}
-            workspaceName={workspaceName}
+            workspaceContext={workspaceContext}
           />
           <main className="flex-1 overflow-x-hidden bg-slate-50/30 p-3 md:p-6">
             {children}

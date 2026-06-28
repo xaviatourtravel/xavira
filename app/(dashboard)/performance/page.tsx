@@ -9,28 +9,32 @@ export default async function PerformancePage() {
   return (
     <WorkspaceHubView
       title="Performa"
-      subtitle="Lihat performa bisnis, campaign, content, dan insight operasional."
+      subtitle="Lihat performa bisnis, campaign, konten, dan insight operasional dalam satu tempat."
       items={[
         {
+          id: "dashboard",
           title: "Dashboard",
           description: "Metrik bisnis dan KPI utama workspace.",
           href: "/dashboard",
           icon: LayoutDashboard,
         },
         {
+          id: "campaign",
           title: "Campaign",
           description: "Kelola campaign marketing dan iklan.",
           href: "/campaigns",
           icon: Megaphone,
         },
         {
-          title: "Content",
+          id: "konten",
+          title: "Konten",
           description: "Perpustakaan konten dan studio kreatif.",
           href: "/content",
           icon: PenLine,
         },
         {
-          title: "Analytics",
+          id: "analitik",
+          title: "Analitik",
           description: "Analitik channel dan performa konten.",
           href: "/content/instagram-analytics",
           icon: BarChart3,

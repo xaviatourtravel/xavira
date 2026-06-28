@@ -1,6 +1,6 @@
-const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password"] as const;
+const AUTH_ROUTES = ["/login", "/register", "/daftar", "/forgot-password", "/reset-password", "/invite"] as const;
 
-const GUEST_ONLY_ROUTES = ["/login", "/register", "/forgot-password"] as const;
+const GUEST_ONLY_ROUTES = ["/login", "/register", "/daftar", "/forgot-password", "/invite"] as const;
 
 const PUBLIC_ROUTES = [
   "/",
@@ -34,6 +34,13 @@ const PROTECTED_PREFIXES = [
   "/content",
   "/scripts",
   "/notifications",
+  "/profile",
+  "/preferences",
+  "/security",
+  "/help",
+  "/docs",
+  "/support",
+  "/workspace",
   "/settings",
 ] as const;
 

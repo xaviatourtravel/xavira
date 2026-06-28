@@ -15,7 +15,7 @@ export default async function OnboardingLayout({
     redirect(`/login?error=${encodeURIComponent(onboardingError)}`);
   }
 
-  await requireProfile();
+  await requireProfile({ allowPending: true });
 
   return <OnboardingLayoutChrome>{children}</OnboardingLayoutChrome>;
 }

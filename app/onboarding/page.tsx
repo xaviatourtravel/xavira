@@ -1,35 +1,45 @@
 import { redirect } from "next/navigation";
 
+import { FirstRunExperience } from "@/components/onboarding/first-run-experience";
 import { FirstRunWizard } from "@/components/onboarding/first-run-wizard";
-import { shouldShowFirstRunWizard } from "@/lib/onboarding/status";
+import {
+  getOnboardingStateForCurrentUser,
+  resolveOnboardingRedirect,
+} from "@/lib/onboarding/get-onboarding-state";
 import { requireProfile } from "@/lib/auth/session";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export default async function OnboardingPage() {
-  const { profile } = await requireProfile();
-  const supabase = await createClient();
+  const { profile } = await requireProfile({ allowPending: true });
+  const state = await getOnboardingStateForCurrentUser();
 
-  const { data: organization } = await supabase
-    .from("organizations")
-    .select("id, name, settings")
-    .eq("id", profile.organization_id)
-    .maybeSingle();
-
-  if (!organization) {
-    redirect("/login?error=profile_missing");
-  }
-
-  if (!shouldShowFirstRunWizard(profile, organization)) {
-    redirect("/dashboard");
+  if (state) {
+    const destination = resolveOnboardingRedirect("/onboarding", state);
+    if (destination && destination !== "/onboarding") {
+      redirect(destination);
+    }
   }
 
   const ownerName = profile.full_name?.trim() || "there";
 
-  return (
-    <FirstRunWizard
-      defaultCompanyName={organization.name}
-      defaultWorkspaceName={organization.name}
-      ownerName={ownerName}
-    />
-  );
+  if (state?.shouldRunFirstSetup && profile.organization_id) {
+    const admin = createAdminClient();
+    const { data: organization } = await admin
+      .from("organizations")
+      .select("id, name")
+      .eq("id", profile.organization_id)
+      .maybeSingle();
+
+    if (organization) {
+      return (
+        <FirstRunWizard
+          defaultCompanyName={organization.name}
+          defaultWorkspaceName={organization.name}
+          ownerName={ownerName}
+        />
+      );
+    }
+  }
+
+  return <FirstRunExperience ownerName={ownerName} />;
 }

@@ -2,35 +2,27 @@
 
 import { redirect } from "next/navigation";
 
-import {
-  getBetaJoinConfigError,
-  isBetaJoinModeActive,
-  logBetaJoinOnboarding,
-  resolveBetaJoinState,
-} from "@/lib/auth/beta-onboarding";
+import { getPostAuthRedirectPath } from "@/lib/auth/post-auth-redirect";
 import type { AuthFormState } from "@/lib/auth/types";
-import { getAuthRedirectUrl, slugifyOrganizationName } from "@/lib/auth/utils";
+import { getAuthRedirectUrl } from "@/lib/auth/utils";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import {
+  accountRegisterSchema,
   betaRegisterSchema,
   forgotPasswordSchema,
+  inviteJoinSchema,
   loginSchema,
-  registerSchema,
   resetPasswordSchema,
 } from "@/lib/validations/auth";
-import { createPendingFirstRunSettings } from "@/lib/onboarding/settings";
 import {
   acceptOrganizationInvite,
   getOrganizationInviteByToken,
   getInviteValidationError,
 } from "@/lib/team/invites";
-import type { Database, TablesInsert } from "@/types/database";
+import type { TablesInsert } from "@/types/database";
 
-type OrganizationInsert = TablesInsert<"organizations">;
 type ProfileInsert = TablesInsert<"profiles">;
-type SubscriptionInsert = TablesInsert<"subscriptions">;
-type BusinessType = Database["public"]["Enums"]["business_type"];
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -38,8 +30,6 @@ type EnsureProfileInput = {
   userId: string;
   fullName: string;
   email: string;
-  organizationName: string;
-  businessType: BusinessType;
   inviteToken?: string;
 };
 
@@ -55,6 +45,10 @@ function getFormString(formData: FormData, key: string): string {
 
 function getEmailLocalPart(email: string): string {
   return email.split("@")[0]?.trim() || "User";
+}
+
+async function getPostAuthRedirectPathForLogin(): Promise<string> {
+  return getPostAuthRedirectPath();
 }
 
 export async function login(
@@ -85,117 +79,33 @@ export async function login(
     return { success: false, error: onboardingError };
   }
 
-  const redirectTo = getFormString(formData, "redirectTo") || "/dashboard";
+  const redirectTo =
+    getFormString(formData, "redirectTo") ||
+    (await getPostAuthRedirectPathForLogin());
   redirect(redirectTo);
 }
 
-export async function register(
+export async function registerWorkspace(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const inviteToken = getFormString(formData, "inviteToken");
-
-  if (inviteToken) {
-    const parsed = betaRegisterSchema.safeParse({
-      fullName: getFormString(formData, "fullName"),
-      email: getFormString(formData, "email"),
-      password: getFormString(formData, "password"),
-      confirmPassword: getFormString(formData, "confirmPassword"),
-    });
-
-    if (!parsed.success) {
-      return {
-        success: false,
-        error: parsed.error.errors[0]?.message ?? "Data tidak valid",
-      };
-    }
-
-    const invite = await getOrganizationInviteByToken(inviteToken);
-    const inviteValidationError = getInviteValidationError(
-      invite,
-      parsed.data.email,
-    );
-
-    if (inviteValidationError) {
-      return { success: false, error: inviteValidationError };
-    }
-
-    const signUpResult = await signUpWithOnboarding({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      fullName: parsed.data.fullName,
-      inviteToken,
-    });
-
-    if (!signUpResult.ok) {
-      return { success: false, error: signUpResult.error };
-    }
-
-    if (signUpResult.emailConfirmationRequired) {
-      return {
-        success: true,
-        message:
-          "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk bergabung ke tim.",
-      };
-    }
-
-    redirect("/dashboard");
-  }
-
-  const betaJoinMode = isBetaJoinModeActive();
-
-  if (betaJoinMode) {
-    const parsed = betaRegisterSchema.safeParse({
-      fullName: getFormString(formData, "fullName"),
-      email: getFormString(formData, "email"),
-      password: getFormString(formData, "password"),
-      confirmPassword: getFormString(formData, "confirmPassword"),
-    });
-
-    if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message ?? "Data tidak valid" };
-    }
-
-    const signUpResult = await signUpWithOnboarding({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      fullName: parsed.data.fullName,
-    });
-
-    if (!signUpResult.ok) {
-      return { success: false, error: signUpResult.error };
-    }
-
-    if (signUpResult.emailConfirmationRequired) {
-      return {
-        success: true,
-        message:
-          "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk menyelesaikan setup.",
-      };
-    }
-
-    redirect("/dashboard");
-  }
-
-  const parsed = registerSchema.safeParse({
+  const parsed = accountRegisterSchema.safeParse({
     fullName: getFormString(formData, "fullName"),
     email: getFormString(formData, "email"),
     password: getFormString(formData, "password"),
-    confirmPassword: getFormString(formData, "confirmPassword"),
-    organizationName: getFormString(formData, "organizationName"),
-    businessType: getFormString(formData, "businessType") || "both",
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0]?.message ?? "Data tidak valid" };
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message ?? "Data tidak valid",
+    };
   }
 
   const signUpResult = await signUpWithOnboarding({
     email: parsed.data.email,
     password: parsed.data.password,
     fullName: parsed.data.fullName,
-    organizationName: parsed.data.organizationName,
-    businessType: parsed.data.businessType,
   });
 
   if (!signUpResult.ok) {
@@ -206,26 +116,126 @@ export async function register(
     return {
       success: true,
       message:
-        "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk menyelesaikan setup.",
+        "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk melanjutkan setup workspace.",
     };
   }
 
-  redirect("/dashboard");
+  redirect("/onboarding");
+}
+
+export async function joinWorkspaceViaInvite(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const inviteToken = getFormString(formData, "inviteToken");
+
+  const parsed = inviteJoinSchema.safeParse({
+    fullName: getFormString(formData, "fullName"),
+    password: getFormString(formData, "password"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message ?? "Data tidak valid",
+    };
+  }
+
+  if (!inviteToken) {
+    return { success: false, error: "Token undangan tidak valid." };
+  }
+
+  const invite = await getOrganizationInviteByToken(inviteToken);
+  const inviteValidationError = getInviteValidationError(invite);
+
+  if (inviteValidationError || !invite) {
+    return { success: false, error: inviteValidationError ?? "Undangan tidak valid." };
+  }
+
+  const signUpResult = await signUpWithOnboarding({
+    email: invite.email,
+    password: parsed.data.password,
+    fullName: parsed.data.fullName,
+    inviteToken,
+  });
+
+  if (!signUpResult.ok) {
+    return { success: false, error: signUpResult.error };
+  }
+
+  if (signUpResult.emailConfirmationRequired) {
+    return {
+      success: true,
+      message:
+        "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk bergabung ke workspace.",
+    };
+  }
+
+  redirect(await getPostAuthRedirectPathForLogin());
+}
+
+/** @deprecated Use registerWorkspace for new workspace signup. */
+export async function register(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const inviteToken = getFormString(formData, "inviteToken");
+
+  const parsed = betaRegisterSchema.safeParse({
+    fullName: getFormString(formData, "fullName"),
+    email: getFormString(formData, "email"),
+    password: getFormString(formData, "password"),
+    confirmPassword: getFormString(formData, "confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message ?? "Data tidak valid",
+    };
+  }
+
+  if (inviteToken) {
+    const invite = await getOrganizationInviteByToken(inviteToken);
+    const inviteValidationError = getInviteValidationError(
+      invite,
+      parsed.data.email,
+    );
+
+    if (inviteValidationError) {
+      return { success: false, error: inviteValidationError };
+    }
+  }
+
+  const signUpResult = await signUpWithOnboarding({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    fullName: parsed.data.fullName,
+    inviteToken: inviteToken || undefined,
+  });
+
+  if (!signUpResult.ok) {
+    return { success: false, error: signUpResult.error };
+  }
+
+  if (signUpResult.emailConfirmationRequired) {
+    return {
+      success: true,
+      message: inviteToken
+        ? "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk bergabung ke tim."
+        : "Akun berhasil dibuat. Cek email Anda untuk konfirmasi, lalu login untuk melanjutkan setup workspace.",
+    };
+  }
+
+  redirect(await getPostAuthRedirectPathForLogin());
 }
 
 export async function signUpWithOnboarding(input: {
   email: string;
   password: string;
   fullName: string;
-  organizationName?: string;
-  businessType?: BusinessType;
   inviteToken?: string;
 }): Promise<SignUpWithOnboardingResult> {
-  const betaJoinMode = isBetaJoinModeActive() && !input.inviteToken;
-  logBetaJoinOnboarding("signUpWithOnboarding");
-  const organizationName =
-    input.organizationName ?? `${input.fullName} Travel`;
-
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
@@ -233,11 +243,7 @@ export async function signUpWithOnboarding(input: {
     options: {
       data: {
         full_name: input.fullName,
-        ...(input.inviteToken
-          ? { invite_token: input.inviteToken }
-          : betaJoinMode
-            ? {}
-            : { organization_name: organizationName }),
+        ...(input.inviteToken ? { invite_token: input.inviteToken } : {}),
       },
     },
   });
@@ -259,8 +265,6 @@ export async function signUpWithOnboarding(input: {
     userId: data.user.id,
     fullName: input.fullName,
     email: input.email,
-    organizationName,
-    businessType: input.businessType ?? "both",
     inviteToken: input.inviteToken,
   });
 
@@ -271,77 +275,12 @@ export async function signUpWithOnboarding(input: {
   return { ok: true, emailConfirmationRequired: false };
 }
 
-async function joinBetaOrganization(
+async function createPendingProfileForUser(
   supabase: AdminClient,
   input: { userId: string; fullName: string },
-  organizationId: string,
 ): Promise<string | null> {
-  const { data: organization, error: organizationError } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("id", organizationId)
-    .maybeSingle();
-
-  if (organizationError) {
-    return organizationError.message;
-  }
-
-  if (!organization) {
-    return "Organisasi beta tidak ditemukan. Hubungi admin.";
-  }
-
   const profilePayload: ProfileInsert = {
     id: input.userId,
-    organization_id: organizationId,
-    full_name: input.fullName,
-    role: "agent",
-  };
-
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .insert(profilePayload);
-
-  if (profileError) {
-    if (profileError.code === "23505") {
-      return null;
-    }
-
-    return profileError.message;
-  }
-
-  return null;
-}
-
-async function createNewOrganizationForUser(
-  supabase: AdminClient,
-  input: EnsureProfileInput,
-): Promise<string | null> {
-  const slug = slugifyOrganizationName(input.organizationName);
-  const trialEnds = new Date();
-  trialEnds.setDate(trialEnds.getDate() + 14);
-
-  const organizationPayload: OrganizationInsert = {
-    name: input.organizationName,
-    slug,
-    business_type: input.businessType,
-    settings: {
-      firstRun: createPendingFirstRunSettings(),
-    },
-  };
-
-  const { data: organization, error: organizationError } = await supabase
-    .from("organizations")
-    .insert(organizationPayload)
-    .select("id")
-    .single();
-
-  if (organizationError || !organization) {
-    return organizationError?.message ?? "Gagal membuat organisasi";
-  }
-
-  const profilePayload: ProfileInsert = {
-    id: input.userId,
-    organization_id: organization.id,
     full_name: input.fullName,
     role: "owner",
   };
@@ -358,23 +297,6 @@ async function createNewOrganizationForUser(
     return profileError.message;
   }
 
-  const subscriptionPayload: SubscriptionInsert = {
-    organization_id: organization.id,
-    plan: "starter",
-    status: "trialing",
-    price_idr: 500000,
-    current_period_start: new Date().toISOString(),
-    current_period_end: trialEnds.toISOString(),
-  };
-
-  const { error: subscriptionError } = await supabase
-    .from("subscriptions")
-    .insert(subscriptionPayload);
-
-  if (subscriptionError) {
-    return subscriptionError.message;
-  }
-
   return null;
 }
 
@@ -382,16 +304,9 @@ async function ensureUserProfile(
   supabase: AdminClient,
   input: EnsureProfileInput,
 ): Promise<string | null> {
-  logBetaJoinOnboarding("ensureUserProfile");
-
-  const betaConfigError = getBetaJoinConfigError();
-  if (betaConfigError) {
-    return betaConfigError;
-  }
-
   const { data: existingProfile, error: existingProfileError } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, organization_id")
     .eq("id", input.userId)
     .maybeSingle();
 
@@ -412,20 +327,10 @@ async function ensureUserProfile(
     });
   }
 
-  const betaState = resolveBetaJoinState();
-
-  if (betaState.mode === "active") {
-    return joinBetaOrganization(
-      supabase,
-      {
-        userId: input.userId,
-        fullName: input.fullName,
-      },
-      betaState.organizationId,
-    );
-  }
-
-  return createNewOrganizationForUser(supabase, input);
+  return createPendingProfileForUser(supabase, {
+    userId: input.userId,
+    fullName: input.fullName,
+  });
 }
 
 export async function forgotPassword(
@@ -488,7 +393,7 @@ export async function resetPassword(
     return { success: false, error: error.message };
   }
 
-  redirect("/dashboard");
+  redirect(await getPostAuthRedirectPathForLogin());
 }
 
 export async function signOut() {
@@ -498,8 +403,6 @@ export async function signOut() {
 }
 
 export async function completeOnboardingIfNeeded(): Promise<string | null> {
-  logBetaJoinOnboarding("completeOnboardingIfNeeded");
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -511,7 +414,7 @@ export async function completeOnboardingIfNeeded(): Promise<string | null> {
 
   const { data: existingProfile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, organization_id")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -521,12 +424,10 @@ export async function completeOnboardingIfNeeded(): Promise<string | null> {
 
   const metadata = user.user_metadata as {
     full_name?: string;
-    organization_name?: string;
     invite_token?: string;
   };
 
   const fullName = metadata.full_name ?? getEmailLocalPart(user.email ?? "User");
-  const organizationName = metadata.organization_name ?? `${fullName} Travel`;
   const inviteToken = metadata.invite_token?.trim() || undefined;
 
   const admin = createAdminClient();
@@ -535,8 +436,6 @@ export async function completeOnboardingIfNeeded(): Promise<string | null> {
     userId: user.id,
     fullName,
     email: user.email ?? "",
-    organizationName,
-    businessType: "both",
     inviteToken,
   });
 }

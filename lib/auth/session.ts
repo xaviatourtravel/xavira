@@ -33,7 +33,7 @@ export async function getProfile(): Promise<Profile | null> {
     .eq("id", user.id)
     .maybeSingle();
 
-  return profile;
+  return (profile as Profile | null) ?? null;
 }
 
 export async function requireAuth() {
@@ -46,13 +46,26 @@ export async function requireAuth() {
   return user;
 }
 
-export async function requireProfile() {
+type RequireProfileOptions = {
+  allowPending?: boolean;
+};
+
+export async function requireProfile(options: RequireProfileOptions = {}) {
   const user = await requireAuth();
   const profile = await getProfile();
 
   if (!profile) {
-    redirect("/login?error=profile_missing");
+    redirect("/onboarding");
   }
 
+  if (!options.allowPending && !profile.organization_id) {
+    redirect("/onboarding");
+  }
+
+  return { user, profile };
+}
+
+export async function requireOrganizationProfile() {
+  const { user, profile } = await requireProfile();
   return { user, profile };
 }

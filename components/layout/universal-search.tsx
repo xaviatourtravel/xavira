@@ -7,26 +7,44 @@ import { Search } from "lucide-react";
 
 import { SearchResultsList } from "@/components/layout/search-results-list";
 import { Input } from "@/components/ui/input";
-import { filterUniversalSearchItems } from "@/lib/navigation/universal-search";
+import {
+  DEFAULT_RECENT_SEARCHES,
+  pushRecentSearch,
+  readRecentSearches,
+  type RecentSearchEntry,
+} from "@/lib/navigation/recent-searches.client";
+import {
+  buildUniversalSearchResults,
+  getDisplayTitle,
+  getNextSectionStartIndex,
+  type UniversalSearchItem,
+} from "@/lib/navigation/universal-search";
 import { cn } from "@/lib/utils";
 
 type SearchMode = "dropdown" | "palette" | null;
 
-const DROPDOWN_MAX_WIDTH = 520;
+const DROPDOWN_MAX_WIDTH = 540;
 
 export function UniversalSearch() {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<SearchMode>(null);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>(
+    DEFAULT_RECENT_SEARCHES,
+  );
   const [dropdownStyle, setDropdownStyle] = useState({ top: 0, left: 0, width: 280 });
 
-  const results = useMemo(() => filterUniversalSearchItems(query), [query]);
+  const resultsView = useMemo(
+    () => buildUniversalSearchResults(query, recentSearches),
+    [query, recentSearches],
+  );
+  const flatResults = resultsView.flatItems;
   const open = mode !== null;
 
   const close = useCallback(() => {
@@ -34,9 +52,15 @@ export function UniversalSearch() {
   }, []);
 
   const navigate = useCallback(
-    (href: string) => {
+    (item: UniversalSearchItem) => {
+      pushRecentSearch({
+        id: item.id,
+        label: getDisplayTitle(item),
+        href: item.href,
+      });
+      setRecentSearches(readRecentSearches());
       close();
-      router.push(href);
+      router.push(item.href);
     },
     [close, router],
   );
@@ -55,6 +79,7 @@ export function UniversalSearch() {
 
   useEffect(() => {
     setMounted(true);
+    setRecentSearches(readRecentSearches());
   }, []);
 
   useEffect(() => {
@@ -133,32 +158,38 @@ export function UniversalSearch() {
         return;
       }
 
-      if (results.length === 0) {
+      if (event.key === "Tab" && flatResults.length > 0) {
+        event.preventDefault();
+        setSelectedIndex((index) => getNextSectionStartIndex(resultsView, index));
+        return;
+      }
+
+      if (flatResults.length === 0) {
         return;
       }
 
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSelectedIndex((index) => (index + 1) % results.length);
+        setSelectedIndex((index) => (index + 1) % flatResults.length);
       }
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setSelectedIndex((index) => (index - 1 + results.length) % results.length);
+        setSelectedIndex((index) => (index - 1 + flatResults.length) % flatResults.length);
       }
 
       if (event.key === "Enter") {
         event.preventDefault();
-        const item = results[selectedIndex];
+        const item = flatResults[selectedIndex];
         if (item) {
-          navigate(item.href);
+          navigate(item);
         }
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [close, navigate, open, results, selectedIndex]);
+  }, [close, flatResults, navigate, open, resultsView, selectedIndex]);
 
   useEffect(() => {
     if (!open || !listRef.current) {
@@ -176,7 +207,10 @@ export function UniversalSearch() {
 
     function onPointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
-        close();
+        const target = event.target as HTMLElement;
+        if (!target.closest('[data-universal-search-panel="true"]')) {
+          close();
+        }
       }
     }
 
@@ -184,36 +218,39 @@ export function UniversalSearch() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [close, mode]);
 
+  const panelProps = {
+    listRef,
+    view: resultsView,
+    selectedIndex,
+    query,
+    onSelect: setSelectedIndex,
+    onNavigate: navigate,
+  };
+
   const dropdownPanel =
     mode === "dropdown" && mounted ? (
       <div
-        role="listbox"
-        aria-label="Hasil pencarian"
-        className="fixed z-50 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-lg ring-1 ring-slate-200/60"
+        data-universal-search-panel="true"
+        className="fixed z-50 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/70"
         style={{
           top: dropdownStyle.top,
           left: dropdownStyle.left,
           width: dropdownStyle.width,
         }}
       >
-        <div className="border-b border-slate-100 px-3 py-2">
-          <Input
-            ref={inputRef}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari apa saja..."
-            className="h-9 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
-          />
+        <div className="border-b border-slate-100/80 px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 shrink-0 text-slate-400" />
+            <Input
+              ref={inputRef}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cari customer, halaman, atau perintah..."
+              className="h-9 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+            />
+          </div>
         </div>
-        <SearchResultsList
-          listRef={listRef}
-          results={results}
-          selectedIndex={selectedIndex}
-          query={query}
-          onSelect={setSelectedIndex}
-          onNavigate={navigate}
-          compact
-        />
+        <SearchResultsList {...panelProps} compact />
       </div>
     ) : null;
 
@@ -223,7 +260,7 @@ export function UniversalSearch() {
         <button
           type="button"
           aria-label="Tutup pencarian"
-          className="fixed inset-0 z-40 bg-slate-950/[0.06] md:bg-slate-950/[0.04]"
+          className="fixed inset-0 z-40 bg-slate-950/[0.05] backdrop-blur-[1px]"
           onClick={close}
         />
 
@@ -231,58 +268,52 @@ export function UniversalSearch() {
           role="dialog"
           aria-modal="true"
           aria-label="Command palette"
+          data-universal-search-panel="true"
           className={cn(
             "fixed z-50 flex flex-col overflow-hidden bg-white shadow-2xl",
             "inset-0 pt-[env(safe-area-inset-top)]",
-            "md:inset-auto md:top-24 md:max-h-[min(480px,calc(100vh-104px))] md:w-[min(640px,calc(100vw-17.5rem-2rem))] md:rounded-xl md:ring-1 md:ring-slate-200/80",
-            "md:left-[calc(17.5rem+max(1rem,(100vw-17.5rem-min(640px,100vw-17.5rem-2rem))/2))]",
+            "md:inset-auto md:top-[5.5rem] md:max-h-[min(520px,calc(100vh-6rem))] md:w-[min(680px,calc(100vw-17.5rem-2rem))] md:rounded-2xl md:ring-1 md:ring-slate-200/70",
+            "md:left-[calc(17.5rem+max(1rem,(100vw-17.5rem-min(680px,100vw-17.5rem-2rem))/2))]",
           )}
         >
-          <div className="border-b border-slate-100 px-4 py-3 md:px-3">
-            <div className="flex items-center gap-2">
+          <div className="border-b border-slate-100/80 px-4 py-3.5 md:px-4">
+            <div className="flex items-center gap-2.5">
               <Search className="h-4 w-4 shrink-0 text-slate-400" />
               <Input
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari customer, booking, task, chat, knowledge..."
-                className="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                placeholder="Cari customer, chat, invoice, halaman, atau /perintah..."
+                className="h-11 border-0 bg-transparent px-0 text-[15px] shadow-none focus-visible:ring-0"
               />
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-slate-500">
-              Navigasi cepat workspace. AI dan Knowledge tersedia sebagai layer
-              kontekstual, bukan menu utama.
-            </p>
           </div>
 
-          <SearchResultsList
-            listRef={listRef}
-            results={results}
-            selectedIndex={selectedIndex}
-            query={query}
-            onSelect={setSelectedIndex}
-            onNavigate={navigate}
-          />
+          <SearchResultsList {...panelProps} />
 
-          <div className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400 md:flex md:items-center md:justify-between">
-            <span className="hidden md:inline">↑↓ navigasi · Enter buka · Esc tutup</span>
-            <span className="md:ml-auto">Ctrl K</span>
+          <div className="border-t border-slate-100/80 px-3 py-2 text-[11px] text-slate-400 md:flex md:items-center md:justify-between">
+            <span className="hidden md:inline">
+              ↑↓ navigasi · Tab kategori · Enter buka · Esc tutup
+            </span>
+            <span className="md:ml-auto rounded-md bg-slate-50 px-1.5 py-0.5 font-medium text-slate-500">
+              Ctrl K
+            </span>
           </div>
         </div>
       </>
     ) : null;
 
   return (
-    <div ref={rootRef} className="relative min-w-0 flex-1 md:max-w-[280px] lg:max-w-[320px]">
+    <div ref={rootRef} className="relative min-w-0 flex-1 md:max-w-[280px] lg:max-w-[340px]">
       <button
         ref={triggerRef}
         type="button"
         onClick={openDropdown}
-        className="hidden h-9 w-full min-w-[220px] items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 text-sm text-slate-500 transition-colors hover:bg-slate-100 md:flex"
+        className="hidden h-9 w-full min-w-[220px] items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 text-sm text-slate-500 transition-colors hover:bg-slate-100/80 md:flex"
       >
-        <Search className="h-4 w-4 shrink-0" />
+        <Search className="h-4 w-4 shrink-0 text-slate-400" />
         <span className="flex-1 text-left">Cari...</span>
-        <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+        <kbd className="rounded-md border border-slate-200/80 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
           Ctrl K
         </kbd>
       </button>
@@ -291,7 +322,7 @@ export function UniversalSearch() {
         type="button"
         aria-label="Buka pencarian"
         onClick={openPalette}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 md:hidden"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-50 md:hidden"
       >
         <Search className="h-4 w-4" />
       </button>

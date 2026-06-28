@@ -1977,7 +1977,10 @@ export type Database = {
           city: string | null
           created_at: string
           id: string
+          industry: string | null
           name: string
+          onboarding_completed: boolean
+          onboarding_completed_at: string | null
           phone: string | null
           settings: Json
           slug: string
@@ -1989,7 +1992,10 @@ export type Database = {
           city?: string | null
           created_at?: string
           id?: string
+          industry?: string | null
           name: string
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
           phone?: string | null
           settings?: Json
           slug: string
@@ -2001,7 +2007,10 @@ export type Database = {
           city?: string | null
           created_at?: string
           id?: string
+          industry?: string | null
           name?: string
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
           phone?: string | null
           settings?: Json
           slug?: string
@@ -2075,7 +2084,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
-          organization_id: string
+          organization_id?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }

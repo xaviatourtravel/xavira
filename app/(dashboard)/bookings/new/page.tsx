@@ -1,4 +1,8 @@
-import { ComingSoonCreateView } from "@/components/layout/coming-soon-create-view";
+import { ComingSoonWorkspace } from "@/components/layout/coming-soon-workspace";
+import {
+  COMING_SOON_PRESETS,
+  resolveComingSoonPreset,
+} from "@/lib/navigation/coming-soon-presets";
 import { requireProfile } from "@/lib/auth/session";
 
 type NewBookingPageProps = {
@@ -11,13 +15,13 @@ export default async function NewBookingPage({ searchParams }: NewBookingPagePro
   await requireProfile();
   const params = await searchParams;
   const backHref = params.lead_id ? `/leads/${params.lead_id}` : "/bookings";
+  const backLabel = params.lead_id ? "Kembali ke customer" : "Kembali ke Booking";
 
-  return (
-    <ComingSoonCreateView
-      title="Booking Baru"
-      description="Buat booking customer dari workspace Desklabs. Form ini akan terhubung ke profil customer dan alur pembayaran."
-      backHref={backHref}
-      backLabel={params.lead_id ? "Kembali ke customer" : "Kembali ke booking"}
-    />
-  );
+  const preset = resolveComingSoonPreset({
+    ...COMING_SOON_PRESETS.newBooking,
+    primaryActionHref: backHref,
+    primaryActionLabel: backLabel,
+  });
+
+  return <ComingSoonWorkspace {...preset} />;
 }

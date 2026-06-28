@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SOLUTION_INDUSTRIES } from "@/lib/onboarding/types";
+
 export const loginSchema = z.object({
   email: z.string().email("Email tidak valid"),
   password: z.string().min(1, "Password wajib diisi"),
@@ -24,6 +26,29 @@ export const registerSchema = z
     businessType: z.enum(["umroh", "halal_tour", "both"]).default("both"),
   })
   .refine((data) => data.password === data.confirmPassword, registerPasswordRefinement);
+
+export const accountRegisterSchema = z.object({
+  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
+  email: z.string().email("Email tidak valid"),
+  password: z.string().min(8, "Password minimal 8 karakter"),
+});
+
+export const workspaceRegisterSchema = z.object({
+  fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
+  email: z.string().email("Email tidak valid"),
+  password: z.string().min(8, "Password minimal 8 karakter"),
+  workspaceName: z
+    .string()
+    .trim()
+    .min(2, "Nama workspace minimal 2 karakter")
+    .max(120),
+  industry: z.enum(SOLUTION_INDUSTRIES),
+});
+
+export const inviteJoinSchema = z.object({
+  fullName: z.string().min(2, "Nama minimal 2 karakter"),
+  password: z.string().min(8, "Password minimal 8 karakter"),
+});
 
 export const betaRegisterSchema = z
   .object({

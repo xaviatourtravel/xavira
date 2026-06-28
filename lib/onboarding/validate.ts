@@ -9,6 +9,15 @@ const emailListSchema = z
   .array(z.string().email())
   .max(5, "Maksimal 5 undangan per setup");
 
+export const createWorkspaceSchema = z.object({
+  workspaceName: z
+    .string()
+    .trim()
+    .min(2, "Nama workspace minimal 2 karakter")
+    .max(120),
+  industry: z.enum(SOLUTION_INDUSTRIES),
+});
+
 export const firstRunWizardSchema = z.object({
   industry: z.enum(SOLUTION_INDUSTRIES),
   companyName: z

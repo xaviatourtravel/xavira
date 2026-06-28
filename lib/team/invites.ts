@@ -74,7 +74,7 @@ export function isInvitePending(invite: Pick<OrganizationInviteRow, "status">) {
 }
 
 export function buildInviteRegisterPath(token: string) {
-  return `/register?invite=${encodeURIComponent(token)}`;
+  return `/invite/${encodeURIComponent(token)}`;
 }
 
 export function buildInviteRegisterUrl(token: string) {

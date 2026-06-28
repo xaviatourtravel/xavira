@@ -1,6 +1,10 @@
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * @deprecated BETA_JOIN_ORGANIZATION_ID is no longer used during signup.
+ * New users create their own workspace through /onboarding.
+ */
 export type BetaJoinState =
   | { mode: "inactive" }
   | { mode: "active"; organizationId: string }

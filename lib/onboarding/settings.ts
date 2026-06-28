@@ -102,6 +102,29 @@ export function createPendingFirstRunSettings(): FirstRunSettings {
   };
 }
 
+export function createInitialOrganizationSettings(
+  industry: SolutionIndustry,
+  workspaceName: string,
+  completedBy: string,
+) {
+  const firstRun: FirstRunSettings = {
+    pending: false,
+    completedAt: new Date().toISOString(),
+    completedBy,
+    industry,
+    workspaceName,
+    companySize: null,
+    invitedEmails: [],
+  };
+
+  const product = buildOrganizationProductSettings(industry);
+
+  return {
+    firstRun,
+    product,
+  };
+}
+
 export function mergeOrganizationSettingsForFirstRun(
   currentSettings: unknown,
   input: {

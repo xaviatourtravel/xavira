@@ -4,6 +4,11 @@ const GUEST_ONLY_ROUTES = ["/login", "/register", "/forgot-password"] as const;
 
 const PUBLIC_ROUTES = [
   "/",
+  "/platform",
+  "/solutions",
+  "/demo",
+  "/contact",
+  "/company",
   "/privacy-policy",
   "/data-deletion",
   "/terms",
@@ -11,6 +16,7 @@ const PUBLIC_ROUTES = [
 ] as const;
 
 const PROTECTED_PREFIXES = [
+  "/onboarding",
   "/today",
   "/dashboard",
   "/leads",

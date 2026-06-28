@@ -748,6 +748,66 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          lead_id: string | null
+          message: string
+          metadata_json: Json
+          organization_id: string | null
+          status: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          lead_id?: string | null
+          message: string
+          metadata_json?: Json
+          organization_id?: string | null
+          status?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          lead_id?: string | null
+          message?: string
+          metadata_json?: Json
+          organization_id?: string | null
+          status?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_notes: {
         Row: {
           conversation_id: string
@@ -875,6 +935,75 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_requests: {
+        Row: {
+          company_name: string
+          company_size: string | null
+          created_at: string
+          full_name: string
+          id: string
+          industry: string
+          lead_id: string | null
+          main_challenge: string | null
+          message: string | null
+          metadata_json: Json
+          organization_id: string | null
+          phone: string
+          status: string
+          updated_at: string
+          work_email: string
+        }
+        Insert: {
+          company_name: string
+          company_size?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          industry: string
+          lead_id?: string | null
+          main_challenge?: string | null
+          message?: string | null
+          metadata_json?: Json
+          organization_id?: string | null
+          phone: string
+          status?: string
+          updated_at?: string
+          work_email: string
+        }
+        Update: {
+          company_name?: string
+          company_size?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          industry?: string
+          lead_id?: string | null
+          main_challenge?: string | null
+          message?: string | null
+          metadata_json?: Json
+          organization_id?: string | null
+          phone?: string
+          status?: string
+          updated_at?: string
+          work_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demo_requests_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

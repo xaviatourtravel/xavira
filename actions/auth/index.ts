@@ -19,12 +19,13 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from "@/lib/validations/auth";
-import type { Database, TablesInsert } from "@/types/database";
+import { createPendingFirstRunSettings } from "@/lib/onboarding/settings";
 import {
   acceptOrganizationInvite,
   getOrganizationInviteByToken,
   getInviteValidationError,
 } from "@/lib/team/invites";
+import type { Database, TablesInsert } from "@/types/database";
 
 type OrganizationInsert = TablesInsert<"organizations">;
 type ProfileInsert = TablesInsert<"profiles">;
@@ -323,6 +324,9 @@ async function createNewOrganizationForUser(
     name: input.organizationName,
     slug,
     business_type: input.businessType,
+    settings: {
+      firstRun: createPendingFirstRunSettings(),
+    },
   };
 
   const { data: organization, error: organizationError } = await supabase

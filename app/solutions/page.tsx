@@ -4,11 +4,11 @@ import { SolutionsPageView } from "@/components/marketing/solutions/solutions-pa
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Desklabs Solutions — Platform untuk berbagai industri",
+  title: "Desklabs Solutions | Platform untuk berbagai industri",
   description:
     "Desklabs membantu berbagai industri mengelola perjalanan customer dalam satu platform yang didukung AI.",
   openGraph: {
-    title: "Desklabs Solutions — Platform untuk berbagai industri",
+    title: "Desklabs Solutions | Platform untuk berbagai industri",
     description:
       "Desklabs membantu berbagai industri mengelola perjalanan customer dalam satu platform yang didukung AI.",
     url: `${siteConfig.url}/solutions`,

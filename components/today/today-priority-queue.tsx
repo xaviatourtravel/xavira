@@ -34,7 +34,7 @@ export function TodayPriorityQueueSection({ groups }: TodayPriorityQueueProps) {
     <section id="priority-queue" className="scroll-mt-24 space-y-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          Priority Queue
+          Antrian Prioritas
         </p>
         <h2 className="mt-1 text-lg font-semibold text-slate-950">
           Antrian kerja hari ini

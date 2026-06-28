@@ -43,7 +43,7 @@ export function getTaskReason(task: WorkspaceTask): string {
 
   switch (task.taskType) {
     case "reply_conversation":
-      return "Customer menunggu balasan — respons cepat meningkatkan kepercayaan.";
+      return "Customer menunggu balasan. Respons cepat meningkatkan kepercayaan.";
     case "follow_up_customer":
       return "Follow up terjadwal perlu diselesaikan agar deal tetap bergerak.";
     case "confirm_payment":
@@ -51,7 +51,7 @@ export function getTaskReason(task: WorkspaceTask): string {
     case "send_payment_reminder":
       return "Outstanding payment perlu ditindaklanjuti.";
     case "request_passport":
-      return "Data peserta belum lengkap — berisiko menunda keberangkatan.";
+      return "Data peserta belum lengkap. Berisiko menunda keberangkatan.";
     case "complete_participant_data":
       return "Detail peserta perlu dilengkapi sebelum departure.";
     default:
@@ -150,7 +150,7 @@ export function buildMorningBrief(input: {
   const topTask = tasks[0];
   const focus =
     topTask?.customerName != null
-      ? `Mulai dari ${topTask.customerName} — ${topTask.title.toLowerCase()}.`
+      ? `Mulai dari ${topTask.customerName}: ${topTask.title.toLowerCase()}.`
       : "Mulai dari aksi prioritas tertinggi di bawah.";
 
   if (parts.length === 0) {
@@ -219,7 +219,7 @@ export const DAILY_INSIGHT_TEMPLATES: DailyInsightTemplate[] = [
     id: "inbox-first",
     condition: (ctx) => ctx.unreadConversations >= 3,
     message:
-      "Balas percakapan unread sebelum jam 11:00 — response time cepat meningkatkan conversion hingga 2×.",
+      "Balas percakapan unread sebelum jam 11:00. Response time cepat meningkatkan conversion hingga 2×.",
     actionLabel: "Buka Inbox",
     actionHref: "/inbox",
   },
@@ -235,7 +235,7 @@ export const DAILY_INSIGHT_TEMPLATES: DailyInsightTemplate[] = [
     id: "overdue-recovery",
     condition: (ctx) => ctx.overdueTasks >= 1,
     message:
-      "Ada task yang overdue. Selesaikan satu per satu sebelum menambah pekerjaan baru — fokus mengalahkan multitasking.",
+      "Ada task yang overdue. Selesaikan satu per satu sebelum menambah pekerjaan baru. Fokus mengalahkan multitasking.",
     actionLabel: "Lihat antrian",
     actionHref: "#priority-queue",
   },

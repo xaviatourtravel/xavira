@@ -1,37 +1,43 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import Link from "next/link";
 import { ArrowRight, Layers, MessageCircle, Sparkles } from "lucide-react";
 
+import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { buttonVariants } from "@/components/ui/button";
-import { marketingContent } from "@/lib/marketing/content";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
 
 const PILLARS = [
   {
     icon: MessageCircle,
-    title: "Customer conversations first",
+    title: "Percakapan customer sebagai titik awal",
     description:
-      "Setiap workflow berawal dari percakapan customer—bukan dari spreadsheet yang terpisah.",
+      "Setiap workflow berawal dari percakapan customer, bukan dari spreadsheet yang terpisah.",
   },
   {
     icon: Layers,
-    title: "One connected platform",
+    title: "Satu platform terhubung",
     description:
-      "Communication, customer context, tasks, sales, finance, knowledge, dan AI dalam satu tempat.",
+      "Komunikasi, konteks pelanggan, task, penjualan, keuangan, knowledge, dan AI dalam satu tempat.",
   },
   {
     icon: Sparkles,
-    title: "AI-assisted operations",
+    title: "Operasional berbantuan AI",
     description:
-      "AI membantu merangkum, menyarankan tindakan, dan mempercepat keputusan—tanpa mengambil alih kontrol tim.",
+      "AI membantu merangkum, menyarankan tindakan, dan mempercepat keputusan tanpa mengambil alih kontrol tim.",
   },
 ];
 
 export function CompanyPageView() {
+  const { content } = useMarketingContent();
+
   return (
-    <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
+    <MarketingLocaleProvider>
+      <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
       <MarketingNavbar />
 
       <main>
@@ -44,14 +50,14 @@ export function CompanyPageView() {
               Desklabs
             </h1>
             <p className="mt-4 text-lg font-medium text-slate-800">
-              {marketingContent.brand.tagline}
+              {content.brand.tagline}
             </p>
             <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
               Desklabs adalah{" "}
               <span className="font-medium text-slate-900">
                 AI Customer Operating System
               </span>
-              — platform untuk mengelola seluruh perjalanan customer dari
+              , platform untuk mengelola seluruh perjalanan customer dari
               percakapan pertama hingga layanan pasca-transaksi.
             </p>
           </div>
@@ -145,5 +151,6 @@ export function CompanyPageView() {
 
       <MarketingFooter />
     </div>
+    </MarketingLocaleProvider>
   );
 }

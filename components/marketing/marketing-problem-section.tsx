@@ -1,11 +1,12 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import { ArrowRight, Mail, Sheet, XCircle } from "lucide-react";
 
 import {
   MarketingSection,
   MarketingSectionHeader,
 } from "@/components/marketing/marketing-section";
-import { marketingContent } from "@/lib/marketing/content";
-
 const SOURCE_ICONS = {
   WhatsApp: "WA",
   Instagram: "IG",
@@ -15,16 +16,18 @@ const SOURCE_ICONS = {
 };
 
 export function MarketingProblemSection() {
+  const { content } = useMarketingContent();
+
   return (
     <MarketingSection tone="muted">
       <MarketingSectionHeader
-        title={marketingContent.problem.title}
-        description={marketingContent.problem.copy}
+        title={content.problem.title}
+        description={content.problem.copy}
       />
 
       <div className="mx-auto mt-12 max-w-4xl">
         <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-          {marketingContent.problem.sources.map((source) => (
+          {content.problem.sources.map((source) => (
             <div
               key={source}
               className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/70 sm:px-4"
@@ -42,7 +45,7 @@ export function MarketingProblemSection() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {marketingContent.problem.outcomes.map((outcome) => (
+          {content.problem.outcomes.map((outcome) => (
             <div
               key={outcome.label}
               className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200/70"

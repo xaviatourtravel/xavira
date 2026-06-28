@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LandingPage } from "@/components/marketing/landing-page";
 import { siteConfig } from "@/config/site";
 
-const title = "Desklabs — One Platform. Endless Growth.";
+const title = "Desklabs | Kelola seluruh perjalanan customer dalam satu platform";
 const description =
   "Kelola seluruh perjalanan customer dalam satu platform yang didukung AI.";
 

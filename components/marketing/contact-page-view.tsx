@@ -1,7 +1,11 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Mail } from "lucide-react";
 
 import { submitContactMessageAction } from "@/app/contact/actions";
+import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,7 +19,6 @@ import {
   getContactMessageErrorMessage,
   type ContactMessageErrorCode,
 } from "@/lib/contact/validate";
-import { marketingContent } from "@/lib/marketing/content";
 import { cn } from "@/lib/utils";
 
 const selectClassName =
@@ -53,6 +56,8 @@ function getErrorMessage(error?: string) {
 }
 
 function ContactSuccessState() {
+  const { content } = useMarketingContent();
+
   return (
     <div className="rounded-2xl bg-white p-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.22)] ring-1 ring-slate-200/70">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
@@ -68,10 +73,10 @@ function ContactSuccessState() {
       <p className="mt-4 text-sm text-slate-700">
         Email:{" "}
         <a
-          href={`mailto:${marketingContent.brand.email}`}
+          href={`mailto:${content.brand.email}`}
           className="font-medium text-emerald-700 hover:text-emerald-800"
         >
-          {marketingContent.brand.email}
+          {content.brand.email}
         </a>
       </p>
       <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "mt-8")}>
@@ -85,7 +90,8 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
   const errorMessage = getErrorMessage(error);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
+    <MarketingLocaleProvider>
+      <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
       <MarketingNavbar />
 
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
@@ -254,5 +260,6 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
 
       <MarketingFooter />
     </div>
+    </MarketingLocaleProvider>
   );
 }

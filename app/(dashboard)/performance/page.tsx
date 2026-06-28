@@ -8,7 +8,7 @@ export default async function PerformancePage() {
 
   return (
     <WorkspaceHubView
-      title="Performance"
+      title="Performa"
       subtitle="Lihat performa bisnis, campaign, content, dan insight operasional."
       items={[
         {

@@ -10,7 +10,7 @@ export function PlatformWorkflowStorySection() {
       <MarketingSectionHeader
         eyebrow="Workflow story"
         title="Dari pesan pertama hingga customer yang kembali"
-        description="Desklabs tidak hanya menyimpan data—platform ini menggerakkan operasional customer secara end-to-end."
+        description="Desklabs tidak hanya menyimpan data. Platform ini menggerakkan operasional customer secara end-to-end."
       />
 
       <div className="relative mx-auto mt-12 max-w-4xl">

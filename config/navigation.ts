@@ -68,16 +68,16 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
   },
   {
     id: "customer",
-    title: "Customer",
+    title: "Pelanggan",
     href: "/leads",
     icon: Users,
     permission: "leads.view",
-    businessQuestion: "Bagaimana perjalanan customer saya?",
+    businessQuestion: "Bagaimana perjalanan pelanggan saya?",
     items: [
-      { title: "Customer", href: "/leads" },
+      { title: "Pelanggan", href: "/leads" },
       { title: "Pipeline", href: "/leads/kanban" },
       { title: "Booking", href: "/bookings" },
-      { title: "Package", href: "/packages", permission: "bookings.view" },
+      { title: "Paket", href: "/packages", permission: "bookings.view" },
     ],
   },
   {
@@ -89,10 +89,10 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     businessQuestion: "Apa yang harus diselesaikan operasional hari ini?",
     badgeKey: "operational",
     items: [
-      { title: "Tasks", href: "/today", permission: "today.view" },
+      { title: "Task", href: "/today", permission: "today.view" },
       { title: "Follow Up", href: "/follow-ups", permission: "followups.view" },
       {
-        title: "Calendar",
+        title: "Kalender",
         href: "/follow-ups/queue",
         permission: "followups.view",
       },
@@ -107,23 +107,23 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     businessQuestion: "Bagaimana kondisi pembayaran customer?",
     badgeKey: "finance",
     items: [
-      { title: "Payments", href: "/revenue" },
-      { title: "Invoices", href: "/revenue?view=invoices" },
+      { title: "Pembayaran", href: "/revenue" },
+      { title: "Invoice", href: "/revenue?view=invoices" },
     ],
   },
   {
     id: "performance",
-    title: "Performance",
+    title: "Performa",
     href: "/performance",
     icon: BarChart3,
     permission: "dashboard.view",
     businessQuestion: "Apakah bisnis saya bergerak ke arah yang benar?",
     items: [
-      { title: "Dashboard", href: "/dashboard" },
+      { title: "Dasbor", href: "/dashboard" },
       { title: "Campaign", href: "/campaigns", permission: "content.view" },
-      { title: "Content", href: "/content", permission: "content.view" },
+      { title: "Konten", href: "/content", permission: "content.view" },
       {
-        title: "Analytics",
+        title: "Analitik",
         href: "/content/instagram-analytics",
         permission: "content.view",
       },

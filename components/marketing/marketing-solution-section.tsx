@@ -1,3 +1,6 @@
+"use client";
+
+import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import {
   ArrowRight,
   Bot,
@@ -13,7 +16,6 @@ import {
   MarketingSection,
   MarketingSectionHeader,
 } from "@/components/marketing/marketing-section";
-import { marketingContent } from "@/lib/marketing/content";
 
 const ICONS = {
   communication: MessageSquare,
@@ -26,12 +28,14 @@ const ICONS = {
 };
 
 export function MarketingSolutionSection() {
+  const { content } = useMarketingContent();
+
   return (
     <MarketingSection id="platform">
-      <MarketingSectionHeader title={marketingContent.solution.title} />
+      <MarketingSectionHeader title={content.solution.title} />
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:hidden">
-        {marketingContent.solution.items.map((item) => {
+        {content.solution.items.map((item) => {
           const Icon = ICONS[item.id as keyof typeof ICONS];
 
           return (
@@ -53,7 +57,7 @@ export function MarketingSolutionSection() {
 
       <div className="mt-12 hidden overflow-x-auto pb-2 lg:block">
         <div className="flex min-w-[720px] items-stretch gap-3">
-          {marketingContent.solution.items.map((item, index) => {
+          {content.solution.items.map((item, index) => {
             const Icon = ICONS[item.id as keyof typeof ICONS];
 
             return (
@@ -67,7 +71,7 @@ export function MarketingSolutionSection() {
                     {item.description}
                   </p>
                 </article>
-                {index < marketingContent.solution.items.length - 1 ? (
+                {index < content.solution.items.length - 1 ? (
                   <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
                 ) : null}
               </div>
@@ -80,12 +84,14 @@ export function MarketingSolutionSection() {
 }
 
 export function MarketingCapabilitiesSection() {
+  const { content } = useMarketingContent();
+
   return (
     <MarketingSection tone="muted">
-      <MarketingSectionHeader title={marketingContent.capabilities.title} />
+      <MarketingSectionHeader title={content.capabilities.title} />
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {marketingContent.capabilities.items.map((item) => (
+        {content.capabilities.items.map((item) => (
           <article
             key={item.title}
             className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/70"

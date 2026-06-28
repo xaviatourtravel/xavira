@@ -9,13 +9,13 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Desklabs — One Platform. Endless Growth.",
+    default: "Desklabs | Kelola seluruh perjalanan customer dalam satu platform",
     template: "%s | Desklabs",
   },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
   openGraph: {
-    title: "Desklabs — One Platform. Endless Growth.",
+    title: "Desklabs | Kelola seluruh perjalanan customer dalam satu platform",
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Desklabs — One Platform. Endless Growth.",
+    title: "Desklabs | Kelola seluruh perjalanan customer dalam satu platform",
     description: siteConfig.description,
   },
 };

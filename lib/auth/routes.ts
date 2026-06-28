@@ -33,6 +33,7 @@ const PROTECTED_PREFIXES = [
   "/campaigns",
   "/content",
   "/scripts",
+  "/notifications",
   "/settings",
 ] as const;
 

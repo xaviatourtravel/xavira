@@ -11,7 +11,7 @@ export function SolutionsIndustryGridSection() {
       <MarketingSectionHeader
         eyebrow="Industry solution packs"
         title="Satu platform, banyak industri"
-        description="Pilih solution pack yang sesuai dengan cara kerja bisnis Anda—tanpa mengganti core platform Desklabs."
+        description="Pilih solution pack yang sesuai dengan cara kerja bisnis Anda, tanpa mengganti core platform Desklabs."
       />
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -17,7 +17,7 @@ export function PlatformComparisonSection() {
       <MarketingSectionHeader
         eyebrow="Why Desklabs"
         title="Traditional software vs Desklabs Platform"
-        description="Perbedaan bukan hanya fitur—melainkan bagaimana pekerjaan operasional customer benar-benar berjalan."
+        description="Perbedaan bukan hanya fitur, melainkan bagaimana pekerjaan operasional customer benar-benar berjalan."
       />
 
       <div className="mt-12 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">

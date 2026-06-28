@@ -1,19 +1,22 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import {
   MarketingSection,
   MarketingSectionHeader,
 } from "@/components/marketing/marketing-section";
-import { marketingContent } from "@/lib/marketing/content";
-
 export function MarketingTrustSection() {
+  const { content } = useMarketingContent();
+
   return (
     <MarketingSection id="resources" tone="muted">
       <MarketingSectionHeader
-        title={marketingContent.trust.title}
-        description={marketingContent.trust.copy}
+        title={content.trust.title}
+        description={content.trust.copy}
       />
 
       <div className="mt-14 grid gap-4 sm:grid-cols-2">
-        {marketingContent.trust.highlights.map((item) => (
+        {content.trust.highlights.map((item) => (
           <article
             key={item.title}
             className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70"

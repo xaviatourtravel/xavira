@@ -32,7 +32,7 @@ export const MOBILE_PRIMARY_NAV: MobilePrimaryNavItem[] = [
     permission: "inbox.view",
   },
   {
-    title: "Customer",
+    title: "Pelanggan",
     href: "/leads",
     icon: Users,
     permission: "leads.view",
@@ -53,7 +53,7 @@ export const MOBILE_PRIMARY_NAV: MobilePrimaryNavItem[] = [
 
 export const MOBILE_MORE_NAV: MobilePrimaryNavItem[] = [
   {
-    title: "Performance",
+    title: "Performa",
     href: "/performance",
     icon: BarChart3,
     permission: "dashboard.view",

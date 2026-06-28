@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { marketingButtonVariants } from "@/components/marketing/design-system/button";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
 import {
@@ -418,7 +419,7 @@ export function MarketingPageShell({
 }) {
   return (
     <div className={cn("marketing-site min-h-screen", marketingColorClasses.bgPage, className)}>
-      {children}
+      <MarketingLocaleProvider>{children}</MarketingLocaleProvider>
     </div>
   );
 }

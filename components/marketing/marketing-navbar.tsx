@@ -4,18 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 
+import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { buttonVariants } from "@/components/ui/button";
-import { marketingContent } from "@/lib/marketing/content";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { label: marketingContent.nav.platform, href: marketingRoutes.platform },
-  { label: marketingContent.nav.solutions, href: marketingRoutes.solutions },
-  { label: marketingContent.nav.resources, href: "#resources" },
-  { label: marketingContent.nav.pricing, href: "#pricing" },
-  { label: marketingContent.nav.company, href: marketingRoutes.company },
-] as const;
 
 function NavLink({
   href,
@@ -44,8 +36,17 @@ function NavLink({
 }
 
 export function MarketingNavbar() {
+  const { content, locale, setLocale } = useMarketingContent();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const navItems = [
+    { label: content.nav.platform, href: marketingRoutes.platform },
+    { label: content.nav.solutions, href: marketingRoutes.solutions },
+    { label: content.nav.resources, href: "#resources" },
+    { label: content.nav.pricing, href: "#pricing" },
+    { label: content.nav.company, href: marketingRoutes.company },
+  ] as const;
 
   useEffect(() => {
     function onScroll() {
@@ -82,12 +83,12 @@ export function MarketingNavbar() {
             D
           </span>
           <span className="truncate text-lg font-semibold tracking-tight text-slate-950">
-            {marketingContent.brand.name}
+            {content.brand.name}
           </span>
         </Link>
 
         <nav className="hidden items-center gap-6 xl:gap-7 lg:flex" aria-label="Primary">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.href}
               href={item.href}
@@ -97,21 +98,40 @@ export function MarketingNavbar() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
-          <button
-            type="button"
-            disabled
-            aria-label="Bahasa Indonesia (language switcher coming soon)"
-            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200"
-            title="Language switcher coming soon"
-          >
-            ID
-          </button>
+        <div className="hidden items-center gap-2 lg:flex">
+          <div className="flex items-center rounded-md ring-1 ring-slate-200">
+            <button
+              type="button"
+              onClick={() => setLocale("id")}
+              className={cn(
+                "rounded-l-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                locale === "id"
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-500 hover:text-slate-800",
+              )}
+              aria-label="Bahasa Indonesia"
+            >
+              ID
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocale("en")}
+              className={cn(
+                "rounded-r-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                locale === "en"
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-500 hover:text-slate-800",
+              )}
+              aria-label="English"
+            >
+              EN
+            </button>
+          </div>
           <Link
             href={marketingRoutes.login}
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
           >
-            {marketingContent.nav.signIn}
+            {content.nav.signIn}
           </Link>
           <Link
             href={marketingRoutes.demo}
@@ -120,7 +140,7 @@ export function MarketingNavbar() {
               "bg-emerald-700 hover:bg-emerald-800",
             )}
           >
-            {marketingContent.nav.demo}
+            {content.nav.demo}
           </Link>
         </div>
 
@@ -129,7 +149,7 @@ export function MarketingNavbar() {
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md ring-1 ring-slate-200 lg:hidden"
           aria-expanded={open}
           aria-controls="mobile-nav-panel"
-          aria-label={open ? "Close menu" : "Open menu"}
+          aria-label={open ? "Tutup menu" : "Buka menu"}
           onClick={() => setOpen((value) => !value)}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -141,8 +161,32 @@ export function MarketingNavbar() {
           id="mobile-nav-panel"
           className="border-t border-slate-200 bg-white px-4 py-4 lg:hidden"
         >
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex items-center rounded-md ring-1 ring-slate-200">
+              <button
+                type="button"
+                onClick={() => setLocale("id")}
+                className={cn(
+                  "rounded-l-md px-2.5 py-1.5 text-xs font-medium",
+                  locale === "id" ? "bg-slate-950 text-white" : "text-slate-500",
+                )}
+              >
+                ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocale("en")}
+                className={cn(
+                  "rounded-r-md px-2.5 py-1.5 text-xs font-medium",
+                  locale === "en" ? "bg-slate-950 text-white" : "text-slate-500",
+                )}
+              >
+                EN
+              </button>
+            </div>
+          </div>
           <nav className="flex flex-col gap-1" aria-label="Mobile">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <NavLink
                 key={item.href}
                 href={item.href}
@@ -158,7 +202,7 @@ export function MarketingNavbar() {
               className={cn(buttonVariants({ variant: "outline" }), "w-full")}
               onClick={() => setOpen(false)}
             >
-              {marketingContent.nav.signIn}
+              {content.nav.signIn}
             </Link>
             <Link
               href={marketingRoutes.demo}
@@ -168,7 +212,7 @@ export function MarketingNavbar() {
               )}
               onClick={() => setOpen(false)}
             >
-              {marketingContent.nav.demo}
+              {content.nav.demo}
             </Link>
           </div>
         </div>

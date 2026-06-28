@@ -39,7 +39,7 @@ export function TodayWorkspaceHealthSection({
     <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          Workspace Health
+          Kondisi Workspace
         </p>
         <h2 className="mt-1 text-base font-semibold text-slate-950">
           Kondisi operasional hari ini

@@ -17,8 +17,8 @@ export function SolutionsHeroSection() {
             Solusi operasional customer untuk berbagai industri.
           </h1>
           <p className="mt-4 text-base leading-relaxed text-slate-600 sm:mt-5 sm:text-lg">
-            Desklabs memiliki core platform yang sama—Communication, Customer, Task,
-            Sales, Finance, Knowledge, Automation, dan AI—yang dapat disesuaikan
+            Desklabs memiliki core platform yang sama: Communication, Customer, Task,
+            Sales, Finance, Knowledge, Automation, dan AI. Semuanya dapat disesuaikan
             untuk kebutuhan industri berbeda.
           </p>
           <div className="mt-7 flex w-full flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center sm:justify-center">

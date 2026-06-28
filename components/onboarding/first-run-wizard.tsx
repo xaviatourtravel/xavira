@@ -117,7 +117,7 @@ export function FirstRunWizard({
         step={stepNumber}
         totalSteps={FIRST_RUN_STEPS.length}
         title="Selamat datang di Desklabs."
-        description={`Halo ${ownerName.split(" ")[0] ?? ownerName}. Mari siapkan workspace Anda dalam beberapa langkah singkat—supaya tim langsung tahu harus mulai dari mana.`}
+        description={`Halo ${ownerName.split(" ")[0] ?? ownerName}. Mari siapkan workspace Anda dalam beberapa langkah singkat supaya tim langsung tahu harus mulai dari mana.`}
         footer={
           <>
             <Button size="lg" className="bg-emerald-700 hover:bg-emerald-800" onClick={goNext}>
@@ -283,7 +283,7 @@ export function FirstRunWizard({
         step={stepNumber}
         totalSteps={FIRST_RUN_STEPS.length}
         title="Undang tim (opsional)"
-        description="Tambahkan rekan tim sekarang atau lewati—Anda bisa mengundang kapan saja dari Settings."
+        description="Tambahkan rekan tim sekarang atau lewati. Anda bisa mengundang kapan saja dari Pengaturan."
         footer={
           <>
             <Button variant="outline" size="lg" onClick={goBack}>

@@ -4,11 +4,11 @@ import { PlatformPageView } from "@/components/marketing/platform/platform-page-
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Platform — AI Customer Operating System",
+  title: "Platform | AI Customer Operating System",
   description:
     "Desklabs menghubungkan komunikasi, customer, operasional, penjualan, pembayaran, pengetahuan, dan AI dalam satu workflow terintegrasi.",
   openGraph: {
-    title: `Platform Desklabs — ${siteConfig.tagline}`,
+    title: `Platform Desklabs | ${siteConfig.tagline}`,
     description: siteConfig.description,
     url: `${siteConfig.url}/platform`,
   },

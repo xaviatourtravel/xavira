@@ -64,7 +64,7 @@ export function QuickCreateMenu() {
         <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
           <div className="border-b border-slate-100 px-3 py-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Quick Create
+              Buat Cepat
             </p>
           </div>
           <ul className="p-1.5">

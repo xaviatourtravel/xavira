@@ -15,7 +15,7 @@ export function TodayProgressSection({ progress }: TodayProgressSectionProps) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Today&apos;s Progress
+            Progress Hari Ini
           </p>
           <h2 className="mt-1 text-base font-semibold text-slate-950">
             {isComplete ? "Semua selesai hari ini" : "Progress hari ini"}
@@ -58,7 +58,7 @@ export function TodayProgressSection({ progress }: TodayProgressSectionProps) {
           </p>
           <p className="mt-1 text-sm font-semibold text-slate-950">
             {progress.remainingTasks === 0
-              ? "—"
+              ? "-"
               : formatEstimatedDuration(progress.estimatedMinutesRemaining)}
           </p>
         </div>

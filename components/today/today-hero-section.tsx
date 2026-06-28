@@ -26,7 +26,7 @@ export function TodayHeroSection({
 
       <div className="relative space-y-6">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-emerald-700">Today Workspace</p>
+          <p className="text-sm font-medium text-emerald-700">Ruang Kerja Hari Ini</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
             {brief.greeting}, {firstName}.
           </h1>
@@ -39,7 +39,7 @@ export function TodayHeroSection({
             </span>
             <div className="min-w-0 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
-                AI Morning Brief
+                Ringkasan AI Hari Ini
               </p>
               <p className="text-sm leading-relaxed text-slate-700 sm:text-base">
                 {brief.brief}
@@ -86,7 +86,7 @@ export function TodayNextBestActionSection({ action }: TodayNextBestActionProps)
       >
         <p className="text-sm font-medium text-emerald-800">Antrian clear</p>
         <p className="mt-2 text-base font-semibold text-slate-950">
-          Tidak ada aksi urgent — hari ini under control.
+          Tidak ada aksi urgent. Hari ini under control.
         </p>
         <p className="mt-2 text-sm text-slate-600">
           Gunakan waktu untuk review pipeline atau persiapkan follow up besok.
@@ -101,7 +101,7 @@ export function TodayNextBestActionSection({ action }: TodayNextBestActionProps)
     <section id="next-best-action" className="scroll-mt-24">
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          Next Best Action
+          Prioritas Berikutnya
         </p>
         <h2 className="mt-1 text-lg font-semibold text-slate-950">
           Apa yang harus Anda lakukan sekarang
@@ -113,7 +113,7 @@ export function TodayNextBestActionSection({ action }: TodayNextBestActionProps)
           <div className="min-w-0 flex-1 space-y-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
-                Customer
+                Pelanggan
               </p>
               <p className="mt-1 text-xl font-semibold text-slate-950">
                 {task.customerName ?? "Customer"}

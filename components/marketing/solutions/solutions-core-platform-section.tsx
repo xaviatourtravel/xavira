@@ -15,7 +15,7 @@ export function SolutionsCorePlatformSection() {
     <MarketingSection tone="muted">
       <MarketingSectionHeader
         title="Satu core platform. Banyak cara kerja."
-        description="Industry packs menambahkan workflow dan terminologi yang relevan—core platform tetap sama untuk semua tim."
+        description="Industry packs menambahkan workflow dan terminologi yang relevan. Core platform tetap sama untuk semua tim."
       />
 
       <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:items-center">

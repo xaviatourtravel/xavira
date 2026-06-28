@@ -1,13 +1,17 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { buttonVariants } from "@/components/ui/button";
-import { marketingContent } from "@/lib/marketing/content";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
 
 export function MarketingCtaSection() {
+  const { content } = useMarketingContent();
+
   return (
     <MarketingSection id="pricing" tone="dark" className="relative overflow-hidden">
       <div
@@ -18,10 +22,10 @@ export function MarketingCtaSection() {
       <div className="relative">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            {marketingContent.cta.title}
+            {content.cta.title}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-slate-300 sm:text-lg">
-            {marketingContent.cta.copy}
+            {content.cta.copy}
           </p>
         </div>
 
@@ -33,7 +37,7 @@ export function MarketingCtaSection() {
               "w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400 sm:w-auto",
             )}
           >
-            {marketingContent.cta.primary}
+            {content.cta.primary}
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
           <Link
@@ -43,7 +47,7 @@ export function MarketingCtaSection() {
               "w-full border-slate-700 bg-transparent text-white hover:bg-slate-900 hover:text-white sm:w-auto",
             )}
           >
-            {marketingContent.cta.secondary}
+            {content.cta.secondary}
           </Link>
         </div>
       </div>

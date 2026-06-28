@@ -16,7 +16,7 @@ export function TodayAiInsightSection({ insight }: TodayAiInsightSectionProps) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-700">
-            AI Insight
+            Insight AI
           </p>
           <p className="mt-2 text-sm leading-relaxed text-slate-700 sm:text-base">
             {insight.message}

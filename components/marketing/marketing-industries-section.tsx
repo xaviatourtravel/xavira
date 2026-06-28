@@ -1,8 +1,10 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import {
   MarketingSection,
   MarketingSectionHeader,
 } from "@/components/marketing/marketing-section";
-import { marketingContent } from "@/lib/marketing/content";
 import { cn } from "@/lib/utils";
 
 function IndustryStatusBadge({ status }: { status: "available" | "coming_soon" }) {
@@ -21,15 +23,17 @@ function IndustryStatusBadge({ status }: { status: "available" | "coming_soon" }
 }
 
 export function MarketingIndustriesSection() {
+  const { content } = useMarketingContent();
+
   return (
     <MarketingSection id="solutions">
       <MarketingSectionHeader
-        title={marketingContent.industries.title}
-        description={marketingContent.industries.subtitle}
+        title={content.industries.title}
+        description={content.industries.subtitle}
       />
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {marketingContent.industries.items.map((industry) => (
+        {content.industries.items.map((industry) => (
           <article
             key={industry.name}
             className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/70"

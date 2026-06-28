@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
 
+import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
-import { marketingContent } from "@/lib/marketing/content";
 import { cn } from "@/lib/utils";
 
 function FooterColumn({
@@ -30,8 +32,23 @@ function FooterColumn({
   );
 }
 
-/** Design-system footer — use on all public marketing pages */
 export function MarketingDesignFooter() {
+  const { content, locale } = useMarketingContent();
+  const legal =
+    locale === "en"
+      ? {
+          copyright: "All rights reserved.",
+          privacy: "Privacy Policy",
+          terms: "Terms",
+          dataDeletion: "Data Deletion",
+        }
+      : {
+          copyright: "Hak cipta dilindungi.",
+          privacy: "Kebijakan Privasi",
+          terms: "Syarat Layanan",
+          dataDeletion: "Penghapusan Data",
+        };
+
   return (
     <footer id="company" className="border-t border-slate-200 bg-white">
       <div className={cn(marketingContainerClass, "py-16")}>
@@ -48,35 +65,49 @@ export function MarketingDesignFooter() {
                 D
               </span>
               <span className="text-lg font-semibold tracking-tight text-slate-950">
-                {marketingContent.brand.name}
+                {content.brand.name}
               </span>
             </Link>
-            <p className="mt-4 text-sm text-slate-600">{marketingContent.brand.tagline}</p>
+            <p className="mt-4 text-sm text-slate-600">{content.brand.tagline}</p>
             <a
-              href={`mailto:${marketingContent.brand.email}`}
+              href={`mailto:${content.brand.email}`}
               className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
             >
-              {marketingContent.brand.email}
+              {content.brand.email}
             </a>
           </div>
 
-          <FooterColumn title="Platform" links={marketingContent.footer.platform} />
-          <FooterColumn title="Solutions" links={marketingContent.footer.solutions} />
-          <FooterColumn title="Resources" links={marketingContent.footer.resources} />
-          <FooterColumn title="Company" links={marketingContent.footer.company} />
+          <FooterColumn
+            title={content.footer.columnTitles.platform}
+            links={content.footer.platform}
+          />
+          <FooterColumn
+            title={content.footer.columnTitles.solutions}
+            links={content.footer.solutions}
+          />
+          <FooterColumn
+            title={content.footer.columnTitles.resources}
+            links={content.footer.resources}
+          />
+          <FooterColumn
+            title={content.footer.columnTitles.company}
+            links={content.footer.company}
+          />
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-slate-100 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Desklabs. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} Desklabs. {legal.copyright}
+          </p>
           <div className="flex flex-wrap gap-4">
             <Link href="/privacy-policy" className="hover:text-slate-800">
-              Privacy Policy
+              {legal.privacy}
             </Link>
             <Link href="/terms" className="hover:text-slate-800">
-              Terms
+              {legal.terms}
             </Link>
             <Link href="/data-deletion" className="hover:text-slate-800">
-              Data Deletion
+              {legal.dataDeletion}
             </Link>
           </div>
         </div>

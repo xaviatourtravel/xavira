@@ -38,7 +38,7 @@ export function TodayWorkspaceView({ data }: TodayWorkspaceViewProps) {
 
       {data.usingDerivedTasks ? (
         <p className="text-center text-xs text-slate-400">
-          Task dihitung dari data live — akan tersinkron saat task engine aktif penuh.
+          Task dihitung dari data live. Akan tersinkron saat task engine aktif penuh.
         </p>
       ) : null}
     </div>

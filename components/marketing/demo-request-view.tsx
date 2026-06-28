@@ -1,7 +1,11 @@
+"use client";
+
+import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import Link from "next/link";
 import { CalendarCheck, CheckCircle2, Mail, MessageSquare } from "lucide-react";
 
 import { submitDemoRequestAction } from "@/app/demo/actions";
+import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { buttonVariants } from "@/components/ui/button";
@@ -16,7 +20,6 @@ import {
   getDemoRequestErrorMessage,
   type DemoRequestErrorCode,
 } from "@/lib/demo/validate";
-import { marketingContent } from "@/lib/marketing/content";
 import { cn } from "@/lib/utils";
 
 const selectClassName =
@@ -77,6 +80,8 @@ function getErrorMessage(error?: string) {
 }
 
 function DemoSuccessState() {
+  const { content } = useMarketingContent();
+
   return (
     <div className="rounded-2xl bg-white p-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.22)] ring-1 ring-slate-200/70">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
@@ -93,10 +98,10 @@ function DemoSuccessState() {
         <p>
           Email:{" "}
           <a
-            href={`mailto:${marketingContent.brand.email}`}
+            href={`mailto:${content.brand.email}`}
             className="font-medium text-emerald-700 hover:text-emerald-800"
           >
-            {marketingContent.brand.email}
+            {content.brand.email}
           </a>
         </p>
       </div>
@@ -111,10 +116,12 @@ function DemoSuccessState() {
 }
 
 export function DemoRequestView({ error, success }: DemoRequestViewProps) {
+  const { content } = useMarketingContent();
   const errorMessage = getErrorMessage(error);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
+    <MarketingLocaleProvider>
+      <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
       <MarketingNavbar />
 
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
@@ -171,10 +178,10 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
                 <span>
                   Pertanyaan?{" "}
                   <a
-                    href={`mailto:${marketingContent.brand.email}?subject=Demo Desklabs`}
+                    href={`mailto:${content.brand.email}?subject=Demo Desklabs`}
                     className="font-medium text-emerald-700 hover:text-emerald-800"
                   >
-                    {marketingContent.brand.email}
+                    {content.brand.email}
                   </a>
                 </span>
               </div>
@@ -341,5 +348,6 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
 
       <MarketingFooter />
     </div>
+    </MarketingLocaleProvider>
   );
 }

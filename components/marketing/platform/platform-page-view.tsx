@@ -1,3 +1,4 @@
+import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { PlatformComparisonSection } from "@/components/marketing/platform/platform-comparison-section";
@@ -10,7 +11,8 @@ import { platformCapabilities } from "@/lib/marketing/platform-content";
 
 export function PlatformPageView() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <MarketingLocaleProvider>
+      <div className="min-h-screen bg-white text-slate-950">
       <MarketingNavbar />
       <main>
         <PlatformHeroSection />
@@ -37,5 +39,6 @@ export function PlatformPageView() {
       </main>
       <MarketingFooter />
     </div>
+    </MarketingLocaleProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { SolutionsCorePlatformSection } from "@/components/marketing/solutions/solutions-core-platform-section";
@@ -9,7 +10,8 @@ import { solutionIndustries } from "@/lib/marketing/solutions-content";
 
 export function SolutionsPageView() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <MarketingLocaleProvider>
+      <div className="min-h-screen bg-white text-slate-950">
       <MarketingNavbar />
       <main>
         <SolutionsHeroSection />
@@ -37,5 +39,6 @@ export function SolutionsPageView() {
       </main>
       <MarketingFooter />
     </div>
+    </MarketingLocaleProvider>
   );
 }

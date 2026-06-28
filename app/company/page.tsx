@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "Desklabs adalah AI Customer Operating System untuk mengelola seluruh perjalanan customer dalam satu platform yang terhubung.",
   openGraph: {
-    title: `Tentang Desklabs — ${siteConfig.tagline}`,
+    title: `Tentang Desklabs | ${siteConfig.tagline}`,
     description: siteConfig.description,
     url: `${siteConfig.url}/company`,
   },

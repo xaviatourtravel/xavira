@@ -13,7 +13,7 @@ export function PlatformFlowSection() {
       <MarketingSectionHeader
         eyebrow="Connected workflow"
         title="Satu alur dari percakapan hingga pertumbuhan"
-        description="Setiap modul Desklabs dirancang untuk saling terhubung—bukan berdiri sendiri."
+        description="Setiap modul Desklabs dirancang untuk saling terhubung, bukan berdiri sendiri."
       />
 
       <div className="mx-auto mt-12 max-w-3xl">

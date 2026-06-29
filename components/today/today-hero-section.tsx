@@ -18,7 +18,7 @@ export function TodayHeroSection({
   const firstName = userName.split(" ")[0] ?? userName;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(to_bottom_right,#ffffff,#f8fafc)] p-6 shadow-sm sm:p-8">
+    <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(to_bottom_right,#ffffff,#f8fafc)] p-4 shadow-sm sm:p-6 md:p-8">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-emerald-100/50 blur-3xl"
@@ -27,7 +27,7 @@ export function TodayHeroSection({
       <div className="relative space-y-6">
         <div className="space-y-3">
           <p className="text-sm font-medium text-emerald-700">Ruang Kerja Hari Ini</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+          <h1 className="break-words text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl md:text-3xl">
             {brief.greeting}, {firstName}.
           </h1>
         </div>
@@ -61,7 +61,7 @@ export function TodayHeroSection({
           {hasNextAction ? (
             <a
               href="#next-best-action"
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+              className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition-colors hover:bg-slate-800 sm:w-auto"
             >
               <Sparkles className="h-4 w-4" />
               Mulai Hari Ini

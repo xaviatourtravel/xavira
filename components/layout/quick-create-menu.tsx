@@ -104,7 +104,7 @@ export function QuickCreateMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Buat cepat"
-        className="h-9 gap-1.5 bg-emerald-700 px-3 hover:bg-emerald-800"
+        className="hidden h-11 gap-1.5 bg-emerald-700 px-3 hover:bg-emerald-800 md:inline-flex"
         onClick={() => setOpen((value) => !value)}
       >
         <Plus className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function QuickCreateMenu() {
         <div
           role="menu"
           aria-label="Buat Cepat"
-          className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(340px,calc(100vw-2rem))] min-w-[280px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+          className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
         >
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="text-sm font-semibold text-slate-950">Buat Cepat</p>
@@ -139,7 +139,7 @@ export function QuickCreateMenu() {
                     onMouseEnter={() => setSelectedIndex(index)}
                     onClick={close}
                     className={cn(
-                      "flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors",
+                      "flex min-h-[44px] items-start gap-3 rounded-lg px-3 py-2.5 transition-colors",
                       isSelected ? "bg-slate-100" : "hover:bg-slate-50",
                     )}
                   >

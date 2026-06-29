@@ -107,7 +107,7 @@ export function MobileNav({
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-16 z-50 max-h-[70vh] overflow-y-auto rounded-t-2xl border bg-background shadow-2xl transition-transform duration-200 md:hidden",
+          "fixed inset-x-0 bottom-16 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl border bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-transform duration-200 md:hidden",
           moreOpen ? "translate-y-0" : "pointer-events-none translate-y-full",
         )}
       >
@@ -147,7 +147,7 @@ export function MobileNav({
         </nav>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
         <div
           className="grid gap-1 p-1"
           style={{

@@ -132,8 +132,8 @@ function WorkspaceContextPanel({
   primaryBooking: CustomerWorkspaceData["bookings"][0] | null;
 }) {
   return (
-    <aside className="xl:sticky xl:top-6 xl:self-start">
-      <div className="flex max-h-[500px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+    <aside className="xl:sticky xl:top-6 xl:self-start max-xl:static">
+      <div className="flex max-xl:max-h-none flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm xl:max-h-[500px]">
         <div className="border-b border-slate-100 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
             Konteks Customer
@@ -755,8 +755,8 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
     primaryBooking?.departure_date ?? data.lead.travel_date_preference ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
-      <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(to_bottom_right,#ffffff,#f8fafc)] p-6 shadow-sm sm:p-8">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-0 pb-8 sm:space-y-8 sm:pb-10">
+      <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(to_bottom_right,#ffffff,#f8fafc)] p-4 shadow-sm sm:p-6 md:p-8">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-violet-100/50 blur-3xl"
@@ -766,9 +766,10 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
           <div className="min-w-0 space-y-4">
             <p className="text-sm font-medium text-violet-700">Ruang Kerja Customer</p>
             <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                <DesklabsAvatar name={data.lead.full_name} size="xl" />
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <DesklabsAvatar name={data.lead.full_name} size="lg" className="sm:hidden" />
+                <DesklabsAvatar name={data.lead.full_name} size="xl" className="hidden sm:block" />
+                <h1 className="min-w-0 break-words text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl md:text-3xl">
                   {data.lead.full_name}
                 </h1>
               </div>

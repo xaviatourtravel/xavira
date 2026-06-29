@@ -271,9 +271,9 @@ export function UniversalSearch() {
           data-universal-search-panel="true"
           className={cn(
             "fixed z-50 flex flex-col overflow-hidden bg-white shadow-2xl",
-            "inset-0 pt-[env(safe-area-inset-top)]",
-            "md:inset-auto md:top-[5.5rem] md:max-h-[min(520px,calc(100vh-6rem))] md:w-[min(680px,calc(100vw-17.5rem-2rem))] md:rounded-2xl md:ring-1 md:ring-slate-200/70",
-            "md:left-[calc(17.5rem+max(1rem,(100vw-17.5rem-min(680px,100vw-17.5rem-2rem))/2))]",
+            "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
+            "md:inset-auto md:bottom-auto md:max-h-[min(520px,calc(100vh-6rem))] md:w-[min(680px,calc(100vw-17.5rem-2rem))] md:rounded-2xl md:pb-0 md:ring-1 md:ring-slate-200/70",
+            "md:top-[5.5rem] md:left-[calc(17.5rem+max(1rem,(100vw-17.5rem-min(680px,100vw-17.5rem-2rem))/2))]",
           )}
         >
           <div className="border-b border-slate-100/80 px-4 py-3.5 md:px-4">
@@ -284,7 +284,7 @@ export function UniversalSearch() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Cari customer, chat, invoice, halaman, atau /perintah..."
-                className="h-11 border-0 bg-transparent px-0 text-[15px] shadow-none focus-visible:ring-0"
+                className="h-11 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0 md:text-[15px]"
               />
             </div>
           </div>
@@ -322,7 +322,7 @@ export function UniversalSearch() {
         type="button"
         aria-label="Buka pencarian"
         onClick={openPalette}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-50 md:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 text-slate-600 transition-colors hover:bg-slate-50 md:hidden"
       >
         <Search className="h-4 w-4" />
       </button>

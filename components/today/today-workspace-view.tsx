@@ -15,7 +15,7 @@ type TodayWorkspaceViewProps = {
 
 export function TodayWorkspaceView({ data }: TodayWorkspaceViewProps) {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 pb-10">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-0 pb-10 sm:space-y-8">
       <TodayHeroSection
         userName={data.userName}
         brief={data.morningBrief}

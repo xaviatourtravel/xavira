@@ -18,6 +18,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { getBookingPaymentReminderType } from "@/lib/ai/follow-up-assistant";
 import { buildBookingPaymentTotals } from "@/lib/bookings/payment-summary";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -83,7 +84,7 @@ function BookingActions({
 
       {leadId && (
         <Link
-          href={`/leads/${leadId}`}
+          href={customerWorkspaceHref(leadId)}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >
           Lihat Lead

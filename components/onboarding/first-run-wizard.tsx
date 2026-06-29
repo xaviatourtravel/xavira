@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 
 import {
   completeFirstRunAction,
   type CompleteFirstRunState,
 } from "@/app/onboarding/actions";
+import { DesklabsSpinner } from "@/components/ui/desklabs-loading";
 import { OnboardingStepShell } from "@/components/onboarding/onboarding-step-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -326,7 +327,11 @@ export function FirstRunWizard({
           <span className="absolute inset-0 animate-ping rounded-full bg-emerald-200/60 [animation-duration:2s]" />
           <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-emerald-700 text-white">
             {isPending ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
+              <DesklabsSpinner
+                size="lg"
+                label="Menyiapkan workspace..."
+                className="border-white/30 border-t-white"
+              />
             ) : (
               <Check className="h-7 w-7" />
             )}

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { updateTeamMemberRole } from "@/app/(dashboard)/settings/team/actions";
+import { DesklabsAvatar } from "@/components/ui/desklabs-avatar";
 import {
   formatTeamRoleLabel,
   TEAM_MEMBER_STATUS_LABEL,
@@ -108,12 +109,20 @@ export function TeamMembersTable({
             {members.map((member) => (
               <tr key={member.id} className="border-b last:border-b-0">
                 <td className="px-4 py-3 font-medium">
-                  {member.full_name?.trim() || "Pengguna"}
-                  {member.id === currentUserId && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (You)
+                  <div className="flex items-center gap-3">
+                    <DesklabsAvatar
+                      name={member.full_name?.trim() || "Pengguna"}
+                      size="sm"
+                    />
+                    <span>
+                      {member.full_name?.trim() || "Pengguna"}
+                      {member.id === currentUserId && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          (You)
+                        </span>
+                      )}
                     </span>
-                  )}
+                  </div>
                 </td>
                 <td className="px-4 py-3">{member.email || "-"}</td>
                 <td className="px-4 py-3">

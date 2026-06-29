@@ -1,5 +1,8 @@
+import {
+  DesklabsAvatar,
+  type DesklabsAvatarSize,
+} from "@/components/ui/desklabs-avatar";
 import { cn } from "@/lib/utils";
-import { getWorkspaceInitials } from "@/lib/workspace/parse-organization-workspace";
 import type { WorkspaceDescriptor } from "@/lib/workspace/types";
 
 type WorkspaceAvatarProps = {
@@ -8,48 +11,36 @@ type WorkspaceAvatarProps = {
   className?: string;
 };
 
-const SIZE_CLASSES = {
-  sm: "h-8 w-8 text-[11px]",
-  md: "h-10 w-10 text-xs",
+const SIZE_MAP: Record<NonNullable<WorkspaceAvatarProps["size"]>, DesklabsAvatarSize> = {
+  sm: "sm",
+  md: "md",
 };
 
+/** @deprecated Use DesklabsAvatar with shape="rounded" directly */
 export function WorkspaceAvatar({
   workspace,
   size = "md",
   className,
 }: WorkspaceAvatarProps) {
-  const initials = getWorkspaceInitials(workspace.name);
-
   if (workspace.logoUrl) {
     return (
-      <span
-        className={cn(
-          "inline-flex shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200/80",
-          SIZE_CLASSES[size],
-          className,
-        )}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={workspace.logoUrl}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-      </span>
+      <DesklabsAvatar
+        name={workspace.name}
+        imageUrl={workspace.logoUrl}
+        size={SIZE_MAP[size]}
+        shape="rounded"
+        className={cn("ring-1 ring-slate-200/80", className)}
+      />
     );
   }
 
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg font-semibold text-white ring-1 ring-black/5",
-        SIZE_CLASSES[size],
-        className,
-      )}
-      style={{ backgroundColor: workspace.brandColor }}
-      aria-hidden
-    >
-      {initials}
-    </span>
+    <DesklabsAvatar
+      name={workspace.name}
+      size={SIZE_MAP[size]}
+      shape="rounded"
+      fallbackBackgroundColor={workspace.brandColor}
+      className={cn("text-white ring-1 ring-black/5", className)}
+    />
   );
 }

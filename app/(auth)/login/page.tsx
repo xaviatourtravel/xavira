@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
+import { DesklabsPageLoader } from "@/components/ui/desklabs-loading";
 
 function LoginAlerts({
   searchParams,
@@ -48,7 +49,7 @@ export default async function LoginPage({
       showLegalFooter
     >
       <LoginAlerts searchParams={params} />
-      <Suspense fallback={null}>
+      <Suspense fallback={<DesklabsPageLoader message="Menyiapkan halaman..." />}>
         <LoginForm />
       </Suspense>
     </AuthShell>

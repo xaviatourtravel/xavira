@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { createWorkspaceAction } from "@/app/onboarding/actions";
 import { INDUSTRY_OPTIONS } from "@/lib/onboarding/constants";
 import { Button } from "@/components/ui/button";
+import { DesklabsButton } from "@/components/ui/desklabs-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { SolutionIndustry } from "@/lib/onboarding/types";
@@ -193,9 +194,14 @@ export function FirstRunExperience({ ownerName }: FirstRunExperienceProps) {
             </div>
             <input type="hidden" name="workspaceName" value={workspaceName} />
             <input type="hidden" name="industry" value={industry} />
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? "Menyiapkan workspace..." : "Mulai menggunakan Desklabs"}
-            </Button>
+            <DesklabsButton
+              type="submit"
+              className="w-full"
+              loading={pending}
+              loadingLabel="Membuat workspace..."
+            >
+              Mulai menggunakan Desklabs
+            </DesklabsButton>
           </form>
         ) : null}
 

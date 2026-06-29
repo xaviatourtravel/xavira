@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { DesklabsAvatar } from "@/components/ui/desklabs-avatar";
 import { cn } from "@/lib/utils";
 
 import { getWorkspaceStatusToneClass } from "./styles";
@@ -19,27 +20,6 @@ type WorkspaceHeaderProps = {
   actions?: ReactNode;
   className?: string;
 };
-
-function WorkspaceAvatarFallback({
-  name,
-  icon: Icon,
-}: {
-  name: string;
-  icon?: LucideIcon;
-}) {
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-
-  return (
-    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-base font-semibold text-foreground shadow-sm ring-1 ring-border/60">
-      {Icon ? <Icon className="h-6 w-6 text-muted-foreground" /> : initials || "?"}
-    </div>
-  );
-}
 
 export function WorkspaceHeader({
   entityType,
@@ -62,24 +42,28 @@ export function WorkspaceHeader({
       </span>
     ) : null);
 
+  const Icon = icon;
+
+  const defaultAvatar =
+    imageUrl || !Icon ? (
+      <DesklabsAvatar
+        name={name}
+        imageUrl={imageUrl}
+        size="xl"
+        shape="rounded"
+        className="shadow-sm ring-1 ring-border/60"
+      />
+    ) : (
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-muted text-base font-semibold text-muted-foreground shadow-sm ring-1 ring-border/60">
+        <Icon className="h-6 w-6" aria-hidden />
+      </div>
+    );
+
   return (
     <header className={cn("py-5", className)}>
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
-          {avatar ?? (
-            <>
-              {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="h-14 w-14 rounded-2xl object-cover shadow-sm ring-1 ring-border/60"
-                />
-              ) : (
-                <WorkspaceAvatarFallback name={name} icon={icon} />
-              )}
-            </>
-          )}
+          {avatar ?? defaultAvatar}
 
           <div className="min-w-0 space-y-3">
             {entityType ? (

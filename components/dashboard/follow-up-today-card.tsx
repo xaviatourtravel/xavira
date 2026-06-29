@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { FollowUpTaskTitle } from "@/components/leads/follow-up-task-title";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 
 export type FollowUpTodayLead = {
   full_name: string | null;
@@ -64,7 +65,7 @@ export function FollowUpTodayCard({
                     )}
 
                     <Link
-                      href={`/leads/${task.lead_id}`}
+                      href={customerWorkspaceHref(task.lead_id)}
                       className="text-xs text-blue-600 hover:underline"
                     >
                       Detail Lead

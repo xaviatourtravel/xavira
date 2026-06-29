@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { createOrganizationInvite } from "@/app/(dashboard)/settings/team/actions";
-import { Button } from "@/components/ui/button";
+import { DesklabsButton } from "@/components/ui/desklabs-button";
 import { INVITE_ROLES, formatInviteRoleLabel } from "@/lib/team/invites";
 
 export function InviteMemberPanel() {
@@ -57,13 +57,13 @@ export function InviteMemberPanel() {
           </p>
         </div>
 
-        <Button
+        <DesklabsButton
           type="button"
           variant={isOpen ? "outline" : "default"}
           onClick={() => setIsOpen((current) => !current)}
         >
           {isOpen ? "Tutup" : "Invite Member"}
-        </Button>
+        </DesklabsButton>
       </div>
 
       {isOpen && (
@@ -102,9 +102,9 @@ export function InviteMemberPanel() {
             </div>
           </div>
 
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Membuat undangan..." : "Buat Undangan"}
-          </Button>
+          <DesklabsButton type="submit" loading={isPending} loadingLabel="Memproses...">
+            Buat Undangan
+          </DesklabsButton>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -117,9 +117,9 @@ export function InviteMemberPanel() {
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={handleCopyInviteUrl}>
+                <DesklabsButton type="button" variant="outline" onClick={handleCopyInviteUrl}>
                   Salin Link
-                </Button>
+                </DesklabsButton>
               </div>
               {copyFeedback && (
                 <p

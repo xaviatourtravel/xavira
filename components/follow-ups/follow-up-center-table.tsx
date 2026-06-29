@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { FollowUpTaskTitle } from "@/components/leads/follow-up-task-title";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import type { FollowUpCenterFilter } from "@/lib/follow-ups/list-filters";
 
 export type FollowUpCenterTask = {
@@ -56,7 +57,7 @@ export function FollowUpCenterTable({
                 </td>
                 <td className="px-4 py-3 font-medium">
                   <Link
-                    href={`/leads/${task.leadId}`}
+                    href={customerWorkspaceHref(task.leadId)}
                     className="text-blue-600 hover:underline"
                   >
                     {task.leadName}
@@ -84,7 +85,7 @@ export function FollowUpCenterTable({
                     )}
 
                     <Link
-                      href={`/leads/${task.leadId}`}
+                      href={customerWorkspaceHref(task.leadId)}
                       className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
                     >
                       Detail Lead

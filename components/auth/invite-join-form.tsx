@@ -7,7 +7,7 @@ import { joinWorkspaceViaInvite } from "@/actions/auth";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import type { OrganizationInvitePreview } from "@/lib/team/invites";
 import { formatInviteRoleLabel } from "@/lib/team/invites";
-import { Button } from "@/components/ui/button";
+import { DesklabsButton } from "@/components/ui/desklabs-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -67,13 +67,14 @@ export function InviteJoinForm({
           />
         </div>
 
-        <Button
+        <DesklabsButton
           type="submit"
           className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
-          disabled={pending}
+          loading={pending}
+          loadingLabel="Memproses..."
         >
-          {pending ? "Memproses..." : "Gabung Workspace"}
-        </Button>
+          Gabung Workspace
+        </DesklabsButton>
       </form>
 
       <div className="mt-6 border-t border-slate-100 pt-6 text-center">

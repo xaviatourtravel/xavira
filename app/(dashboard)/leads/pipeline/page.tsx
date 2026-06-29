@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 import { updateLeadStatus } from "./actions";
@@ -83,7 +84,7 @@ export default async function LeadPipelinePage() {
                   className="rounded-lg border bg-background p-3 text-sm"
                 >
                   <Link
-                    href={`/leads/${lead.id}`}
+                    href={customerWorkspaceHref(lead.id)}
                     className="font-medium hover:underline"
                   >
                     {lead.full_name}

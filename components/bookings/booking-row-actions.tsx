@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { deleteBooking } from "@/app/(dashboard)/bookings/actions";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 
 type BookingRowActionsProps = {
   bookingId: string;
@@ -19,7 +20,7 @@ export function BookingRowActions({
     <div className="flex items-center gap-2">
       {leadId && (
         <Link
-          href={`/leads/${leadId}`}
+          href={customerWorkspaceHref(leadId)}
           className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-600"
         >
           Lead

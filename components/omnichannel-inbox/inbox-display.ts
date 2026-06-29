@@ -81,33 +81,10 @@ export function formatInboxMessageTime(value: string) {
   }).format(new Date(value));
 }
 
-export function getConversationAvatarInitials(name: string) {
-  const parts = name.replace(/^@/, "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "?";
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
+import { getDesklabsAvatarInitials, getDesklabsAvatarColorClass } from "@/components/ui/desklabs-avatar";
 
-const AVATAR_COLORS = [
-  "bg-sky-100 text-sky-700",
-  "bg-violet-100 text-violet-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-indigo-100 text-indigo-700",
-] as const;
-
-export function getConversationAvatarColor(seed: string) {
-  let hash = 0;
-  for (let index = 0; index < seed.length; index += 1) {
-    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
+export const getConversationAvatarInitials = getDesklabsAvatarInitials;
+export const getConversationAvatarColor = getDesklabsAvatarColorClass;
 
 export function filterConversationsBySearch(
   conversations: OmnichannelConversationListItem[],

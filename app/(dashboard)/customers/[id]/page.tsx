@@ -1,19 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
+import { CustomerWorkspaceAccessDenied } from "@/components/customers/customer-workspace-access-denied";
 import { CustomerWorkspaceView } from "@/components/customers/customer-workspace-view";
-import {
-  hasMinimalCustomerAiContext,
-  loadCustomerAiSummaryContext,
-  readCustomerAiSummaryCache,
-} from "@/lib/ai/customer-summary";
+import { DesklabsCustomerWorkspaceSkeleton } from "@/components/ui/desklabs-loading";
 import { requireProfile } from "@/lib/auth/session";
-import { parseCustomerWorkspaceTab } from "@/lib/customers/constants";
 import { loadCustomerWorkspace } from "@/lib/customers/load-customer-workspace";
-import {
-  canReplyToOmnichannelConversation,
-  canSuggestOmnichannelReply,
-} from "@/lib/omnichannel-inbox/permissions";
+import { canViewLead } from "@/lib/leads/permissions";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function CustomerWorkspacePage({
@@ -21,81 +14,40 @@ export default async function CustomerWorkspacePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const activeTab = parseCustomerWorkspaceTab(query.tab);
   const { profile } = await requireProfile();
+
+  if (!canViewLead(profile)) {
+    return <CustomerWorkspaceAccessDenied />;
+  }
+
   const supabase = await createClient();
 
-  const [data, aiContext] = await Promise.all([
-    loadCustomerWorkspace(supabase, profile.organization_id, id),
-    loadCustomerAiSummaryContext(supabase, profile.organization_id, id),
-  ]);
+  const data = await loadCustomerWorkspace(supabase, profile.organization_id, id);
 
   if (!data) {
     notFound();
   }
 
-  const { data: leadMetadataRow } = await supabase
-    .from("leads")
-    .select("metadata")
-    .eq("id", id)
-    .eq("organization_id", profile.organization_id)
-    .maybeSingle();
-
-  const metadata =
-    leadMetadataRow?.metadata && typeof leadMetadataRow.metadata === "object"
-      ? (leadMetadataRow.metadata as Record<string, unknown>)
-      : {};
-
-  const initialAiSummary = aiContext
-    ? readCustomerAiSummaryCache(metadata, aiContext.fingerprint)
-    : null;
-  const hasMinimalAiContext = aiContext
-    ? hasMinimalCustomerAiContext(aiContext)
-    : false;
-
-  const permissionsConversation = {
-    assigned_user_id: data.conversationDetail?.assignedUserId ?? null,
-  };
-
-  const canReplyToConversation = data.conversationDetail
-    ? canReplyToOmnichannelConversation(profile, permissionsConversation)
-    : false;
-  const canSuggestReply = data.conversationDetail
-    ? canSuggestOmnichannelReply(profile, permissionsConversation)
-    : false;
-  const isUnassignedForAgent =
-    permissionsConversation.assigned_user_id === null &&
-    !canReplyToConversation;
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {query.error ? (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
+        <div className="mx-auto max-w-6xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {decodeURIComponent(query.error)}
         </div>
       ) : null}
 
       {query.success ? (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+        <div className="mx-auto max-w-6xl rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
           {decodeURIComponent(query.success)}
         </div>
       ) : null}
 
-      <Suspense fallback={<div className="text-sm text-muted-foreground">Loading workspace...</div>}>
-        <CustomerWorkspaceView
-          data={data}
-          activeTab={activeTab}
-          canReplyToConversation={canReplyToConversation}
-          canSuggestReply={canSuggestReply}
-          isUnassignedForAgent={isUnassignedForAgent}
-          hasBooking={data.bookings.length > 0}
-          initialAiSummary={initialAiSummary}
-          hasMinimalAiContext={hasMinimalAiContext}
-        />
+      <Suspense fallback={<DesklabsCustomerWorkspaceSkeleton />}>
+        <CustomerWorkspaceView data={data} />
       </Suspense>
     </div>
   );

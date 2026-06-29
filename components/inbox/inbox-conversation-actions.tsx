@@ -17,6 +17,7 @@ import {
   type InboxStatus,
 } from "@/lib/inbox/constants";
 import type { OrgProfileOption } from "@/lib/leads/assignment";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 
 type InboxConversationActionsProps = {
   conversationId: string;
@@ -261,7 +262,7 @@ export function InboxLeadLink({ leadId, leadName }: InboxLeadLinkProps) {
         Percakapan ini sudah dikonversi menjadi lead CRM.
       </p>
       <Link
-        href={`/leads/${leadId}`}
+        href={customerWorkspaceHref(leadId)}
         className="mt-4 inline-flex text-sm font-medium text-green-900 underline"
       >
         Buka lead: {leadName ?? leadId}

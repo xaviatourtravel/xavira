@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { SettingsWorkspace } from "@/components/settings/settings-workspace";
+import { DesklabsWorkspaceSkeleton } from "@/components/ui/desklabs-loading";
 import { isSettingsSectionId, type SettingsSectionId } from "@/lib/settings/constants";
 import { loadSettingsWorkspaceData } from "@/lib/settings/queries";
 
@@ -45,7 +46,7 @@ export default async function SettingsPage({
   const flashError = params.error ? decodeURIComponent(params.error) : null;
 
   return (
-    <Suspense fallback={<div className="text-sm text-muted-foreground">Loading settings...</div>}>
+    <Suspense fallback={<DesklabsWorkspaceSkeleton message="Menyiapkan halaman..." cards={2} />}>
       <SettingsWorkspace
         data={data}
         flashMessage={flashMessage}

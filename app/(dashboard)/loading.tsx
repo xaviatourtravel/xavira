@@ -1,3 +1,5 @@
+import { DesklabsWorkspaceSkeleton } from "@/components/ui/desklabs-loading";
+
 export default function DashboardLoading() {
-  return null;
+  return <DesklabsWorkspaceSkeleton message="Menyiapkan workspace..." />;
 }

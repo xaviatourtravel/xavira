@@ -33,7 +33,7 @@ export function CustomerConversationPanel({
         onToggleLeadPanel={() => setLeadPanelOpen((value) => !value)}
         showDetailsToggle={false}
         showBackButton={false}
-        backHref={`/customers/${customerId}?tab=overview`}
+        backHref={`/customers/${customerId}`}
       />
     </div>
   );

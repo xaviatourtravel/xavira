@@ -7,8 +7,10 @@ import { MoreHorizontal } from "lucide-react";
 import { bulkDeleteLeads } from "@/app/(dashboard)/leads/actions";
 import { EditLeadModal } from "@/components/leads/edit-lead-modal";
 import { LeadTemperatureInlineSelect } from "@/components/leads/lead-temperature-inline-select";
+import { DesklabsAvatar } from "@/components/ui/desklabs-avatar";
 import { buttonVariants } from "@/components/ui/button";
 import type { LeadFormOptions } from "@/lib/leads/lead-form-types";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import type { Profile } from "@/types/app-types";
 import { cn } from "@/lib/utils";
 
@@ -126,16 +128,19 @@ export function LeadsListTable({
             className="rounded-2xl border bg-card p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Link
-                  href={`/leads/${lead.id}`}
-                  className="block truncate text-base font-semibold text-primary hover:underline"
-                >
-                  {lead.fullName}
-                </Link>
-                <p className="mt-1 text-sm capitalize text-muted-foreground">
-                  {lead.statusLabel}
-                </p>
+              <div className="flex min-w-0 items-start gap-3">
+                <DesklabsAvatar name={lead.fullName} size="md" />
+                <div className="min-w-0">
+                  <Link
+                    href={customerWorkspaceHref(lead.id)}
+                    className="block truncate text-base font-semibold text-primary hover:underline"
+                  >
+                    {lead.fullName}
+                  </Link>
+                  <p className="mt-1 text-sm capitalize text-muted-foreground">
+                    {lead.statusLabel}
+                  </p>
+                </div>
               </div>
 
               <details className="relative">
@@ -144,7 +149,7 @@ export function LeadsListTable({
                 </summary>
                 <div className="absolute right-0 z-10 mt-2 min-w-[160px] rounded-xl border bg-background p-1 shadow-lg">
                   <Link
-                    href={`/leads/${lead.id}`}
+                    href={customerWorkspaceHref(lead.id)}
                     className="flex min-h-[44px] items-center rounded-lg px-3 text-sm hover:bg-muted"
                   >
                     View detail
@@ -252,9 +257,10 @@ export function LeadsListTable({
                 )}
                 <td className="px-4 py-3 font-medium">
                   <Link
-                    href={`/leads/${lead.id}`}
-                    className="text-blue-600 hover:underline"
+                    href={customerWorkspaceHref(lead.id)}
+                    className="inline-flex items-center gap-3 text-blue-600 hover:underline"
                   >
+                    <DesklabsAvatar name={lead.fullName} size="sm" />
                     {lead.fullName}
                   </Link>
                 </td>

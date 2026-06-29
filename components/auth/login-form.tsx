@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { login } from "@/actions/auth";
 import { AuthAlert } from "@/components/auth/auth-alert";
-import { Button } from "@/components/ui/button";
+import { DesklabsButton } from "@/components/ui/desklabs-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -56,13 +56,14 @@ export function LoginForm() {
           />
         </div>
 
-        <Button
+        <DesklabsButton
           type="submit"
           className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
-          disabled={pending}
+          loading={pending}
+          loadingLabel="Masuk..."
         >
-          {pending ? "Memproses..." : "Masuk"}
-        </Button>
+          Masuk
+        </DesklabsButton>
       </form>
 
       <div className="mt-6 border-t border-slate-100 pt-6 text-center">

@@ -7,6 +7,7 @@ import {
   type CriticalLeadSourceRecord,
 } from "@/lib/leads/critical-leads";
 import { requireProfile } from "@/lib/auth/session";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -135,7 +136,7 @@ export default async function CriticalLeadsPage({
                   <tr key={lead.id} className="border-b last:border-b-0">
                     <td className="px-4 py-3 font-medium">
                       <Link
-                        href={`/leads/${lead.id}`}
+                        href={customerWorkspaceHref(lead.id)}
                         className="text-blue-600 hover:underline"
                       >
                         {lead.fullName}
@@ -168,7 +169,7 @@ export default async function CriticalLeadsPage({
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
-                          href={`/leads/${lead.id}`}
+                          href={customerWorkspaceHref(lead.id)}
                           className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
                         >
                           View Lead
@@ -186,7 +187,7 @@ export default async function CriticalLeadsPage({
                         ) : null}
 
                         <Link
-                          href={`/leads/${lead.id}`}
+                          href={customerWorkspaceHref(lead.id)}
                           className="rounded bg-blue-600 px-2 py-1 text-xs text-white"
                         >
                           Create Follow Up

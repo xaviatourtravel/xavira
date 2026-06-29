@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, RefreshCw, Sparkles } from "lucide-react";
+import { Copy, Sparkles } from "lucide-react";
 
 import { generateCustomerAiSummaryAction } from "@/app/(dashboard)/customers/[id]/ai-actions";
 import { buttonVariants } from "@/components/ui/button";
+import { DesklabsInlineLoading, DesklabsSpinner } from "@/components/ui/desklabs-loading";
 import {
   Card,
   CardContent,
@@ -148,7 +149,11 @@ export function CustomerAiSummaryPanel({
                 "gap-1.5",
               )}
             >
-              <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+              {isPending ? (
+                <DesklabsSpinner size="sm" label="Memproses..." />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
               Regenerate
             </button>
           ) : null}
@@ -156,8 +161,8 @@ export function CustomerAiSummaryPanel({
       </div>
 
       {isPending ? (
-        <div className="rounded-2xl border bg-muted/30 p-6 text-sm text-muted-foreground">
-          Analyzing customer context…
+        <div className="rounded-2xl border bg-muted/30 p-6">
+          <DesklabsInlineLoading message="AI sedang menyusun ringkasan..." />
         </div>
       ) : null}
 

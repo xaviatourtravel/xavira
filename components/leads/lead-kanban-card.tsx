@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { updateKanbanLeadStatus } from "@/app/(dashboard)/leads/kanban/actions";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import { formatAssignedUserLabel } from "@/lib/leads/assignment";
 import { cn } from "@/lib/utils";
 
@@ -167,7 +168,7 @@ export function LeadKanbanCard({ lead }: LeadKanbanCardProps) {
         )}
 
         <Link
-          href={`/leads/${lead.id}`}
+          href={customerWorkspaceHref(lead.id)}
           className={cn(
             compactButtonClassName,
             "border-blue-600 text-blue-700 hover:bg-blue-50",

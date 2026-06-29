@@ -44,6 +44,7 @@ import {
   getTomorrowDateValue,
 } from "@/lib/omnichannel-inbox/inbox-follow-up";
 import type { ConvertLeadFormPrefill } from "@/lib/omnichannel-inbox/ai-lead-extraction";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { formatAssignedUserLabel } from "@/lib/leads/assignment";
 import { cn } from "@/lib/utils";
@@ -312,7 +313,7 @@ export function InboxLeadPanel({
                 {leadId ? (
                   <div className="grid gap-2 pt-1">
                     <Link
-                      href={`/leads/${leadId}`}
+                      href={customerWorkspaceHref(leadId)}
                       className={cn(buttonVariants({ size: "sm" }), "w-full")}
                     >
                       View lead
@@ -743,7 +744,7 @@ function LinkedLeadDetails({
       </div>
       <div className="grid gap-2">
         <Link
-          href={`/leads/${leadId}`}
+          href={customerWorkspaceHref(leadId)}
           className={cn(
             buttonVariants({ size: "sm" }),
             "inline-flex w-full items-center justify-center gap-1",

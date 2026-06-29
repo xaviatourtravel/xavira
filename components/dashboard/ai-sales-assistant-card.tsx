@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { customerWorkspaceHref } from "@/lib/customers/routes";
+
 type LeadPriority = {
   id: string;
   full_name: string;
@@ -36,7 +38,7 @@ export function AiSalesAssistantCard({ leads }: Props) {
             <div key={lead.id} className="rounded-lg border p-3">
               <div className="flex items-center justify-between gap-3">
                 <Link
-                  href={`/leads/${lead.id}`}
+                  href={customerWorkspaceHref(lead.id)}
                   className="min-w-0 truncate font-medium hover:underline"
                 >
                   #{index + 1} {lead.full_name}
@@ -52,7 +54,7 @@ export function AiSalesAssistantCard({ leads }: Props) {
               </p>
 
               <Link
-                href={`/leads/${lead.id}`}
+                href={customerWorkspaceHref(lead.id)}
                 className="mt-2 inline-flex text-xs text-blue-600 hover:underline"
               >
                 Buka Lead

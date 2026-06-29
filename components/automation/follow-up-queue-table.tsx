@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { generateAiSalesAssistant } from "@/app/(dashboard)/leads/[id]/ai-actions";
 import { completeFollowUpFromQueue } from "@/app/(dashboard)/follow-ups/actions";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -421,7 +422,7 @@ export function FollowUpQueueTable({ items }: FollowUpQueueTableProps) {
               <tr key={item.leadId} className="border-b align-top last:border-b-0">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/leads/${item.leadId}`}
+                    href={customerWorkspaceHref(item.leadId)}
                     className="font-medium text-primary hover:underline"
                   >
                     {item.leadName}

@@ -1,57 +1,44 @@
-import { cn } from "@/lib/utils";
+"use client";
 
 import {
-  getConversationAvatarColor,
-  getConversationAvatarInitials,
-} from "@/components/omnichannel-inbox/inbox-display";
+  DesklabsAvatar,
+  type DesklabsAvatarSize,
+} from "@/components/ui/desklabs-avatar";
 
 type CustomerAvatarProps = {
   displayName: string;
   avatarUrl?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
+  status?: "online" | "offline" | "busy" | "away" | null;
 };
 
-const SIZE_CLASSES = {
-  sm: "h-9 w-9 text-xs",
-  md: "h-11 w-11 text-sm",
-  lg: "h-14 w-14 text-base",
-} as const;
+const SIZE_MAP: Record<NonNullable<CustomerAvatarProps["size"]>, DesklabsAvatarSize> = {
+  sm: "sm",
+  md: "md",
+  lg: "lg",
+};
 
+/** @deprecated Use DesklabsAvatar directly */
 export function CustomerAvatar({
   displayName,
   avatarUrl,
   size = "md",
   className,
+  status = null,
 }: CustomerAvatarProps) {
-  const initials = getConversationAvatarInitials(displayName);
-  const colorClass = getConversationAvatarColor(displayName);
-
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={displayName}
-        className={cn(
-          "shrink-0 rounded-full object-cover ring-1 ring-black/5",
-          SIZE_CLASSES[size],
-          className,
-        )}
-      />
-    );
-  }
-
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold ring-1 ring-black/5",
-        SIZE_CLASSES[size],
-        colorClass,
-        className,
-      )}
-      aria-hidden
-    >
-      {initials}
-    </span>
+    <DesklabsAvatar
+      name={displayName}
+      imageUrl={avatarUrl}
+      size={SIZE_MAP[size]}
+      status={status}
+      className={className}
+    />
   );
 }
+
+export {
+  getDesklabsAvatarInitials as getConversationAvatarInitials,
+  getDesklabsAvatarColorClass as getConversationAvatarColor,
+} from "@/components/ui/desklabs-avatar";

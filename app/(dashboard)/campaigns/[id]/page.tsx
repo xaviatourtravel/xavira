@@ -8,6 +8,7 @@ import {
   type CampaignStatus,
 } from "@/lib/campaigns/constants";
 import { loadCampaignDetailAttribution } from "@/lib/campaigns/queries";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 import {
   formatAssignedUserLabel,
   getLeadAssigneeName,
@@ -314,7 +315,7 @@ export default async function CampaignDetailPage({
                   <tr key={lead.id} className="border-b last:border-b-0">
                     <td className="px-4 py-3 font-medium">
                       <Link
-                        href={`/leads/${lead.id}`}
+                        href={customerWorkspaceHref(lead.id)}
                         className="text-blue-600 hover:underline"
                       >
                         {lead.full_name}

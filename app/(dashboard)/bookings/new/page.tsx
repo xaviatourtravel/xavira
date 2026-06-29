@@ -4,6 +4,7 @@ import {
   resolveComingSoonPreset,
 } from "@/lib/navigation/coming-soon-presets";
 import { requireProfile } from "@/lib/auth/session";
+import { customerWorkspaceHref } from "@/lib/customers/routes";
 
 type NewBookingPageProps = {
   searchParams: Promise<{
@@ -14,7 +15,7 @@ type NewBookingPageProps = {
 export default async function NewBookingPage({ searchParams }: NewBookingPageProps) {
   await requireProfile();
   const params = await searchParams;
-  const backHref = params.lead_id ? `/leads/${params.lead_id}` : "/bookings";
+  const backHref = params.lead_id ? customerWorkspaceHref(params.lead_id) : "/bookings";
   const backLabel = params.lead_id ? "Kembali ke customer" : "Kembali ke Booking";
 
   const preset = resolveComingSoonPreset({

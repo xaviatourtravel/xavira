@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 const FILTERS: Array<{ value: OmnichannelInboxFilter; label: string }> = [
   { value: "all", label: "All" },
+  { value: "whatsapp", label: "WhatsApp" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
   { value: "unassigned", label: "Unassigned" },

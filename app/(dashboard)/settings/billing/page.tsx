@@ -1,7 +1,5 @@
-import { ComingSoonPage } from "@/components/layout/coming-soon-page";
-import { requireProfile } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
-export default async function BillingSettingsPage() {
-  await requireProfile();
-  return <ComingSoonPage preset="billing" />;
+export default function BillingSettingsRedirectPage() {
+  redirect("/billing");
 }

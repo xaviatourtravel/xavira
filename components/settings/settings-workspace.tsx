@@ -145,12 +145,19 @@ export function SettingsWorkspace({
           </nav>
 
           <div className="mt-4 rounded-2xl border bg-muted/20 p-4 text-xs leading-relaxed text-muted-foreground">
-            Need webhook setup for Instagram?{" "}
+            Hubungkan WhatsApp dari{" "}
+            <Link
+              href="/settings/integrations/whatsapp"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              halaman integrasi WhatsApp
+            </Link>
+            . Perlu webhook Instagram?{" "}
             <Link
               href="/settings/integrations/instagram/webhook"
               className="font-medium text-foreground underline underline-offset-4"
             >
-              Open webhook tools
+              Buka webhook tools
             </Link>
           </div>
         </aside>

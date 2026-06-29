@@ -1,7 +1,19 @@
-import { ComingSoonPage } from "@/components/layout/coming-soon-page";
+import { AccountPageShell } from "@/components/account/account-page-shell";
+import { SupportForm } from "@/components/account/support-form";
 import { requireProfile } from "@/lib/auth/session";
 
 export default async function SupportPage() {
-  await requireProfile();
-  return <ComingSoonPage preset="support" />;
+  const { user, profile } = await requireProfile();
+
+  return (
+    <AccountPageShell
+      title="Hubungi Support"
+      description="Kirim pertanyaan atau laporan kendala ke tim Desklabs."
+    >
+      <SupportForm
+        defaultName={profile.full_name?.trim() || ""}
+        defaultEmail={user.email ?? ""}
+      />
+    </AccountPageShell>
+  );
 }

@@ -427,6 +427,32 @@ function IntegrationsSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
   return (
     <div className="space-y-6">
       <SettingsCard
+        title="Integrasi"
+        description="Kelola WhatsApp, Instagram, Facebook, dan channel lainnya."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/settings/integrations/whatsapp"
+            className="rounded-xl border bg-emerald-50/40 px-4 py-4 transition-colors hover:bg-emerald-50"
+          >
+            <p className="text-sm font-semibold text-slate-950">WhatsApp</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              Hubungkan nomor WhatsApp dan scan QR langsung dari Desklabs.
+            </p>
+          </Link>
+          <Link
+            href="/settings?section=integrations"
+            className="rounded-xl border bg-muted/20 px-4 py-4 transition-colors hover:bg-muted/40"
+          >
+            <p className="text-sm font-semibold text-slate-950">Semua Integrasi</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              Lihat status Instagram, Facebook, OpenAI, dan layanan lainnya.
+            </p>
+          </Link>
+        </div>
+      </SettingsCard>
+
+      <SettingsCard
         title="Connected services"
         description="Manage Instagram, Facebook Messenger, WhatsApp, OpenAI, and Google Drive from one workspace."
       >
@@ -470,6 +496,12 @@ function IntegrationsSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
 
       {data.canManageIntegrations ? (
         <div className="flex flex-wrap gap-4 text-sm">
+          <Link
+            href="/settings/integrations/whatsapp"
+            className="font-medium text-primary hover:underline"
+          >
+            WhatsApp connection
+          </Link>
           <Link
             href="/settings/integrations/instagram/webhook"
             className="font-medium text-primary hover:underline"

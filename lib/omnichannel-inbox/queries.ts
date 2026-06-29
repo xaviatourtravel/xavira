@@ -25,6 +25,7 @@ export type OmnichannelInboxFilter =
   | "all"
   | "instagram"
   | "facebook"
+  | "whatsapp"
   | "unassigned"
   | "mine"
   | "hot_leads";
@@ -106,6 +107,7 @@ export function parseOmnichannelInboxFilter(
   switch (value) {
     case "instagram":
     case "facebook":
+    case "whatsapp":
     case "unassigned":
     case "mine":
     case "hot_leads":
@@ -124,6 +126,8 @@ export function buildConversationListFilters(
       return { channel: "instagram" };
     case "facebook":
       return { channel: "facebook" };
+    case "whatsapp":
+      return { channel: "whatsapp" };
     case "unassigned":
       return { unassignedOnly: true };
     case "mine":

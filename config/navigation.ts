@@ -61,7 +61,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     badgeKey: "communication",
     items: [
       { title: "Inbox", href: "/inbox" },
-      { title: "WhatsApp", href: "/inbox?channel=whatsapp" },
+      { title: "WhatsApp", href: "/inbox?filter=whatsapp" },
       { title: "Instagram", href: "/inbox?channel=instagram" },
       { title: "Email", href: "/inbox?channel=email" },
     ],

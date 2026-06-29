@@ -9,6 +9,7 @@ export function buildOmnichannelFilterCounts(
 ): OmnichannelFilterCounts {
   return {
     all: conversations.length,
+    whatsapp: conversations.filter((item) => item.channel === "whatsapp").length,
     instagram: conversations.filter((item) => item.channel === "instagram").length,
     facebook: conversations.filter((item) => item.channel === "facebook").length,
     unassigned: conversations.filter((item) => !item.assignedUserId).length,

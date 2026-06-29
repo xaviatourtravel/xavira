@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, MessageSquareText, PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import { markOmnichannelConversationAsRead } from "@/app/(dashboard)/inbox/omnichannel-actions";
+import { markWhatsappConversationAsRead } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
@@ -26,6 +27,7 @@ type OmnichannelConversationDetailPanelProps = {
   leadPanelOpen: boolean;
   onToggleLeadPanel: () => void;
   showDetailsToggle?: boolean;
+  readOnly?: boolean;
   backHref?: string;
   showBackButton?: boolean;
 };
@@ -50,6 +52,7 @@ export function OmnichannelConversationDetailPanel({
   leadPanelOpen,
   onToggleLeadPanel,
   showDetailsToggle = true,
+  readOnly = false,
   backHref = "/inbox",
   showBackButton = false,
 }: OmnichannelConversationDetailPanelProps) {
@@ -91,8 +94,13 @@ export function OmnichannelConversationDetailPanel({
     }
 
     markedReadRef.current = conversation.id;
+    if (readOnly || conversation.channel === "whatsapp") {
+      void markWhatsappConversationAsRead(conversation.id);
+      return;
+    }
+
     void markOmnichannelConversationAsRead(conversation.id);
-  }, [conversation.id, conversation.unreadCount]);
+  }, [conversation.channel, conversation.id, conversation.unreadCount, readOnly]);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-background">
@@ -223,15 +231,17 @@ export function OmnichannelConversationDetailPanel({
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 shrink-0 border-t bg-background">
-        <OmnichannelConversationReplyBox
-          conversationId={conversation.id}
-          canReply={canReply}
-          canSuggestReply={canSuggestReply}
-          isUnassignedForAgent={isUnassignedForAgent}
-          onOptimisticMessage={setOptimisticMessageText}
-        />
-      </div>
+      {!readOnly ? (
+        <div className="sticky bottom-0 z-10 shrink-0 border-t bg-background">
+          <OmnichannelConversationReplyBox
+            conversationId={conversation.id}
+            canReply={canReply}
+            canSuggestReply={canSuggestReply}
+            isUnassignedForAgent={isUnassignedForAgent}
+            onOptimisticMessage={setOptimisticMessageText}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

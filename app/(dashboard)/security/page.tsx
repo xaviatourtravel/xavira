@@ -1,7 +1,16 @@
-import { ComingSoonPage } from "@/components/layout/coming-soon-page";
+import { AccountPageShell } from "@/components/account/account-page-shell";
+import { SecurityView } from "@/components/account/security-view";
 import { requireProfile } from "@/lib/auth/session";
 
 export default async function SecurityPage() {
-  await requireProfile();
-  return <ComingSoonPage preset="security" />;
+  const { user } = await requireProfile();
+
+  return (
+    <AccountPageShell
+      title="Keamanan"
+      description="Kelola password, sesi login, dan perlindungan akun."
+    >
+      <SecurityView email={user.email ?? ""} />
+    </AccountPageShell>
+  );
 }

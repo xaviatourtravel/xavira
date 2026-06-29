@@ -44,6 +44,7 @@ type OmnichannelInboxViewProps = {
   canSuggestReply: boolean;
   canConvert: boolean;
   canCreateFollowUp: boolean;
+  readOnly?: boolean;
   isUnassignedForAgent?: boolean;
   initialError?: string | null;
   initialSuccess?: string | null;
@@ -76,6 +77,7 @@ export function OmnichannelInboxView({
   canSuggestReply,
   canConvert,
   canCreateFollowUp,
+  readOnly = false,
   isUnassignedForAgent = false,
   initialError = null,
   initialSuccess = null,
@@ -174,13 +176,14 @@ export function OmnichannelInboxView({
                 canReply={canReply}
                 canSuggestReply={canSuggestReply}
                 isUnassignedForAgent={isUnassignedForAgent}
+                readOnly={readOnly}
                 leadPanelOpen={leadPanelOpen}
                 onToggleLeadPanel={toggleLeadPanel}
-                showDetailsToggle
+                showDetailsToggle={!readOnly}
                 backHref={inboxListHref}
                 showBackButton
               />
-              {leadPanelOpen ? (
+              {!readOnly && leadPanelOpen ? (
                 <>
                   <button
                     type="button"

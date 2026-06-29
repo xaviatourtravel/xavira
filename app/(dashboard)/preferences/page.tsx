@@ -1,7 +1,16 @@
-import { ComingSoonPage } from "@/components/layout/coming-soon-page";
+import { AccountPageShell } from "@/components/account/account-page-shell";
+import { PreferencesForm } from "@/components/account/preferences-form";
 import { requireProfile } from "@/lib/auth/session";
 
 export default async function PreferencesPage() {
   await requireProfile();
-  return <ComingSoonPage preset="preferences" />;
+
+  return (
+    <AccountPageShell
+      title="Preferensi"
+      description="Sesuaikan bahasa, tampilan, dan format regional workspace Anda."
+    >
+      <PreferencesForm />
+    </AccountPageShell>
+  );
 }

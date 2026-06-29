@@ -36,15 +36,23 @@ export function OmnichannelConversationList({
   searchQuery?: string;
 }) {
   if (conversations.length === 0) {
+    const isWhatsappFilter = activeFilter === "whatsapp";
+
     return (
       <div className="flex h-full flex-col items-center justify-center px-6 py-8 text-center">
         <p className="text-sm font-semibold text-foreground">
-          {searchQuery.trim() ? "No matching conversations" : "No conversations yet"}
+          {searchQuery.trim()
+            ? "Tidak ada percakapan yang cocok"
+            : isWhatsappFilter
+              ? "Belum ada percakapan WhatsApp."
+              : "No conversations yet"}
         </p>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
           {searchQuery.trim()
-            ? "Try a different name, phone number, or message keyword."
-            : "New Instagram and Facebook customer messages will appear here."}
+            ? "Coba kata kunci lain, nomor telepon, atau isi pesan."
+            : isWhatsappFilter
+              ? "Pesan masuk dari WhatsApp akan muncul di sini setelah webhook aktif."
+              : "New Instagram and Facebook customer messages will appear here."}
         </p>
       </div>
     );

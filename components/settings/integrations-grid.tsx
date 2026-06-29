@@ -89,6 +89,7 @@ export function IntegrationsGrid({
           const isRowPending = isPending && pendingProvider === integration.provider;
           const isConnected = integration.status === "connected";
           const isInstagram = integration.provider === "instagram_business";
+          const isWhatsApp = integration.provider === "whatsapp_cloud";
 
           return (
             <div
@@ -149,6 +150,13 @@ export function IntegrationsGrid({
                       >
                         Connect
                       </a>
+                    ) : isWhatsApp ? (
+                      <Link
+                        href="/settings/integrations/whatsapp"
+                        className={cn(buttonVariants({ size: "sm" }))}
+                      >
+                        Connect
+                      </Link>
                     ) : (
                       <Button
                         type="button"
@@ -165,6 +173,13 @@ export function IntegrationsGrid({
                     {isInstagram ? (
                       <Link
                         href="/content/instagram-analytics"
+                        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                      >
+                        Configure
+                      </Link>
+                    ) : isWhatsApp ? (
+                      <Link
+                        href="/settings/integrations/whatsapp"
                         className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                       >
                         Configure

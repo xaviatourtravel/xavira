@@ -10,12 +10,15 @@ import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
 import {
+  formatInboxActiveLabel,
   formatInboxMessageTime,
-  formatInboxRelativeTime,
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
+import { WhatsappMessageBubble } from "@/components/omnichannel-inbox/whatsapp-message-bubble";
 import { buttonVariants } from "@/components/ui/button";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
+import { retryWhatsappConversationReplyAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
+import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +27,10 @@ type OmnichannelConversationDetailPanelProps = {
   canReply: boolean;
   canSuggestReply?: boolean;
   isUnassignedForAgent?: boolean;
-  leadPanelOpen: boolean;
-  onToggleLeadPanel: () => void;
-  showDetailsToggle?: boolean;
+  mobilePanelOpen?: boolean;
+  onToggleMobilePanel?: () => void;
   readOnly?: boolean;
+  channel?: OmnichannelChannel;
   backHref?: string;
   showBackButton?: boolean;
 };
@@ -49,10 +52,10 @@ export function OmnichannelConversationDetailPanel({
   canReply,
   canSuggestReply = false,
   isUnassignedForAgent = false,
-  leadPanelOpen,
-  onToggleLeadPanel,
-  showDetailsToggle = true,
+  mobilePanelOpen = false,
+  onToggleMobilePanel,
   readOnly = false,
+  channel,
   backHref = "/inbox",
   showBackButton = false,
 }: OmnichannelConversationDetailPanelProps) {
@@ -63,6 +66,8 @@ export function OmnichannelConversationDetailPanel({
   const markedReadRef = useRef<string | null>(null);
 
   const displayName = getConversationDisplayName(conversation);
+  const isWhatsapp = (channel ?? conversation.channel) === "whatsapp";
+  const showComposer = !readOnly || isWhatsapp;
 
   const displayMessages: MessageRow[] = optimisticMessageText
     ? [
@@ -76,6 +81,7 @@ export function OmnichannelConversationDetailPanel({
           attachments_json: [],
           sent_by_user_id: null,
           created_at: new Date().toISOString(),
+          deliveryStatus: "pending",
         },
       ]
     : conversation.messages;
@@ -108,7 +114,7 @@ export function OmnichannelConversationDetailPanel({
         {showBackButton ? (
           <Link
             href={backHref}
-            aria-label="Back to conversations"
+            aria-label="Kembali ke percakapan"
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-11 w-11 shrink-0 rounded-full p-0 lg:hidden",
@@ -126,54 +132,85 @@ export function OmnichannelConversationDetailPanel({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-foreground">
+            <h2
+              className="truncate text-sm font-semibold text-foreground"
+              title={displayName}
+            >
               {displayName}
             </h2>
             <OmnichannelChannelBadge channel={conversation.channel} />
           </div>
-          <p className="truncate text-[11px] text-muted-foreground">
-            Active {formatInboxRelativeTime(conversation.lastMessageAt)}
+          <p
+            className="truncate text-[11px] text-muted-foreground"
+            title={formatInboxActiveLabel(conversation.lastMessageAt)}
+          >
+            {formatInboxActiveLabel(conversation.lastMessageAt)}
           </p>
         </div>
 
-        {showDetailsToggle ? (
+        {onToggleMobilePanel ? (
           <button
             type="button"
-            onClick={onToggleLeadPanel}
+            onClick={onToggleMobilePanel}
             className={cn(
               buttonVariants({
-                variant: leadPanelOpen ? "default" : "outline",
+                variant: mobilePanelOpen ? "default" : "outline",
                 size: "sm",
               }),
-              "h-7 shrink-0 gap-1.5 rounded-lg px-2.5 text-xs",
+              "h-7 shrink-0 gap-1.5 rounded-lg px-2.5 text-xs lg:hidden",
             )}
-            aria-expanded={leadPanelOpen}
+            aria-expanded={mobilePanelOpen}
           >
-            {leadPanelOpen ? (
+            {mobilePanelOpen ? (
               <>
                 <PanelRightClose className="h-3.5 w-3.5" />
-                Hide Details
+                Intelligence
               </>
             ) : (
               <>
                 <PanelRightOpen className="h-3.5 w-3.5" />
-                Show Details
+                Intelligence
               </>
             )}
           </button>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[#f4f6f8] dark:bg-muted/15">
-        <div className="flex w-full flex-col gap-1 px-3 py-2 sm:px-4">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 dark:bg-muted/15">
+        <div
+          className={cn(
+            "flex w-full flex-col px-3 py-3 sm:px-4",
+            isWhatsapp ? "gap-3" : "gap-1 py-2",
+          )}
+        >
           {displayMessages.length === 0 ? (
-            <div className="flex flex-col py-10">
+            <div className="flex flex-col items-center py-10 text-center">
               <MessageSquareText className="h-6 w-6 text-muted-foreground/50" />
-              <p className="mt-2 text-sm font-medium text-foreground">No messages yet</p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {isWhatsapp ? "Belum ada pesan" : "No messages yet"}
+              </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Customer messages will appear here.
+                {isWhatsapp
+                  ? "Pesan WhatsApp akan muncul di sini."
+                  : "Customer messages will appear here."}
               </p>
             </div>
+          ) : isWhatsapp ? (
+            displayMessages.map((message) => (
+              <WhatsappMessageBubble
+                key={message.id}
+                message={message}
+                onRetry={
+                  message.deliveryStatus === "failed" && message.id !== "optimistic-outgoing"
+                    ? async () => {
+                        const formData = new FormData();
+                        formData.set("message_id", message.id);
+                        await retryWhatsappConversationReplyAction(formData);
+                      }
+                    : undefined
+                }
+              />
+            ))
           ) : (
             displayMessages.map((message) => {
               const isIncoming = message.direction === "incoming";
@@ -231,12 +268,13 @@ export function OmnichannelConversationDetailPanel({
         </div>
       </div>
 
-      {!readOnly ? (
+      {showComposer ? (
         <div className="sticky bottom-0 z-10 shrink-0 border-t bg-background">
           <OmnichannelConversationReplyBox
             conversationId={conversation.id}
+            channel={conversation.channel}
             canReply={canReply}
-            canSuggestReply={canSuggestReply}
+            canSuggestReply={canSuggestReply && !isWhatsapp}
             isUnassignedForAgent={isUnassignedForAgent}
             onOptimisticMessage={setOptimisticMessageText}
           />

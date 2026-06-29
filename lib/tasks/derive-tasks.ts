@@ -34,7 +34,7 @@ function buildConversationTask(
     status: string;
   },
 ): WorkspaceTask {
-  const priority = conversation.status === "hot_lead" ? "urgent" : "high";
+  const priority = conversation.status === "following_up" ? "urgent" : "high";
   const customerName = conversation.customer_name?.trim() || "Customer";
   const href = `/inbox?c=${conversation.id}`;
 

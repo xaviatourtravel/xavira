@@ -52,9 +52,24 @@ export function WhatsAppWebhookPanel({ webhookUrl }: WhatsAppWebhookPanelProps) 
         </div>
       </AccountCard>
 
+      <AccountCard
+        title="Rekomendasi Event Webhook"
+        description="Untuk MVP lokal, aktifkan hanya event yang dibutuhkan agar webhook tetap ringan."
+      >
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+          <p className="font-medium">Aktifkan hanya: MESSAGES_UPSERT</p>
+          <p className="mt-2 leading-relaxed text-emerald-900/90">
+            Jangan aktifkan semua event sekaligus. Event lain seperti presence,
+            connection update, atau delivery receipt akan menambah log tanpa
+            percakapan baru di inbox.
+          </p>
+        </div>
+      </AccountCard>
+
       <AccountCard title="Langkah Setup">
         <ol className="list-decimal space-y-3 pl-5 text-sm leading-relaxed text-slate-600">
           <li>Pastikan WhatsApp sudah terhubung di halaman integrasi WhatsApp.</li>
+          <li>Di Evolution, aktifkan webhook hanya untuk event MESSAGES_UPSERT.</li>
           <li>Salin webhook URL di atas.</li>
           <li>Tempel URL ke konfigurasi webhook channel WhatsApp Anda.</li>
           <li>Kirim pesan uji dari nomor lain ke WhatsApp yang terhubung.</li>

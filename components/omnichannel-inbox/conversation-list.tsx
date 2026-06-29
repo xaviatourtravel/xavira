@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
+import { OmnichannelStatusBadge } from "@/components/omnichannel-inbox/status-badge";
 import {
   formatInboxRelativeTime,
   getConversationDisplayName,
@@ -64,12 +65,23 @@ export function OmnichannelConversationList({
         const isSelected = conversation.id === selectedConversationId;
         const isUnread = conversation.unreadCount > 0;
         const displayName = getConversationDisplayName(conversation);
-        const showUsername =
-          conversation.customerUsername &&
-          displayName !==
-            (conversation.customerUsername.startsWith("@")
-              ? conversation.customerUsername
-              : `@${conversation.customerUsername}`);
+        const showSubtitle =
+          conversation.channel === "whatsapp"
+            ? Boolean(
+                conversation.customerUsername &&
+                  conversation.customerName !== conversation.customerUsername,
+              )
+            : Boolean(
+                conversation.customerUsername &&
+                  displayName !==
+                    (conversation.customerUsername.startsWith("@")
+                      ? conversation.customerUsername
+                      : `@${conversation.customerUsername}`),
+              );
+        const subtitleLabel =
+          conversation.channel === "whatsapp"
+            ? conversation.customerUsername
+            : `@${conversation.customerUsername?.replace(/^@/, "")}`;
 
         return (
           <Link
@@ -102,6 +114,7 @@ export function OmnichannelConversationList({
                           "truncate text-sm text-foreground",
                           isUnread ? "font-bold" : "font-semibold",
                         )}
+                        title={displayName}
                       >
                         {displayName}
                       </p>
@@ -111,10 +124,27 @@ export function OmnichannelConversationList({
                         </span>
                       ) : null}
                       <OmnichannelChannelBadge channel={conversation.channel} />
+                      <OmnichannelStatusBadge status={conversation.status} />
                     </div>
-                    {showUsername ? (
-                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                        @{conversation.customerUsername?.replace(/^@/, "")}
+                    {conversation.labels.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {conversation.labels.slice(0, 3).map((label) => (
+                          <span
+                            key={label.tag}
+                            className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white"
+                            style={{ backgroundColor: label.color }}
+                          >
+                            {label.tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {showSubtitle ? (
+                      <p
+                        className="mt-0.5 truncate text-[11px] text-muted-foreground"
+                        title={subtitleLabel ?? undefined}
+                      >
+                        {subtitleLabel}
                       </p>
                     ) : null}
                   </div>
@@ -146,7 +176,7 @@ export function OmnichannelConversationList({
                       : "text-muted-foreground",
                   )}
                 >
-                  {conversation.lastMessagePreview ?? "No messages yet"}
+                  {conversation.lastMessagePreview ?? "Belum ada pesan"}
                 </p>
               </div>
             </div>

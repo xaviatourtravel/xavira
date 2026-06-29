@@ -278,6 +278,7 @@ export function whatsAppWebhookDevLog(message: string, context?: Record<string, 
   }
 }
 
+/** @deprecated Use whatsAppWebhookDevLog. Production logs only on errors. */
 export function whatsAppWebhookLog(message: string, context?: Record<string, unknown>) {
-  console.info("[WHATSAPP WEBHOOK]", message, context ?? {});
+  whatsAppWebhookDevLog(message, context);
 }

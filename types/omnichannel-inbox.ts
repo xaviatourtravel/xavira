@@ -4,11 +4,13 @@ export type OmnichannelChannel = "instagram" | "facebook" | "whatsapp";
 
 export type OmnichannelConversationStatus =
   | "new"
-  | "interested"
-  | "hot_lead"
-  | "booking_process"
-  | "paid"
-  | "lost";
+  | "following_up"
+  | "quotation_sent"
+  | "waiting_dp"
+  | "closed_won"
+  | "closed_lost";
+
+export type MessageDeliveryStatus = "pending" | "sent" | "delivered" | "failed";
 
 export type OmnichannelMessageDirection = "incoming" | "outgoing";
 
@@ -61,6 +63,21 @@ export type ConversationUpdate = {
   updated_at?: string;
 };
 
+export type ConversationLabel = {
+  tag: string;
+  color: string;
+};
+
+export type AssignmentHistoryEntry = {
+  id: string;
+  assignedFromId: string | null;
+  assignedFromName: string | null;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  assignedByName: string | null;
+  createdAt: string;
+};
+
 export type MessageRow = {
   id: string;
   conversation_id: string;
@@ -70,6 +87,7 @@ export type MessageRow = {
   attachments_json: Json;
   sent_by_user_id: string | null;
   created_at: string;
+  deliveryStatus?: MessageDeliveryStatus | null;
 };
 
 export type MessageInsert = {

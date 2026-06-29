@@ -15,6 +15,8 @@ import {
 } from "@/lib/omnichannel-inbox/ai-lead-extraction";
 import { canExtractOmnichannelLeadInfo, canSuggestOmnichannelReply } from "@/lib/omnichannel-inbox/permissions";
 import { findConversationById } from "@/lib/omnichannel-inbox/repository";
+import { findWhatsappConversationById } from "@/lib/whatsapp-inbox/repository";
+import { loadWhatsappLeadExtractionContext } from "@/lib/whatsapp-inbox/ai-context";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -157,13 +159,89 @@ export async function extractOmnichannelLeadInfo(
       conversationId,
     );
 
-    if (!conversation) {
+    if (conversation) {
+      if (
+        !canExtractOmnichannelLeadInfo(profile, {
+          assigned_user_id: conversation.assigned_user_id,
+        })
+      ) {
+        return {
+          success: false,
+          message: "You do not have permission to extract lead info here.",
+        };
+      }
+
+      if (conversation.lead_id) {
+        return {
+          success: false,
+          message: "This conversation is already linked to a lead.",
+        };
+      }
+
+      const context = await loadOmnichannelLeadExtractionContext(
+        supabase,
+        profile.organization_id,
+        conversationId,
+      );
+
+      if (!context) {
+        return { success: false, message: "Conversation not found." };
+      }
+
+      const prompt = buildOmnichannelLeadExtractionPrompt(context);
+
+      const response = await openai.responses.create({
+        model: AI_MODEL,
+        input: prompt,
+      });
+
+      const raw = response.output_text?.trim();
+
+      if (!raw) {
+        return {
+          success: false,
+          message: "AI extraction failed. Please try again.",
+        };
+      }
+
+      const parsed = parseInboxLeadExtractionResponse(raw);
+
+      if (!parsed.success) {
+        return { success: false, message: parsed.message };
+      }
+
+      const inputTokens = response.usage?.input_tokens ?? 0;
+      const outputTokens = response.usage?.output_tokens ?? 0;
+
+      await logAiGeneration({
+        supabase,
+        organizationId: profile.organization_id,
+        userId: profile.id,
+        referenceId: context.conversationId,
+        inputTokens,
+        outputTokens,
+        feature: "lead_scoring",
+      });
+
+      return {
+        success: true,
+        extraction: parsed.data,
+      };
+    }
+
+    const whatsappConversation = await findWhatsappConversationById(
+      supabase,
+      profile.organization_id,
+      conversationId,
+    );
+
+    if (!whatsappConversation) {
       return { success: false, message: "Conversation not found." };
     }
 
     if (
       !canExtractOmnichannelLeadInfo(profile, {
-        assigned_user_id: conversation.assigned_user_id,
+        assigned_user_id: whatsappConversation.assigned_user_id,
       })
     ) {
       return {
@@ -172,14 +250,14 @@ export async function extractOmnichannelLeadInfo(
       };
     }
 
-    if (conversation.lead_id) {
+    if (whatsappConversation.customer_id) {
       return {
         success: false,
         message: "This conversation is already linked to a lead.",
       };
     }
 
-    const context = await loadOmnichannelLeadExtractionContext(
+    const context = await loadWhatsappLeadExtractionContext(
       supabase,
       profile.organization_id,
       conversationId,

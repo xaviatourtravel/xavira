@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { OmnichannelConversationDetailPanel } from "@/components/omnichannel-inbox/conversation-detail";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 
@@ -20,8 +18,6 @@ export function CustomerConversationPanel({
   canSuggestReply,
   isUnassignedForAgent,
 }: CustomerConversationPanelProps) {
-  const [leadPanelOpen, setLeadPanelOpen] = useState(false);
-
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <OmnichannelConversationDetailPanel
@@ -29,9 +25,6 @@ export function CustomerConversationPanel({
         canReply={canReply}
         canSuggestReply={canSuggestReply}
         isUnassignedForAgent={isUnassignedForAgent}
-        leadPanelOpen={leadPanelOpen}
-        onToggleLeadPanel={() => setLeadPanelOpen((value) => !value)}
-        showDetailsToggle={false}
         showBackButton={false}
         backHref={`/customers/${customerId}`}
       />

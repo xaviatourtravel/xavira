@@ -559,10 +559,15 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
         </div>
       </section>
 
-      <div className="flex justify-end">
+      <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
+        <p className="font-medium text-slate-900">Webhook pesan masuk</p>
+        <p className="mt-1 leading-relaxed">
+          Aktifkan hanya event <span className="font-medium">MESSAGES_UPSERT</span>{" "}
+          di Evolution. Hindari mengaktifkan semua event agar log tetap bersih.
+        </p>
         <Link
           href="/settings/integrations/whatsapp/webhook"
-          className="text-sm font-medium text-slate-700 underline-offset-2 hover:text-slate-950 hover:underline"
+          className="mt-3 inline-flex text-sm font-medium text-slate-900 underline-offset-2 hover:underline"
         >
           Atur webhook WhatsApp
         </Link>

@@ -14,6 +14,7 @@ import {
   Tag,
 } from "lucide-react";
 
+import { CustomerPassportFromWorkspace } from "@/components/customer-passport/customer-passport-from-workspace";
 import {
   convertLeadToBooking,
   createCustomerFollowUp,
@@ -746,8 +747,6 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
   const upcomingActivity = buildUpcomingActivityLabel(data);
   const primaryBooking = data.bookings[0] ?? null;
   const returnTo = customerWorkspaceHref(data.lead.id);
-  const packageLabel =
-    data.lead.package_interest ?? primaryBooking?.package_name ?? "Belum ada minat paket";
   const channelLabel = data.conversationDetail?.channelLabel ?? "WhatsApp";
   const hasConversation = Boolean(data.conversationDetail?.messages.length);
   const hasPayments = data.payments.length > 0 || data.metrics.totalPaid > 0;
@@ -756,65 +755,22 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-0 pb-8 sm:space-y-8 sm:pb-10">
-      <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(to_bottom_right,#ffffff,#f8fafc)] p-4 shadow-sm sm:p-6 md:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-violet-100/50 blur-3xl"
-        />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 space-y-4">
-            <p className="text-sm font-medium text-violet-700">Ruang Kerja Customer</p>
-            <div className="space-y-3">
-              <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <DesklabsAvatar name={data.lead.full_name} size="lg" className="sm:hidden" />
-                <DesklabsAvatar name={data.lead.full_name} size="xl" className="hidden sm:block" />
-                <h1 className="min-w-0 break-words text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl md:text-3xl">
-                  {data.lead.full_name}
-                </h1>
-              </div>
-            </div>
-
-            <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              <p>
-                <span className="font-medium text-slate-900">Tahap:</span>{" "}
-                {formatCustomerLeadStatus(data.lead.status)}
-              </p>
-              <p>
-                <span className="font-medium text-slate-900">Minat paket:</span>{" "}
-                {packageLabel}
-              </p>
-              <p>
-                <span className="font-medium text-slate-900">Penanggung jawab:</span>{" "}
-                {data.lead.assignedToLabel}
-              </p>
-              <p>
-                <span className="font-medium text-slate-900">Aktivitas terakhir:</span>{" "}
-                {data.lastActivityAt
-                  ? formatCommunicationDateTime(data.lastActivityAt)
-                  : "Belum ada"}
-              </p>
-            </div>
-          </div>
-
-          {contactHref ? (
-            <a
-              href={contactHref}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition-colors hover:bg-slate-800 sm:w-auto"
-            >
-              <Phone className="h-4 w-4" />
-              Hubungi Customer
-            </a>
-          ) : (
-            <Button disabled className="h-11 w-full px-6 sm:w-auto">
-              <Phone className="h-4 w-4" />
-              Hubungi Customer
-            </Button>
-          )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <CustomerPassportFromWorkspace data={data} variant="full" />
         </div>
-      </section>
+        {contactHref ? (
+          <a
+            href={contactHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition-colors hover:bg-slate-800 sm:mt-4"
+          >
+            <Phone className="h-4 w-4" />
+            Hubungi Customer
+          </a>
+        ) : null}
+      </div>
 
       <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-8">

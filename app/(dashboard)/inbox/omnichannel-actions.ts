@@ -112,6 +112,7 @@ export async function assignOmnichannelConversation(
       profile.organization_id,
       conversationId,
       assignedUserId || null,
+      profile.id,
     );
 
     await auditFromProfile(supabase, profile, {
@@ -471,7 +472,7 @@ export async function convertOmnichannelConversationToLead(
       .update({
         lead_id: createdLead.id,
         assigned_user_id: assignedTo,
-        status: "hot_lead",
+        status: "following_up",
       })
       .eq("id", conversationId)
       .eq("organization_id", profile.organization_id);

@@ -4,7 +4,7 @@ import { ingestWhatsAppIncomingMessages } from "@/lib/integrations/whatsapp/webh
 import {
   parseWhatsAppWebhookBody,
   parseWhatsAppWebhookPayload,
-  whatsAppWebhookLog,
+  whatsAppWebhookDevLog,
 } from "@/lib/integrations/whatsapp/webhook-parser";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -14,10 +14,22 @@ function getConfiguredApiKey() {
   return process.env.EVOLUTION_API_KEY?.trim() || null;
 }
 
+/**
+ * TODO(production): Webhook authentication is skipped in development for local MVP.
+ * In production, EVOLUTION_API_KEY must be set and every request must include
+ * a matching `apikey` header (or `x-api-key` / Bearer token).
+ */
 function validateWebhookApiKey(request: NextRequest) {
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+
   const expected = getConfiguredApiKey();
   if (!expected) {
-    return true;
+    console.error(
+      "[WHATSAPP WEBHOOK] EVOLUTION_API_KEY is required in production",
+    );
+    return false;
   }
 
   const provided =
@@ -34,9 +46,6 @@ async function processWebhookPayload(rawBody: string) {
     const parsed = parseWhatsAppWebhookPayload(payload);
 
     if (parsed.messages.length === 0) {
-      whatsAppWebhookLog("no actionable messages", {
-        ignored: parsed.ignored,
-      });
       return;
     }
 
@@ -47,27 +56,20 @@ async function processWebhookPayload(rawBody: string) {
       parsed.ignored,
     );
 
-    whatsAppWebhookLog("ingestion complete", result);
+    if (result.processed > 0) {
+      whatsAppWebhookDevLog("ingestion complete", result);
+    }
   } catch (error) {
     console.error("[WHATSAPP WEBHOOK] ingestion failed", error);
-    whatsAppWebhookLog("ingestion failed", {
-      error: error instanceof Error ? error.message : "unknown_error",
-    });
   }
 }
 
 export async function POST(request: NextRequest) {
   if (!validateWebhookApiKey(request)) {
-    whatsAppWebhookLog("reject unauthorized webhook");
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const rawBody = await request.text();
-
-  whatsAppWebhookLog("POST received", {
-    bodyLength: rawBody.length,
-    userAgent: request.headers.get("user-agent"),
-  });
 
   after(async () => {
     await processWebhookPayload(rawBody);

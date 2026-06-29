@@ -15,16 +15,21 @@ export function buildOmnichannelFilterCounts(
     unassigned: conversations.filter((item) => !item.assignedUserId).length,
     mine: conversations.filter((item) => item.assignedUserId === currentUserId)
       .length,
-    hot_leads: conversations.filter((item) => item.status === "hot_lead").length,
+    hot_leads: conversations.filter((item) => item.status === "following_up").length,
   };
 }
 
 export function getConversationDisplayName(conversation: {
   customerName: string;
   customerUsername: string | null;
+  channel?: OmnichannelConversationListItem["channel"];
 }) {
-  const username = conversation.customerUsername?.trim();
   const name = conversation.customerName?.trim();
+  const username = conversation.customerUsername?.trim();
+
+  if (conversation.channel === "whatsapp") {
+    return name || username || "Kontak WhatsApp";
+  }
 
   if (username) {
     const formatted = username.startsWith("@") ? username : `@${username}`;
@@ -51,19 +56,19 @@ export function formatInboxRelativeTime(value: string | null) {
   const diffMinutes = Math.floor(diffMs / 60_000);
 
   if (diffMinutes < 1) {
-    return "Just now";
+    return "Baru saja";
   }
 
   if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
+    return `${diffMinutes} mnt lalu`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h ago`;
+    return `${diffHours} jam lalu`;
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
     month: "short",
     hour: "numeric",
@@ -72,10 +77,19 @@ export function formatInboxRelativeTime(value: string | null) {
   }).format(date);
 }
 
+export function formatInboxActiveLabel(value: string | null) {
+  const relative = formatInboxRelativeTime(value);
+  if (relative === "Baru saja") {
+    return "Aktif baru saja";
+  }
+
+  return `Aktif ${relative}`;
+}
+
 export function formatInboxMessageTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
+    month: "short",
     hour: "numeric",
     minute: "2-digit",
     timeZone: "Asia/Jakarta",

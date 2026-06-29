@@ -2,7 +2,6 @@ import { WHATSAPP_INSTANCE_NAME } from "@/lib/integrations/whatsapp/constants";
 import {
   type ParsedWhatsAppIncomingMessage,
   whatsAppWebhookDevLog,
-  whatsAppWebhookLog,
 } from "@/lib/integrations/whatsapp/webhook-parser";
 import { getLeadWhatsAppPhone } from "@/lib/leads/next-best-action";
 import {
@@ -76,7 +75,7 @@ async function resolveWorkspaceId(
     }
   }
 
-  whatsAppWebhookLog("workspace unresolved", { instanceName });
+  whatsAppWebhookDevLog("workspace unresolved", { instanceName });
   return null;
 }
 
@@ -164,21 +163,38 @@ export async function ingestWhatsAppIncomingMessages(
         workspace_id: workspaceId,
         instance_name: instanceName,
         phone_number: message.phoneNumber,
+        contact_name: message.pushName?.trim() || null,
         customer_id: customerId,
       });
-    } else if (!conversation.customer_id) {
-      const customerId = await matchCustomerIdByPhone(
-        supabase,
-        workspaceId,
-        message.phoneNumber,
-      );
+    } else {
+      const updates: {
+        customer_id?: string;
+        contact_name?: string;
+      } = {};
 
-      if (customerId) {
+      if (!conversation.customer_id) {
+        const customerId = await matchCustomerIdByPhone(
+          supabase,
+          workspaceId,
+          message.phoneNumber,
+        );
+
+        if (customerId) {
+          updates.customer_id = customerId;
+        }
+      }
+
+      const pushName = message.pushName?.trim();
+      if (pushName && pushName !== conversation.contact_name) {
+        updates.contact_name = pushName;
+      }
+
+      if (Object.keys(updates).length > 0) {
         conversation = await updateWhatsappConversationById(
           supabase,
           workspaceId,
           conversation.id,
-          { customer_id: customerId },
+          updates,
         );
       }
     }

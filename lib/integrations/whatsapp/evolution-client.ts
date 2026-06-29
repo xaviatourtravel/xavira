@@ -408,6 +408,33 @@ export function getWhatsAppInstanceName() {
   return getEvolutionConfig().instanceName;
 }
 
+export async function sendWhatsAppTextMessage(
+  phoneNumber: string,
+  text: string,
+  instanceName = getEvolutionConfig().instanceName,
+) {
+  const normalizedNumber = phoneNumber.replace(/\D/g, "");
+
+  if (!normalizedNumber) {
+    throw new Error("Nomor WhatsApp tidak valid.");
+  }
+
+  const payload = await evolutionRequest<{ key?: { id?: string } }>(
+    `/message/sendText/${encodeURIComponent(instanceName)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        number: normalizedNumber,
+        text,
+      }),
+    },
+  );
+
+  return {
+    messageId: payload.key?.id?.trim() || null,
+  };
+}
+
 export {
   EvolutionServiceUnavailableError as WhatsAppServiceUnavailableError,
   EvolutionConnectError as WhatsAppConnectError,

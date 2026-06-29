@@ -12,11 +12,11 @@ export const OMNICHANNEL_CHANNELS = [
 
 export const OMNICHANNEL_CONVERSATION_STATUSES = [
   "new",
-  "interested",
-  "hot_lead",
-  "booking_process",
-  "paid",
-  "lost",
+  "following_up",
+  "quotation_sent",
+  "waiting_dp",
+  "closed_won",
+  "closed_lost",
 ] as const satisfies ReadonlyArray<OmnichannelConversationStatus>;
 
 export const OMNICHANNEL_MESSAGE_DIRECTIONS = [
@@ -32,12 +32,32 @@ const CHANNEL_LABELS: Record<OmnichannelChannel, string> = {
 
 const STATUS_LABELS: Record<OmnichannelConversationStatus, string> = {
   new: "New",
-  interested: "Interested",
-  hot_lead: "Hot Lead",
-  booking_process: "Booking Process",
-  paid: "Paid",
-  lost: "Lost",
+  following_up: "Following Up",
+  quotation_sent: "Quotation Sent",
+  waiting_dp: "Waiting DP",
+  closed_won: "Closed Won",
+  closed_lost: "Closed Lost",
 };
+
+export const WORKSPACE_LABEL_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#64748b",
+] as const;
+
+export function pickWorkspaceLabelColor(tag: string) {
+  let hash = 0;
+  for (let index = 0; index < tag.length; index += 1) {
+    hash = tag.charCodeAt(index) + ((hash << 5) - hash);
+  }
+  return WORKSPACE_LABEL_COLORS[Math.abs(hash) % WORKSPACE_LABEL_COLORS.length];
+}
 
 export function isOmnichannelChannel(value: string): value is OmnichannelChannel {
   return OMNICHANNEL_CHANNELS.includes(value as OmnichannelChannel);

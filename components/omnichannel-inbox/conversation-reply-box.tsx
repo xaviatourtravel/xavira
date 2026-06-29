@@ -12,12 +12,15 @@ import {
 } from "lucide-react";
 
 import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnichannel-actions";
+import { sendWhatsappConversationReplyAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { suggestOmnichannelReply } from "@/app/(dashboard)/inbox/omnichannel-ai-actions";
 import { buttonVariants } from "@/components/ui/button";
+import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
 
 type OmnichannelConversationReplyBoxProps = {
   conversationId: string;
+  channel?: OmnichannelChannel;
   canReply: boolean;
   canSuggestReply?: boolean;
   isUnassignedForAgent?: boolean;
@@ -35,6 +38,8 @@ type AttachmentMenuItem = {
   disabled?: boolean;
   hint?: string;
 };
+
+const COMMON_EMOJIS = ["😊", "👍", "🙏", "✅", "📎", "🎉", "❤️", "😂"];
 
 const COMPOSER_ICON_BUTTON =
   "flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-0 md:h-9 md:w-9";
@@ -144,8 +149,68 @@ function ComposerAttachmentMenu() {
   );
 }
 
+function ComposerEmojiPicker({
+  onPick,
+  disabled,
+}: {
+  onPick: (emoji: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          COMPOSER_ICON_BUTTON,
+          "text-muted-foreground hover:text-foreground",
+        )}
+        aria-label="Insert emoji"
+      >
+        😊
+      </button>
+      {open ? (
+        <div className="absolute bottom-full left-0 z-20 mb-2 grid grid-cols-4 gap-1 rounded-xl border bg-background p-2 shadow-lg">
+          {COMMON_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
+              onClick={() => {
+                onPick(emoji);
+                setOpen(false);
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function OmnichannelConversationReplyBox({
   conversationId,
+  channel = "instagram",
   canReply,
   canSuggestReply = false,
   isUnassignedForAgent = false,
@@ -168,7 +233,9 @@ export function OmnichannelConversationReplyBox({
     ? isUnassignedForAgent
       ? "Assign this conversation to yourself before sending a reply."
       : "You do not have permission to reply."
-    : "Manual reply via connected Meta account.";
+    : channel === "whatsapp"
+      ? "Send WhatsApp reply via Evolution API."
+      : "Manual reply via connected Meta account.";
 
   const aiTitle = !canSuggestReply
     ? "You do not have permission to use AI suggestions."
@@ -203,7 +270,10 @@ export function OmnichannelConversationReplyBox({
       formData.set("conversation_id", conversationId);
       formData.set("message_text", trimmed);
 
-      const result = await sendOmnichannelConversationReply(formData);
+      const result =
+        channel === "whatsapp"
+          ? await sendWhatsappConversationReplyAction(formData)
+          : await sendOmnichannelConversationReply(formData);
       onSendingChange?.(false);
 
       if (result.success) {
@@ -245,20 +315,20 @@ export function OmnichannelConversationReplyBox({
     <div className="bg-background px-3 py-2.5 sm:px-4">
       {canUseAi ? (
         <div className="mb-2 flex justify-end">
-          <button
-            type="button"
-            disabled={!canUseAi || isGenerating}
-            onClick={handleSuggestReply}
-            title={aiTitle}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-7 gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:text-foreground",
-              isGenerating && "opacity-70",
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {isGenerating ? "Generating..." : "✨ Suggest Reply"}
-          </button>
+        <button
+          type="button"
+          disabled={!canUseAi || isGenerating}
+          onClick={handleSuggestReply}
+          title={aiTitle}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "h-7 gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:text-foreground",
+            isGenerating && "opacity-70",
+          )}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {isGenerating ? "Generating..." : "AI Reply"}
+        </button>
         </div>
       ) : null}
 
@@ -274,8 +344,12 @@ export function OmnichannelConversationReplyBox({
         </p>
       ) : null}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-end gap-2">
         <ComposerAttachmentMenu />
+        <ComposerEmojiPicker
+          disabled={isDisabled}
+          onPick={(emoji) => setMessageText((current) => `${current}${emoji}`)}
+        />
 
         <div className="flex min-h-[40px] min-w-0 flex-1 items-center rounded-xl border bg-muted/20 px-3 py-1">
           <textarea

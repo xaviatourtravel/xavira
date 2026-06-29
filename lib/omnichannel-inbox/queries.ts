@@ -13,9 +13,12 @@ import {
   type OmnichannelSupabaseClient,
 } from "@/lib/omnichannel-inbox/repository";
 import { loadInboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
+import { loadWorkspaceAssignmentHistory } from "@/lib/workspace/assignment-events";
 import type { InboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
 import type {
   ConversationNoteRow,
+  ConversationLabel,
+  AssignmentHistoryEntry,
   MessageRow,
   OmnichannelChannel,
   OmnichannelConversationStatus,
@@ -45,6 +48,7 @@ export type OmnichannelConversationListItem = {
   unreadCount: number;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
+  labels: ConversationLabel[];
   createdAt: string;
   updatedAt: string;
 };
@@ -56,8 +60,10 @@ export type OmnichannelConversationNote = ConversationNoteRow & {
 export type OmnichannelConversationDetail = OmnichannelConversationListItem & {
   externalUserId: string | null;
   tags: string[];
+  labels: ConversationLabel[];
   messages: MessageRow[];
   notes: OmnichannelConversationNote[];
+  assignmentHistory: AssignmentHistoryEntry[];
   leadContext: InboxLeadPanelContext | null;
 };
 
@@ -133,7 +139,7 @@ export function buildConversationListFilters(
     case "mine":
       return { assignedUserId: currentUserId };
     case "hot_leads":
-      return { status: "hot_lead" };
+      return { status: "following_up" };
     default:
       return {};
   }
@@ -211,6 +217,7 @@ function mapConversationListItem(
       preview?.messageText ?? null,
       preview?.attachmentsCount ?? 0,
     ),
+    labels: row.labels ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -279,10 +286,11 @@ export async function loadOmnichannelConversationDetail(
   organizationId: string,
   conversationId: string,
 ) {
-  const [conversation, messages, notes] = await Promise.all([
+  const [conversation, messages, notes, assignmentHistory] = await Promise.all([
     findConversationById(supabase, organizationId, conversationId),
     findMessagesByConversationId(supabase, organizationId, conversationId),
     loadConversationNotesWithAuthors(supabase, organizationId, conversationId),
+    loadWorkspaceAssignmentHistory(supabase, organizationId, conversationId),
   ]);
 
   if (!conversation || !messages) {
@@ -303,8 +311,10 @@ export async function loadOmnichannelConversationDetail(
     ...mapConversationListItem(conversation, preview),
     externalUserId: conversation.external_user_id,
     tags: conversation.tags ?? [],
+    labels: conversation.labels ?? [],
     messages,
     notes,
+    assignmentHistory,
     leadContext: null as OmnichannelConversationDetail["leadContext"],
   };
 

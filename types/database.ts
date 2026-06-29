@@ -849,16 +849,19 @@ export type Database = {
       }
       conversation_tags: {
         Row: {
+          color: string
           conversation_id: string
           id: string
           tag: string
         }
         Insert: {
+          color?: string
           conversation_id: string
           id?: string
           tag: string
         }
         Update: {
+          color?: string
           conversation_id?: string
           id?: string
           tag?: string
@@ -944,6 +947,7 @@ export type Database = {
       }
       whatsapp_conversations: {
         Row: {
+          contact_name: string | null
           created_at: string
           customer_id: string | null
           id: string
@@ -956,6 +960,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          contact_name?: string | null
           created_at?: string
           customer_id?: string | null
           id?: string
@@ -968,6 +973,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          contact_name?: string | null
           created_at?: string
           customer_id?: string | null
           id?: string
@@ -2518,11 +2524,11 @@ export type Database = {
       omnichannel_channel: "instagram" | "facebook" | "whatsapp"
       omnichannel_conversation_status:
         | "new"
-        | "interested"
-        | "hot_lead"
-        | "booking_process"
-        | "paid"
-        | "lost"
+        | "following_up"
+        | "quotation_sent"
+        | "waiting_dp"
+        | "closed_won"
+        | "closed_lost"
       omnichannel_message_direction: "incoming" | "outgoing"
       interest_type: "umroh" | "halal_tour" | "both" | "unknown"
       knowledge_category:
@@ -2726,11 +2732,11 @@ export const Constants = {
       omnichannel_channel: ["instagram", "facebook", "whatsapp"],
       omnichannel_conversation_status: [
         "new",
-        "interested",
-        "hot_lead",
-        "booking_process",
-        "paid",
-        "lost",
+        "following_up",
+        "quotation_sent",
+        "waiting_dp",
+        "closed_won",
+        "closed_lost",
       ],
       omnichannel_message_direction: ["incoming", "outgoing"],
       interest_type: ["umroh", "halal_tour", "both", "unknown"],

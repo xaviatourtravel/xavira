@@ -1,24 +1,30 @@
 import {
-  findWhatsappConversationById,
-  findWhatsappConversations,
-  findWhatsappMessagesByConversationId,
-  type WhatsappSupabaseClient,
-} from "@/lib/whatsapp-inbox/repository";
+  formatOmnichannelConversationStatusLabel,
+  isOmnichannelConversationStatus,
+  pickWorkspaceLabelColor,
+} from "@/lib/omnichannel-inbox/constants";
+import { loadInboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
+import { loadWorkspaceAssignmentHistory } from "@/lib/workspace/assignment-events";
+import { getWhatsappMessageDeliveryStatus } from "@/lib/whatsapp-inbox/send-reply";
 import type {
   OmnichannelConversationDetail,
   OmnichannelConversationListItem,
 } from "@/lib/omnichannel-inbox/queries";
-import type { MessageRow } from "@/types/omnichannel-inbox";
+import {
+  findWhatsappConversationById,
+  findWhatsappConversationNotesByConversationId,
+  findWhatsappConversations,
+  findWhatsappConversationTagsByConversationId,
+  findWhatsappMessagesByConversationId,
+  type WhatsappSupabaseClient,
+} from "@/lib/whatsapp-inbox/repository";
+import { resolveWhatsappContactDisplay } from "@/lib/whatsapp-inbox/display";
+import type { ConversationLabel, MessageRow } from "@/types/omnichannel-inbox";
 import type { WhatsappConversationRow, WhatsappMessageRow } from "@/types/whatsapp-inbox";
 
-function formatPhoneDisplay(phoneNumber: string) {
-  const digits = phoneNumber.replace(/\D/g, "");
-  if (digits.startsWith("62") && digits.length >= 10) {
-    return `+${digits}`;
-  }
-
-  return phoneNumber;
-}
+type WhatsappConversationWithAssignee = WhatsappConversationRow & {
+  assignedUserName?: string | null;
+};
 
 function mapWhatsappMessageToOmnichannelMessage(
   message: WhatsappMessageRow,
@@ -33,68 +39,86 @@ function mapWhatsappMessageToOmnichannelMessage(
     attachments_json: message.media_url ? [{ url: message.media_url }] : [],
     sent_by_user_id: null,
     created_at: message.timestamp,
+    deliveryStatus: getWhatsappMessageDeliveryStatus(message),
   };
 }
 
 function mapWhatsappConversationToListItem(
-  conversation: WhatsappConversationRow,
-  leadName?: string | null,
+  conversation: WhatsappConversationWithAssignee,
 ): OmnichannelConversationListItem {
-  const phoneLabel = formatPhoneDisplay(conversation.phone_number);
-  const displayName = leadName?.trim() || phoneLabel;
+  const contact = resolveWhatsappContactDisplay(conversation);
+  const status = isOmnichannelConversationStatus(conversation.status)
+    ? conversation.status
+    : "new";
 
   return {
     id: conversation.id,
     channel: "whatsapp",
     channelLabel: "WhatsApp",
-    customerName: displayName,
-    customerUsername: leadName?.trim() ? phoneLabel : phoneLabel,
+    customerName: contact.primaryName,
+    customerUsername: contact.secondaryLabel,
     customerAvatar: null,
-    assignedUserId: null,
-    assignedUserName: null,
+    assignedUserId: conversation.assigned_user_id,
+    assignedUserName: conversation.assignedUserName ?? null,
     leadId: conversation.customer_id,
-    status: "new",
-    statusLabel: "Baru",
+    status,
+    statusLabel: formatOmnichannelConversationStatusLabel(status),
     unreadCount: conversation.unread_count,
     lastMessageAt: conversation.last_message_at,
     lastMessagePreview: conversation.last_message,
+    labels: [],
     createdAt: conversation.created_at,
     updatedAt: conversation.updated_at,
   };
 }
 
+async function loadWhatsappConversationNotesWithAuthors(
+  supabase: WhatsappSupabaseClient,
+  workspaceId: string,
+  conversationId: string,
+) {
+  const notes = await findWhatsappConversationNotesByConversationId(
+    supabase,
+    conversationId,
+  );
+
+  if (notes.length === 0) {
+    return [];
+  }
+
+  const authorIds = [...new Set(notes.map((note) => note.created_by))];
+  const authorNames = new Map<string, string>();
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("organization_id", workspaceId)
+    .in("id", authorIds);
+
+  for (const profile of data ?? []) {
+    authorNames.set(profile.id, profile.full_name?.trim() || "Team member");
+  }
+
+  return notes.map((note) => ({
+    ...note,
+    authorName: authorNames.get(note.created_by) ?? "Team member",
+  }));
+}
+
 export async function loadWhatsappConversationList(
   supabase: WhatsappSupabaseClient,
   workspaceId: string,
+  filter?: {
+    assignedUserId?: string;
+    unassignedOnly?: boolean;
+  },
 ): Promise<OmnichannelConversationListItem[]> {
-  const conversations = await findWhatsappConversations(supabase, workspaceId);
-  const customerIds = conversations
-    .map((conversation) => conversation.customer_id)
-    .filter((value): value is string => Boolean(value));
-
-  const leadNames = new Map<string, string>();
-
-  if (customerIds.length > 0) {
-    const { data: leads } = await supabase
-      .from("leads")
-      .select("id, full_name")
-      .in("id", customerIds);
-
-    for (const lead of leads ?? []) {
-      if (lead.full_name?.trim()) {
-        leadNames.set(lead.id, lead.full_name.trim());
-      }
-    }
-  }
-
-  return conversations.map((conversation) =>
-    mapWhatsappConversationToListItem(
-      conversation,
-      conversation.customer_id
-        ? leadNames.get(conversation.customer_id) ?? null
-        : null,
-    ),
+  const conversations = await findWhatsappConversations(
+    supabase,
+    workspaceId,
+    filter ?? {},
   );
+  return conversations.map(mapWhatsappConversationToListItem);
 }
 
 export async function loadWhatsappConversationDetail(
@@ -112,32 +136,46 @@ export async function loadWhatsappConversationDetail(
     return null;
   }
 
-  const messages = await findWhatsappMessagesByConversationId(
-    supabase,
-    conversationId,
-  );
+  const [messages, notes, tags, assignmentHistory] = await Promise.all([
+    findWhatsappMessagesByConversationId(supabase, conversationId),
+    loadWhatsappConversationNotesWithAuthors(
+      supabase,
+      workspaceId,
+      conversationId,
+    ),
+    findWhatsappConversationTagsByConversationId(supabase, conversationId),
+    loadWorkspaceAssignmentHistory(supabase, workspaceId, conversationId),
+  ]);
 
-  let leadName: string | null = null;
-  if (conversation.customer_id) {
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("full_name")
-      .eq("id", conversation.customer_id)
-      .maybeSingle();
+  const labels: ConversationLabel[] = tags.map((tag) => ({
+    tag: tag.tag,
+    color: tag.color?.trim() || pickWorkspaceLabelColor(tag.tag),
+  }));
 
-    leadName = lead?.full_name?.trim() || null;
-  }
+  const listItem = {
+    ...mapWhatsappConversationToListItem(conversation),
+    labels,
+  };
 
-  const listItem = mapWhatsappConversationToListItem(conversation, leadName);
-
-  return {
+  const detailBase = {
     ...listItem,
     externalUserId: conversation.phone_number,
-    tags: [],
+    tags: labels.map((label) => label.tag),
+    labels,
     messages: messages.map((message) =>
       mapWhatsappMessageToOmnichannelMessage(message, conversation.id),
     ),
-    notes: [],
-    leadContext: null,
+    notes,
+    assignmentHistory,
+    leadContext: null as OmnichannelConversationDetail["leadContext"],
+  };
+
+  const leadContext = detailBase.leadId
+    ? await loadInboxLeadPanelContext(supabase, workspaceId, detailBase)
+    : null;
+
+  return {
+    ...detailBase,
+    leadContext,
   };
 }

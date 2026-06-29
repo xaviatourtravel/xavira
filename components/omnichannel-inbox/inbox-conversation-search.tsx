@@ -18,7 +18,7 @@ export function InboxConversationSearch({
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Search name, phone, or message…"
+        placeholder="Cari nama, nomor, atau pesan"
         className="h-9 w-full rounded-full border border-border/60 bg-muted/25 pl-9 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
       />
     </div>

@@ -10,6 +10,7 @@ import type {
   OmnichannelChannel,
   OmnichannelConversationStatus,
 } from "@/types/omnichannel-inbox";
+import { pickWorkspaceLabelColor } from "@/lib/omnichannel-inbox/constants";
 import type { createClient } from "@/utils/supabase/server";
 
 export type OmnichannelSupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -26,7 +27,7 @@ export type ConversationWithRelations = ConversationRow & {
     | { full_name: string | null }
     | { full_name: string | null }[]
     | null;
-  tags?: { tag: string }[] | null;
+  tags?: { tag: string; color?: string | null }[] | null;
 };
 
 const CONVERSATION_COLUMNS = `
@@ -83,11 +84,18 @@ export function mapConversationRow(
 ): ConversationRow & {
   assignedUserName: string | null;
   tags: string[];
+  labels: { tag: string; color: string }[];
 } {
+  const labels = (row.tags ?? []).map((item) => ({
+    tag: item.tag,
+    color: item.color?.trim() || pickWorkspaceLabelColor(item.tag),
+  }));
+
   return {
     ...row,
     assignedUserName: getAssigneeName(row.assigned_profile),
-    tags: (row.tags ?? []).map((item) => item.tag),
+    tags: labels.map((item) => item.tag),
+    labels,
   };
 }
 
@@ -102,7 +110,7 @@ export async function findConversations(
       `
       ${CONVERSATION_COLUMNS},
       assigned_profile:assigned_user_id ( full_name ),
-      tags:conversation_tags ( tag )
+      tags:conversation_tags ( tag, color )
     `,
     )
     .eq("organization_id", organizationId)
@@ -147,7 +155,7 @@ export async function findConversationById(
       `
       ${CONVERSATION_COLUMNS},
       assigned_profile:assigned_user_id ( full_name ),
-      tags:conversation_tags ( tag )
+      tags:conversation_tags ( tag, color )
     `,
     )
     .eq("organization_id", organizationId)

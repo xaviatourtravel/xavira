@@ -225,7 +225,7 @@ function buildOmnichannelMetrics(
   conversations: OmnichannelConversationRow[],
 ): OwnerOmnichannelMetrics {
   const activeConversations = conversations.filter(
-    (conversation) => conversation.status !== "lost",
+    (conversation) => conversation.status !== "closed_lost",
   ).length;
 
   const newConversations = conversations.filter(
@@ -234,7 +234,7 @@ function buildOmnichannelMetrics(
 
   const waitingForReply = conversations.filter(
     (conversation) =>
-      conversation.status !== "lost" &&
+      conversation.status !== "closed_lost" &&
       (conversation.status === "new" || conversation.unread_count > 0),
   ).length;
 
@@ -353,7 +353,7 @@ function buildRecentConversations(
   legacyInboxRows: LegacyInboxConversationRow[],
 ): OwnerRecentConversationItem[] {
   const omnichannelItems = [...conversations]
-    .filter((conversation) => conversation.status !== "lost")
+    .filter((conversation) => conversation.status !== "closed_lost")
     .sort((left, right) => {
       const leftTime = left.last_message_at ?? left.created_at;
       const rightTime = right.last_message_at ?? right.created_at;
@@ -649,7 +649,7 @@ export async function loadOwnerDashboardMetrics(
   const legacyInboxRows = (legacyInboxConversations ??
     []) as LegacyInboxConversationRow[];
   const recentConversationCandidates = [...omnichannelRows]
-    .filter((conversation) => conversation.status !== "lost")
+    .filter((conversation) => conversation.status !== "closed_lost")
     .sort((left, right) => {
       const leftTime = left.last_message_at ?? left.created_at;
       const rightTime = right.last_message_at ?? right.created_at;

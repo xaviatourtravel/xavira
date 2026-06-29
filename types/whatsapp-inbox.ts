@@ -1,4 +1,5 @@
 import type { Json } from "@/types/database";
+import type { OmnichannelConversationStatus } from "@/types/omnichannel-inbox";
 
 export type WhatsappMessageDirection = "incoming" | "outgoing";
 
@@ -7,7 +8,10 @@ export type WhatsappConversationRow = {
   workspace_id: string;
   instance_name: string;
   phone_number: string;
+  contact_name: string | null;
   customer_id: string | null;
+  status: OmnichannelConversationStatus;
+  assigned_user_id: string | null;
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
@@ -15,11 +19,27 @@ export type WhatsappConversationRow = {
   updated_at: string;
 };
 
+export type WhatsappConversationNoteRow = {
+  id: string;
+  conversation_id: string;
+  note: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type WhatsappConversationTagRow = {
+  id: string;
+  conversation_id: string;
+  tag: string;
+  color: string;
+};
+
 export type WhatsappConversationInsert = {
   id?: string;
   workspace_id: string;
   instance_name: string;
   phone_number: string;
+  contact_name?: string | null;
   customer_id?: string | null;
   last_message?: string | null;
   last_message_at?: string | null;
@@ -27,7 +47,10 @@ export type WhatsappConversationInsert = {
 };
 
 export type WhatsappConversationUpdate = {
+  contact_name?: string | null;
   customer_id?: string | null;
+  status?: OmnichannelConversationStatus;
+  assigned_user_id?: string | null;
   last_message?: string | null;
   last_message_at?: string | null;
   unread_count?: number;

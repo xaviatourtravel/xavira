@@ -1,10 +1,10 @@
-import { OmnichannelInboxView } from "@/components/omnichannel-inbox/omnichannel-inbox-view";
+import { CommunicationWorkspaceView } from "@/components/communication-workspace/communication-workspace-view";
 import {
   canAddOmnichannelConversationNote,
   canConvertOmnichannelConversationToLead,
   canCreateInboxFollowUpFromLead,
-  canReassignOmnichannelConversation,
   canReplyToOmnichannelConversation,
+  canReassignOmnichannelConversation,
   canSuggestOmnichannelReply,
   canUpdateOmnichannelConversationStatus,
 } from "@/lib/omnichannel-inbox/permissions";
@@ -37,22 +37,39 @@ function sortConversationsByLastMessage(
   });
 }
 
+function buildWhatsappListFilter(
+  activeFilter: ReturnType<typeof parseOmnichannelInboxFilter>,
+  currentUserId: string,
+) {
+  if (activeFilter === "mine") {
+    return { assignedUserId: currentUserId };
+  }
+
+  if (activeFilter === "unassigned") {
+    return { unassignedOnly: true };
+  }
+
+  return {};
+}
+
 async function loadMergedConversationLists(
   supabase: Awaited<ReturnType<typeof createClient>>,
   organizationId: string,
   currentUserId: string,
   activeFilter: ReturnType<typeof parseOmnichannelInboxFilter>,
 ) {
+  const whatsappFilter = buildWhatsappListFilter(activeFilter, currentUserId);
+
   if (activeFilter === "whatsapp") {
     const whatsappConversations = await loadWhatsappConversationList(
       supabase,
       organizationId,
+      whatsappFilter,
     );
 
     return {
       conversations: whatsappConversations,
       allConversations: whatsappConversations,
-      isWhatsappInbox: true,
     };
   }
 
@@ -72,7 +89,7 @@ async function loadMergedConversationLists(
             activeFilter,
             currentUserId,
           ),
-      loadWhatsappConversationList(supabase, organizationId),
+      loadWhatsappConversationList(supabase, organizationId, whatsappFilter),
     ]);
 
   const omnichannelWithoutWhatsapp = omnichannelAll.filter(
@@ -87,31 +104,44 @@ async function loadMergedConversationLists(
     return {
       conversations: mergedAll,
       allConversations: mergedAll,
-      isWhatsappInbox: false,
+    };
+  }
+
+  if (activeFilter === "mine" || activeFilter === "unassigned") {
+    const filteredWhatsapp = await loadWhatsappConversationList(
+      supabase,
+      organizationId,
+      whatsappFilter,
+    );
+    const filteredOmnichannel = await loadOmnichannelConversationList(
+      supabase,
+      organizationId,
+      activeFilter,
+      currentUserId,
+    );
+
+    return {
+      conversations: sortConversationsByLastMessage([
+        ...filteredWhatsapp,
+        ...filteredOmnichannel.filter(
+          (conversation) => conversation.channel !== "whatsapp",
+        ),
+      ]),
+      allConversations: mergedAll,
     };
   }
 
   return {
     conversations: omnichannelFiltered,
     allConversations: mergedAll,
-    isWhatsappInbox: false,
   };
 }
 
-async function loadInboxConversationDetail(
+async function loadWorkspaceConversationDetail(
   supabase: Awaited<ReturnType<typeof createClient>>,
   organizationId: string,
   conversationId: string,
-  activeFilter: ReturnType<typeof parseOmnichannelInboxFilter>,
 ) {
-  if (activeFilter === "whatsapp") {
-    return loadWhatsappConversationDetail(
-      supabase,
-      organizationId,
-      conversationId,
-    );
-  }
-
   const whatsappDetail = await loadWhatsappConversationDetail(
     supabase,
     organizationId,
@@ -147,14 +177,8 @@ export default async function InboxPage({
     params.filter ?? params.channel,
   );
   const selectedConversationId = params.c?.trim() || null;
-  const isWhatsappInbox = activeFilter === "whatsapp";
 
-  const [{ data: orgProfiles }, listData, detail] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("organization_id", profile.organization_id)
-      .order("full_name"),
+  const [listData, detail, orgProfilesResult] = await Promise.all([
     loadMergedConversationLists(
       supabase,
       profile.organization_id,
@@ -162,16 +186,24 @@ export default async function InboxPage({
       activeFilter,
     ),
     selectedConversationId
-      ? loadInboxConversationDetail(
+      ? loadWorkspaceConversationDetail(
           supabase,
           profile.organization_id,
           selectedConversationId,
-          activeFilter,
         )
       : Promise.resolve(null),
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("organization_id", profile.organization_id)
+      .order("full_name"),
   ]);
 
   const { conversations, allConversations } = listData;
+  const orgProfiles = (orgProfilesResult.data ?? []).map((member) => ({
+    id: member.id,
+    full_name: member.full_name?.trim() || "Team member",
+  }));
 
   const permissionsSource = detail ?? conversations.find(
     (item) => item.id === selectedConversationId,
@@ -181,11 +213,8 @@ export default async function InboxPage({
     assigned_user_id: permissionsSource?.assignedUserId ?? null,
   };
 
-  const isWhatsappConversation =
-    isWhatsappInbox || detail?.channel === "whatsapp";
-
   return (
-    <OmnichannelInboxView
+    <CommunicationWorkspaceView
       conversations={conversations}
       allConversations={allConversations}
       detail={detail}
@@ -193,44 +222,35 @@ export default async function InboxPage({
       selectedConversationId={selectedConversationId}
       conversationNotFound={Boolean(selectedConversationId && !detail)}
       currentUserId={profile.id}
-      orgProfiles={orgProfiles ?? []}
-      canReassign={
-        !isWhatsappConversation &&
-        canReassignOmnichannelConversation(profile)
-      }
-      canUpdateStatus={
-        !isWhatsappConversation &&
-        canUpdateOmnichannelConversationStatus(
-          profile,
-          permissionsConversation,
-        )
-      }
-      canAddNote={
-        !isWhatsappConversation &&
-        canAddOmnichannelConversationNote(profile, permissionsConversation)
-      }
-      canReply={
-        !isWhatsappConversation &&
-        canReplyToOmnichannelConversation(profile, permissionsConversation)
-      }
-      canSuggestReply={
-        !isWhatsappConversation &&
-        canSuggestOmnichannelReply(profile, permissionsConversation)
-      }
-      canConvert={
-        !isWhatsappConversation &&
-        canConvertOmnichannelConversationToLead(
-          profile,
-          permissionsConversation,
-        )
-      }
-      canCreateFollowUp={
-        !isWhatsappConversation &&
-        canCreateInboxFollowUpFromLead(profile, permissionsConversation)
-      }
-      readOnly={isWhatsappConversation}
+      organizationId={profile.organization_id}
+      orgProfiles={orgProfiles}
+      canReply={canReplyToOmnichannelConversation(
+        profile,
+        permissionsConversation,
+      )}
+      canSuggestReply={canSuggestOmnichannelReply(
+        profile,
+        permissionsConversation,
+      )}
+      canReassign={canReassignOmnichannelConversation(profile)}
+      canUpdateStatus={canUpdateOmnichannelConversationStatus(
+        profile,
+        permissionsConversation,
+      )}
+      canAddNote={canAddOmnichannelConversationNote(
+        profile,
+        permissionsConversation,
+      )}
+      canConvert={canConvertOmnichannelConversationToLead(
+        profile,
+        permissionsConversation,
+      )}
+      canCreateFollowUp={canCreateInboxFollowUpFromLead(
+        profile,
+        permissionsConversation,
+      )}
+      readOnly={false}
       isUnassignedForAgent={
-        !isWhatsappConversation &&
         !isAdminOrOwner(profile) &&
         permissionsConversation.assigned_user_id === null
       }

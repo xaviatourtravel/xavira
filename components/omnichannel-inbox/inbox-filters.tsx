@@ -8,13 +8,13 @@ import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
 import { cn } from "@/lib/utils";
 
 const FILTERS: Array<{ value: OmnichannelInboxFilter; label: string }> = [
-  { value: "all", label: "All" },
+  { value: "all", label: "Semua" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
   { value: "unassigned", label: "Unassigned" },
   { value: "mine", label: "My Conversations" },
-  { value: "hot_leads", label: "Hot Leads" },
+  { value: "hot_leads", label: "Following Up" },
 ];
 
 function buildInboxHref(filter: OmnichannelInboxFilter, conversationId?: string | null) {

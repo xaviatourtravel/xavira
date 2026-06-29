@@ -13,6 +13,7 @@ import {
   type ConversationListFilters,
   type OmnichannelSupabaseClient,
 } from "@/lib/omnichannel-inbox/repository";
+import { insertWorkspaceAssignmentEvent } from "@/lib/workspace/assignment-events";
 import type { Json } from "@/types/database";
 import type {
   ConversationNoteRow,
@@ -166,11 +167,16 @@ export async function assignConversation(
   organizationId: string,
   conversationId: string,
   assignedUserId: string | null,
+  assignedBy?: string,
 ): Promise<OmnichannelConversation> {
   assertNonEmpty(organizationId, "organizationId");
   assertNonEmpty(conversationId, "conversationId");
 
-  await requireConversation(supabase, organizationId, conversationId);
+  const existing = await requireConversation(
+    supabase,
+    organizationId,
+    conversationId,
+  );
 
   if (assignedUserId) {
     const profileId = await resolveOrganizationProfileId(
@@ -195,6 +201,17 @@ export async function assignConversation(
 
   if (!updated) {
     throw new OmnichannelInboxError("Gagal mengassign conversation.");
+  }
+
+  if (assignedBy) {
+    await insertWorkspaceAssignmentEvent(supabase, {
+      organizationId,
+      conversationChannel: existing.channel,
+      conversationId,
+      assignedFrom: existing.assigned_user_id,
+      assignedTo: assignedUserId,
+      assignedBy,
+    });
   }
 
   const conversation = await findConversationById(

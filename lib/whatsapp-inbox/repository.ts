@@ -2,6 +2,8 @@ import type { createClient } from "@/utils/supabase/server";
 import type {
   WhatsappConversationInsert,
   WhatsappConversationRow,
+  WhatsappConversationNoteRow,
+  WhatsappConversationTagRow,
   WhatsappConversationUpdate,
   WhatsappMessageInsert,
   WhatsappMessageRow,
@@ -9,18 +11,49 @@ import type {
 
 export type WhatsappSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
+type WhatsappConversationWithRelations = WhatsappConversationRow & {
+  assigned_profile?:
+    | { full_name: string | null }
+    | { full_name: string | null }[]
+    | null;
+};
+
 const CONVERSATION_COLUMNS = `
   id,
   workspace_id,
   instance_name,
   phone_number,
+  contact_name,
   customer_id,
+  status,
+  assigned_user_id,
   last_message,
   last_message_at,
   unread_count,
   created_at,
   updated_at
 `;
+
+function getAssigneeName(
+  relation:
+    | { full_name: string | null }
+    | { full_name: string | null }[]
+    | null
+    | undefined,
+) {
+  const record = Array.isArray(relation) ? relation[0] : relation;
+  const name = record?.full_name?.trim();
+  return name || null;
+}
+
+function mapWhatsappConversationRow(
+  row: WhatsappConversationWithRelations,
+): WhatsappConversationRow & { assignedUserName: string | null } {
+  return {
+    ...row,
+    assignedUserName: getAssigneeName(row.assigned_profile),
+  };
+}
 
 const MESSAGE_COLUMNS = `
   id,
@@ -39,19 +72,38 @@ const MESSAGE_COLUMNS = `
 export async function findWhatsappConversations(
   supabase: WhatsappSupabaseClient,
   workspaceId: string,
+  filters: {
+    assignedUserId?: string;
+    unassignedOnly?: boolean;
+  } = {},
 ) {
-  const { data, error } = await supabase
+  let query = supabase
     .from("whatsapp_conversations")
-    .select(CONVERSATION_COLUMNS)
+    .select(
+      `
+      ${CONVERSATION_COLUMNS},
+      assigned_profile:assigned_user_id ( full_name )
+    `,
+    )
     .eq("workspace_id", workspaceId)
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false });
+
+  if (filters.unassignedOnly) {
+    query = query.is("assigned_user_id", null);
+  } else if (filters.assignedUserId) {
+    query = query.eq("assigned_user_id", filters.assignedUserId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as WhatsappConversationRow[];
+  return ((data ?? []) as WhatsappConversationWithRelations[]).map(
+    mapWhatsappConversationRow,
+  );
 }
 
 export async function findWhatsappConversationById(
@@ -61,7 +113,12 @@ export async function findWhatsappConversationById(
 ) {
   const { data, error } = await supabase
     .from("whatsapp_conversations")
-    .select(CONVERSATION_COLUMNS)
+    .select(
+      `
+      ${CONVERSATION_COLUMNS},
+      assigned_profile:assigned_user_id ( full_name )
+    `,
+    )
     .eq("workspace_id", workspaceId)
     .eq("id", conversationId)
     .maybeSingle();
@@ -70,7 +127,11 @@ export async function findWhatsappConversationById(
     throw new Error(error.message);
   }
 
-  return (data as WhatsappConversationRow | null) ?? null;
+  if (!data) {
+    return null;
+  }
+
+  return mapWhatsappConversationRow(data as WhatsappConversationWithRelations);
 }
 
 export async function findWhatsappConversationByPhone(
@@ -183,6 +244,61 @@ export async function insertWhatsappMessage(
   }
 
   return data as WhatsappMessageRow;
+}
+
+export async function findWhatsappConversationTagsByConversationId(
+  supabase: WhatsappSupabaseClient,
+  conversationId: string,
+) {
+  const { data, error } = await supabase
+    .from("whatsapp_conversation_tags")
+    .select("id, conversation_id, tag, color")
+    .eq("conversation_id", conversationId)
+    .order("tag", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as WhatsappConversationTagRow[];
+}
+
+export async function findWhatsappConversationNotesByConversationId(
+  supabase: WhatsappSupabaseClient,
+  conversationId: string,
+) {
+  const { data, error } = await supabase
+    .from("whatsapp_conversation_notes")
+    .select("id, conversation_id, note, created_by, created_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as WhatsappConversationNoteRow[];
+}
+
+export async function insertWhatsappConversationNote(
+  supabase: WhatsappSupabaseClient,
+  input: {
+    conversation_id: string;
+    note: string;
+    created_by: string;
+  },
+) {
+  const { data, error } = await supabase
+    .from("whatsapp_conversation_notes")
+    .insert(input)
+    .select("id, conversation_id, note, created_by, created_at")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as WhatsappConversationNoteRow;
 }
 
 export async function markWhatsappConversationAsRead(

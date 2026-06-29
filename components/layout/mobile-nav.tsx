@@ -100,14 +100,14 @@ export function MobileNav({
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setMoreOpen(false)}
         />
       ) : null}
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-16 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl border bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-transform duration-200 md:hidden",
+          "fixed inset-x-0 bottom-16 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl border bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl transition-transform duration-200 lg:hidden",
           moreOpen ? "translate-y-0" : "pointer-events-none translate-y-full",
         )}
       >
@@ -147,7 +147,7 @@ export function MobileNav({
         </nav>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div
           className="grid gap-1 p-1"
           style={{

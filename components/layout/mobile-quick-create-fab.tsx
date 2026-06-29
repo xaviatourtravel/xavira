@@ -17,7 +17,7 @@ export function MobileQuickCreateFab() {
         type="button"
         aria-label="Buat cepat"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700 text-white shadow-lg transition-transform hover:bg-emerald-800 active:scale-95 md:hidden"
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-700 text-white shadow-lg transition-transform hover:bg-emerald-800 active:scale-95 lg:hidden"
       >
         <Plus className="h-5 w-5" />
       </button>

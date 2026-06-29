@@ -16,7 +16,7 @@ import type { WorkspaceSwitcherContext } from "@/lib/workspace/types";
 import type { Profile } from "@/types/app-types";
 
 function SidebarFallback() {
-  return <aside className="hidden w-[17.5rem] shrink-0 border-r md:block" />;
+  return <aside className="hidden w-[17.5rem] shrink-0 border-r lg:block" />;
 }
 
 export function DashboardShellFrame({
@@ -49,7 +49,7 @@ export function DashboardShellFrame({
           attentionBadges={attentionBadges}
         />
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           <AppHeader
             profile={profile}
             email={email}

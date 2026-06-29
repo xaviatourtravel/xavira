@@ -6,7 +6,11 @@ import { Bot, Menu, Sparkles } from "lucide-react";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { QuickCreateMenu } from "@/components/layout/quick-create-menu";
-import { UniversalSearch } from "@/components/layout/universal-search";
+import {
+  UniversalSearchBar,
+  UniversalSearchIconButton,
+  UniversalSearchScope,
+} from "@/components/layout/universal-search";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { Button } from "@/components/ui/button";
@@ -32,51 +36,51 @@ export function AppHeader({
   const [aiOpen, setAiOpen] = useState(false);
 
   return (
-    <>
-      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-white/95 px-3 backdrop-blur sm:gap-3 md:px-4">
-        <button
-          type="button"
-          aria-label="Buka menu navigasi"
-          onClick={onMenuClick}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-colors hover:bg-slate-50 md:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        <div className="min-w-0 flex-1 lg:hidden">
-          <WorkspaceSwitcher context={workspaceContext} variant="mobile" />
-        </div>
-
-        <div className="hidden min-w-0 flex-1 md:flex md:max-w-[280px] lg:max-w-[340px]">
-          <UniversalSearch />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-          <div className="md:hidden">
-            <UniversalSearch />
-          </div>
-
-          <div className="hidden md:block">
-            <QuickCreateMenu />
-          </div>
-
-          <NotificationDropdown attentionBadges={attentionBadges} />
-
+    <UniversalSearchScope>
+      <header className="sticky top-0 z-30 shrink-0 border-b bg-white px-3 lg:px-4">
+        <div className="flex h-14 w-full items-center gap-2 lg:gap-3">
           <button
             type="button"
-            onClick={() => setAiOpen(true)}
-            className="hidden h-11 items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-sm font-medium text-violet-800 transition-colors hover:bg-violet-100 sm:inline-flex"
-            aria-label="Asisten AI"
+            aria-label="Buka menu navigasi"
+            onClick={onMenuClick}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-colors hover:bg-slate-50 lg:hidden"
           >
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">AI</span>
+            <Menu className="h-5 w-5" />
           </button>
 
-          <div className="hidden lg:block">
-            <WorkspaceSwitcher context={workspaceContext} variant="desktop" />
+          <div className="min-w-0 flex-1 overflow-hidden lg:hidden">
+            <WorkspaceSwitcher context={workspaceContext} variant="mobile" />
           </div>
 
-          <ProfileMenu profile={profile} email={email} />
+          <div className="hidden min-w-0 flex-1 items-center lg:flex">
+            <UniversalSearchBar />
+          </div>
+
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5 lg:gap-2">
+            <UniversalSearchIconButton className="lg:hidden" />
+
+            <div className="hidden lg:block">
+              <QuickCreateMenu />
+            </div>
+
+            <NotificationDropdown attentionBadges={attentionBadges} />
+
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className="hidden h-11 items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-sm font-medium text-violet-800 transition-colors hover:bg-violet-100 lg:inline-flex"
+              aria-label="Asisten AI"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>AI</span>
+            </button>
+
+            <div className="hidden lg:block">
+              <WorkspaceSwitcher context={workspaceContext} variant="desktop" />
+            </div>
+
+            <ProfileMenu profile={profile} email={email} />
+          </div>
         </div>
       </header>
 
@@ -86,7 +90,12 @@ export function AppHeader({
         title="Asisten AI"
         subtitle="Layer kontekstual, bukan menu navigasi"
         footer={
-          <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setAiOpen(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full"
+            onClick={() => setAiOpen(false)}
+          >
             Tutup
           </Button>
         }
@@ -104,7 +113,7 @@ export function AppHeader({
       </MobileSheet>
 
       {aiOpen ? (
-        <div className="fixed inset-0 z-[100] hidden items-start justify-end bg-black/30 p-4 md:flex md:pt-20">
+        <div className="fixed inset-0 z-[70] hidden items-start justify-end bg-black/30 p-4 lg:flex lg:pt-20">
           <button
             type="button"
             aria-label="Tutup asisten AI"
@@ -112,7 +121,7 @@ export function AppHeader({
             onClick={() => setAiOpen(false)}
           />
           <aside className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-violet-100 bg-violet-50/80 px-4 py-3">
+            <div className="flex items-center gap-2 border-b border-violet-100 bg-violet-50 px-4 py-3">
               <Bot className="h-5 w-5 text-violet-700" />
               <div>
                 <p className="text-sm font-semibold text-slate-900">Asisten AI</p>
@@ -139,6 +148,6 @@ export function AppHeader({
           </aside>
         </div>
       ) : null}
-    </>
+    </UniversalSearchScope>
   );
 }

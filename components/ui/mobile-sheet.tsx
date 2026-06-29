@@ -68,7 +68,7 @@ export function MobileSheet({
       <button
         type="button"
         aria-label="Tutup"
-        className="fixed inset-0 z-[100] bg-black/40 md:hidden"
+        className="fixed inset-0 z-[60] bg-black/40 lg:hidden"
         onClick={onClose}
       />
 
@@ -79,7 +79,7 @@ export function MobileSheet({
         aria-label={ariaLabel ?? title}
         tabIndex={-1}
         className={cn(
-          "fixed z-[101] flex flex-col overflow-hidden bg-white shadow-2xl outline-none md:hidden",
+          "fixed z-[60] flex flex-col overflow-hidden bg-white shadow-2xl outline-none lg:hidden",
           variant === "fullscreen"
             ? "inset-0 pt-[env(safe-area-inset-top)]"
             : "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]",

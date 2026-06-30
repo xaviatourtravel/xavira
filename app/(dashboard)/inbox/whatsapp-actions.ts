@@ -698,7 +698,7 @@ export async function retryWhatsappConversationReplyAction(
       messageId,
     );
 
-    revalidateInbox(savedMessage.conversation_id);
+    revalidateInbox(savedMessage.conversationId);
 
     return {
       success: true,

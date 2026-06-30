@@ -22,19 +22,15 @@ function getAttachmentLabel(message: MessageRow) {
 
 function getDeliveryLabel(message: MessageRow) {
   if (message.id === "optimistic-outgoing" || message.deliveryStatus === "pending") {
-    return "Sending…";
+    return "Mengirim...";
   }
 
   if (message.deliveryStatus === "failed") {
-    return "Failed";
+    return "Gagal dikirim";
   }
 
-  if (message.deliveryStatus === "sent") {
-    return "Sent";
-  }
-
-  if (message.deliveryStatus === "delivered") {
-    return "Delivered";
+  if (message.deliveryStatus === "sent" || message.deliveryStatus === "delivered") {
+    return "Terkirim";
   }
 
   return formatInboxMessageTime(message.created_at);
@@ -100,7 +96,7 @@ export function WhatsappMessageBubble({
               className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-red-100 hover:bg-white/10"
             >
               <RotateCcw className={cn("h-3 w-3", isRetrying && "animate-spin")} />
-              Retry
+              {isRetrying ? "Mengirim..." : "Coba Lagi"}
             </button>
           ) : null}
         </div>

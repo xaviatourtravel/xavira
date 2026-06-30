@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Brain, ChevronLeft, ChevronRight, IdCard, Workflow } from "lucide-react";
+import { Brain, ChevronRight, IdCard, PanelRightOpen, Workflow } from "lucide-react";
 
 import { CustomerPassportFromConversation } from "@/components/customer-passport/customer-passport-from-conversation";
-import { CustomerIntelligencePanel } from "@/components/communication-workspace/customer-intelligence-panel";
+import { ConversationIntelligenceTab } from "@/components/communication-workspace/conversation-intelligence-tab";
 import { WorkspaceOperationsPanel } from "@/components/communication-workspace/workspace-operations-panel";
 import {
   IntelligencePanel,
@@ -36,7 +36,6 @@ type SidebarTab = "workflow" | "passport" | "intelligence";
 
 export function WorkspaceRightSidebar({
   conversation,
-  organizationId,
   orgProfiles,
   canReassign,
   canUpdateStatus,
@@ -82,11 +81,14 @@ export function WorkspaceRightSidebar({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-          title="Expand sidebar (Ctrl+.)"
-          aria-label="Expand sidebar"
+          className="flex flex-col items-center gap-2 rounded-lg px-1.5 py-3 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          title="Buka panel detail (Ctrl+.)"
+          aria-label="Buka panel detail"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <PanelRightOpen className="h-4 w-4" />
+          <span className="rotate-180 text-[11px] font-medium tracking-wide [writing-mode:vertical-rl]">
+            Detail
+          </span>
         </button>
       </div>
     );
@@ -96,19 +98,19 @@ export function WorkspaceRightSidebar({
     return (
       <IntelligencePanel>
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <p className="text-sm font-semibold tracking-tight">Workspace</p>
+          <p className="text-sm font-semibold tracking-tight">Detail</p>
           <button
             type="button"
             onClick={onToggleCollapsed}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60"
-            title="Collapse sidebar (Ctrl+.)"
-            aria-label="Collapse sidebar"
+            title="Ciutkan panel (Ctrl+.)"
+            aria-label="Ciutkan panel"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
         <div className="flex flex-1 items-center justify-center px-6 text-center text-xs text-muted-foreground">
-          Select a conversation to manage workflow and intelligence.
+          Pilih percakapan untuk mengelola alur kerja dan intelijen.
         </div>
       </IntelligencePanel>
     );
@@ -127,10 +129,10 @@ export function WorkspaceRightSidebar({
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
-            title="Workflow (Ctrl+1)"
+            title="Alur Kerja (Ctrl+1)"
           >
             <Workflow className="h-3.5 w-3.5" />
-            Workflow
+            Alur Kerja
           </button>
           <button
             type="button"
@@ -141,10 +143,10 @@ export function WorkspaceRightSidebar({
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
-            title="Passport (Ctrl+2)"
+            title="Paspor (Ctrl+2)"
           >
             <IdCard className="h-3.5 w-3.5" />
-            Passport
+            Paspor
           </button>
           <button
             type="button"
@@ -155,18 +157,18 @@ export function WorkspaceRightSidebar({
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
-            title="Intelligence (Ctrl+3)"
+            title="Intelijen (Ctrl+3)"
           >
             <Brain className="h-3.5 w-3.5" />
-            Intelligence
+            Intelijen
           </button>
         </div>
         <button
           type="button"
           onClick={onToggleCollapsed}
           className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60"
-          title="Collapse sidebar (Ctrl+.)"
-          aria-label="Collapse sidebar"
+          title="Ciutkan panel (Ctrl+.)"
+          aria-label="Ciutkan panel"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -175,8 +177,8 @@ export function WorkspaceRightSidebar({
       {activeTab === "workflow" ? (
         <>
           <IntelligencePanelHeader
-            title="Sales workflow"
-            subtitle="Assign · status · notes · labels"
+            title="Alur kerja penjualan"
+            subtitle="Tugaskan · status · catatan · label"
           />
           <IntelligencePanelBody>
             <WorkspaceOperationsPanel
@@ -193,8 +195,8 @@ export function WorkspaceRightSidebar({
       ) : activeTab === "passport" ? (
         <>
           <IntelligencePanelHeader
-            title="Customer Passport"
-            subtitle="Living identity · shared everywhere"
+            title="Paspor Pelanggan"
+            subtitle="Identitas hidup · dipakai di semua workspace"
           />
           <IntelligencePanelBody className="px-3 py-3">
             <CustomerPassportFromConversation
@@ -205,11 +207,15 @@ export function WorkspaceRightSidebar({
           </IntelligencePanelBody>
         </>
       ) : (
-        <CustomerIntelligencePanel
-          conversation={conversation}
-          organizationId={organizationId}
-          embedded
-        />
+        <>
+          <IntelligencePanelHeader
+            title="Intelijen"
+            subtitle="Ringkasan & insight otomatis dari percakapan"
+          />
+          <IntelligencePanelBody>
+            <ConversationIntelligenceTab conversation={conversation} />
+          </IntelligencePanelBody>
+        </>
       )}
     </IntelligencePanel>
   );

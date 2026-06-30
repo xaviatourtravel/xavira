@@ -47,7 +47,7 @@ export function getConversationDisplayName(conversation: {
 
 export function formatInboxRelativeTime(value: string | null) {
   if (!value) {
-    return "—";
+    return "-";
   }
 
   const date = new Date(value);

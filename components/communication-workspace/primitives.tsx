@@ -133,7 +133,7 @@ export function IntelligenceEmpty({
 export function IntelligenceField({
   label,
   value,
-  placeholder = "—",
+  placeholder = "-",
   onChange,
   type = "text",
   readOnly = false,
@@ -178,7 +178,7 @@ export function IntelligenceMetric({
   label,
   value,
   sublabel,
-  placeholder = "—",
+  placeholder = "-",
   accent,
 }: {
   label: string;

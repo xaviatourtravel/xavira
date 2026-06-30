@@ -65,30 +65,29 @@ export function OmnichannelConversationList({
         const isSelected = conversation.id === selectedConversationId;
         const isUnread = conversation.unreadCount > 0;
         const displayName = getConversationDisplayName(conversation);
-        const showSubtitle =
-          conversation.channel === "whatsapp"
-            ? Boolean(
-                conversation.customerUsername &&
-                  conversation.customerName !== conversation.customerUsername,
-              )
-            : Boolean(
-                conversation.customerUsername &&
-                  displayName !==
-                    (conversation.customerUsername.startsWith("@")
-                      ? conversation.customerUsername
-                      : `@${conversation.customerUsername}`),
-              );
-        const subtitleLabel =
-          conversation.channel === "whatsapp"
-            ? conversation.customerUsername
-            : `@${conversation.customerUsername?.replace(/^@/, "")}`;
+
+        const secondaryLabel = conversation.customerUsername?.trim()
+          ? conversation.channel === "whatsapp"
+            ? conversation.customerUsername.trim()
+            : `@${conversation.customerUsername.trim().replace(/^@/, "")}`
+          : null;
+        const showSecondary = Boolean(
+          secondaryLabel && secondaryLabel !== displayName,
+        );
+
+        // Sembunyikan lencana kanal yang berlebihan saat filter sudah aktif.
+        const showChannelBadge = !(
+          activeFilter === "whatsapp" && conversation.channel === "whatsapp"
+        );
+        // "Baru" hanya bila belum dibaca; status lain tetap tampil (kecil).
+        const showStatusBadge = conversation.status !== "new" || isUnread;
 
         return (
           <Link
             key={conversation.id}
             href={buildConversationHref(conversation.id, activeFilter)}
             className={cn(
-              "block border-b border-border/40 px-4 py-3.5 transition-colors hover:bg-muted/40",
+              "block border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40",
               isSelected && "bg-primary/5 hover:bg-primary/5",
               isUnread && !isSelected && "bg-sky-50/70 hover:bg-sky-50",
             )}
@@ -106,71 +105,43 @@ export function OmnichannelConversationList({
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p
-                        className={cn(
-                          "truncate text-sm text-foreground",
-                          isUnread ? "font-bold" : "font-semibold",
-                        )}
-                        title={displayName}
-                      >
-                        {displayName}
-                      </p>
-                      {conversation.leadId ? (
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-                          Lead
-                        </span>
-                      ) : null}
-                      <OmnichannelChannelBadge channel={conversation.channel} />
-                      <OmnichannelStatusBadge status={conversation.status} />
-                    </div>
-                    {conversation.labels.length > 0 ? (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {conversation.labels.slice(0, 3).map((label) => (
-                          <span
-                            key={label.tag}
-                            className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white"
-                            style={{ backgroundColor: label.color }}
-                          >
-                            {label.tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    {showSubtitle ? (
-                      <p
-                        className="mt-0.5 truncate text-[11px] text-muted-foreground"
-                        title={subtitleLabel ?? undefined}
-                      >
-                        {subtitleLabel}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="shrink-0 text-right">
-                    <p
-                      className={cn(
-                        "text-[11px] tabular-nums",
-                        isUnread
-                          ? "font-semibold text-primary"
-                          : "font-medium text-muted-foreground",
-                      )}
-                    >
-                      {formatInboxRelativeTime(conversation.lastMessageAt)}
-                    </p>
-                    {isUnread ? (
-                      <span className="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                        {conversation.unreadCount}
-                      </span>
-                    ) : null}
-                  </div>
+                {/* Baris 1: nama (utama) + waktu */}
+                <div className="flex items-baseline gap-2">
+                  <p
+                    className={cn(
+                      "min-w-0 flex-1 truncate text-[15px] text-foreground",
+                      isUnread ? "font-bold" : "font-semibold",
+                    )}
+                    title={displayName}
+                  >
+                    {displayName}
+                  </p>
+                  <span
+                    className={cn(
+                      "shrink-0 text-[11px] tabular-nums",
+                      isUnread
+                        ? "font-semibold text-primary"
+                        : "font-medium text-muted-foreground",
+                    )}
+                  >
+                    {formatInboxRelativeTime(conversation.lastMessageAt)}
+                  </span>
                 </div>
 
+                {/* Baris 2: nomor telepon / username (sekunder) */}
+                {showSecondary ? (
+                  <p
+                    className="truncate text-xs text-muted-foreground"
+                    title={secondaryLabel ?? undefined}
+                  >
+                    {secondaryLabel}
+                  </p>
+                ) : null}
+
+                {/* Baris 3: pratinjau pesan (satu baris) */}
                 <p
                   className={cn(
-                    "mt-1.5 line-clamp-2 text-[13px] leading-snug",
+                    "mt-0.5 truncate text-[13px] leading-snug",
                     isUnread
                       ? "font-medium text-foreground"
                       : "text-muted-foreground",
@@ -178,6 +149,41 @@ export function OmnichannelConversationList({
                 >
                   {conversation.lastMessagePreview ?? "Belum ada pesan"}
                 </p>
+
+                {/* Baris 4: lencana kecil + jumlah belum dibaca */}
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  {showChannelBadge ? (
+                    <OmnichannelChannelBadge
+                      channel={conversation.channel}
+                      className="px-1.5 py-0 text-[9px]"
+                    />
+                  ) : null}
+                  {showStatusBadge ? (
+                    <OmnichannelStatusBadge
+                      status={conversation.status}
+                      className="px-1.5 py-0 text-[9px]"
+                    />
+                  ) : null}
+                  {conversation.leadId ? (
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-800">
+                      Lead
+                    </span>
+                  ) : null}
+                  {conversation.labels.slice(0, 2).map((label) => (
+                    <span
+                      key={label.tag}
+                      className="rounded-full px-1.5 py-0 text-[9px] font-semibold text-white"
+                      style={{ backgroundColor: label.color }}
+                    >
+                      {label.tag}
+                    </span>
+                  ))}
+                  {isUnread ? (
+                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {conversation.unreadCount}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           </Link>

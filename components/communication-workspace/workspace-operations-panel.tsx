@@ -274,10 +274,10 @@ export function WorkspaceOperationsPanel({
       <section className="space-y-2 rounded-xl border bg-muted/15 p-3">
         <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           <UserRound className="h-3.5 w-3.5" />
-          Assigned to
+          Ditugaskan ke
         </p>
         <p className="text-sm font-medium text-foreground">
-          {conversation.assignedUserName ?? "Unassigned"}
+          {conversation.assignedUserName ?? "Belum ditugaskan"}
         </p>
         {canReassign ? (
           <form
@@ -293,7 +293,7 @@ export function WorkspaceOperationsPanel({
               disabled={isPending}
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
             >
-              <option value="">Unassigned</option>
+              <option value="">Belum ditugaskan</option>
               {orgProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.full_name}
@@ -308,7 +308,7 @@ export function WorkspaceOperationsPanel({
                 "w-full",
               )}
             >
-              Update assignment
+              Perbarui penugasan
             </button>
           </form>
         ) : null}
@@ -316,12 +316,12 @@ export function WorkspaceOperationsPanel({
           <div className="space-y-1.5 border-t pt-2">
             <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               <ArrowRightLeft className="h-3 w-3" />
-              Assignment history
+              Riwayat penugasan
             </p>
             {conversation.assignmentHistory.slice(0, 4).map((entry) => (
               <p key={entry.id} className="text-[11px] text-muted-foreground">
-                {entry.assignedFromName ?? "Unassigned"} →{" "}
-                {entry.assignedToName ?? "Unassigned"}
+                {entry.assignedFromName ?? "Belum ditugaskan"} →{" "}
+                {entry.assignedToName ?? "Belum ditugaskan"}
                 <span className="ml-1 opacity-70">· {entry.assignedByName}</span>
               </p>
             ))}
@@ -332,11 +332,11 @@ export function WorkspaceOperationsPanel({
       <section className="space-y-2 rounded-xl border bg-muted/15 p-3">
         <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           <Tag className="h-3.5 w-3.5" />
-          Labels
+          Label
         </p>
         <div className="flex flex-wrap gap-1.5">
           {conversation.labels.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No labels yet.</p>
+            <p className="text-xs text-muted-foreground">Belum ada label</p>
           ) : (
             conversation.labels.map((label) => (
               <LabelChip
@@ -353,7 +353,7 @@ export function WorkspaceOperationsPanel({
           <input
             value={newLabel}
             onChange={(event) => setNewLabel(event.target.value)}
-            placeholder="Add label…"
+            placeholder="Tambah label…"
             disabled={isPending}
             className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm"
             onKeyDown={(event) => {
@@ -369,7 +369,7 @@ export function WorkspaceOperationsPanel({
             onClick={handleAddLabel}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Add
+            Tambah
           </button>
         </div>
       </section>
@@ -378,13 +378,13 @@ export function WorkspaceOperationsPanel({
         <section className="space-y-2 rounded-xl border bg-muted/15 p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             <StickyNote className="h-3.5 w-3.5" />
-            Internal notes
+            Catatan internal
           </p>
           <textarea
             value={noteText}
             onChange={(event) => setNoteText(event.target.value)}
             rows={3}
-            placeholder="Private note — visible to team only…"
+            placeholder="Catatan privat, hanya tim yang bisa melihat…"
             disabled={isPending}
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
           />
@@ -394,7 +394,7 @@ export function WorkspaceOperationsPanel({
             onClick={handleAddNote}
             className={cn(buttonVariants({ size: "sm" }), "w-full")}
           >
-            Save note
+            Simpan catatan
           </button>
           {conversation.notes.length > 0 ? (
             <div className="max-h-32 space-y-2 overflow-y-auto border-t pt-2">
@@ -402,7 +402,7 @@ export function WorkspaceOperationsPanel({
                 <div key={note.id} className="rounded-lg bg-background px-2.5 py-2">
                   <p className="text-xs leading-relaxed text-foreground">{note.note}</p>
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    {note.authorName ?? "Team"} ·{" "}
+                    {note.authorName ?? "Tim"} ·{" "}
                     {new Date(note.created_at).toLocaleString("id-ID")}
                   </p>
                 </div>
@@ -416,14 +416,14 @@ export function WorkspaceOperationsPanel({
         <section className="space-y-2 rounded-xl border bg-muted/15 p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             <Bell className="h-3.5 w-3.5" />
-            Follow-up reminder
+            Pengingat tindak lanjut
           </p>
           {conversation.leadId ? (
             <>
               <input
                 value={followUpTitle}
                 onChange={(event) => setFollowUpTitle(event.target.value)}
-                placeholder="Reminder title…"
+                placeholder="Judul pengingat…"
                 disabled={isPending}
                 className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
               />
@@ -442,12 +442,13 @@ export function WorkspaceOperationsPanel({
                 onClick={handleFollowUp}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}
               >
-                Schedule follow-up
+                Jadwalkan tindak lanjut
               </button>
             </>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Convert to lead first to schedule follow-ups in Today Workspace.
+              Konversi jadi lead dulu untuk menjadwalkan tindak lanjut di
+              Workspace Hari Ini.
             </p>
           )}
         </section>
@@ -457,10 +458,11 @@ export function WorkspaceOperationsPanel({
         <section className="rounded-xl border border-dashed bg-muted/10 p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             <UserRoundPlus className="h-3.5 w-3.5" />
-            Convert to lead
+            Konversi jadi lead
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Transfer name, phone, source, conversation, labels, and notes in one click.
+            Pindahkan nama, telepon, sumber, percakapan, label, dan catatan
+            dalam satu klik.
           </p>
           <button
             type="button"
@@ -468,7 +470,7 @@ export function WorkspaceOperationsPanel({
             onClick={handleConvert}
             className={cn(buttonVariants({ size: "sm" }), "mt-3 w-full")}
           >
-            Convert to lead
+            Konversi jadi lead
           </button>
         </section>
       ) : null}

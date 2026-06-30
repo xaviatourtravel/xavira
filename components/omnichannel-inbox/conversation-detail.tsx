@@ -129,6 +129,16 @@ export function OmnichannelConversationDetailPanel({
     conversation.id,
   ]);
 
+  const lastCustomerMessage = useMemo(() => {
+    for (let index = displayMessages.length - 1; index >= 0; index -= 1) {
+      const message = displayMessages[index];
+      if (message.direction === "incoming" && message.message_text?.trim()) {
+        return message.message_text.trim();
+      }
+    }
+    return null;
+  }, [displayMessages]);
+
   const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
     const container = scrollContainerRef.current;
     if (!container) {
@@ -267,12 +277,12 @@ export function OmnichannelConversationDetailPanel({
             {mobilePanelOpen ? (
               <>
                 <PanelRightClose className="h-3.5 w-3.5" />
-                Intelligence
+                Detail
               </>
             ) : (
               <>
                 <PanelRightOpen className="h-3.5 w-3.5" />
-                Intelligence
+                Detail
               </>
             )}
           </button>
@@ -294,12 +304,12 @@ export function OmnichannelConversationDetailPanel({
             <div className="flex flex-col items-center py-10 text-center">
               <MessageSquareText className="h-6 w-6 text-muted-foreground/50" />
               <p className="mt-2 text-sm font-medium text-foreground">
-                {isWhatsapp ? "Belum ada pesan" : "No messages yet"}
+                Belum ada pesan
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {isWhatsapp
                   ? "Pesan WhatsApp akan muncul di sini."
-                  : "Customer messages will appear here."}
+                  : "Pesan pelanggan akan muncul di sini."}
               </p>
             </div>
           ) : isWhatsapp ? (
@@ -399,6 +409,7 @@ export function OmnichannelConversationDetailPanel({
             canReply={canReply}
             canSuggestReply={canSuggestReply && !isWhatsapp}
             isUnassignedForAgent={isUnassignedForAgent}
+            lastCustomerMessage={lastCustomerMessage}
             onOptimisticMessage={setOptimisticMessageText}
             onAddOptimistic={addOptimisticMessage}
             onRemoveOptimistic={removeOptimisticMessage}
@@ -414,10 +425,10 @@ export function OmnichannelConversationEmptyState() {
     <div className="flex h-full flex-col items-center justify-center bg-[#f4f6f8] px-8 text-center dark:bg-muted/10">
       <MessageSquareText className="h-10 w-10 text-muted-foreground/40" />
       <p className="mt-4 text-base font-semibold text-foreground">
-        Select a conversation
+        Pilih percakapan
       </p>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Choose a thread to start messaging.
+        Pilih sebuah percakapan untuk mulai mengirim pesan.
       </p>
     </div>
   );

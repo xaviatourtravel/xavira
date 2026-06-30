@@ -54,7 +54,7 @@ export function SidebarNavigation({
         </div>
       ) : null}
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
           Workspaces
         </p>

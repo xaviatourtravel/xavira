@@ -52,6 +52,8 @@ type CommunicationWorkspaceViewProps = {
   initialSuccess?: string | null;
 };
 
+const SIDEBAR_COLLAPSED_KEY = "desklabs:workspace:detail-collapsed";
+
 function sortByLastMessageAtDesc(
   a: OmnichannelConversationListItem,
   b: OmnichannelConversationListItem,
@@ -64,9 +66,12 @@ function sortByLastMessageAtDesc(
 function ConversationNotFoundState() {
   return (
     <div className="flex h-full flex-col items-center justify-center bg-neutral-50/50 px-8 text-center dark:bg-neutral-950/20">
-      <p className="text-sm font-medium text-foreground">Conversation not found</p>
+      <p className="text-sm font-medium text-foreground">
+        Percakapan tidak ditemukan
+      </p>
       <p className="mt-2 max-w-sm text-xs text-muted-foreground">
-        This thread may have been removed or is not available to your account.
+        Percakapan ini mungkin telah dihapus atau tidak tersedia untuk akun
+        Anda.
       </p>
     </div>
   );
@@ -95,8 +100,26 @@ export function CommunicationWorkspaceView({
   initialSuccess = null,
 }: CommunicationWorkspaceViewProps) {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Panel detail diciutkan secara default agar area chat lebih lebar.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored === "false") {
+      setSidebarCollapsed(false);
+    } else if (stored === "true") {
+      setSidebarCollapsed(true);
+    }
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((value) => {
+      const next = !value;
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  }, []);
   const filterCounts = buildOmnichannelFilterCounts(allConversations, currentUserId);
 
   // Daftar percakapan hidup: di-seed dari data server lalu di-patch realtime.
@@ -163,7 +186,7 @@ export function CommunicationWorkspaceView({
   const showMobileThread = Boolean(selectedConversationId);
 
   return (
-    <div className="flex h-[calc(100dvh-6.5rem)] min-h-[420px] flex-col gap-2 lg:h-[calc(100vh-3.75rem)] lg:min-h-[760px]">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       {initialError ? (
         <div className="shrink-0 rounded-lg border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-600">
           {decodeURIComponent(initialError)}
@@ -195,10 +218,10 @@ export function CommunicationWorkspaceView({
           <div className="flex items-center justify-between px-4 py-4">
             <div>
               <p className="text-sm font-semibold tracking-tight text-foreground">
-                Conversations
+                Percakapan
               </p>
               <p className="text-[11px] text-muted-foreground">
-                All channels · one workspace
+                Semua kanal · satu workspace
               </p>
             </div>
             <span className="rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
@@ -296,7 +319,7 @@ export function CommunicationWorkspaceView({
             canConvert={canConvert}
             canCreateFollowUp={canCreateFollowUp}
             collapsed={sidebarCollapsed}
-            onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
+            onToggleCollapsed={toggleSidebar}
           />
         </section>
       </div>

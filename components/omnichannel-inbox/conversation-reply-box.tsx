@@ -1,22 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import {
-  File,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type RefObject,
+} from "react";
+import {
+  ChevronLeft,
   FileText,
-  ImageIcon,
   Paperclip,
   Plus,
   Send,
   Smile,
   Sparkles,
+  X,
 } from "lucide-react";
 
 import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnichannel-actions";
 import { suggestOmnichannelReply } from "@/app/(dashboard)/inbox/omnichannel-ai-actions";
 import { buttonVariants } from "@/components/ui/button";
 import { DsToast } from "@/components/design-system/toast";
+import { QUICK_REPLY_TEMPLATES, suggestReply } from "@/lib/communication/assist";
 import {
   getComposerPlaceholder,
   isPersistedFailureCode,
@@ -26,7 +33,23 @@ import { useConversationDraft } from "@/lib/communication/drafts";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
 
-const EMOJIS = ["😊", "👍", "🙏", "✅", "📎", "🎉", "❤️", "😂"];
+const EMOJIS = [
+  "😊",
+  "👍",
+  "🙏",
+  "✅",
+  "🎉",
+  "❤️",
+  "😂",
+  "🔥",
+  "👌",
+  "😍",
+  "🤝",
+  "📎",
+];
+
+const MAX_TEXTAREA_ROWS = 4;
+const LINE_HEIGHT_PX = 24;
 
 type ComposerToast = {
   variant: "success" | "error" | "info";
@@ -34,12 +57,16 @@ type ComposerToast = {
   description?: string;
 };
 
+type ActionsView = "root" | "emoji" | "template" | "ai";
+
 type OmnichannelConversationReplyBoxProps = {
   conversationId: string;
   channel?: OmnichannelChannel;
   canReply: boolean;
   canSuggestReply?: boolean;
   isUnassignedForAgent?: boolean;
+  // Pesan masuk terakhir dari pelanggan, untuk saran AI berbasis aturan.
+  lastCustomerMessage?: string | null;
   onSendingChange?: (isSending: boolean) => void;
   // Kanal non-WhatsApp: satu pesan optimistik sederhana.
   onOptimisticMessage?: (messageText: string | null) => void;
@@ -49,89 +76,26 @@ type OmnichannelConversationReplyBoxProps = {
   onRemoveOptimistic?: (tempId: string) => void;
 };
 
-const MAX_TEXTAREA_ROWS = 4;
-const LINE_HEIGHT_PX = 24;
-
-type AttachmentMenuItem = {
-  id: string;
-  label: string;
-  icon: ReactNode;
-  disabled?: boolean;
-  hint?: string;
-};
-
-const COMPOSER_ICON_BUTTON =
-  "flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-0 md:h-9 md:w-9";
-
-// Tombol "segera tersedia" untuk fitur composer WhatsApp yang belum aktif.
-function ComingSoonIconButton({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      disabled
-      title="Segera tersedia"
-      aria-label={`${label} (segera tersedia)`}
-      className={cn(
-        buttonVariants({ variant: "ghost", size: "sm" }),
-        COMPOSER_ICON_BUTTON,
-        "cursor-not-allowed text-muted-foreground/60",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ComingSoonPillButton({
-  label,
-  icon,
-}: {
-  label: string;
-  icon: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      disabled
-      title="Segera tersedia"
-      className={cn(
-        buttonVariants({ variant: "ghost", size: "sm" }),
-        "h-7 cursor-not-allowed gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground/70",
-      )}
-    >
-      {icon}
-      <span>{label}</span>
-      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Segera
-      </span>
-    </button>
-  );
-}
-
-function ComposerAttachmentMenu() {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
+// Menutup menu saat klik di luar atau menekan Escape.
+function useOutsideClose(
+  open: boolean,
+  ref: RefObject<HTMLElement | null>,
+  onClose: () => void,
+) {
   useEffect(() => {
     if (!open) {
       return;
     }
 
     function handlePointerDown(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+      if (!ref.current?.contains(event.target as Node)) {
+        onClose();
       }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false);
+        onClose();
       }
     }
 
@@ -141,139 +105,52 @@ function ComposerAttachmentMenu() {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [open]);
+  }, [open, ref, onClose]);
+}
 
-  const items: AttachmentMenuItem[] = [
-    {
-      id: "image",
-      label: "Unggah gambar",
-      icon: <ImageIcon className="h-4 w-4" />,
-      disabled: true,
-      hint: "Segera",
-    },
-    {
-      id: "document",
-      label: "Unggah dokumen",
-      icon: <FileText className="h-4 w-4" />,
-      disabled: true,
-      hint: "Segera",
-    },
-    {
-      id: "file",
-      label: "Unggah berkas",
-      icon: <File className="h-4 w-4" />,
-      disabled: true,
-      hint: "Segera",
-    },
-  ];
-
+function ActionRow({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <div ref={menuRef} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "sm" }),
-          COMPOSER_ICON_BUTTON,
-          open && "bg-muted text-foreground",
-          "text-muted-foreground hover:text-foreground",
-        )}
-        aria-label="Tambah lampiran"
-        aria-expanded={open}
-        aria-haspopup="menu"
-      >
-        <Plus className={cn("h-4 w-4 transition-transform", open && "rotate-45")} />
-      </button>
-
-      {open ? (
-        <div
-          role="menu"
-          className="absolute bottom-full left-0 z-20 mb-2 w-52 overflow-hidden rounded-xl border bg-background py-1 shadow-lg"
-        >
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="menuitem"
-              disabled={item.disabled}
-              title="Segera tersedia"
-              className={cn(
-                "flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors",
-                item.disabled
-                  ? "cursor-not-allowed text-muted-foreground/70"
-                  : "text-foreground hover:bg-muted/60",
-              )}
-            >
-              <span className="text-muted-foreground">{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
-              {item.hint ? (
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {item.hint}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted/60"
+    >
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+        {icon}
+      </span>
+      {label}
+    </button>
   );
 }
 
-function ComposerEmojiPicker({
-  onPick,
-  disabled,
+function SubmenuHeader({
+  title,
+  onBack,
 }: {
-  onPick: (emoji: string) => void;
-  disabled?: boolean;
+  title: string;
+  onBack: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [open]);
-
   return (
-    <div ref={menuRef} className="relative shrink-0">
+    <div className="flex items-center gap-1 border-b px-2 py-1.5">
       <button
         type="button"
-        disabled={disabled}
-        onClick={() => setOpen((value) => !value)}
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "sm" }),
-          COMPOSER_ICON_BUTTON,
-          "text-muted-foreground hover:text-foreground",
-        )}
-        aria-label="Sisipkan emoji"
+        onClick={onBack}
+        aria-label="Kembali"
+        className="rounded-md p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       >
-        😊
+        <ChevronLeft className="h-4 w-4" />
       </button>
-      {open ? (
-        <div className="absolute bottom-full left-0 z-20 mb-2 grid grid-cols-4 gap-1 rounded-xl border bg-background p-2 shadow-lg">
-          {EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
-              onClick={() => {
-                onPick(emoji);
-                setOpen(false);
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </span>
     </div>
   );
 }
@@ -284,6 +161,7 @@ export function OmnichannelConversationReplyBox({
   canReply,
   canSuggestReply = false,
   isUnassignedForAgent = false,
+  lastCustomerMessage = null,
   onSendingChange,
   onOptimisticMessage,
   onAddOptimistic,
@@ -291,12 +169,25 @@ export function OmnichannelConversationReplyBox({
 }: OmnichannelConversationReplyBoxProps) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const { draft: messageText, setDraft: setMessageText, clearDraft } =
     useConversationDraft(conversationId);
+  const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [toast, setToast] = useState<ComposerToast | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionsView, setActionsView] = useState<ActionsView>("root");
   const [isPending, startTransition] = useTransition();
   const [isGenerating, startGenerateTransition] = useTransition();
+
+  useOutsideClose(actionsOpen, actionsRef, () => setActionsOpen(false));
+
+  useEffect(() => {
+    if (!actionsOpen) {
+      setActionsView("root");
+    }
+  }, [actionsOpen]);
 
   useEffect(() => {
     if (!toast) {
@@ -310,7 +201,8 @@ export function OmnichannelConversationReplyBox({
   const isWhatsapp = channel === "whatsapp";
 
   const isDisabled = !canReply || isPending || isGenerating;
-  const canSend = canReply && messageText.trim().length > 0 && !isPending && !isGenerating;
+  const canSend =
+    canReply && messageText.trim().length > 0 && !isPending && !isGenerating;
   const canUseAi = canSuggestReply && canReply && !isPending && !isGenerating;
 
   const sendTitle = !canReply
@@ -325,12 +217,6 @@ export function OmnichannelConversationReplyBox({
       ? "Kirim balasan WhatsApp."
       : "Manual reply via connected Meta account.";
 
-  const aiTitle = !canSuggestReply
-    ? "You do not have permission to use AI suggestions."
-    : !canReply
-      ? sendTitle
-      : "Generate a suggested reply. Review and edit before sending.";
-
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) {
@@ -342,11 +228,45 @@ export function OmnichannelConversationReplyBox({
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
   }, [messageText]);
 
+  // Menyisipkan teks pada posisi kursor (untuk emoji).
+  function insertAtCursor(insert: string) {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setMessageText(messageText ? `${messageText}${insert}` : insert);
+      return;
+    }
+
+    const start = textarea.selectionStart ?? messageText.length;
+    const end = textarea.selectionEnd ?? messageText.length;
+    const next = messageText.slice(0, start) + insert + messageText.slice(end);
+    setMessageText(next);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = start + insert.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  }
+
+  // Menyisipkan balasan template/AI. Tidak menimpa teks kecuali composer kosong.
+  function insertReply(text: string) {
+    if (!messageText.trim()) {
+      setMessageText(text);
+    } else {
+      const separator = /\s$/.test(messageText) ? "" : " ";
+      setMessageText(`${messageText}${separator}${text}`);
+    }
+    setActionsOpen(false);
+    textareaRef.current?.focus();
+  }
+
   function handleSend() {
     const trimmed = messageText.trim();
     if (!trimmed || !canReply) {
       return;
     }
+
+    setAttachmentName(null);
 
     if (isWhatsapp) {
       // Pesan langsung muncul (optimistik). Status dan baris akhir
@@ -448,6 +368,7 @@ export function OmnichannelConversationReplyBox({
     }
 
     setAiError(null);
+    setActionsOpen(false);
 
     startGenerateTransition(async () => {
       const formData = new FormData();
@@ -456,7 +377,7 @@ export function OmnichannelConversationReplyBox({
       const result = await suggestOmnichannelReply(formData);
 
       if (!result.success || !result.suggestion) {
-        setAiError(result.message ?? "AI suggestion failed. Please try again.");
+        setAiError(result.message ?? "Saran AI gagal. Silakan coba lagi.");
         return;
       }
 
@@ -465,8 +386,19 @@ export function OmnichannelConversationReplyBox({
     });
   }
 
+  function handleAiAction() {
+    if (isWhatsapp) {
+      setActionsView("ai");
+      return;
+    }
+    handleSuggestReply();
+  }
+
+  const showAiAction = isWhatsapp || canUseAi;
+  const aiSuggestion = suggestReply(lastCustomerMessage);
+
   return (
-    <div className="relative bg-background px-3 py-2.5 sm:px-4">
+    <div className="relative bg-background px-3 py-2 sm:px-4">
       {toast ? (
         <div className="pointer-events-none absolute bottom-full right-3 z-30 mb-2 flex justify-end sm:right-4">
           <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-1">
@@ -479,61 +411,157 @@ export function OmnichannelConversationReplyBox({
         </div>
       ) : null}
 
-      {isWhatsapp ? (
-        <div className="mb-2 flex justify-end gap-1.5">
-          <ComingSoonPillButton
-            label="Template"
-            icon={<FileText className="h-3.5 w-3.5" />}
-          />
-          <ComingSoonPillButton
-            label="AI"
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-          />
-        </div>
-      ) : canUseAi ? (
-        <div className="mb-2 flex justify-end">
-          <button
-            type="button"
-            disabled={!canUseAi || isGenerating}
-            onClick={handleSuggestReply}
-            title={aiTitle}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-7 gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground hover:text-foreground",
-              isGenerating && "opacity-70",
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {isGenerating ? "Generating..." : "AI Reply"}
-          </button>
-        </div>
-      ) : null}
-
       {aiError ? (
         <p className="mb-2 rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
           {aiError}
         </p>
       ) : null}
 
-      <div className="flex items-end gap-2">
-        {isWhatsapp ? (
-          <>
-            <ComingSoonIconButton label="Lampiran">
-              <Paperclip className="h-4 w-4" />
-            </ComingSoonIconButton>
-            <ComingSoonIconButton label="Emoji">
-              <Smile className="h-4 w-4" />
-            </ComingSoonIconButton>
-          </>
-        ) : (
-          <>
-            <ComposerAttachmentMenu />
-            <ComposerEmojiPicker
-              disabled={isDisabled}
-              onPick={(emoji) => setMessageText(`${messageText}${emoji}`)}
-            />
-          </>
-        )}
+      {attachmentName ? (
+        <div className="mb-2 flex w-fit max-w-full items-center gap-2 rounded-lg border bg-muted/30 px-2.5 py-1.5 text-xs">
+          <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate" title={attachmentName}>
+            {attachmentName}
+          </span>
+          <button
+            type="button"
+            onClick={() => setAttachmentName(null)}
+            aria-label="Hapus lampiran"
+            className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            setAttachmentName(file.name);
+          }
+          event.target.value = "";
+        }}
+      />
+
+      <div className="flex items-end gap-1.5">
+        {/* Satu menu aksi sekunder agar composer tetap ringkas. */}
+        <div ref={actionsRef} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setActionsOpen((value) => !value)}
+            disabled={isDisabled}
+            title="Aksi"
+            aria-label="Aksi"
+            aria-expanded={actionsOpen}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "h-11 shrink-0 gap-1 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground md:h-9",
+              actionsOpen && "bg-muted text-foreground",
+            )}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Aksi</span>
+          </button>
+
+          {actionsOpen ? (
+            <div className="absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
+              {actionsView === "root" ? (
+                <>
+                  <ActionRow
+                    icon={<Paperclip className="h-4 w-4" />}
+                    label="Lampirkan file"
+                    onClick={() => {
+                      fileInputRef.current?.click();
+                      setActionsOpen(false);
+                    }}
+                  />
+                  <ActionRow
+                    icon={<Smile className="h-4 w-4" />}
+                    label="Emoji"
+                    onClick={() => setActionsView("emoji")}
+                  />
+                  <ActionRow
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Template balasan"
+                    onClick={() => setActionsView("template")}
+                  />
+                  {showAiAction ? (
+                    <ActionRow
+                      icon={<Sparkles className="h-4 w-4" />}
+                      label="Saran AI"
+                      onClick={handleAiAction}
+                    />
+                  ) : null}
+                </>
+              ) : actionsView === "emoji" ? (
+                <>
+                  <SubmenuHeader
+                    title="Emoji"
+                    onBack={() => setActionsView("root")}
+                  />
+                  <div className="grid grid-cols-6 gap-1 p-2">
+                    {EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
+                        onClick={() => insertAtCursor(emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : actionsView === "template" ? (
+                <>
+                  <SubmenuHeader
+                    title="Template cepat"
+                    onBack={() => setActionsView("root")}
+                  />
+                  {QUICK_REPLY_TEMPLATES.map((template) => (
+                    <button
+                      key={template}
+                      type="button"
+                      onClick={() => insertReply(template)}
+                      className="block w-full px-3 py-2 text-left text-xs leading-relaxed text-foreground transition-colors hover:bg-muted/60"
+                    >
+                      {template}
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <SubmenuHeader
+                    title={`Saran AI · ${aiSuggestion.label}`}
+                    onBack={() => setActionsView("root")}
+                  />
+                  <div className="p-2.5">
+                    <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground">
+                      {aiSuggestion.text}
+                    </p>
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => insertReply(aiSuggestion.text)}
+                        className={cn(
+                          buttonVariants({ size: "sm" }),
+                          "h-8 gap-1.5 rounded-lg px-3 text-xs",
+                        )}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Gunakan
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex min-h-[40px] min-w-0 flex-1 items-center rounded-xl border bg-muted/20 px-3 py-1">
           <textarea
@@ -556,37 +584,23 @@ export function OmnichannelConversationReplyBox({
           />
         </div>
 
-        {isWhatsapp ? (
-          <button
-            type="button"
-            disabled={!canSend}
-            onClick={handleSend}
-            title={sendTitle}
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "h-11 shrink-0 gap-1.5 rounded-full px-4 md:h-9",
-              !canSend && "opacity-50",
-            )}
-          >
-            <Send className="h-4 w-4" />
-            <span>{isPending ? "Mengirim..." : "Kirim"}</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={!canSend}
-            onClick={handleSend}
-            title={sendTitle}
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              COMPOSER_ICON_BUTTON,
-              !canSend && "opacity-50",
-            )}
-            aria-label={isPending ? "Sending message" : "Send message"}
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          type="button"
+          disabled={!canSend}
+          onClick={handleSend}
+          title={sendTitle}
+          className={cn(
+            buttonVariants({ size: "sm" }),
+            "h-11 shrink-0 gap-1.5 rounded-full px-3.5 md:h-9",
+            !canSend && "opacity-50",
+          )}
+          aria-label={isPending ? "Mengirim pesan" : "Kirim pesan"}
+        >
+          <Send className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {isPending ? "Mengirim..." : "Kirim"}
+          </span>
+        </button>
       </div>
     </div>
   );

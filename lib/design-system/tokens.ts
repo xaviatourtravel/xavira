@@ -81,7 +81,7 @@ export const designSystemCardSizes = {
 } as const;
 
 export const designSystemPanelClass =
-  "rounded-2xl border border-slate-200/80 bg-white shadow-sm";
+  "rounded-2xl border border-soft bg-card shadow-sm";
 
 export const designSystemMutedPanelClass =
-  "rounded-xl border border-dashed border-slate-200 bg-slate-50/70";
+  "rounded-xl border border-dashed border-soft bg-muted/40";

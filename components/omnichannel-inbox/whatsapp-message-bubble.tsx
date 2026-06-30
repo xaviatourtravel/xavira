@@ -61,8 +61,11 @@ export function WhatsappMessageBubble({
         className={cn(
           "max-w-[min(100%,28rem)] px-4 py-3",
           isIncoming
-            ? cn(designSystemPanelClass, "rounded-2xl rounded-tl-md bg-white")
-            : "rounded-2xl rounded-tr-md bg-slate-900 text-white shadow-sm",
+            ? cn(
+                designSystemPanelClass,
+                "rounded-2xl rounded-tl-md text-card-foreground",
+              )
+            : "rounded-2xl rounded-tr-md bg-slate-900 text-white shadow-sm dark:bg-emerald-800 dark:text-emerald-50",
           isFailed && "ring-2 ring-red-400/60",
         )}
       >
@@ -75,7 +78,7 @@ export function WhatsappMessageBubble({
           <p
             className={cn(
               "mt-1.5 text-xs",
-              isIncoming ? "text-slate-500" : "text-white/80",
+              isIncoming ? "text-muted-foreground" : "text-white/80",
             )}
           >
             {attachmentLabel}
@@ -84,7 +87,7 @@ export function WhatsappMessageBubble({
         <div
           className={cn(
             "mt-2 flex items-center justify-end gap-2 text-[11px] tabular-nums",
-            isIncoming ? "text-slate-400" : "text-white/70",
+            isIncoming ? "text-muted-foreground" : "text-white/70",
           )}
         >
           <span>{getDeliveryLabel(message)}</span>

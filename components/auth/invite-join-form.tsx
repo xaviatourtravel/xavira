@@ -24,17 +24,17 @@ export function InviteJoinForm({
 
   return (
     <>
-      <div className="mb-6 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+      <div className="mb-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           <p>
-            <span className="font-medium text-slate-900">Workspace:</span>{" "}
+            <span className="font-medium text-foreground">Workspace:</span>{" "}
             {invitePreview.organizationName}
           </p>
           <p className="mt-1">
-            <span className="font-medium text-slate-900">Peran:</span>{" "}
+            <span className="font-medium text-foreground">Peran:</span>{" "}
             {formatInviteRoleLabel(invitePreview.role)}
           </p>
           <p className="mt-1">
-            <span className="font-medium text-slate-900">Email undangan:</span>{" "}
+            <span className="font-medium text-foreground">Email undangan:</span>{" "}
             {invitePreview.email}
           </p>
       </div>
@@ -50,7 +50,7 @@ export function InviteJoinForm({
             name="fullName"
             autoComplete="name"
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
@@ -63,13 +63,13 @@ export function InviteJoinForm({
             autoComplete="new-password"
             minLength={8}
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
         <DesklabsButton
           type="submit"
-          className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
+          className="h-11 w-full"
           loading={pending}
           loadingLabel="Memproses..."
         >
@@ -77,8 +77,8 @@ export function InviteJoinForm({
         </DesklabsButton>
       </form>
 
-      <div className="mt-6 border-t border-slate-100 pt-6 text-center">
-        <p className="text-sm text-slate-500">Sudah punya akun?</p>
+      <div className="mt-6 border-t border-border pt-6 text-center">
+        <p className="text-sm text-muted-foreground">Sudah punya akun?</p>
         <Link
           href="/login"
           className="mt-1 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"

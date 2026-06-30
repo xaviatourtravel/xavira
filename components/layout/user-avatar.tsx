@@ -48,7 +48,7 @@ export function UserAvatar({
       imageUrl={imageUrl}
       size={SIZE_MAP[size]}
       shape="rounded"
-      fallbackClassName="bg-slate-900 text-white"
+      fallbackClassName="bg-primary text-primary-foreground"
       className={className}
     />
   );

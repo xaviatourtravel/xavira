@@ -65,7 +65,7 @@ function sortByLastMessageAtDesc(
 
 function ConversationNotFoundState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-neutral-50/50 px-8 text-center dark:bg-neutral-950/20">
+    <div className="flex h-full flex-col items-center justify-center bg-app px-8 text-center">
       <p className="text-sm font-medium text-foreground">
         Percakapan tidak ditemukan
       </p>
@@ -200,7 +200,7 @@ export function CommunicationWorkspaceView({
       ) : null}
 
       <div
-        className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:grid-cols-[var(--workspace-list-width)_minmax(0,1fr)_var(--workspace-sidebar-width)] dark:border-neutral-800 dark:bg-neutral-950"
+        className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border border-soft bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[grid-template-columns] duration-200 ease-out lg:grid-cols-[var(--workspace-list-width)_minmax(0,1fr)_var(--workspace-sidebar-width)]"
         style={{
           ["--workspace-list-width" as string]: WORKSPACE_LIST_WIDTH,
           ["--workspace-sidebar-width" as string]: sidebarCollapsed
@@ -211,7 +211,7 @@ export function CommunicationWorkspaceView({
         {/* Left — conversation list */}
         <section
           className={cn(
-            "flex min-h-0 flex-col border-r border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950",
+            "flex min-h-0 flex-col border-r border-soft bg-sidebar",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
@@ -241,7 +241,7 @@ export function CommunicationWorkspaceView({
             />
           </div>
 
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto border-t border-neutral-100 dark:border-neutral-800">
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto border-t border-soft">
             <OmnichannelConversationList
               conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
@@ -254,7 +254,7 @@ export function CommunicationWorkspaceView({
         {/* Center — active thread */}
         <section
           className={cn(
-            "relative min-h-0 bg-white dark:bg-neutral-950",
+            "relative min-h-0 bg-app",
             showMobileThread ? "flex flex-col" : "hidden lg:flex lg:flex-col",
           )}
         >
@@ -280,8 +280,8 @@ export function CommunicationWorkspaceView({
                     className="fixed inset-0 z-30 bg-black/30 backdrop-blur-[1px] lg:hidden"
                     onClick={() => setMobilePanelOpen(false)}
                   />
-                  <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-neutral-200/80 bg-white shadow-2xl lg:hidden dark:border-neutral-800 dark:bg-neutral-950">
-                    <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-neutral-200" />
+                  <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-soft bg-card shadow-2xl lg:hidden">
+                    <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
                     <div className="min-h-0 flex-1 overflow-y-auto">
                       <WorkspaceRightSidebar
                         conversation={detail}
@@ -308,7 +308,7 @@ export function CommunicationWorkspaceView({
         </section>
 
         {/* Right — customer intelligence (always visible on desktop) */}
-        <section className="hidden min-h-0 border-l border-neutral-200/80 lg:block dark:border-neutral-800">
+        <section className="hidden min-h-0 border-l border-soft lg:block">
           <WorkspaceRightSidebar
             conversation={detail}
             organizationId={organizationId}

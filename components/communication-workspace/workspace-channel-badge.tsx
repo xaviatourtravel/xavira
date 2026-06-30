@@ -9,15 +9,18 @@ const FUTURE_CHANNEL_STYLES: Record<
 > = {
   email: {
     label: "Email",
-    className: "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80",
+    className:
+      "bg-muted text-muted-foreground ring-1 ring-border dark:ring-border",
   },
   telegram: {
     label: "Telegram",
-    className: "bg-sky-50 text-sky-800 ring-1 ring-sky-200/80",
+    className:
+      "bg-sky-50 text-sky-800 ring-1 ring-sky-200/80 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-500/30",
   },
   website_chat: {
     label: "Website",
-    className: "bg-violet-50 text-violet-800 ring-1 ring-violet-200/80",
+    className:
+      "bg-violet-50 text-violet-800 ring-1 ring-violet-200/80 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/30",
   },
 };
 

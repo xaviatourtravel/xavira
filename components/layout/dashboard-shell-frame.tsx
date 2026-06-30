@@ -37,7 +37,7 @@ export function DashboardShellFrame({
 
   return (
     <PermissionProvider permissions={permissions}>
-      <div className="flex h-dvh overflow-hidden bg-white">
+      <div className="flex h-dvh overflow-hidden bg-background text-foreground">
         <Suspense fallback={<SidebarFallback />}>
           <AppSidebar permissions={permissions} attentionBadges={attentionBadges} />
         </Suspense>
@@ -58,7 +58,7 @@ export function DashboardShellFrame({
             onMenuClick={() => setSidebarOpen(true)}
           />
           {/* Only this panel scrolls; the app shell itself stays viewport-locked. */}
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50/30 p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6 lg:pb-6">
+          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-muted/20 p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6 lg:pb-6">
             {children}
           </main>
         </div>

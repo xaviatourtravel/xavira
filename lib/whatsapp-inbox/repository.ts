@@ -229,6 +229,52 @@ export async function findWhatsappMessageByExternalId(
   return (data as WhatsappMessageRow | null) ?? null;
 }
 
+/**
+ * Mencari balasan keluar yang dikirim dari Desklabs tetapi belum memiliki
+ * provider message id (masih "sending"/baru). Dipakai untuk merekonsiliasi
+ * echo webhook fromMe=true agar tidak membuat duplikat saat terjadi balapan
+ * antara penyelesaian pengiriman dan webhook.
+ */
+export async function findReconcilableOutgoingWhatsappMessage(
+  supabase: WhatsappSupabaseClient,
+  conversationId: string,
+  text: string | null,
+) {
+  let query = supabase
+    .from("whatsapp_messages")
+    .select(MESSAGE_COLUMNS)
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outgoing")
+    .is("external_message_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  query = text === null ? query.is("text", null) : query.eq("text", text);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as WhatsappMessageRow | null) ?? null;
+}
+
+export async function attachWhatsappProviderMessageId(
+  supabase: WhatsappSupabaseClient,
+  messageId: string,
+  externalMessageId: string,
+) {
+  const { error } = await supabase
+    .from("whatsapp_messages")
+    .update({ external_message_id: externalMessageId, status: "sent" })
+    .eq("id", messageId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function insertWhatsappMessage(
   supabase: WhatsappSupabaseClient,
   input: WhatsappMessageInsert,

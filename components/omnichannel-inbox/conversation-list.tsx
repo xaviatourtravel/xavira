@@ -87,9 +87,8 @@ export function OmnichannelConversationList({
             key={conversation.id}
             href={buildConversationHref(conversation.id, activeFilter)}
             className={cn(
-              "block border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40",
-              isSelected && "bg-primary/5 hover:bg-primary/5",
-              isUnread && !isSelected && "bg-sky-50/70 hover:bg-sky-50",
+              "block border-b border-border/40 px-4 py-2 transition-colors hover:bg-muted/40",
+              isSelected && "bg-selected hover:bg-selected",
             )}
           >
             <div className="flex items-start gap-3">
@@ -100,7 +99,7 @@ export function OmnichannelConversationList({
                   size="sm"
                 />
                 {isUnread ? (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-600 ring-2 ring-background" />
                 ) : null}
               </div>
 
@@ -120,7 +119,7 @@ export function OmnichannelConversationList({
                     className={cn(
                       "shrink-0 text-[11px] tabular-nums",
                       isUnread
-                        ? "font-semibold text-primary"
+                        ? "font-semibold text-emerald-700"
                         : "font-medium text-muted-foreground",
                     )}
                   >
@@ -165,7 +164,7 @@ export function OmnichannelConversationList({
                     />
                   ) : null}
                   {conversation.leadId ? (
-                    <span className="rounded-full bg-emerald-100 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-800">
+                    <span className="rounded-full bg-emerald-50 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">
                       Lead
                     </span>
                   ) : null}
@@ -179,7 +178,7 @@ export function OmnichannelConversationList({
                     </span>
                   ))}
                   {isUnread ? (
-                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
                       {conversation.unreadCount}
                     </span>
                   ) : null}

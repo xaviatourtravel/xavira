@@ -1,5 +1,7 @@
 import type { Json } from "@/types/database";
 
+export type ParsedWhatsAppMessageDirection = "incoming" | "outgoing";
+
 export type ParsedWhatsAppIncomingMessage = {
   instanceName: string;
   phoneNumber: string;
@@ -9,6 +11,9 @@ export type ParsedWhatsAppIncomingMessage = {
   mediaUrl: string | null;
   externalMessageId: string;
   timestamp: string;
+  /** "outgoing" when key.fromMe === true (sent from device / WhatsApp Web). */
+  direction: ParsedWhatsAppMessageDirection;
+  fromMe: boolean;
   rawPayload: Json;
 };
 
@@ -165,9 +170,15 @@ function parseMessageRecord(
 ): ParsedWhatsAppIncomingMessage | null {
   const key = asRecord(record.key);
   const remoteJid = getString(key.remoteJid) ?? getString(record.remoteJid);
+  // Pesan yang dikirim dari perangkat / WhatsApp Web ditandai fromMe = true.
+  // Ini harus tetap disimpan sebagai pesan keluar, bukan diabaikan.
   const fromMe = key.fromMe === true || record.fromMe === true;
+  const direction: ParsedWhatsAppMessageDirection = fromMe
+    ? "outgoing"
+    : "incoming";
 
-  if (fromMe || shouldSkipJid(remoteJid)) {
+  // Tetap abaikan grup, broadcast, dan status — bukan percakapan 1:1.
+  if (shouldSkipJid(remoteJid)) {
     return null;
   }
 
@@ -188,10 +199,22 @@ function parseMessageRecord(
     return null;
   }
 
+  // Untuk pesan keluar, pushName/notify adalah nama pengirim (kita), bukan
+  // pelanggan — jangan dipakai sebagai nama kontak percakapan.
+  const pushName = fromMe
+    ? null
+    : getString(record.pushName) ?? getString(record.notify);
+
+  whatsAppWebhookDevLog("normalized message", {
+    fromMe,
+    direction,
+    text: messageText,
+  });
+
   return {
     instanceName,
     phoneNumber,
-    pushName: getString(record.pushName) ?? getString(record.notify),
+    pushName,
     messageText,
     messageType,
     mediaUrl: extractMediaUrl(message),
@@ -199,6 +222,8 @@ function parseMessageRecord(
     timestamp: normalizeTimestamp(
       record.messageTimestamp ?? record.timestamp ?? record.t,
     ),
+    direction,
+    fromMe,
     rawPayload: fallbackPayload,
   };
 }

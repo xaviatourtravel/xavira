@@ -42,11 +42,11 @@ export const TimelineSection = memo(function TimelineSection({
           {timeline.map((entry, index) => (
             <div key={entry.id} className="relative flex gap-3 pb-4">
               {index < timeline.length - 1 ? (
-                <span className="absolute left-[13px] top-7 bottom-0 w-px bg-neutral-200 dark:bg-neutral-800" />
+                <span className="absolute left-[13px] top-7 bottom-0 w-px bg-border" />
               ) : null}
               <span
                 className={cn(
-                  "relative z-[1] flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-neutral-200/80 bg-white text-muted-foreground dark:border-neutral-800 dark:bg-neutral-950",
+                  "relative z-[1] flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-soft bg-card text-muted-foreground",
                   entry.tone === "message" && "text-sky-600",
                   entry.tone === "note" && "text-amber-600",
                   entry.tone === "activity" && "text-violet-600",

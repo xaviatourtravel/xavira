@@ -58,7 +58,7 @@ export function QuotationCard({
   href={`/leads/${leadId}/quotation`}
   target="_blank"
   rel="noreferrer"
-  className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white"
+  className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
 >
   Download PDF
 </a>

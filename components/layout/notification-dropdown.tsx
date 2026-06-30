@@ -24,7 +24,7 @@ function NotificationPanel({
   return (
     <>
       {summary.items.length === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-slate-500">
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
           Tidak ada notifikasi baru.
         </div>
       ) : (
@@ -34,16 +34,16 @@ function NotificationPanel({
               <Link
                 href={item.href}
                 onClick={onClose}
-                className="flex min-h-[44px] items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-slate-50"
+                className="flex min-h-[44px] items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/60"
               >
-                <span className="mt-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-semibold text-amber-800">
+                <span className="mt-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
                   {item.count}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-slate-900">
+                  <span className="block text-sm font-medium text-foreground">
                     {item.title}
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
                     {item.description}
                   </span>
                 </span>
@@ -53,11 +53,11 @@ function NotificationPanel({
         </ul>
       )}
 
-      <div className="border-t border-slate-100 p-2">
+      <div className="border-t border-border p-2">
         <Link
           href="/notifications"
           onClick={onClose}
-          className="flex min-h-[44px] items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="flex min-h-[44px] items-center justify-center rounded-lg px-3 text-sm font-medium text-foreground/80 hover:bg-muted/60"
         >
           Lihat semua notifikasi
         </Link>
@@ -93,8 +93,8 @@ export function NotificationDropdown({ attentionBadges }: NotificationDropdownPr
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "relative inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50",
-          open && "bg-slate-50",
+          "relative inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/60",
+          open && "bg-muted/60",
         )}
         aria-label={
           summary.totalCount > 0
@@ -123,9 +123,9 @@ export function NotificationDropdown({ attentionBadges }: NotificationDropdownPr
       ) : null}
 
       {open && !isMobile ? (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-950">Notifikasi</p>
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">Notifikasi</p>
           </div>
           <NotificationPanel summary={summary} onClose={() => setOpen(false)} />
         </div>

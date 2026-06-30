@@ -26,7 +26,7 @@ function MemoryGroup({
           {items.map((item) => (
             <li
               key={item.id}
-              className="rounded-lg border border-neutral-200/80 bg-white/70 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-950/40"
+              className="rounded-lg border border-soft bg-card/70 px-3 py-2"
             >
               <p className="text-xs font-medium text-foreground">{item.label}</p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">

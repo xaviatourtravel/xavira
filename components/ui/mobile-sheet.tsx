@@ -79,25 +79,25 @@ export function MobileSheet({
         aria-label={ariaLabel ?? title}
         tabIndex={-1}
         className={cn(
-          "fixed z-[60] flex flex-col overflow-hidden bg-white shadow-2xl outline-none lg:hidden",
+          "fixed z-[60] flex flex-col overflow-hidden bg-card text-card-foreground shadow-2xl outline-none lg:hidden",
           variant === "fullscreen"
             ? "inset-0 pt-[env(safe-area-inset-top)]"
             : "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
           className,
         )}
       >
-        <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+        <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-border bg-card px-4 py-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-950">{title}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{title}</p>
             {subtitle ? (
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{subtitle}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{subtitle}</p>
             ) : null}
           </div>
           <button
             type="button"
             aria-label="Tutup panel"
             onClick={onClose}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
           >
             <X className="h-5 w-5" />
           </button>
@@ -113,7 +113,7 @@ export function MobileSheet({
         </div>
 
         {footer ? (
-          <div className="sticky bottom-0 shrink-0 border-t border-slate-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="sticky bottom-0 shrink-0 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {footer}
           </div>
         ) : null}

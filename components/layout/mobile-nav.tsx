@@ -135,7 +135,7 @@ export function MobileNav({
                 className={cn(
                   "flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm",
                   isActive
-                    ? "bg-slate-950 font-medium text-white"
+                    ? "bg-primary font-medium text-primary-foreground"
                     : "text-foreground hover:bg-muted",
                 )}
               >

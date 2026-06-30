@@ -24,7 +24,7 @@ export function RegisterWorkspaceForm() {
             name="fullName"
             autoComplete="name"
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
@@ -36,7 +36,7 @@ export function RegisterWorkspaceForm() {
             type="email"
             autoComplete="email"
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
@@ -49,13 +49,13 @@ export function RegisterWorkspaceForm() {
             autoComplete="new-password"
             minLength={8}
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
         <DesklabsButton
           type="submit"
-          className="mt-2 h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
+          className="mt-2 h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
           loading={pending}
           loadingLabel="Memproses..."
         >
@@ -63,8 +63,8 @@ export function RegisterWorkspaceForm() {
         </DesklabsButton>
       </form>
 
-      <div className="mt-6 border-t border-slate-100 pt-6 text-center">
-        <p className="text-sm text-slate-500">Sudah punya akun?</p>
+      <div className="mt-6 border-t border-border pt-6 text-center">
+        <p className="text-sm text-muted-foreground">Sudah punya akun?</p>
         <Link
           href="/login"
           className="mt-1 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"

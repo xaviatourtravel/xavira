@@ -7,15 +7,15 @@ const CHANNEL_STYLES: Record<
 > = {
   instagram: {
     label: "Instagram",
-    className: "bg-gradient-to-r from-fuchsia-100 to-pink-100 text-fuchsia-900 ring-1 ring-fuchsia-200/80",
+    className: "bg-pink-50 text-pink-700 ring-1 ring-pink-100",
   },
   facebook: {
     label: "Facebook",
-    className: "bg-blue-50 text-blue-800 ring-1 ring-blue-200/80",
+    className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100",
   },
   whatsapp: {
     label: "WhatsApp",
-    className: "bg-emerald-100 text-emerald-800",
+    className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
   },
 };
 

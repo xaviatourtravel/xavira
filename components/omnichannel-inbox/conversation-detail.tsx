@@ -1,17 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowDown,
+  CalendarPlus,
   ChevronLeft,
+  Download,
+  Info,
+  MailOpen,
   MessageSquareText,
-  PanelRightClose,
-  PanelRightOpen,
+  MoreVertical,
+  Pin,
+  RefreshCw,
+  Search,
+  Trash2,
+  UserCog,
+  UserRoundPlus,
+  VolumeX,
+  X,
 } from "lucide-react";
 
-import { markOmnichannelConversationAsRead } from "@/app/(dashboard)/inbox/omnichannel-actions";
-import { markWhatsappConversationAsRead } from "@/app/(dashboard)/inbox/whatsapp-actions";
+import {
+  convertOmnichannelConversationToLead,
+  markOmnichannelConversationAsRead,
+} from "@/app/(dashboard)/inbox/omnichannel-actions";
+import {
+  convertWhatsappConversationToLead,
+  markWhatsappConversationAsRead,
+  retryWhatsappConversationReplyAction,
+} from "@/app/(dashboard)/inbox/whatsapp-actions";
+import { deriveConversationInsights } from "@/lib/communication/assist";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
@@ -27,7 +55,6 @@ import {
   useWhatsappConversationMessages,
 } from "@/lib/communication/realtime";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
-import { retryWhatsappConversationReplyAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
@@ -59,12 +86,50 @@ function getAttachmentLabel(message: MessageRow) {
   return attachments.length === 1 ? "1 lampiran" : `${attachments.length} lampiran`;
 }
 
+function ConversationMenuItem({
+  icon,
+  label,
+  onClick,
+  disabled = false,
+  destructive = false,
+  className,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-muted/60 disabled:opacity-50",
+        destructive ? "text-red-600" : "text-foreground",
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-4 w-4 shrink-0 items-center justify-center",
+          destructive ? "text-red-500" : "text-muted-foreground",
+        )}
+      >
+        {icon}
+      </span>
+      {label}
+    </button>
+  );
+}
+
 export function OmnichannelConversationDetailPanel({
   conversation,
   canReply,
   canSuggestReply = false,
   isUnassignedForAgent = false,
-  mobilePanelOpen = false,
   onToggleMobilePanel,
   readOnly = false,
   channel,
@@ -97,6 +162,14 @@ export function OmnichannelConversationDetailPanel({
   const [newMessageCount, setNewMessageCount] = useState(0);
 
   const displayName = getConversationDisplayName(conversation);
+  const phoneLabel =
+    conversation.channel === "whatsapp"
+      ? conversation.customerUsername?.trim() ||
+        conversation.externalUserId?.trim() ||
+        null
+      : conversation.customerUsername?.trim()
+        ? `@${conversation.customerUsername.trim().replace(/^@/, "")}`
+        : null;
 
   const displayMessages: MessageRow[] = useMemo(() => {
     if (isWhatsapp) {
@@ -138,6 +211,131 @@ export function OmnichannelConversationDetailPanel({
     }
     return null;
   }, [displayMessages]);
+
+  const router = useRouter();
+  const [isActionPending, startActionTransition] = useTransition();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [messageSearch, setMessageSearch] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setSearchOpen(false);
+    setMessageSearch("");
+  }, [conversation.id]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+    function handlePointerDown(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setNotice(null), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+
+  // Ringkasan deterministik untuk asisten AI di composer.
+  const aiSummary = useMemo(() => {
+    if (displayMessages.length === 0) {
+      return null;
+    }
+    const insights = deriveConversationInsights(conversation);
+    const parts = [
+      `${displayName} via ${conversation.channelLabel}.`,
+      `${displayMessages.length} pesan, status ${conversation.statusLabel}.`,
+      `Intent: ${insights.intentLabel}, prioritas ${insights.priorityLabel}.`,
+    ];
+    if (insights.lastCustomerMessage) {
+      parts.push(`Pesan terakhir pelanggan: "${insights.lastCustomerMessage}".`);
+    }
+    parts.push(`Saran tindakan: ${insights.nextActionLabel}.`);
+    return parts.join(" ");
+  }, [conversation, displayMessages.length, displayName]);
+
+  // Pencarian dalam percakapan (inline, seperti WhatsApp Desktop).
+  const normalizedSearch = messageSearch.trim().toLowerCase();
+  const visibleMessages = useMemo(() => {
+    if (!searchOpen || !normalizedSearch) {
+      return displayMessages;
+    }
+    return displayMessages.filter((message) =>
+      message.message_text?.toLowerCase().includes(normalizedSearch),
+    );
+  }, [searchOpen, normalizedSearch, displayMessages]);
+
+  function handleConvertToLead() {
+    setMenuOpen(false);
+    startActionTransition(async () => {
+      const formData = new FormData();
+      formData.set("conversation_id", conversation.id);
+      const result = isWhatsapp
+        ? await convertWhatsappConversationToLead(
+            (() => {
+              formData.set("full_name", displayName);
+              formData.set(
+                "whatsapp_number",
+                conversation.externalUserId ?? "",
+              );
+              return formData;
+            })(),
+          )
+        : await convertOmnichannelConversationToLead(formData);
+      setNotice(
+        result.success
+          ? "Percakapan dikonversi menjadi lead."
+          : result.message ?? "Gagal mengonversi ke lead.",
+      );
+      if (result.success) {
+        router.refresh();
+      }
+    });
+  }
+
+  function handleExportChat() {
+    setMenuOpen(false);
+    const lines = displayMessages.map((message) => {
+      const who = message.direction === "incoming" ? displayName : "Agen";
+      const time = formatInboxMessageTime(message.created_at);
+      return `[${time}] ${who}: ${message.message_text ?? ""}`;
+    });
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `chat-${displayName}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setNotice("Chat diekspor.");
+  }
+
+  function handleMarkUnread() {
+    setMenuOpen(false);
+    setNotice("Tandai belum dibaca akan segera tersedia.");
+  }
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
     const container = scrollContainerRef.current;
@@ -253,41 +451,173 @@ export function OmnichannelConversationDetailPanel({
             </h2>
             <OmnichannelChannelBadge channel={conversation.channel} />
           </div>
-          <p
-            className="truncate text-[11px] text-muted-foreground"
-            title={formatInboxActiveLabel(conversation.lastMessageAt)}
-          >
+          <p className="truncate text-[11px] text-muted-foreground">
+            {phoneLabel ? `${phoneLabel} · ` : ""}
             {formatInboxActiveLabel(conversation.lastMessageAt)}
           </p>
         </div>
 
-        {onToggleMobilePanel ? (
+        <button
+          type="button"
+          onClick={() => {
+            setSearchOpen((value) => !value);
+            setMenuOpen(false);
+          }}
+          aria-label="Cari di percakapan"
+          title="Cari di percakapan"
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+            searchOpen && "bg-muted text-foreground",
+          )}
+        >
+          <Search className="h-[18px] w-[18px]" />
+        </button>
+
+        <div ref={menuRef} className="relative shrink-0">
           <button
             type="button"
-            onClick={onToggleMobilePanel}
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-label="Menu percakapan"
+            title="Menu"
+            aria-expanded={menuOpen}
             className={cn(
-              buttonVariants({
-                variant: mobilePanelOpen ? "default" : "outline",
-                size: "sm",
-              }),
-              "h-7 shrink-0 gap-1.5 rounded-lg px-2.5 text-xs lg:hidden",
+              "flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+              menuOpen && "bg-muted text-foreground",
             )}
-            aria-expanded={mobilePanelOpen}
           >
-            {mobilePanelOpen ? (
-              <>
-                <PanelRightClose className="h-3.5 w-3.5" />
-                Detail
-              </>
-            ) : (
-              <>
-                <PanelRightOpen className="h-3.5 w-3.5" />
-                Detail
-              </>
-            )}
+            <MoreVertical className="h-[18px] w-[18px]" />
           </button>
-        ) : null}
+          {menuOpen ? (
+            <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
+              <ConversationMenuItem
+                icon={<RefreshCw className="h-4 w-4" />}
+                label="Muat ulang"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.refresh();
+                }}
+              />
+              <ConversationMenuItem
+                icon={<Search className="h-4 w-4" />}
+                label="Cari di percakapan"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setSearchOpen(true);
+                }}
+              />
+              <ConversationMenuItem
+                icon={<MailOpen className="h-4 w-4" />}
+                label="Tandai belum dibaca"
+                onClick={handleMarkUnread}
+              />
+              <ConversationMenuItem
+                icon={<Pin className="h-4 w-4" />}
+                label="Sematkan percakapan"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setNotice("Sematkan percakapan akan segera tersedia.");
+                }}
+              />
+              <ConversationMenuItem
+                icon={<VolumeX className="h-4 w-4" />}
+                label="Bisukan"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setNotice("Bisukan akan segera tersedia.");
+                }}
+              />
+              <ConversationMenuItem
+                icon={<Download className="h-4 w-4" />}
+                label="Ekspor chat"
+                onClick={handleExportChat}
+              />
+              <div className="my-1 h-px bg-border/60" />
+              <ConversationMenuItem
+                icon={<UserRoundPlus className="h-4 w-4" />}
+                label="Konversi jadi lead"
+                onClick={handleConvertToLead}
+                disabled={isActionPending}
+              />
+              <ConversationMenuItem
+                icon={<CalendarPlus className="h-4 w-4" />}
+                label="Buat booking"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/bookings/new");
+                }}
+              />
+              <ConversationMenuItem
+                icon={<UserCog className="h-4 w-4" />}
+                label="Assign percakapan"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onToggleMobilePanel?.();
+                  setNotice("Atur penugasan di panel Detail > Alur Kerja.");
+                }}
+              />
+              {onToggleMobilePanel ? (
+                <ConversationMenuItem
+                  icon={<Info className="h-4 w-4" />}
+                  label="Lihat detail"
+                  className="lg:hidden"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onToggleMobilePanel();
+                  }}
+                />
+              ) : null}
+              <div className="my-1 h-px bg-border/60" />
+              <ConversationMenuItem
+                icon={<Trash2 className="h-4 w-4" />}
+                label="Hapus percakapan"
+                destructive
+                onClick={() => {
+                  setMenuOpen(false);
+                  setNotice("Hapus percakapan akan segera tersedia.");
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+
       </header>
+
+      {searchOpen ? (
+        <div className="flex shrink-0 items-center gap-2 border-b bg-background px-3 py-2 sm:px-4">
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <input
+            autoFocus
+            value={messageSearch}
+            onChange={(event) => setMessageSearch(event.target.value)}
+            placeholder="Cari di percakapan ini..."
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          {normalizedSearch ? (
+            <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+              {visibleMessages.length} hasil
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setSearchOpen(false);
+              setMessageSearch("");
+            }}
+            aria-label="Tutup pencarian"
+            className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+
+      {notice ? (
+        <div className="pointer-events-none absolute left-1/2 top-16 z-30 -translate-x-1/2">
+          <div className="pointer-events-auto rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg animate-in fade-in slide-in-from-top-1">
+            {notice}
+          </div>
+        </div>
+      ) : null}
 
       <div
         ref={scrollContainerRef}
@@ -312,8 +642,18 @@ export function OmnichannelConversationDetailPanel({
                   : "Pesan pelanggan akan muncul di sini."}
               </p>
             </div>
+          ) : searchOpen && normalizedSearch && visibleMessages.length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-center">
+              <Search className="h-6 w-6 text-muted-foreground/50" />
+              <p className="mt-2 text-sm font-medium text-foreground">
+                Tidak ada hasil
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Coba kata kunci lain.
+              </p>
+            </div>
           ) : isWhatsapp ? (
-            displayMessages.map((message) => (
+            visibleMessages.map((message) => (
               <WhatsappMessageBubble
                 key={message.id}
                 message={message}
@@ -330,7 +670,7 @@ export function OmnichannelConversationDetailPanel({
               />
             ))
           ) : (
-            displayMessages.map((message) => {
+            visibleMessages.map((message) => {
               const isIncoming = message.direction === "incoming";
               const isOptimistic = message.id === "optimistic-outgoing";
               const attachmentLabel = getAttachmentLabel(message);
@@ -391,7 +731,7 @@ export function OmnichannelConversationDetailPanel({
           <button
             type="button"
             onClick={() => scrollToBottom("smooth")}
-            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg animate-in fade-in slide-in-from-bottom-2"
+            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg animate-in fade-in slide-in-from-bottom-2"
           >
             <ArrowDown className="h-3.5 w-3.5" />
             {newMessageCount === 1
@@ -410,6 +750,7 @@ export function OmnichannelConversationDetailPanel({
             canSuggestReply={canSuggestReply && !isWhatsapp}
             isUnassignedForAgent={isUnassignedForAgent}
             lastCustomerMessage={lastCustomerMessage}
+            aiSummary={aiSummary}
             onOptimisticMessage={setOptimisticMessageText}
             onAddOptimistic={addOptimisticMessage}
             onRemoveOptimistic={removeOptimisticMessage}

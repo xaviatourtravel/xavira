@@ -14,7 +14,7 @@ export function PassportShell({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-neutral-200/90 bg-[linear-gradient(180deg,#fffef8_0%,#ffffff_42%,#fafafa_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(0,0,0,0.04)] dark:border-neutral-800 dark:bg-[linear-gradient(180deg,#171717_0%,#0a0a0a_100%)]",
+        "relative overflow-hidden rounded-2xl border border-soft bg-[linear-gradient(180deg,#fffef8_0%,#ffffff_42%,#fafafa_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(0,0,0,0.04)] dark:bg-[linear-gradient(180deg,#171717_0%,#0a0a0a_100%)]",
         compact ? "p-0" : "p-1",
         className,
       )}
@@ -38,7 +38,7 @@ export function PassportHeader({
   stamp?: ReactNode;
 }) {
   return (
-    <div className="relative border-b border-dashed border-neutral-200/90 px-4 py-4 dark:border-neutral-800">
+    <div className="relative border-b border-dashed border-soft px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-300/80">
@@ -71,7 +71,7 @@ export function PassportSection({
   return (
     <section className={cn("px-4 py-4", className)}>
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-900 text-[10px] font-bold text-white dark:bg-neutral-100 dark:text-neutral-900">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
           {number}
         </span>
         <h4 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -118,8 +118,8 @@ export function PassportChip({
       className={cn(
         "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
         active
-          ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-          : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300",
+          ? "bg-foreground text-background"
+          : "bg-muted text-muted-foreground",
         className,
       )}
     >
@@ -130,7 +130,7 @@ export function PassportChip({
 
 export function PassportEmptyHint({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-lg border border-dashed border-neutral-200/80 bg-neutral-50/60 px-3 py-2 text-xs text-muted-foreground dark:border-neutral-800 dark:bg-neutral-900/40">
+    <p className="rounded-lg border border-dashed border-soft bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
       {children}
     </p>
   );
@@ -140,7 +140,7 @@ export function PassportPerforation() {
   return (
     <div
       aria-hidden
-      className="border-t border-dashed border-neutral-200/90 dark:border-neutral-800"
+      className="border-t border-dashed border-soft"
     />
   );
 }

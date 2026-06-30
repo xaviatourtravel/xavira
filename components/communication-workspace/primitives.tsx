@@ -12,7 +12,7 @@ export function IntelligencePanel({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col bg-[#fafafa] dark:bg-neutral-950/40",
+        "flex h-full min-h-0 flex-col bg-app",
         className,
       )}
     >
@@ -29,7 +29,7 @@ export function IntelligencePanelHeader({
   subtitle?: string;
 }) {
   return (
-    <div className="shrink-0 border-b border-neutral-200/80 bg-white/90 px-5 py-4 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80">
+    <div className="shrink-0 border-b border-soft bg-card/90 px-5 py-4 backdrop-blur-sm">
       <p className="text-[13px] font-semibold tracking-tight text-foreground">
         {title}
       </p>
@@ -101,8 +101,8 @@ export function IntelligenceSurface({
   return (
     <div
       className={cn(
-        "rounded-xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950",
-        inset && "bg-neutral-50/80 dark:bg-neutral-900/40",
+        "rounded-xl border border-soft bg-card",
+        inset && "bg-muted/40",
         className,
       )}
     >
@@ -121,7 +121,7 @@ export function IntelligenceEmpty({
   return (
     <div
       className={cn(
-        "rounded-xl border border-dashed border-neutral-200/90 bg-neutral-50/50 px-4 py-3.5 dark:border-neutral-800 dark:bg-neutral-900/20",
+        "rounded-xl border border-dashed border-soft bg-muted/30 px-4 py-3.5",
         className,
       )}
     >
@@ -155,7 +155,7 @@ export function IntelligenceField({
       {readOnly || !onChange ? (
         <div
           className={cn(
-            "min-h-[34px] rounded-lg bg-neutral-50/80 px-3 py-2 text-xs dark:bg-neutral-900/40",
+            "min-h-[34px] rounded-lg bg-muted/40 px-3 py-2 text-xs",
             isEmpty ? "text-muted-foreground/70" : "text-foreground",
           )}
         >
@@ -167,7 +167,7 @@ export function IntelligenceField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-lg border-0 bg-neutral-50/80 px-3 py-2 text-xs text-foreground ring-1 ring-neutral-200/80 placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-neutral-300/80 dark:bg-neutral-900/40 dark:ring-neutral-800"
+          className="w-full rounded-lg border-0 bg-muted/40 px-3 py-2 text-xs text-foreground ring-1 ring-border placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/50"
         />
       )}
     </label>
@@ -210,7 +210,7 @@ export function IntelligenceMetric({
 }
 
 export function IntelligenceDivider() {
-  return <div className="h-px bg-neutral-200/80 dark:bg-neutral-800" />;
+  return <div className="h-px bg-border" />;
 }
 
 /** @deprecated Use IntelligencePanel */

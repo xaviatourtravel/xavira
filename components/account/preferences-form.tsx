@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { AccountCard } from "@/components/account/account-card";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { DesklabsButton } from "@/components/ui/desklabs-button";
 import { Label } from "@/components/ui/label";
 import {
@@ -58,7 +59,7 @@ export function PreferencesForm() {
   return (
     <form onSubmit={handleSave} className="space-y-6">
       {saved ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
           Preferensi berhasil disimpan.
         </div>
       ) : null}
@@ -74,8 +75,8 @@ export function PreferencesForm() {
               className={cn(
                 "flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors",
                 preferences.language === option.value
-                  ? "border-slate-900 bg-slate-50 font-medium"
-                  : "border-slate-200 hover:border-slate-300",
+                  ? "border-primary bg-muted/50 font-medium"
+                  : "border-border hover:border-muted-foreground/40",
               )}
             >
               <input
@@ -94,36 +95,11 @@ export function PreferencesForm() {
         </div>
       </AccountCard>
 
-      <AccountCard title="Tampilan" description="Atur tema tampilan aplikasi.">
-        <div className="grid gap-2 sm:grid-cols-3">
-          {[
-            { value: "system" as const, label: "System" },
-            { value: "light" as const, label: "Light" },
-            { value: "dark" as const, label: "Dark" },
-          ].map((option) => (
-            <label
-              key={option.value}
-              className={cn(
-                "flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors",
-                preferences.theme === option.value
-                  ? "border-slate-900 bg-slate-50 font-medium"
-                  : "border-slate-200 hover:border-slate-300",
-              )}
-            >
-              <input
-                type="radio"
-                name="theme"
-                value={option.value}
-                checked={preferences.theme === option.value}
-                onChange={() =>
-                  setPreferences((current) => ({ ...current, theme: option.value }))
-                }
-                className="h-4 w-4"
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
+      <AccountCard
+        title="Tampilan"
+        description="Atur tema tampilan aplikasi. Pilihan tersimpan otomatis di perangkat ini."
+      >
+        <ThemeToggle className="max-w-md" />
       </AccountCard>
 
       <AccountCard title="Regional">

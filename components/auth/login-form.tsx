@@ -32,7 +32,7 @@ export function LoginForm() {
             autoComplete="email"
             placeholder="nama@perusahaan.com"
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
@@ -52,13 +52,13 @@ export function LoginForm() {
             type="password"
             autoComplete="current-password"
             required
-            className="h-11 border-slate-200 bg-white"
+            className="h-11"
           />
         </div>
 
         <DesklabsButton
           type="submit"
-          className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800"
+          className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
           loading={pending}
           loadingLabel="Masuk..."
         >
@@ -66,8 +66,8 @@ export function LoginForm() {
         </DesklabsButton>
       </form>
 
-      <div className="mt-6 border-t border-slate-100 pt-6 text-center">
-        <p className="text-sm text-slate-500">Belum punya workspace?</p>
+      <div className="mt-6 border-t border-border pt-6 text-center">
+        <p className="text-sm text-muted-foreground">Belum punya workspace?</p>
         <Link
           href="/register"
           className="mt-1 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"

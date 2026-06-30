@@ -77,7 +77,7 @@ export function WorkspaceRightSidebar({
 
   if (collapsed) {
     return (
-      <div className="flex h-full flex-col items-center border-l border-neutral-200/80 bg-white py-3 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="flex h-full flex-col items-center border-l border-soft bg-sidebar py-3">
         <button
           type="button"
           onClick={onToggleCollapsed}

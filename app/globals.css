@@ -3,26 +3,133 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * SEMANTIC DESIGN TOKENS (single source of truth).
+   *
+   * Every surface, border, and text colour in the product resolves to one of
+   * these tokens. Light mode keeps the original Tailwind values (zero visual
+   * regression); dark mode (.dark) remaps them to a calm Linear / GitHub Dark /
+   * WhatsApp Desktop palette. No pure black, no pure white.
+   *
+   * HSL surfaces/text/border are stored as bare channels so `hsl(var(--x) / a)`
+   * works. The Tailwind neutral ramps (--slate-*, etc.) are stored as RGB
+   * channels so `rgb(var(--x) / a)` keeps opacity modifiers working.
+   */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    /* Surfaces */
+    --bg-app: 0 0% 100%;
+    --bg-sidebar: 0 0% 100%;
+    --bg-card: 0 0% 100%;
+    --bg-elevated: 0 0% 100%;
+    --bg-input: 0 0% 100%;
+    --bg-hover: 210 40% 96%;
+    --bg-selected: 152 45% 95%;
+    --bg-message-in: 0 0% 100%;
+    --bg-message-out: 145 56% 90%;
+
+    /* Borders */
+    --border-soft: 214 24% 91%;
+    --border-strong: 214 18% 83%;
+
+    /* Text */
+    --text-primary: 222 32% 11%;
+    --text-secondary: 215 16% 35%;
+    --text-muted: 215 14% 50%;
+
+    /* Brand accent (kept near-black in light to match existing buttons) */
+    --accent-primary: 0 0% 9%;
+    --accent-primary-contrast: 0 0% 98%;
+
+    /* Status accents */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --success: 158 64% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 0% 100%;
+
+    /* Tailwind neutral ramps (RGB channels). Light = stock Tailwind values. */
+    --slate-50: 248 250 252;
+    --slate-100: 241 245 249;
+    --slate-200: 226 232 240;
+    --slate-300: 203 213 225;
+    --slate-400: 148 163 184;
+    --slate-500: 100 116 139;
+    --slate-600: 71 85 105;
+    --slate-700: 51 65 85;
+    --slate-800: 30 41 59;
+    --slate-900: 15 23 42;
+    --slate-950: 2 6 23;
+
+    --gray-50: 249 250 251;
+    --gray-100: 243 244 246;
+    --gray-200: 229 231 235;
+    --gray-300: 209 213 219;
+    --gray-400: 156 163 175;
+    --gray-500: 107 114 128;
+    --gray-600: 75 85 99;
+    --gray-700: 55 65 81;
+    --gray-800: 31 41 55;
+    --gray-900: 17 24 39;
+    --gray-950: 3 7 18;
+
+    --zinc-50: 250 250 250;
+    --zinc-100: 244 244 245;
+    --zinc-200: 228 228 231;
+    --zinc-300: 212 212 216;
+    --zinc-400: 161 161 170;
+    --zinc-500: 113 113 122;
+    --zinc-600: 82 82 91;
+    --zinc-700: 63 63 70;
+    --zinc-800: 39 39 42;
+    --zinc-900: 24 24 27;
+    --zinc-950: 9 9 11;
+
+    --neutral-50: 250 250 250;
+    --neutral-100: 245 245 245;
+    --neutral-200: 229 229 229;
+    --neutral-300: 212 212 212;
+    --neutral-400: 163 163 163;
+    --neutral-500: 115 115 115;
+    --neutral-600: 82 82 82;
+    --neutral-700: 64 64 64;
+    --neutral-800: 38 38 38;
+    --neutral-900: 23 23 23;
+    --neutral-950: 10 10 10;
+
+    --stone-50: 250 250 249;
+    --stone-100: 245 245 244;
+    --stone-200: 231 229 228;
+    --stone-300: 214 211 209;
+    --stone-400: 168 162 158;
+    --stone-500: 120 113 108;
+    --stone-600: 87 83 78;
+    --stone-700: 68 64 60;
+    --stone-800: 41 37 36;
+    --stone-900: 28 25 23;
+    --stone-950: 12 10 9;
+
+    /* ---- shadcn base tokens: thin aliases over the semantic layer ---- */
+    --background: var(--bg-app);
+    --foreground: var(--text-primary);
+    --card: var(--bg-card);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-elevated);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--accent-primary);
+    --primary-foreground: var(--accent-primary-contrast);
+    --secondary: var(--bg-hover);
+    --secondary-foreground: var(--text-primary);
+    --muted: var(--bg-hover);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--bg-hover);
+    --accent-foreground: var(--text-primary);
+    --border: var(--border-soft);
+    --input: var(--border-soft);
+    --ring: var(--accent-primary);
+
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -32,30 +139,103 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* Calm dark palette (Linear / GitHub Dark / WhatsApp Desktop). */
+    --bg-app: 216 28% 7%;
+    --bg-sidebar: 216 24% 9%;
+    --bg-card: 215 20% 11%;
+    --bg-elevated: 214 18% 15%;
+    --bg-input: 216 24% 9%;
+    --bg-hover: 213 14% 17%;
+    --bg-selected: 152 28% 15%;
+    --bg-message-in: 214 16% 15%;
+    --bg-message-out: 165 44% 18%;
+
+    --border-soft: 214 14% 22%;
+    --border-strong: 214 12% 30%;
+
+    --text-primary: 213 30% 90%;
+    --text-secondary: 213 15% 70%;
+    --text-muted: 212 12% 52%;
+
+    /* Softened Desklabs green for dark. */
+    --accent-primary: 152 47% 45%;
+    --accent-primary-contrast: 158 30% 97%;
+
+    --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --success: 158 48% 46%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 80% 56%;
+    --warning-foreground: 222 30% 12%;
+    --danger: 0 62% 54%;
+    --danger-foreground: 0 0% 100%;
+
+    /*
+     * Neutral ramps remap so legacy hardcoded classes go dark automatically:
+     * light shades (50-300) -> dark surfaces/borders,
+     * mid shades (400-600) -> muted/secondary text,
+     * dark shades (700-950) -> primary (soft white) text.
+     * Shared across slate/gray/zinc/neutral/stone (imperceptible hue diff).
+     */
+    --slate-50: 13 17 23;
+    --slate-100: 22 27 34;
+    --slate-200: 48 54 61;
+    --slate-300: 68 76 86;
+    --slate-400: 118 131 144;
+    --slate-500: 144 157 171;
+    --slate-600: 173 186 199;
+    --slate-700: 196 205 214;
+    --slate-800: 214 221 228;
+    --slate-900: 230 237 243;
+    --slate-950: 240 243 246;
+
+    --gray-50: 13 17 23;
+    --gray-100: 22 27 34;
+    --gray-200: 48 54 61;
+    --gray-300: 68 76 86;
+    --gray-400: 118 131 144;
+    --gray-500: 144 157 171;
+    --gray-600: 173 186 199;
+    --gray-700: 196 205 214;
+    --gray-800: 214 221 228;
+    --gray-900: 230 237 243;
+    --gray-950: 240 243 246;
+
+    --zinc-50: 14 16 19;
+    --zinc-100: 23 26 31;
+    --zinc-200: 50 54 60;
+    --zinc-300: 70 75 83;
+    --zinc-400: 124 132 142;
+    --zinc-500: 150 159 169;
+    --zinc-600: 178 187 197;
+    --zinc-700: 200 208 216;
+    --zinc-800: 217 223 229;
+    --zinc-900: 232 238 243;
+    --zinc-950: 241 244 247;
+
+    --neutral-50: 16 16 18;
+    --neutral-100: 25 25 28;
+    --neutral-200: 52 53 57;
+    --neutral-300: 73 75 80;
+    --neutral-400: 128 130 137;
+    --neutral-500: 154 157 164;
+    --neutral-600: 182 186 192;
+    --neutral-700: 204 207 213;
+    --neutral-800: 221 224 228;
+    --neutral-900: 234 237 241;
+    --neutral-950: 243 245 247;
+
+    --stone-50: 18 17 16;
+    --stone-100: 28 26 25;
+    --stone-200: 57 54 52;
+    --stone-300: 80 76 73;
+    --stone-400: 140 133 128;
+    --stone-500: 166 160 154;
+    --stone-600: 193 188 183;
+    --stone-700: 213 208 204;
+    --stone-800: 228 224 221;
+    --stone-900: 240 238 235;
+    --stone-950: 247 246 244;
   }
 }
 

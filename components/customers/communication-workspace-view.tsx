@@ -54,7 +54,7 @@ type CommunicationWorkspaceViewProps = {
 };
 
 const inputClassName =
-  "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200";
+  "mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40";
 
 function WorkspaceSection({
   eyebrow,
@@ -72,17 +72,17 @@ function WorkspaceSection({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6",
+        "rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6",
         className,
       )}
     >
       <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {eyebrow}
         </p>
-        <h2 className="mt-1 text-base font-semibold text-slate-950">{title}</h2>
+        <h2 className="mt-1 text-base font-semibold text-foreground">{title}</h2>
         {description ? (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {children}
@@ -100,13 +100,13 @@ function SidebarCard({
   compact?: boolean;
 }) {
   return (
-    <div className={cn(compact ? "space-y-1.5" : "rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm")}>
+    <div className={cn(compact ? "space-y-1.5" : "rounded-2xl border border-border bg-card p-4 shadow-sm")}>
       {!compact ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {title}
         </p>
       ) : (
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {title}
         </p>
       )}
@@ -134,9 +134,9 @@ function WorkspaceContextPanel({
 }) {
   return (
     <aside className="xl:sticky xl:top-6 xl:self-start max-xl:static">
-      <div className="flex max-xl:max-h-none flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm xl:max-h-[500px]">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+      <div className="flex max-xl:max-h-none flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm xl:max-h-[500px]">
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Konteks Customer
           </p>
         </div>
@@ -144,12 +144,12 @@ function WorkspaceContextPanel({
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Skor Closing
               </p>
-              <p className="text-2xl font-semibold tabular-nums text-slate-950">
+              <p className="text-2xl font-semibold tabular-nums text-foreground">
                 {data.healthScore.score}
-                <span className="ml-1 text-sm font-normal text-slate-500">/ 100</span>
+                <span className="ml-1 text-sm font-normal text-muted-foreground">/ 100</span>
               </p>
             </div>
             <span
@@ -167,7 +167,7 @@ function WorkspaceContextPanel({
           </div>
 
           <SidebarCard title="Penanggung Jawab" compact>
-            <div className="flex items-center gap-2 text-sm text-slate-700">
+            <div className="flex items-center gap-2 text-sm text-foreground/80">
               <DesklabsAvatar name={data.lead.assignedToLabel} size="xs" />
               <span className="truncate">{data.lead.assignedToLabel}</span>
             </div>
@@ -178,7 +178,7 @@ function WorkspaceContextPanel({
               {tags.slice(0, 4).map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                  className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
                 >
                   <Tag className="h-3 w-3" />
                   {tag}
@@ -190,10 +190,10 @@ function WorkspaceContextPanel({
           <SidebarCard title="Follow Up Berikutnya" compact>
             {data.nextFollowUp || upcomingActivity ? (
               <div className="space-y-1">
-                <p className="line-clamp-2 text-sm font-medium text-slate-900">
+                <p className="line-clamp-2 text-sm font-medium text-foreground">
                   {data.nextFollowUp?.title ?? upcomingActivity?.title}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {data.nextFollowUp
                     ? formatCommunicationDateTime(data.nextFollowUp.dueDate)
                     : upcomingActivity?.subtitle}
@@ -205,7 +205,7 @@ function WorkspaceContextPanel({
                 ) : null}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Belum ada follow up terjadwal.</p>
+              <p className="text-sm text-muted-foreground">Belum ada follow up terjadwal.</p>
             )}
           </SidebarCard>
 
@@ -213,10 +213,10 @@ function WorkspaceContextPanel({
             <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600" />
               <div className="min-w-0">
-                <p className="line-clamp-2 text-sm font-medium text-slate-900">
+                <p className="line-clamp-2 text-sm font-medium text-foreground">
                   {aiRecommendation.headline}
                 </p>
-                <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-600">
+                <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
                   {aiRecommendation.detail}
                 </p>
               </div>
@@ -224,8 +224,8 @@ function WorkspaceContextPanel({
           </SidebarCard>
         </div>
 
-        <div className="space-y-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="space-y-2 border-t border-border bg-muted/30 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Aksi Cepat
           </p>
           <div className="grid gap-2">
@@ -307,8 +307,8 @@ function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-center">
-      <p className="text-sm text-slate-600">{message}</p>
+    <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-5 text-center">
+      <p className="text-sm text-muted-foreground">{message}</p>
       {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
     </div>
   );
@@ -340,7 +340,7 @@ function TimelineFeed({ items }: { items: CommunicationFeedItem[] }) {
     <ol className="relative space-y-0">
       <div
         aria-hidden
-        className="absolute bottom-2 left-[18px] top-2 w-px bg-slate-200"
+        className="absolute bottom-2 left-[18px] top-2 w-px bg-border"
       />
       {items.slice(0, 15).map((item) => (
         <li key={item.id} className="relative flex gap-4 pb-5 last:pb-0">
@@ -350,19 +350,19 @@ function TimelineFeed({ items }: { items: CommunicationFeedItem[] }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900">{item.title}</p>
-                <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
+                <p className="text-sm font-medium text-foreground">{item.title}</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
                   {item.description}
                 </p>
               </div>
               <time
                 dateTime={item.occurredAt}
-                className="shrink-0 text-[11px] tabular-nums text-slate-400"
+                className="shrink-0 text-[11px] tabular-nums text-muted-foreground"
               >
                 {formatCommunicationDateTime(item.occurredAt)}
               </time>
             </div>
-            <p className="mt-1 text-[11px] font-medium text-slate-400">
+            <p className="mt-1 text-[11px] font-medium text-muted-foreground">
               {getCommunicationFeedCategoryMeta(item.category).label}
             </p>
           </div>
@@ -398,11 +398,11 @@ function ConversationPreview({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/60">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-4 py-3">
+      <div className="overflow-hidden rounded-xl border border-border bg-muted/30">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-950">{customerName}</p>
-            <p className="text-xs text-slate-500">Sumber: {channelLabel}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{customerName}</p>
+            <p className="text-xs text-muted-foreground">Sumber: {channelLabel}</p>
           </div>
           <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-800">
             Terhubung
@@ -410,12 +410,12 @@ function ConversationPreview({
         </div>
 
         {latestMessage ? (
-          <div className="border-b border-slate-200/80 bg-white px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <div className="border-b border-border bg-card px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Pesan terakhir
             </p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-800">{latestMessage.text}</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-sm leading-relaxed text-foreground/90">{latestMessage.text}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {latestMessage.direction === "incoming" ? "Masuk" : "Keluar"} ·{" "}
               {formatCommunicationDateTime(latestMessage.createdAt)}
             </p>
@@ -435,15 +435,15 @@ function ConversationPreview({
                   className={cn(
                     "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm",
                     isOutgoing
-                      ? "rounded-br-md bg-slate-950 text-white"
-                      : "rounded-bl-md border border-slate-200/80 bg-white text-slate-800",
+                      ? "rounded-br-md bg-slate-900 text-white dark:bg-emerald-800 dark:text-emerald-50"
+                      : "rounded-bl-md border border-border bg-card text-card-foreground",
                   )}
                 >
                   <p>{message.text}</p>
                   <p
                     className={cn(
                       "mt-1 text-[10px] tabular-nums",
-                      isOutgoing ? "text-slate-300" : "text-slate-400",
+                      isOutgoing ? "text-white/70" : "text-muted-foreground",
                     )}
                   >
                     {formatCommunicationDateTime(message.createdAt)}
@@ -472,14 +472,14 @@ function ConversationPreview({
 
 function DisabledReplyComposer({ channelLabel }: { channelLabel: string }) {
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 px-4 py-3">
+    <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
       <textarea
         disabled
         rows={2}
         placeholder={`Balas via ${channelLabel}...`}
-        className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400"
+        className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-muted-foreground"
       />
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-muted-foreground">
         Balasan langsung akan tersedia setelah integrasi channel aktif.
       </p>
     </div>
@@ -503,12 +503,12 @@ function TaskList({
       <div className="space-y-4">
         <EmptyState message="Tidak ada tugas aktif untuk customer ini." />
         {showForm ? (
-          <form action={createCustomerFollowUp} className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/40 p-4">
+          <form action={createCustomerFollowUp} className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
             <input type="hidden" name="lead_id" value={leadId} />
             <input type="hidden" name="return_to" value={returnTo} />
-            <p className="text-sm font-medium text-slate-900">Tambah tugas tindak lanjut</p>
+            <p className="text-sm font-medium text-foreground">Tambah tugas tindak lanjut</p>
             <div>
-              <label className="text-xs font-medium text-slate-600">Judul tugas</label>
+              <label className="text-xs font-medium text-foreground/80">Judul tugas</label>
               <input
                 name="title"
                 required
@@ -517,7 +517,7 @@ function TaskList({
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600">Jatuh tempo</label>
+              <label className="text-xs font-medium text-foreground/80">Jatuh tempo</label>
               <input
                 type="datetime-local"
                 name="due_date"
@@ -526,7 +526,7 @@ function TaskList({
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600">Catatan</label>
+              <label className="text-xs font-medium text-foreground/80">Catatan</label>
               <textarea
                 name="description"
                 rows={2}
@@ -556,14 +556,14 @@ function TaskList({
       {customerTasks.slice(0, 5).map((task) => (
         <li
           key={task.id}
-          className="flex items-start justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3"
+          className="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3"
         >
           <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-900">{task.title}</p>
+            <p className="text-sm font-medium text-foreground">{task.title}</p>
             {task.description ? (
-              <p className="mt-0.5 text-sm text-slate-600">{task.description}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{task.description}</p>
             ) : null}
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Jatuh tempo {formatCommunicationDateTime(task.dueDate)}
             </p>
           </div>
@@ -586,26 +586,26 @@ function TaskList({
 function FileGroupSection({ group }: { group: CustomerWorkspaceFileGroup }) {
   if (group.items.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200/80 bg-slate-50/40 px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {group.label}
         </p>
-        <p className="mt-1 text-sm text-slate-500">Belum ada file.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Belum ada file.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-slate-50/40 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {group.label}
       </p>
       <ul className="mt-2 space-y-2">
         {group.items.map((item) => (
           <li key={item.id} className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-900">{item.title}</p>
-              <p className="text-xs text-slate-500">{item.subtitle}</p>
+              <p className="text-sm font-medium text-foreground">{item.title}</p>
+              <p className="text-xs text-muted-foreground">{item.subtitle}</p>
             </div>
             {item.href ? (
               <a
@@ -643,21 +643,21 @@ function NotesSection({
           {notes.slice(0, 6).map((note) => (
             <li
               key={note.id}
-              className="rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3"
+              className="rounded-xl border border-border bg-muted/30 px-4 py-3"
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium text-slate-900">{note.title}</p>
+                <p className="text-sm font-medium text-foreground">{note.title}</p>
                 <time
                   dateTime={note.occurredAt}
-                  className="shrink-0 text-[11px] text-slate-400"
+                  className="shrink-0 text-[11px] text-muted-foreground"
                 >
                   {formatCommunicationDateTime(note.occurredAt)}
                 </time>
               </div>
               {note.body ? (
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">{note.body}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{note.body}</p>
               ) : null}
-              <p className="mt-2 text-xs text-slate-500">{note.actorName}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{note.actorName}</p>
             </li>
           ))}
         </ul>
@@ -665,13 +665,13 @@ function NotesSection({
 
       <form
         action={createCustomerNote}
-        className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/40 p-4"
+        className="space-y-3 rounded-xl border border-border bg-muted/30 p-4"
       >
         <input type="hidden" name="lead_id" value={leadId} />
         <input type="hidden" name="return_to" value={returnTo} />
-        <p className="text-sm font-medium text-slate-900">Tambah catatan internal</p>
+        <p className="text-sm font-medium text-foreground">Tambah catatan internal</p>
         <div>
-          <label className="text-xs font-medium text-slate-600">Judul</label>
+          <label className="text-xs font-medium text-foreground/80">Judul</label>
           <input
             name="title"
             placeholder="Contoh: Preferensi kamar twin"
@@ -679,7 +679,7 @@ function NotesSection({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-slate-600">Isi catatan</label>
+          <label className="text-xs font-medium text-foreground/80">Isi catatan</label>
           <textarea
             name="body"
             rows={3}
@@ -764,7 +764,7 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
             href={contactHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-6 text-sm font-medium text-white transition-colors hover:bg-slate-800 sm:mt-4"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:mt-4"
           >
             <Phone className="h-4 w-4" />
             Hubungi Customer
@@ -790,7 +790,7 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
                       <dt className="text-xs font-semibold uppercase tracking-wide text-violet-700">
                         {field.label}
                       </dt>
-                      <dd className="mt-0.5 text-sm leading-relaxed text-slate-700">
+                      <dd className="mt-0.5 text-sm leading-relaxed text-foreground/80">
                         {aiSummary[field.key]}
                       </dd>
                     </div>
@@ -808,7 +808,7 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
               </p>
             </div>
 
-            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               {AI_SUMMARY_DISCLAIMER}
             </p>
           </WorkspaceSection>
@@ -874,12 +874,12 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3"
+                      className="rounded-xl border border-border bg-muted/30 px-4 py-3"
                     >
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         {item.label}
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-slate-950">{item.value}</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{item.value}</p>
                     </div>
                   ))}
                 </div>
@@ -911,37 +911,37 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
             {hasPayments ? (
               <>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Terbayar
                     </p>
-                    <p className="mt-1 text-sm font-semibold tabular-nums text-slate-950">
+                    <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                       {formatCommunicationCurrency(data.metrics.totalPaid)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Sisa tagihan
                     </p>
-                    <p className="mt-1 text-sm font-semibold tabular-nums text-slate-950">
+                    <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                       {formatCommunicationCurrency(data.metrics.outstandingBalance)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Jatuh tempo
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-950">
+                    <p className="mt-1 text-sm font-semibold text-foreground">
                       {paymentDueDate
                         ? formatCommunicationDate(paymentDueDate)
                         : "Belum ditentukan"}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 px-4 py-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Status pembayaran
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-950">
+                    <p className="mt-1 text-sm font-semibold text-foreground">
                       {data.metrics.outstandingBalance > 0 ? "Belum lunas" : "Lunas"}
                     </p>
                   </div>
@@ -1013,7 +1013,7 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
                   Kelola Dokumen di Booking
                 </Link>
               ) : (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Upload dokumen setelah booking dibuat.
                 </p>
               )}

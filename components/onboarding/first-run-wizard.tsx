@@ -185,7 +185,7 @@ export function FirstRunWizard({
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                     <Icon className="h-5 w-5" />
                   </span>
                   <span

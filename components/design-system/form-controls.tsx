@@ -146,7 +146,7 @@ export function DsToggle({
         onClick={() => onChange(!checked)}
         className={cn(
           "relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-slate-950" : "bg-slate-200",
+          checked ? "bg-primary" : "bg-border",
         )}
       >
         <span

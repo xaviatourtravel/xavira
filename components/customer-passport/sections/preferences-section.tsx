@@ -27,7 +27,7 @@ export function PassportPreferencesSection({
           <PassportField label="Room Type" value={preferences.roomType} />
         </div>
         {preferences.specialRequests ? (
-          <div className="mt-3 rounded-lg bg-neutral-50/80 px-3 py-2 dark:bg-neutral-900/40">
+          <div className="mt-3 rounded-lg bg-muted/40 px-3 py-2">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Special Requests
             </p>

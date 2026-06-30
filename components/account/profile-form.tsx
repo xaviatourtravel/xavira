@@ -41,7 +41,7 @@ export function ProfileForm({ profile, email }: ProfileFormProps) {
             imageUrl={profile.avatar_url}
             size="xl"
             shape="rounded"
-            fallbackClassName="bg-slate-900 text-white"
+            fallbackClassName="bg-primary text-primary-foreground"
           />
 
           <div className="min-w-0 flex-1 space-y-4">

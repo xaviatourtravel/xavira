@@ -43,8 +43,8 @@ export function PassportJourneySection({
                     item.reached
                       ? item.current
                         ? "bg-amber-500"
-                        : "bg-neutral-800 dark:bg-neutral-200"
-                      : "bg-neutral-200 dark:bg-neutral-800",
+                        : "bg-foreground"
+                      : "bg-border",
                   )}
                 />
                 <span className="text-[8px] font-medium uppercase tracking-wide text-muted-foreground">

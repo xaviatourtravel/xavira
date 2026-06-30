@@ -160,7 +160,7 @@ export function DesklabsAvatarGroup({
       {overflow > 0 ? (
         <span
           className={cn(
-            "-ml-2 inline-flex items-center justify-center rounded-full bg-slate-200 font-semibold text-slate-700 ring-2 ring-white",
+            "-ml-2 inline-flex items-center justify-center rounded-full bg-muted font-semibold text-muted-foreground ring-2 ring-background",
             SIZE_CLASSES[size],
           )}
         >

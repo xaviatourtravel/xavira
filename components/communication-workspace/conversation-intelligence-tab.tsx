@@ -46,14 +46,16 @@ function InfoRow({
 }
 
 const SENTIMENT_CHIP: Record<ConversationSentiment, string> = {
-  positive: "bg-emerald-100 text-emerald-800",
-  neutral: "bg-slate-100 text-slate-700",
-  concerned: "bg-amber-100 text-amber-800",
+  positive:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
+  neutral: "bg-muted text-muted-foreground",
+  concerned:
+    "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
 };
 
 const PRIORITY_CHIP: Record<ConversationPriority, string> = {
-  high: "bg-red-100 text-red-700",
-  medium: "bg-slate-100 text-slate-700",
+  high: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+  medium: "bg-muted text-muted-foreground",
 };
 
 function Chip({ className, children }: { className?: string; children: string }) {
@@ -61,7 +63,7 @@ function Chip({ className, children }: { className?: string; children: string })
     <span
       className={cn(
         "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
-        className ?? "bg-slate-100 text-slate-700",
+        className ?? "bg-muted text-muted-foreground",
       )}
     >
       {children}
@@ -137,7 +139,7 @@ export function ConversationIntelligenceTab({
       <IntelligenceDivider />
 
       <IntelligenceSection title="Ringkasan">
-        <IntelligenceSurface className="divide-y divide-neutral-200/70 dark:divide-neutral-800">
+        <IntelligenceSurface className="divide-y divide-border">
           <InfoRow label="Kanal" value={conversation.channelLabel} />
           <InfoRow label="Nama" value={displayName} />
           <InfoRow label="Telepon" value={phone ?? null} />
@@ -159,7 +161,7 @@ export function ConversationIntelligenceTab({
       </IntelligenceSection>
 
       <IntelligenceSection title="Aktivitas">
-        <IntelligenceSurface className="divide-y divide-neutral-200/70 dark:divide-neutral-800">
+        <IntelligenceSurface className="divide-y divide-border">
           <InfoRow label="Total pesan" value={`${totalMessages} pesan`} />
           <InfoRow
             label="Pesan terakhir"

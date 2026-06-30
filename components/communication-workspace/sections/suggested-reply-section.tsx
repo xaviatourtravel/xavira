@@ -48,7 +48,7 @@ export const SuggestedReplySection = memo(function SuggestedReplySection({
         </IntelligenceEmpty>
       ) : (
         <IntelligenceSurface className="overflow-hidden">
-          <div className="border-b border-neutral-100 bg-neutral-50/60 px-4 py-2.5 dark:border-neutral-800 dark:bg-neutral-900/30">
+          <div className="border-b border-soft bg-muted/40 px-4 py-2.5">
             <p className="text-[11px] text-muted-foreground">
               Draft · ready to review
             </p>
@@ -58,7 +58,7 @@ export const SuggestedReplySection = memo(function SuggestedReplySection({
               {intelligence.suggestedReply}
             </p>
           </div>
-          <div className="border-t border-neutral-100 px-3 py-2 dark:border-neutral-800">
+          <div className="border-t border-soft px-3 py-2">
             <button
               type="button"
               onClick={handleCopy}

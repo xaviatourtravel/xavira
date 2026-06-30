@@ -93,11 +93,11 @@ function getStatusLabel(status: PanelState["status"]) {
 function getStatusBadgeClass(status: PanelState["status"]) {
   switch (status) {
     case "connected":
-      return "bg-emerald-100 text-emerald-800 ring-emerald-200/80";
+      return "bg-emerald-100 text-emerald-800 ring-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30";
     case "connecting":
-      return "bg-amber-100 text-amber-900 ring-amber-200/80";
+      return "bg-amber-100 text-amber-900 ring-amber-200/80 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200/80";
+      return "bg-muted text-muted-foreground ring-border";
   }
 }
 
@@ -367,30 +367,30 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
   return (
     <div className="space-y-6">
       {state.error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
           {state.error}
         </div>
       ) : null}
 
       {!canManage ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           Anda hanya dapat melihat status. Hubungi admin workspace untuk
           menghubungkan WhatsApp.
         </div>
       ) : null}
 
       <section className={cn(designSystemPanelClass, "overflow-hidden")}>
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+        <div className="border-b border-border px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                 <MessageCircle className="h-5 w-5" aria-hidden />
               </span>
               <div>
-                <h2 className="text-base font-semibold text-slate-950">
+                <h2 className="text-base font-semibold text-foreground">
                   Status Koneksi
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Pantau koneksi WhatsApp workspace Anda dari sini.
                 </p>
               </div>
@@ -410,18 +410,18 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
         <div className="space-y-6 px-5 py-6 sm:px-6">
           {state.loading ? (
             <div className="flex min-h-[220px] items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : null}
 
           {!state.loading && state.status === "disconnected" ? (
             <div className="space-y-5">
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center">
-                <Smartphone className="mx-auto h-8 w-8 text-slate-400" />
-                <p className="mt-4 text-sm font-medium text-slate-900">
+              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
+                <Smartphone className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-4 text-sm font-medium text-foreground">
                   WhatsApp belum terhubung
                 </p>
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Hubungkan nomor WhatsApp agar percakapan customer dapat masuk
                   ke Inbox Desklabs.
                 </p>
@@ -445,7 +445,7 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
 
           {!state.loading && state.status === "connecting" ? (
             <div className="space-y-5">
-              <div className="mx-auto max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mx-auto max-w-sm rounded-2xl border border-border bg-card p-4 shadow-sm">
                 {state.qrBase64 ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -455,12 +455,12 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
                   />
                 ) : (
                   <div className="flex min-h-[280px] items-center justify-center">
-                    <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
+                    <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
                   </div>
                 )}
               </div>
 
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                 Buka WhatsApp di HP Anda, pilih Perangkat Tertaut, lalu scan QR
                 ini.
               </div>
@@ -485,44 +485,44 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
           {!state.loading && state.status === "connected" ? (
             <div className="space-y-6">
               <dl className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Instance
                   </dt>
-                  <dd className="mt-1 text-sm font-semibold text-slate-950">
+                  <dd className="mt-1 text-sm font-semibold text-foreground">
                     {state.instanceName}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Nomor WhatsApp
                   </dt>
-                  <dd className="mt-1 text-sm font-semibold text-slate-950">
+                  <dd className="mt-1 text-sm font-semibold text-foreground">
                     {formatPhoneNumber(state.phoneNumber)}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Terakhir Terhubung
                   </dt>
-                  <dd className="mt-1 text-sm font-semibold text-slate-950">
+                  <dd className="mt-1 text-sm font-semibold text-foreground">
                     {formatDateTime(state.lastConnectedAt)}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Status Koneksi
                   </dt>
-                  <dd className="mt-1 text-sm font-semibold text-slate-950">
+                  <dd className="mt-1 text-sm font-semibold text-foreground">
                     {state.connectionStatus || "Terhubung"}
                   </dd>
                 </div>
               </dl>
 
               {state.profileName ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   Profil WhatsApp:{" "}
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-foreground">
                     {state.profileName}
                   </span>
                 </p>
@@ -547,7 +547,7 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
                     onClick={() => void handleDisconnect()}
                     loading={state.actionPending}
                     loadingLabel="Memutuskan..."
-                    className="h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 sm:w-auto"
+                    className="h-11 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10 sm:w-auto"
                   >
                     <Unplug className="h-4 w-4" />
                     Putuskan Koneksi
@@ -559,15 +559,15 @@ export function WhatsAppIntegrationPanel({ canManage }: WhatsAppIntegrationPanel
         </div>
       </section>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
-        <p className="font-medium text-slate-900">Webhook pesan masuk</p>
+      <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">Webhook pesan masuk</p>
         <p className="mt-1 leading-relaxed">
           Aktifkan hanya event <span className="font-medium">MESSAGES_UPSERT</span>{" "}
           di Evolution. Hindari mengaktifkan semua event agar log tetap bersih.
         </p>
         <Link
           href="/settings/integrations/whatsapp/webhook"
-          className="mt-3 inline-flex text-sm font-medium text-slate-900 underline-offset-2 hover:underline"
+          className="mt-3 inline-flex text-sm font-medium text-foreground underline-offset-2 hover:underline"
         >
           Atur webhook WhatsApp
         </Link>

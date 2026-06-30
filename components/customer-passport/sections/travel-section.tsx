@@ -77,7 +77,7 @@ export function PassportTravelSection({
                 {travel.upcomingTrips.map((trip) => (
                   <li
                     key={trip.id}
-                    className="rounded-lg border border-neutral-200/80 bg-white/70 px-3 py-2 text-xs dark:border-neutral-800 dark:bg-neutral-950/40"
+                    className="rounded-lg border border-soft bg-card/70 px-3 py-2 text-xs"
                   >
                     <p className="font-medium text-foreground">{trip.label}</p>
                     <p className="mt-0.5 text-muted-foreground">

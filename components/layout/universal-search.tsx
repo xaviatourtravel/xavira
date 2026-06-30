@@ -257,16 +257,16 @@ export function UniversalSearchScope({ children }: { children: ReactNode }) {
     mode === "dropdown" && mounted ? (
       <div
         data-universal-search-panel="true"
-        className="fixed z-[60] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/70"
+        className="fixed z-[60] overflow-hidden rounded-2xl bg-popover text-popover-foreground shadow-xl ring-1 ring-border"
         style={{
           top: dropdownStyle.top,
           left: dropdownStyle.left,
           width: dropdownStyle.width,
         }}
       >
-        <div className="border-b border-slate-100 px-3 py-2.5">
+        <div className="border-b border-border px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
               ref={inputRef}
               value={query}
@@ -286,7 +286,7 @@ export function UniversalSearchScope({ children }: { children: ReactNode }) {
         <button
           type="button"
           aria-label="Tutup pencarian"
-          className="fixed inset-0 z-[60] bg-black/40 lg:bg-slate-950/[0.05] lg:backdrop-blur-[1px]"
+          className="fixed inset-0 z-[60] bg-black/40 lg:bg-slate-950/[0.05] dark:lg:bg-black/40 lg:backdrop-blur-[1px]"
           onClick={close}
         />
 
@@ -296,15 +296,15 @@ export function UniversalSearchScope({ children }: { children: ReactNode }) {
           aria-label="Command palette"
           data-universal-search-panel="true"
           className={cn(
-            "fixed z-[70] flex flex-col overflow-hidden bg-white shadow-2xl",
+            "fixed z-[70] flex flex-col overflow-hidden bg-popover text-popover-foreground shadow-2xl",
             "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
-            "lg:inset-auto lg:bottom-auto lg:max-h-[min(520px,calc(100vh-6rem))] lg:w-[min(680px,calc(100vw-17.5rem-2rem))] lg:rounded-2xl lg:pb-0 lg:ring-1 lg:ring-slate-200/70",
+            "lg:inset-auto lg:bottom-auto lg:max-h-[min(520px,calc(100vh-6rem))] lg:w-[min(680px,calc(100vw-17.5rem-2rem))] lg:rounded-2xl lg:pb-0 lg:ring-1 lg:ring-border",
             "lg:top-[5.5rem] lg:left-[calc(17.5rem+max(1rem,(100vw-17.5rem-min(680px,100vw-17.5rem-2rem))/2))]",
           )}
         >
-          <div className="border-b border-slate-100 px-4 py-3.5">
+          <div className="border-b border-border px-4 py-3.5">
             <div className="flex items-center gap-2.5">
-              <Search className="h-4 w-4 shrink-0 text-slate-400" />
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <Input
                 ref={inputRef}
                 value={query}
@@ -317,11 +317,11 @@ export function UniversalSearchScope({ children }: { children: ReactNode }) {
 
           <SearchResultsList {...panelProps} />
 
-          <div className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400 lg:flex lg:items-center lg:justify-between">
+          <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground lg:flex lg:items-center lg:justify-between">
             <span className="hidden lg:inline">
               ↑↓ navigasi · Tab kategori · Enter buka · Esc tutup
             </span>
-            <span className="lg:ml-auto rounded-md bg-slate-50 px-1.5 py-0.5 font-medium text-slate-500">
+            <span className="lg:ml-auto rounded-md bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">
               Ctrl K
             </span>
           </div>
@@ -357,11 +357,11 @@ export function UniversalSearchBar({ className }: { className?: string }) {
         ref={triggerRef}
         type="button"
         onClick={openDropdown}
-        className="flex h-9 w-full min-w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500 transition-colors hover:bg-slate-100"
+        className="flex h-9 w-full min-w-[220px] items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
       >
-        <Search className="h-4 w-4 shrink-0 text-slate-400" />
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-left">Cari...</span>
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+        <kbd className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           Ctrl K
         </kbd>
       </button>
@@ -378,7 +378,7 @@ export function UniversalSearchIconButton({ className }: { className?: string })
       aria-label="Buka pencarian"
       onClick={openPalette}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted/60",
         className,
       )}
     >

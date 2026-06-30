@@ -115,11 +115,11 @@ export function QuickCreateMenu() {
         <div
           role="menu"
           aria-label="Buat Cepat"
-          className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+          className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg"
         >
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-950">Buat Cepat</p>
-            <p className="mt-0.5 text-xs text-slate-500">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">Buat Cepat</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Aksi global untuk memulai pekerjaan baru.
             </p>
           </div>
@@ -140,31 +140,31 @@ export function QuickCreateMenu() {
                     onClick={close}
                     className={cn(
                       "flex min-h-[44px] items-start gap-3 rounded-lg px-3 py-2.5 transition-colors",
-                      isSelected ? "bg-slate-100" : "hover:bg-slate-50",
+                      isSelected ? "bg-muted" : "hover:bg-muted/60",
                     )}
                   >
                     <span
                       className={cn(
                         "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
                         isComingSoon
-                          ? "bg-slate-100 text-slate-500"
-                          : "bg-emerald-50 text-emerald-700",
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
                       )}
                     >
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-slate-900">
+                        <span className="text-sm font-medium text-foreground">
                           {item.label}
                         </span>
                         {isComingSoon ? (
-                          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
                             Segera
                           </span>
                         ) : null}
                       </span>
-                      <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                      <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
                         {item.description}
                       </span>
                     </span>

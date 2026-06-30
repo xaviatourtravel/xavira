@@ -5,6 +5,8 @@ import {
 } from "@/lib/integrations/whatsapp/webhook-parser";
 import { getLeadWhatsAppPhone } from "@/lib/leads/next-best-action";
 import {
+  attachWhatsappProviderMessageId,
+  findReconcilableOutgoingWhatsappMessage,
   findWhatsappConversationByPhone,
   findWhatsappMessageByExternalId,
   insertWhatsappConversation,
@@ -199,6 +201,10 @@ export async function ingestWhatsAppIncomingMessages(
       }
     }
 
+    // Deduplikasi berdasarkan provider message id dalam percakapan (yang sudah
+    // tercakup instance + nomor). Ini mencegah duplikat ketika balasan yang
+    // dikirim dari Desklabs di-echo kembali oleh webhook fromMe=true, karena
+    // pesan keluar Desklabs menyimpan provider id pada external_message_id.
     const existingMessage = await findWhatsappMessageByExternalId(
       supabase,
       conversation.id,
@@ -210,13 +216,34 @@ export async function ingestWhatsAppIncomingMessages(
       continue;
     }
 
+    // Echo dari balasan yang dikirim Desklabs: rekonsiliasi baris yang masih
+    // menunggu provider id daripada menyisipkan duplikat.
+    if (message.direction === "outgoing") {
+      const pending = await findReconcilableOutgoingWhatsappMessage(
+        supabase,
+        conversation.id,
+        message.messageText,
+      );
+
+      if (pending) {
+        await attachWhatsappProviderMessageId(
+          supabase,
+          pending.id,
+          message.externalMessageId,
+        );
+        result.duplicates += 1;
+        continue;
+      }
+    }
+
     await insertWhatsappMessage(supabase, {
       conversation_id: conversation.id,
-      direction: "incoming",
+      direction: message.direction,
       message_type: message.messageType,
       text: message.messageText,
       media_url: message.mediaUrl,
-      status: "received",
+      // Pesan keluar dari perangkat sudah terkirim oleh WhatsApp.
+      status: message.direction === "outgoing" ? "sent" : "received",
       timestamp: message.timestamp,
       raw_payload: message.rawPayload as Json,
       external_message_id: message.externalMessageId,
@@ -225,6 +252,7 @@ export async function ingestWhatsAppIncomingMessages(
     result.processed += 1;
     whatsAppWebhookDevLog("message stored", {
       conversationId: conversation.id,
+      direction: message.direction,
       phoneNumber: message.phoneNumber,
       displayName: getDisplayName(message),
     });

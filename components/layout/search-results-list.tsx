@@ -47,13 +47,17 @@ function ResultButton({
       onClick={() => onNavigate(item)}
       className={cn(
         "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors",
-        isSelected ? "bg-slate-100/90 text-slate-950" : "text-slate-700 hover:bg-slate-50/90",
+        isSelected
+          ? "bg-muted text-foreground"
+          : "text-foreground/80 hover:bg-muted/60",
       )}
     >
       <span
         className={cn(
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-          isSelected ? "bg-white text-slate-700 shadow-sm" : "bg-slate-100/80 text-slate-500",
+          isSelected
+            ? "bg-background text-foreground/80 shadow-sm"
+            : "bg-muted text-muted-foreground",
         )}
       >
         <Icon className="h-4 w-4" strokeWidth={1.75} />
@@ -62,7 +66,7 @@ function ResultButton({
         <span className="block truncate text-sm font-medium">{getDisplayTitle(item)}</span>
         <span
           className={cn(
-            "mt-0.5 block truncate text-xs text-slate-500",
+            "mt-0.5 block truncate text-xs text-muted-foreground",
             compact && !isSelected && "hidden",
           )}
         >
@@ -85,10 +89,10 @@ export function SearchResultsList({
   if (!view.isEmptyQuery && view.flatItems.length === 0) {
     return (
       <div className="px-4 py-10 text-center">
-        <p className="text-sm font-medium text-slate-700">
+        <p className="text-sm font-medium text-foreground/80">
           Tidak ada hasil yang cocok.
         </p>
-        <p className="mt-1.5 text-sm text-slate-500">
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Coba gunakan kata kunci lain.
         </p>
       </div>
@@ -110,7 +114,7 @@ export function SearchResultsList({
 
         return (
           <div key={section.id} className="pb-1">
-            <p className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            <p className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {section.label}
             </p>
             <ul className="space-y-0.5">
@@ -135,7 +139,7 @@ export function SearchResultsList({
       })}
 
       {view.isEmptyQuery && query.trim() === "" ? (
-        <p className="px-2.5 pb-2 pt-1 text-center text-[11px] text-slate-400">
+        <p className="px-2.5 pb-2 pt-1 text-center text-[11px] text-muted-foreground">
           Ketik nama customer, halaman, atau perintah seperti /settings
         </p>
       ) : null}

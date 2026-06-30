@@ -6,24 +6,34 @@ import {
   useRef,
   useState,
   useTransition,
+  type ReactNode,
   type RefObject,
 } from "react";
 import {
   ChevronLeft,
   FileText,
+  Film,
+  ImageIcon,
+  Languages,
   Paperclip,
   Plus,
   Send,
   Smile,
   Sparkles,
+  Type,
+  WandSparkles,
   X,
 } from "lucide-react";
 
 import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnichannel-actions";
-import { suggestOmnichannelReply } from "@/app/(dashboard)/inbox/omnichannel-ai-actions";
 import { buttonVariants } from "@/components/ui/button";
 import { DsToast } from "@/components/design-system/toast";
-import { QUICK_REPLY_TEMPLATES, suggestReply } from "@/lib/communication/assist";
+import {
+  QUICK_REPLY_TEMPLATES,
+  improveWriting,
+  suggestReply,
+  translateToEnglish,
+} from "@/lib/communication/assist";
 import {
   getComposerPlaceholder,
   isPersistedFailureCode,
@@ -51,13 +61,16 @@ const EMOJIS = [
 const MAX_TEXTAREA_ROWS = 4;
 const LINE_HEIGHT_PX = 24;
 
+const ICON_BUTTON =
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50";
+
 type ComposerToast = {
   variant: "success" | "error" | "info";
   title: string;
   description?: string;
 };
 
-type ActionsView = "root" | "emoji" | "template" | "ai";
+type OpenMenu = "plus" | "emoji" | "ai" | null;
 
 type OmnichannelConversationReplyBoxProps = {
   conversationId: string;
@@ -65,18 +78,14 @@ type OmnichannelConversationReplyBoxProps = {
   canReply: boolean;
   canSuggestReply?: boolean;
   isUnassignedForAgent?: boolean;
-  // Pesan masuk terakhir dari pelanggan, untuk saran AI berbasis aturan.
   lastCustomerMessage?: string | null;
+  aiSummary?: string | null;
   onSendingChange?: (isSending: boolean) => void;
-  // Kanal non-WhatsApp: satu pesan optimistik sederhana.
   onOptimisticMessage?: (messageText: string | null) => void;
-  // WhatsApp realtime: tambah pesan optimistik (mengembalikan id sementara) dan
-  // hapus bila gagal sebelum tersimpan di basis data.
   onAddOptimistic?: (text: string) => string;
   onRemoveOptimistic?: (tempId: string) => void;
 };
 
-// Menutup menu saat klik di luar atau menekan Escape.
 function useOutsideClose(
   open: boolean,
   ref: RefObject<HTMLElement | null>,
@@ -108,12 +117,12 @@ function useOutsideClose(
   }, [open, ref, onClose]);
 }
 
-function ActionRow({
+function MenuItem({
   icon,
   label,
   onClick,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onClick: () => void;
 }) {
@@ -123,7 +132,7 @@ function ActionRow({
       onClick={onClick}
       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted/60"
     >
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground">
         {icon}
       </span>
       {label}
@@ -131,13 +140,7 @@ function ActionRow({
   );
 }
 
-function SubmenuHeader({
-  title,
-  onBack,
-}: {
-  title: string;
-  onBack: () => void;
-}) {
+function SubmenuHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div className="flex items-center gap-1 border-b px-2 py-1.5">
       <button
@@ -148,7 +151,7 @@ function SubmenuHeader({
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <span className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </span>
     </div>
@@ -159,9 +162,9 @@ export function OmnichannelConversationReplyBox({
   conversationId,
   channel = "instagram",
   canReply,
-  canSuggestReply = false,
   isUnassignedForAgent = false,
   lastCustomerMessage = null,
+  aiSummary = null,
   onSendingChange,
   onOptimisticMessage,
   onAddOptimistic,
@@ -170,24 +173,27 @@ export function OmnichannelConversationReplyBox({
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const { draft: messageText, setDraft: setMessageText, clearDraft } =
     useConversationDraft(conversationId);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const [fileAccept, setFileAccept] = useState<string>("");
   const [toast, setToast] = useState<ComposerToast | null>(null);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const [actionsView, setActionsView] = useState<ActionsView>("root");
+  const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
+  const [plusView, setPlusView] = useState<"root" | "template">("root");
+  const [aiView, setAiView] = useState<"root" | "summary" | "translate">("root");
   const [isPending, startTransition] = useTransition();
-  const [isGenerating, startGenerateTransition] = useTransition();
 
-  useOutsideClose(actionsOpen, actionsRef, () => setActionsOpen(false));
+  useOutsideClose(openMenu !== null, rowRef, () => setOpenMenu(null));
 
   useEffect(() => {
-    if (!actionsOpen) {
-      setActionsView("root");
+    if (openMenu !== "plus") {
+      setPlusView("root");
     }
-  }, [actionsOpen]);
+    if (openMenu !== "ai") {
+      setAiView("root");
+    }
+  }, [openMenu]);
 
   useEffect(() => {
     if (!toast) {
@@ -200,10 +206,8 @@ export function OmnichannelConversationReplyBox({
 
   const isWhatsapp = channel === "whatsapp";
 
-  const isDisabled = !canReply || isPending || isGenerating;
-  const canSend =
-    canReply && messageText.trim().length > 0 && !isPending && !isGenerating;
-  const canUseAi = canSuggestReply && canReply && !isPending && !isGenerating;
+  const isDisabled = !canReply || isPending;
+  const canSend = canReply && messageText.trim().length > 0 && !isPending;
 
   const sendTitle = !canReply
     ? isUnassignedForAgent
@@ -228,7 +232,12 @@ export function OmnichannelConversationReplyBox({
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
   }, [messageText]);
 
-  // Menyisipkan teks pada posisi kursor (untuk emoji).
+  function openFilePicker(accept: string) {
+    setFileAccept(accept);
+    setOpenMenu(null);
+    requestAnimationFrame(() => fileInputRef.current?.click());
+  }
+
   function insertAtCursor(insert: string) {
     const textarea = textareaRef.current;
     if (!textarea) {
@@ -248,7 +257,7 @@ export function OmnichannelConversationReplyBox({
     });
   }
 
-  // Menyisipkan balasan template/AI. Tidak menimpa teks kecuali composer kosong.
+  // Tidak menimpa teks kecuali composer kosong.
   function insertReply(text: string) {
     if (!messageText.trim()) {
       setMessageText(text);
@@ -256,7 +265,13 @@ export function OmnichannelConversationReplyBox({
       const separator = /\s$/.test(messageText) ? "" : " ";
       setMessageText(`${messageText}${separator}${text}`);
     }
-    setActionsOpen(false);
+    setOpenMenu(null);
+    textareaRef.current?.focus();
+  }
+
+  function replaceDraft(text: string) {
+    setMessageText(text);
+    setOpenMenu(null);
     textareaRef.current?.focus();
   }
 
@@ -269,8 +284,6 @@ export function OmnichannelConversationReplyBox({
     setAttachmentName(null);
 
     if (isWhatsapp) {
-      // Pesan langsung muncul (optimistik). Status dan baris akhir
-      // direkonsiliasi oleh realtime - tanpa refresh halaman.
       const tempId = onAddOptimistic?.(trimmed);
       clearDraft();
 
@@ -279,35 +292,24 @@ export function OmnichannelConversationReplyBox({
           const response = await fetch("/api/communication/messages/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              channel,
-              conversationId,
-              text: trimmed,
-            }),
+            body: JSON.stringify({ channel, conversationId, text: trimmed }),
           });
 
-          const payload = (await response
-            .json()
-            .catch(() => ({}))) as {
+          const payload = (await response.json().catch(() => ({}))) as {
             ok?: boolean;
             code?: string;
             message?: string;
           };
 
           if (response.ok && payload.ok) {
-            // Realtime akan mengganti pesan optimistik dan memperbarui status.
             return;
           }
 
           const code = payload.code ?? "unknown";
 
           if (isPersistedFailureCode(code)) {
-            // Pesan tersimpan sebagai "failed" di basis data; realtime akan
-            // mengganti pesan optimistik dan menandainya gagal (dengan tombol
-            // coba lagi). Biarkan pesan optimistik agar tidak berkedip.
+            // Tersimpan sebagai "failed"; realtime akan menandainya.
           } else if (tempId) {
-            // Tidak pernah mencapai adapter - hapus pesan optimistik dan
-            // kembalikan teks ke composer.
             onRemoveOptimistic?.(tempId);
             setMessageText(trimmed);
           }
@@ -319,7 +321,6 @@ export function OmnichannelConversationReplyBox({
             description: copy.description,
           });
         } catch {
-          // Koneksi ke server kita sendiri terputus - tidak ada yang terkirim.
           if (tempId) {
             onRemoveOptimistic?.(tempId);
           }
@@ -362,40 +363,9 @@ export function OmnichannelConversationReplyBox({
     });
   }
 
-  function handleSuggestReply() {
-    if (!canUseAi) {
-      return;
-    }
-
-    setAiError(null);
-    setActionsOpen(false);
-
-    startGenerateTransition(async () => {
-      const formData = new FormData();
-      formData.set("conversation_id", conversationId);
-
-      const result = await suggestOmnichannelReply(formData);
-
-      if (!result.success || !result.suggestion) {
-        setAiError(result.message ?? "Saran AI gagal. Silakan coba lagi.");
-        return;
-      }
-
-      setMessageText(result.suggestion);
-      textareaRef.current?.focus();
-    });
-  }
-
-  function handleAiAction() {
-    if (isWhatsapp) {
-      setActionsView("ai");
-      return;
-    }
-    handleSuggestReply();
-  }
-
-  const showAiAction = isWhatsapp || canUseAi;
-  const aiSuggestion = suggestReply(lastCustomerMessage);
+  const translatePreview = translateToEnglish(
+    messageText.trim() || lastCustomerMessage || "",
+  );
 
   return (
     <div className="relative bg-background px-3 py-2 sm:px-4">
@@ -409,12 +379,6 @@ export function OmnichannelConversationReplyBox({
             />
           </div>
         </div>
-      ) : null}
-
-      {aiError ? (
-        <p className="mb-2 rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
-          {aiError}
-        </p>
       ) : null}
 
       {attachmentName ? (
@@ -437,6 +401,7 @@ export function OmnichannelConversationReplyBox({
       <input
         ref={fileInputRef}
         type="file"
+        accept={fileAccept || undefined}
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -447,81 +412,48 @@ export function OmnichannelConversationReplyBox({
         }}
       />
 
-      <div className="flex items-end gap-1.5">
-        {/* Satu menu aksi sekunder agar composer tetap ringkas. */}
-        <div ref={actionsRef} className="relative shrink-0">
+      <div ref={rowRef} className="flex items-end gap-1">
+        {/* [+] lampiran & template */}
+        <div className="relative shrink-0">
           <button
             type="button"
-            onClick={() => setActionsOpen((value) => !value)}
+            onClick={() => setOpenMenu((value) => (value === "plus" ? null : "plus"))}
             disabled={isDisabled}
-            title="Aksi"
-            aria-label="Aksi"
-            aria-expanded={actionsOpen}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-11 shrink-0 gap-1 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground md:h-9",
-              actionsOpen && "bg-muted text-foreground",
-            )}
+            title="Lampiran"
+            aria-label="Lampiran"
+            aria-expanded={openMenu === "plus"}
+            className={cn(ICON_BUTTON, openMenu === "plus" && "bg-muted text-foreground")}
           >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Aksi</span>
+            <Plus className="h-5 w-5" />
           </button>
-
-          {actionsOpen ? (
-            <div className="absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
-              {actionsView === "root" ? (
+          {openMenu === "plus" ? (
+            <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
+              {plusView === "root" ? (
                 <>
-                  <ActionRow
-                    icon={<Paperclip className="h-4 w-4" />}
-                    label="Lampirkan file"
-                    onClick={() => {
-                      fileInputRef.current?.click();
-                      setActionsOpen(false);
-                    }}
-                  />
-                  <ActionRow
-                    icon={<Smile className="h-4 w-4" />}
-                    label="Emoji"
-                    onClick={() => setActionsView("emoji")}
-                  />
-                  <ActionRow
+                  <MenuItem
                     icon={<FileText className="h-4 w-4" />}
-                    label="Template balasan"
-                    onClick={() => setActionsView("template")}
+                    label="Dokumen"
+                    onClick={() => openFilePicker(".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv")}
                   />
-                  {showAiAction ? (
-                    <ActionRow
-                      icon={<Sparkles className="h-4 w-4" />}
-                      label="Saran AI"
-                      onClick={handleAiAction}
-                    />
-                  ) : null}
+                  <MenuItem
+                    icon={<ImageIcon className="h-4 w-4" />}
+                    label="Gambar"
+                    onClick={() => openFilePicker("image/*")}
+                  />
+                  <MenuItem
+                    icon={<Film className="h-4 w-4" />}
+                    label="Video"
+                    onClick={() => openFilePicker("video/*")}
+                  />
+                  <MenuItem
+                    icon={<Type className="h-4 w-4" />}
+                    label="Template"
+                    onClick={() => setPlusView("template")}
+                  />
                 </>
-              ) : actionsView === "emoji" ? (
+              ) : (
                 <>
-                  <SubmenuHeader
-                    title="Emoji"
-                    onBack={() => setActionsView("root")}
-                  />
-                  <div className="grid grid-cols-6 gap-1 p-2">
-                    {EMOJIS.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
-                        onClick={() => insertAtCursor(emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : actionsView === "template" ? (
-                <>
-                  <SubmenuHeader
-                    title="Template cepat"
-                    onBack={() => setActionsView("root")}
-                  />
+                  <SubmenuHeader title="Template cepat" onBack={() => setPlusView("root")} />
                   {QUICK_REPLY_TEMPLATES.map((template) => (
                     <button
                       key={template}
@@ -533,37 +465,42 @@ export function OmnichannelConversationReplyBox({
                     </button>
                   ))}
                 </>
-              ) : (
-                <>
-                  <SubmenuHeader
-                    title={`Saran AI · ${aiSuggestion.label}`}
-                    onBack={() => setActionsView("root")}
-                  />
-                  <div className="p-2.5">
-                    <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground">
-                      {aiSuggestion.text}
-                    </p>
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => insertReply(aiSuggestion.text)}
-                        className={cn(
-                          buttonVariants({ size: "sm" }),
-                          "h-8 gap-1.5 rounded-lg px-3 text-xs",
-                        )}
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Gunakan
-                      </button>
-                    </div>
-                  </div>
-                </>
               )}
             </div>
           ) : null}
         </div>
 
-        <div className="flex min-h-[40px] min-w-0 flex-1 items-center rounded-xl border bg-muted/20 px-3 py-1">
+        {/* Emoji */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpenMenu((value) => (value === "emoji" ? null : "emoji"))}
+            disabled={isDisabled}
+            title="Emoji"
+            aria-label="Emoji"
+            aria-expanded={openMenu === "emoji"}
+            className={cn(ICON_BUTTON, openMenu === "emoji" && "bg-muted text-foreground")}
+          >
+            <Smile className="h-5 w-5" />
+          </button>
+          {openMenu === "emoji" ? (
+            <div className="absolute bottom-full left-0 z-20 mb-2 grid grid-cols-6 gap-1 rounded-xl border bg-background p-2 shadow-lg">
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
+                  onClick={() => insertAtCursor(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Input pesan */}
+        <div className="flex min-h-[40px] min-w-0 flex-1 items-center rounded-2xl border bg-muted/20 px-3 py-1">
           <textarea
             ref={textareaRef}
             value={messageText}
@@ -584,6 +521,97 @@ export function OmnichannelConversationReplyBox({
           />
         </div>
 
+        {/* AI (ikon saja) */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpenMenu((value) => (value === "ai" ? null : "ai"))}
+            disabled={isDisabled}
+            title="Asisten AI"
+            aria-label="Asisten AI"
+            aria-expanded={openMenu === "ai"}
+            className={cn(ICON_BUTTON, openMenu === "ai" && "bg-muted text-foreground")}
+          >
+            <Sparkles className="h-5 w-5" />
+          </button>
+          {openMenu === "ai" ? (
+            <div className="absolute bottom-full right-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
+              {aiView === "root" ? (
+                <>
+                  <MenuItem
+                    icon={<Sparkles className="h-4 w-4" />}
+                    label="Saran balasan"
+                    onClick={() =>
+                      insertReply(suggestReply(lastCustomerMessage).text)
+                    }
+                  />
+                  <MenuItem
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Ringkas percakapan"
+                    onClick={() => setAiView("summary")}
+                  />
+                  <MenuItem
+                    icon={<Languages className="h-4 w-4" />}
+                    label="Terjemahkan"
+                    onClick={() => setAiView("translate")}
+                  />
+                  <MenuItem
+                    icon={<WandSparkles className="h-4 w-4" />}
+                    label="Perbaiki tulisan"
+                    onClick={() => {
+                      const trimmed = messageText.trim();
+                      if (trimmed) {
+                        replaceDraft(improveWriting(trimmed));
+                      } else {
+                        setOpenMenu(null);
+                      }
+                    }}
+                  />
+                </>
+              ) : aiView === "summary" ? (
+                <>
+                  <SubmenuHeader
+                    title="Ringkasan percakapan"
+                    onBack={() => setAiView("root")}
+                  />
+                  <p className="px-3 py-2.5 text-xs leading-relaxed text-foreground">
+                    {aiSummary?.trim()
+                      ? aiSummary
+                      : "Belum ada cukup pesan untuk diringkas."}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <SubmenuHeader
+                    title="Terjemahan (ID -> EN)"
+                    onBack={() => setAiView("root")}
+                  />
+                  <div className="p-2.5">
+                    <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground">
+                      {translatePreview || "Tidak ada teks untuk diterjemahkan."}
+                    </p>
+                    {translatePreview ? (
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => replaceDraft(translatePreview)}
+                          className={cn(
+                            buttonVariants({ size: "sm" }),
+                            "h-8 rounded-lg px-3 text-xs",
+                          )}
+                        >
+                          Gunakan
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Kirim */}
         <button
           type="button"
           disabled={!canSend}
@@ -591,7 +619,7 @@ export function OmnichannelConversationReplyBox({
           title={sendTitle}
           className={cn(
             buttonVariants({ size: "sm" }),
-            "h-11 shrink-0 gap-1.5 rounded-full px-3.5 md:h-9",
+            "h-10 shrink-0 gap-1.5 rounded-full px-4",
             !canSend && "opacity-50",
           )}
           aria-label={isPending ? "Mengirim pesan" : "Kirim pesan"}

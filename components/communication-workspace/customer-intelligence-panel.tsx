@@ -26,7 +26,7 @@ function PanelEmptySelection() {
     <IntelligencePanel>
       <IntelligencePanelHeader subtitle="Reasoning layer · all channels" />
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200/80 bg-white shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-soft bg-card shadow-sm">
           <MessageSquare className="h-5 w-5 text-muted-foreground/50" />
         </div>
         <p className="mt-4 text-sm font-medium tracking-tight text-foreground">

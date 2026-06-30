@@ -5,6 +5,7 @@ import {
   ThemeProvider,
   THEME_INIT_SCRIPT,
 } from "@/components/theme/theme-provider";
+import { branding } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 
 import "./globals.css";
@@ -36,6 +37,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Desklabs | Kelola seluruh perjalanan customer dalam satu platform",
     description: siteConfig.description,
+  },
+  icons: {
+    icon: branding.favicon,
+    shortcut: branding.favicon,
+    apple: branding.favicon,
   },
 };
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
 import { cn } from "@/lib/utils";
@@ -56,17 +57,9 @@ export function MarketingDesignFooter() {
           <div>
             <Link
               href="/"
-              className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+              className="inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
             >
-              <span
-                aria-hidden
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-sm font-bold text-white"
-              >
-                D
-              </span>
-              <span className="text-lg font-semibold tracking-tight text-slate-950">
-                {content.brand.name}
-              </span>
+              <BrandLogo variant="full" size="md" />
             </Link>
             <p className="mt-4 text-sm text-slate-600">{content.brand.tagline}</p>
             <a

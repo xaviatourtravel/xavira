@@ -12,7 +12,7 @@ import {
   type NavAttentionBadges,
   type WorkspaceNavItem,
 } from "@/config/navigation";
-import { siteConfig } from "@/config/site";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import type { Permission } from "@/lib/auth/permission-matrix";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,8 @@ type SidebarNavigationProps = {
   attentionBadges?: NavAttentionBadges;
   onNavigate?: () => void;
   showBrand?: boolean;
+  /** Icon-only mark for compact drawers / collapsed states. */
+  brandVariant?: "full" | "icon";
 };
 
 const PRIMARY_WORKSPACES = WORKSPACE_NAV.filter(
@@ -32,6 +34,7 @@ export function SidebarNavigation({
   attentionBadges = EMPTY_NAV_ATTENTION_BADGES,
   onNavigate,
   showBrand = true,
+  brandVariant = "full",
 }: SidebarNavigationProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -47,9 +50,9 @@ export function SidebarNavigation({
           <Link
             href="/today"
             onClick={onNavigate}
-            className="text-lg font-semibold tracking-tight text-foreground"
+            className="inline-flex min-w-0 max-w-full items-center"
           >
-            {siteConfig.name}
+            <BrandLogo variant={brandVariant} size="md" />
           </Link>
         </div>
       ) : null}

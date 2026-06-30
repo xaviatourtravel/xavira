@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
@@ -161,16 +162,9 @@ export function MarketingNavbar() {
         )}
       >
         <div className="mx-auto flex h-14 min-w-0 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
-          <Link href={marketingRoutes.home} className="flex min-w-0 items-center gap-2">
-            <span
-              aria-hidden
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-sm font-bold text-white"
-            >
-              D
-            </span>
-            <span className="truncate text-base font-semibold tracking-tight text-slate-950 sm:text-lg">
-              {content.brand.name}
-            </span>
+          <Link href={marketingRoutes.home} className="flex min-w-0 items-center">
+            <BrandLogo variant="icon" size="md" className="sm:hidden" />
+            <BrandLogo variant="full" size="lg" className="hidden sm:inline-flex" />
           </Link>
 
           <nav className="hidden items-center gap-6 xl:gap-7 lg:flex" aria-label="Primary">

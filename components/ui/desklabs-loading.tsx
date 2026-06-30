@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { cn } from "@/lib/utils";
 import { designSystemPanelClass } from "@/lib/design-system/tokens";
 
@@ -78,8 +79,9 @@ export function DesklabsPageLoader({
         className,
       )}
     >
-      <DesklabsSpinner size="lg" label={message} />
-      <p className="text-sm text-slate-600">{message}</p>
+      <BrandLogo variant="icon" size="lg" />
+      <DesklabsSpinner size="lg" label={message} className="mt-2" />
+      <p className="text-sm text-slate-600 dark:text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -166,9 +168,10 @@ export function DesklabsWorkspaceSkeleton({
 }: DesklabsWorkspaceSkeletonProps) {
   return (
     <div className={cn("mx-auto w-full max-w-6xl space-y-6 px-4 py-6", className)}>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
+        <BrandLogo variant="icon" size="md" className="sm:mr-1" />
         <DesklabsSpinner label={message} />
-        <p className="text-sm text-slate-600">{message}</p>
+        <p className="text-sm text-slate-600 dark:text-muted-foreground">{message}</p>
       </div>
       <div className="space-y-3">
         <DesklabsSkeleton className="h-8 w-64" />

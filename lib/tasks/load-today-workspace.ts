@@ -279,7 +279,7 @@ async function loadOldestUnreadAgeHours(
 ) {
   const viewAll = isAdminOrOwner(profile);
 
-  let query = supabase
+  let omnichannelQuery = supabase
     .from("conversations")
     .select("last_message_at")
     .eq("organization_id", profile.organization_id)
@@ -287,18 +287,42 @@ async function loadOldestUnreadAgeHours(
     .order("last_message_at", { ascending: true })
     .limit(1);
 
+  let whatsappQuery = supabase
+    .from("whatsapp_conversations")
+    .select("last_message_at")
+    .eq("workspace_id", profile.organization_id)
+    .gt("unread_count", 0)
+    .order("last_message_at", { ascending: true })
+    .limit(1);
+
   if (!viewAll) {
-    query = query.or(
+    omnichannelQuery = omnichannelQuery.or(
+      `assigned_user_id.eq.${profile.id},assigned_user_id.is.null`,
+    );
+    whatsappQuery = whatsappQuery.or(
       `assigned_user_id.eq.${profile.id},assigned_user_id.is.null`,
     );
   }
 
-  const { data } = await query;
-  const oldest = data?.[0]?.last_message_at;
+  const [{ data: omnichannelData }, { data: whatsappData }] = await Promise.all([
+    omnichannelQuery,
+    whatsappQuery,
+  ]);
 
-  if (!oldest) {
+  const candidates = [
+    omnichannelData?.[0]?.last_message_at,
+    whatsappData?.[0]?.last_message_at,
+  ].filter((value): value is string => Boolean(value));
+
+  if (candidates.length === 0) {
     return null;
   }
+
+  const oldest = candidates.reduce((earliest, current) =>
+    new Date(current).getTime() < new Date(earliest).getTime()
+      ? current
+      : earliest,
+  );
 
   const hours = (Date.now() - new Date(oldest).getTime()) / (1000 * 60 * 60);
   return Math.max(0, hours);

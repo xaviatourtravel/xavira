@@ -79,6 +79,7 @@ type OmnichannelConversationReplyBoxProps = {
   canSuggestReply?: boolean;
   isUnassignedForAgent?: boolean;
   lastCustomerMessage?: string | null;
+  suggestedReply?: string | null;
   aiSummary?: string | null;
   onSendingChange?: (isSending: boolean) => void;
   onOptimisticMessage?: (messageText: string | null) => void;
@@ -164,6 +165,7 @@ export function OmnichannelConversationReplyBox({
   canReply,
   isUnassignedForAgent = false,
   lastCustomerMessage = null,
+  suggestedReply = null,
   aiSummary = null,
   onSendingChange,
   onOptimisticMessage,
@@ -542,7 +544,10 @@ export function OmnichannelConversationReplyBox({
                     icon={<Sparkles className="h-4 w-4" />}
                     label="Saran balasan"
                     onClick={() =>
-                      insertReply(suggestReply(lastCustomerMessage).text)
+                      insertReply(
+                        suggestedReply?.trim() ||
+                          suggestReply(lastCustomerMessage).text,
+                      )
                     }
                   />
                   <MenuItem

@@ -68,6 +68,13 @@ export type CustomerWorkspaceData = {
   conversationHref: string | null;
   conversationId: string | null;
   conversationDetail: OmnichannelConversationDetail | null;
+  /**
+   * Tautan internal Inbox Desklabs untuk tombol "Hubungi Customer".
+   * Mengarah ke percakapan yang ada (WhatsApp diutamakan) atau alur mulai
+   * percakapan baru. Tidak pernah berupa tautan wa.me eksternal.
+   */
+  contactInboxHref: string;
+  contactHasConversation: boolean;
   bookings: CustomerBookingRow[];
   payments: CustomerPaymentRow[];
   participantGroups: CustomerParticipantGroup[];
@@ -81,6 +88,27 @@ export type CustomerWorkspaceData = {
     outstandingBalance: number;
   };
 };
+
+/**
+ * Mencari percakapan WhatsApp milik customer ini (jika ada).
+ * WhatsApp diutamakan sebagai kanal kontak utama Desklabs.
+ */
+async function findCustomerWhatsappConversationId(
+  supabase: OmnichannelSupabaseClient,
+  organizationId: string,
+  customerId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("whatsapp_conversations")
+    .select("id, last_message_at")
+    .eq("workspace_id", organizationId)
+    .eq("customer_id", customerId)
+    .order("last_message_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
 
 export async function loadCustomerWorkspace(
   supabase: OmnichannelSupabaseClient,
@@ -211,6 +239,25 @@ export async function loadCustomerWorkspace(
       )
     : null;
 
+  // Tentukan target Inbox untuk tombol "Hubungi Customer".
+  // Prioritas: percakapan WhatsApp customer -> percakapan kanal lain ->
+  // alur mulai percakapan baru. Tidak pernah mengarah ke wa.me.
+  const whatsappConversationId = await findCustomerWhatsappConversationId(
+    supabase,
+    organizationId,
+    lead.id,
+  );
+
+  const contactInboxHref = whatsappConversationId
+    ? `/inbox?filter=whatsapp&c=${whatsappConversationId}`
+    : conversationContext
+      ? `/inbox?c=${conversationContext.conversationId}`
+      : `/inbox?newCustomer=${lead.id}`;
+
+  const contactHasConversation = Boolean(
+    whatsappConversationId || conversationContext,
+  );
+
   const assignedToLabel = formatAssignedUserLabel(
     getLeadAssigneeName(lead.profiles),
   );
@@ -288,6 +335,8 @@ export async function loadCustomerWorkspace(
     conversationHref: conversationContext?.inboxHref ?? null,
     conversationId: conversationContext?.conversationId ?? null,
     conversationDetail,
+    contactInboxHref,
+    contactHasConversation,
     bookings: bookingRows,
     payments: paymentRows,
     participantGroups,

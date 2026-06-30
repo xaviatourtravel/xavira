@@ -364,18 +364,12 @@ export function buildCommunicationAiRecommendation(
   };
 }
 
+/**
+ * Tautan kontak customer kini selalu mengarah ke Inbox Desklabs.
+ * Lihat `contactInboxHref` pada CustomerWorkspaceData (tidak lagi wa.me).
+ */
 export function buildCustomerContactHref(data: CustomerWorkspaceData) {
-  const phone = data.lead.whatsapp_number ?? data.lead.phone;
-  if (phone) {
-    const normalized = phone.replace(/\D/g, "");
-    return `https://wa.me/${normalized.startsWith("0") ? `62${normalized.slice(1)}` : normalized}`;
-  }
-
-  if (data.conversationHref) {
-    return data.conversationHref;
-  }
-
-  return null;
+  return data.contactInboxHref;
 }
 
 export function buildStructuredAiSummary(

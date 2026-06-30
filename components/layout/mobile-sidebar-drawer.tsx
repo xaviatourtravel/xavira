@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { SidebarNavigation } from "@/components/layout/sidebar-navigation";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import type { NavAttentionBadges } from "@/config/navigation";
 import type { Permission } from "@/lib/auth/permission-matrix";
@@ -65,7 +66,10 @@ export function MobileSidebarDrawer({
         )}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
-          <p className="text-sm font-semibold text-foreground">Menu</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <BrandLogo variant="icon" size="md" />
+            <p className="text-sm font-semibold text-foreground">Menu</p>
+          </div>
           <button
             type="button"
             aria-label="Tutup menu"

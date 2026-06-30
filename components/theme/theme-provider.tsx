@@ -15,8 +15,8 @@ export type ResolvedTheme = "light" | "dark";
 export const THEME_STORAGE_KEY = "desklabs-theme";
 
 // Skrip yang dijalankan sebelum hidrasi untuk mencegah kedip tema (FOUC).
-// Disisipkan di <head> sebagai inline script.
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var m=window.matchMedia('(prefers-color-scheme: dark)').matches;var d=t==='dark'||(t==='system'&&m);var e=document.documentElement;e.classList.toggle('dark',d);e.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
+// Default: terang. Ikuti sistem hanya jika pengguna memilih "system" secara eksplisit.
+export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');var valid=t==='light'||t==='dark'||t==='system';var pref=valid?t:'light';var m=window.matchMedia('(prefers-color-scheme: dark)').matches;var d=pref==='dark'||(pref==='system'&&m);var e=document.documentElement;e.classList.toggle('dark',d);e.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
 
 type ThemeContextValue = {
   theme: ThemePreference;
@@ -44,7 +44,7 @@ function applyTheme(theme: ThemePreference): ResolvedTheme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [theme, setThemeState] = useState<ThemePreference>("light");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
 
   // Baca preferensi tersimpan saat mount (sinkron dengan skrip pra-hidrasi).
@@ -55,7 +55,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const initial =
       stored === "light" || stored === "dark" || stored === "system"
         ? stored
-        : "system";
+        : "light";
     setThemeState(initial);
     setResolvedTheme(applyTheme(initial));
   }, []);

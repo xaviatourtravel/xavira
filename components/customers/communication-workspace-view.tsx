@@ -8,7 +8,6 @@ import {
   CreditCard,
   FolderOpen,
   MessageCircle,
-  Phone,
   Plus,
   Sparkles,
   Tag,
@@ -28,7 +27,6 @@ import {
   buildCommunicationAiRecommendation,
   buildCommunicationFeed,
   buildCommunicationPreviewMessages,
-  buildCustomerContactHref,
   buildCustomerTags,
   buildCustomerWorkspaceFiles,
   buildCustomerWorkspaceNotes,
@@ -121,6 +119,7 @@ function WorkspaceContextPanel({
   aiRecommendation,
   upcomingActivity,
   contactHref,
+  contactLabel,
   returnTo,
   primaryBooking,
 }: {
@@ -128,7 +127,8 @@ function WorkspaceContextPanel({
   tags: string[];
   aiRecommendation: ReturnType<typeof buildCommunicationAiRecommendation>;
   upcomingActivity: ReturnType<typeof buildUpcomingActivityLabel>;
-  contactHref: string | null;
+  contactHref: string;
+  contactLabel: string;
   returnTo: string;
   primaryBooking: CustomerWorkspaceData["bookings"][0] | null;
 }) {
@@ -229,25 +229,16 @@ function WorkspaceContextPanel({
             Aksi Cepat
           </p>
           <div className="grid gap-2">
-            {contactHref ? (
-              <a
-                href={contactHref}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(
-                  buttonVariants({ size: "sm" }),
-                  "h-9 w-full justify-center gap-2",
-                )}
-              >
-                <Phone className="h-3.5 w-3.5" />
-                Hubungi Customer
-              </a>
-            ) : (
-              <Button disabled size="sm" className="h-9 w-full gap-2">
-                <Phone className="h-3.5 w-3.5" />
-                Hubungi Customer
-              </Button>
-            )}
+            <Link
+              href={contactHref}
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "h-9 w-full justify-center gap-2",
+              )}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              {contactLabel}
+            </Link>
             {primaryBooking ? (
               <>
                 <Link
@@ -740,7 +731,10 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
   const aiRecommendation = buildCommunicationAiRecommendation(data);
   const previewMessages = buildCommunicationPreviewMessages(data);
   const latestMessage = buildLatestConversationMessage(data);
-  const contactHref = buildCustomerContactHref(data);
+  const contactHref = data.contactInboxHref;
+  const contactLabel = data.contactHasConversation
+    ? "Buka Percakapan"
+    : "Mulai Percakapan";
   const tags = buildCustomerTags(data);
   const fileGroups = buildCustomerWorkspaceFiles(data);
   const notes = buildCustomerWorkspaceNotes(data);
@@ -759,17 +753,13 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
         <div className="min-w-0 flex-1">
           <CustomerPassportFromWorkspace data={data} variant="full" />
         </div>
-        {contactHref ? (
-          <a
-            href={contactHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:mt-4"
-          >
-            <Phone className="h-4 w-4" />
-            Hubungi Customer
-          </a>
-        ) : null}
+        <Link
+          href={contactHref}
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:mt-4"
+        >
+          <MessageCircle className="h-4 w-4" />
+          {contactLabel}
+        </Link>
       </div>
 
       <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -835,6 +825,7 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
           aiRecommendation={aiRecommendation}
           upcomingActivity={upcomingActivity}
           contactHref={contactHref}
+          contactLabel={contactLabel}
           returnTo={returnTo}
           primaryBooking={primaryBooking}
         />

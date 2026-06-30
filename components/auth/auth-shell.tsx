@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { cn } from "@/lib/utils";
 
 type AuthShellProps = {
@@ -10,17 +11,7 @@ type AuthShellProps = {
 };
 
 export function AuthBrandMark({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-sm",
-        className,
-      )}
-    >
-      D
-    </span>
-  );
+  return <BrandLogo variant="icon" size="lg" className={className} />;
 }
 
 export function AuthShell({
@@ -42,11 +33,8 @@ export function AuthShell({
 
       <div className="relative z-10 flex w-full max-w-[440px] flex-col items-center">
         <div className="mb-8 flex flex-col items-center text-center">
-          <AuthBrandMark />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
-            Desklabs
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
+          <BrandLogo variant="full" size="lg" />
+          <p className="mt-4 text-sm text-muted-foreground">
             Operating System untuk bisnis modern.
           </p>
         </div>

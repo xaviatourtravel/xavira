@@ -12,6 +12,7 @@ import type { SettingsWorkspaceData } from "@/lib/settings/queries";
 import { cn } from "@/lib/utils";
 
 import { SettingsSectionPanel } from "@/components/settings/settings-section-panels";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 type SettingsWorkspaceProps = {
   data: SettingsWorkspaceData;
@@ -57,7 +58,7 @@ export function SettingsWorkspace({
   return (
     <div className="mx-auto w-full max-w-7xl overflow-x-hidden">
       <div className="mb-6 space-y-2 md:mb-8">
-        <p className="text-sm font-medium text-muted-foreground">Desklabs</p>
+        <BrandLogo variant="icon" size="sm" />
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Manage your workspace profile, team access, integrations, and automation

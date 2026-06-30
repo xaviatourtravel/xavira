@@ -362,20 +362,31 @@ export async function countUnreadConversations(
 ) {
   const viewAll = isAdminOrOwner(profile);
 
-  let query = supabase
+  let omnichannelQuery = supabase
     .from("conversations")
     .select("*", { count: "exact", head: true })
     .eq("organization_id", profile.organization_id)
     .gt("unread_count", 0);
 
+  let whatsappQuery = supabase
+    .from("whatsapp_conversations")
+    .select("*", { count: "exact", head: true })
+    .eq("workspace_id", profile.organization_id)
+    .gt("unread_count", 0);
+
   if (!viewAll) {
-    query = query.or(
+    omnichannelQuery = omnichannelQuery.or(
+      `assigned_user_id.eq.${profile.id},assigned_user_id.is.null`,
+    );
+    whatsappQuery = whatsappQuery.or(
       `assigned_user_id.eq.${profile.id},assigned_user_id.is.null`,
     );
   }
 
-  const { count } = await query;
-  return count ?? 0;
+  const [{ count: omnichannelCount }, { count: whatsappCount }] =
+    await Promise.all([omnichannelQuery, whatsappQuery]);
+
+  return (omnichannelCount ?? 0) + (whatsappCount ?? 0);
 }
 
 export async function countPaymentsToConfirm(

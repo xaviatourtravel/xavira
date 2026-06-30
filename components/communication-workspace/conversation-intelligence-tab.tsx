@@ -13,11 +13,10 @@ import {
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
 import {
-  deriveConversationInsights,
-  suggestReply,
-  type ConversationPriority,
-  type ConversationSentiment,
-} from "@/lib/communication/assist";
+  buildRuleBasedIntelligence,
+  type IntelligencePriority,
+  type IntelligenceSentiment,
+} from "@/lib/communication/intelligence/rule-based-intelligence";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +44,7 @@ function InfoRow({
   );
 }
 
-const SENTIMENT_CHIP: Record<ConversationSentiment, string> = {
+const SENTIMENT_CHIP: Record<IntelligenceSentiment, string> = {
   positive:
     "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
   neutral: "bg-muted text-muted-foreground",
@@ -53,7 +52,7 @@ const SENTIMENT_CHIP: Record<ConversationSentiment, string> = {
     "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
 };
 
-const PRIORITY_CHIP: Record<ConversationPriority, string> = {
+const PRIORITY_CHIP: Record<IntelligencePriority, string> = {
   high: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
   medium: "bg-muted text-muted-foreground",
 };
@@ -76,17 +75,30 @@ export function ConversationIntelligenceTab({
 }: {
   conversation: OmnichannelConversationDetail;
 }) {
-  const insights = useMemo(
-    () => deriveConversationInsights(conversation),
-    [conversation],
-  );
-
-  const suggestion = useMemo(
-    () => suggestReply(insights.lastCustomerMessage),
-    [insights.lastCustomerMessage],
-  );
-
   const displayName = getConversationDisplayName(conversation);
+
+  const intel = useMemo(
+    () =>
+      buildRuleBasedIntelligence(
+        {
+          displayName,
+          channelLabel: conversation.channelLabel,
+          statusLabel: conversation.statusLabel,
+          unreadCount: conversation.unreadCount,
+          leadId: conversation.leadId,
+        },
+        conversation.messages,
+      ),
+    [
+      conversation.messages,
+      conversation.channelLabel,
+      conversation.statusLabel,
+      conversation.unreadCount,
+      conversation.leadId,
+      displayName,
+    ],
+  );
+
   const phone =
     conversation.channel === "whatsapp"
       ? conversation.customerUsername ?? conversation.externalUserId
@@ -106,30 +118,67 @@ export function ConversationIntelligenceTab({
 
   return (
     <div className="space-y-6">
-      {/* Satu saran ringkas, bukan banyak kartu. */}
-      <IntelligenceSection title="Saran">
-        <IntelligenceSurface className="space-y-2.5 p-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Chip>{insights.intentLabel}</Chip>
-            <Chip className={SENTIMENT_CHIP[insights.sentiment]}>
-              {insights.sentimentLabel}
-            </Chip>
-            <Chip className={PRIORITY_CHIP[insights.priority]}>
-              {`Prioritas ${insights.priorityLabel}`}
-            </Chip>
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-muted-foreground">
-              Saran tindakan
+      <IntelligenceSection title="Intelijen percakapan">
+        {intel.hasData ? (
+          <IntelligenceSurface className="space-y-3 p-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Chip>{intel.intentLabel}</Chip>
+              <Chip className={SENTIMENT_CHIP[intel.sentiment]}>
+                {intel.sentimentLabel}
+              </Chip>
+              <Chip className={PRIORITY_CHIP[intel.priority]}>
+                {`Prioritas ${intel.priorityLabel}`}
+              </Chip>
+            </div>
+
+            {intel.summary ? (
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  Ringkasan
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-foreground">
+                  {intel.summary}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="-mx-3 divide-y divide-border border-y border-soft">
+              <InfoRow label="Destinasi" value={intel.entities.destination} />
+              <InfoRow label="Pax" value={intel.entities.pax} />
+              <InfoRow label="Tanggal" value={intel.entities.departure} />
+              <InfoRow label="Budget" value={intel.entities.budget} />
+              <InfoRow label="Concern" value={intel.entities.concern} />
+              <InfoRow
+                label="Pertanyaan terakhir"
+                value={intel.entities.latestQuestion}
+              />
+            </div>
+
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Saran tindakan
+              </p>
+              <p className="text-xs font-medium text-foreground">
+                {intel.nextActionLabel}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Saran balasan
+              </p>
+              <p className="mt-1 rounded-lg bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground">
+                {intel.suggestedReply}
+              </p>
+            </div>
+          </IntelligenceSurface>
+        ) : (
+          <IntelligenceSurface className="p-3">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Belum cukup data percakapan.
             </p>
-            <p className="text-xs font-medium text-foreground">
-              {insights.nextActionLabel}
-            </p>
-          </div>
-          <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground">
-            {suggestion.text}
-          </p>
-        </IntelligenceSurface>
+          </IntelligenceSurface>
+        )}
         <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
           Dihitung otomatis dari isi percakapan (berbasis aturan, tanpa AI
           eksternal).
@@ -138,7 +187,7 @@ export function ConversationIntelligenceTab({
 
       <IntelligenceDivider />
 
-      <IntelligenceSection title="Ringkasan">
+      <IntelligenceSection title="Detail kontak">
         <IntelligenceSurface className="divide-y divide-border">
           <InfoRow label="Kanal" value={conversation.channelLabel} />
           <InfoRow label="Nama" value={displayName} />

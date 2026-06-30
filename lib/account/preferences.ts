@@ -7,7 +7,7 @@ export type UserPreferences = {
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   language: "id",
-  theme: "system",
+  theme: "light",
   timezone: "Asia/Jakarta",
   currency: "IDR",
 };

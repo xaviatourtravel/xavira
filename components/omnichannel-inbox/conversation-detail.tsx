@@ -39,7 +39,7 @@ import {
   markWhatsappConversationAsRead,
   retryWhatsappConversationReplyAction,
 } from "@/app/(dashboard)/inbox/whatsapp-actions";
-import { deriveConversationInsights } from "@/lib/communication/assist";
+import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rule-based-intelligence";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
@@ -256,23 +256,31 @@ export function OmnichannelConversationDetailPanel({
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
-  // Ringkasan deterministik untuk asisten AI di composer.
-  const aiSummary = useMemo(() => {
-    if (displayMessages.length === 0) {
-      return null;
-    }
-    const insights = deriveConversationInsights(conversation);
-    const parts = [
-      `${displayName} via ${conversation.channelLabel}.`,
-      `${displayMessages.length} pesan, status ${conversation.statusLabel}.`,
-      `Intent: ${insights.intentLabel}, prioritas ${insights.priorityLabel}.`,
-    ];
-    if (insights.lastCustomerMessage) {
-      parts.push(`Pesan terakhir pelanggan: "${insights.lastCustomerMessage}".`);
-    }
-    parts.push(`Saran tindakan: ${insights.nextActionLabel}.`);
-    return parts.join(" ");
-  }, [conversation, displayMessages.length, displayName]);
+  // Intelijen percakapan berbasis aturan dari riwayat pesan nyata (real-time).
+  const intelligence = useMemo(
+    () =>
+      buildRuleBasedIntelligence(
+        {
+          displayName,
+          channelLabel: conversation.channelLabel,
+          statusLabel: conversation.statusLabel,
+          unreadCount: conversation.unreadCount,
+          leadId: conversation.leadId,
+        },
+        displayMessages,
+      ),
+    [
+      displayMessages,
+      displayName,
+      conversation.channelLabel,
+      conversation.statusLabel,
+      conversation.unreadCount,
+      conversation.leadId,
+    ],
+  );
+
+  const aiSummary = intelligence.summary;
+  const suggestedReply = intelligence.suggestedReply;
 
   // Pencarian dalam percakapan (inline, seperti WhatsApp Desktop).
   const normalizedSearch = messageSearch.trim().toLowerCase();
@@ -750,6 +758,7 @@ export function OmnichannelConversationDetailPanel({
             canSuggestReply={canSuggestReply && !isWhatsapp}
             isUnassignedForAgent={isUnassignedForAgent}
             lastCustomerMessage={lastCustomerMessage}
+            suggestedReply={suggestedReply}
             aiSummary={aiSummary}
             onOptimisticMessage={setOptimisticMessageText}
             onAddOptimistic={addOptimisticMessage}

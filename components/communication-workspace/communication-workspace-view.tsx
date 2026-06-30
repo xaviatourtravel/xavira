@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  useWhatsappConversationListRealtime,
+  type ConversationListPatch,
+} from "@/lib/communication/realtime";
 import { WorkspaceRightSidebar } from "@/components/communication-workspace/workspace-right-sidebar";
 import {
   OmnichannelConversationDetailPanel,
@@ -48,6 +52,15 @@ type CommunicationWorkspaceViewProps = {
   initialSuccess?: string | null;
 };
 
+function sortByLastMessageAtDesc(
+  a: OmnichannelConversationListItem,
+  b: OmnichannelConversationListItem,
+) {
+  const aAt = a.lastMessageAt ? Date.parse(a.lastMessageAt) : 0;
+  const bAt = b.lastMessageAt ? Date.parse(b.lastMessageAt) : 0;
+  return bAt - aAt;
+}
+
 function ConversationNotFoundState() {
   return (
     <div className="flex h-full flex-col items-center justify-center bg-neutral-50/50 px-8 text-center dark:bg-neutral-950/20">
@@ -85,9 +98,51 @@ export function CommunicationWorkspaceView({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const filterCounts = buildOmnichannelFilterCounts(allConversations, currentUserId);
+
+  // Daftar percakapan hidup: di-seed dari data server lalu di-patch realtime.
+  const [liveConversations, setLiveConversations] =
+    useState<OmnichannelConversationListItem[]>(conversations);
+
+  // Seed ulang hanya saat keanggotaan daftar berubah (navigasi/filter), bukan
+  // pada setiap render induk, agar patch realtime tidak terhapus.
+  const conversationsKey = useMemo(
+    () => conversations.map((item) => item.id).sort().join("|"),
+    [conversations],
+  );
+
+  useEffect(() => {
+    setLiveConversations(conversations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationsKey]);
+
+  const handleConversationPatch = useCallback((patch: ConversationListPatch) => {
+    setLiveConversations((prev) => {
+      const index = prev.findIndex((item) => item.id === patch.id);
+      if (index < 0) {
+        return prev;
+      }
+
+      const current = prev[index];
+      const updated: OmnichannelConversationListItem = {
+        ...current,
+        lastMessagePreview: patch.lastMessage ?? current.lastMessagePreview,
+        lastMessageAt: patch.lastMessageAt ?? current.lastMessageAt,
+        unreadCount: patch.unreadCount ?? current.unreadCount,
+      };
+
+      const rest = prev.filter((_, itemIndex) => itemIndex !== index);
+      return [updated, ...rest].sort(sortByLastMessageAtDesc);
+    });
+  }, []);
+
+  useWhatsappConversationListRealtime({
+    organizationId,
+    onConversationChange: handleConversationPatch,
+  });
+
   const filteredConversations = useMemo(
-    () => filterConversationsBySearch(conversations, searchQuery),
-    [conversations, searchQuery],
+    () => filterConversationsBySearch(liveConversations, searchQuery),
+    [liveConversations, searchQuery],
   );
 
   useEffect(() => {

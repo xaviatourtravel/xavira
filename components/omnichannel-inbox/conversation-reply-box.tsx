@@ -41,7 +41,12 @@ type OmnichannelConversationReplyBoxProps = {
   canSuggestReply?: boolean;
   isUnassignedForAgent?: boolean;
   onSendingChange?: (isSending: boolean) => void;
+  // Kanal non-WhatsApp: satu pesan optimistik sederhana.
   onOptimisticMessage?: (messageText: string | null) => void;
+  // WhatsApp realtime: tambah pesan optimistik (mengembalikan id sementara) dan
+  // hapus bila gagal sebelum tersimpan di basis data.
+  onAddOptimistic?: (text: string) => string;
+  onRemoveOptimistic?: (tempId: string) => void;
 };
 
 const MAX_TEXTAREA_ROWS = 4;
@@ -281,6 +286,8 @@ export function OmnichannelConversationReplyBox({
   isUnassignedForAgent = false,
   onSendingChange,
   onOptimisticMessage,
+  onAddOptimistic,
+  onRemoveOptimistic,
 }: OmnichannelConversationReplyBoxProps) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -341,11 +348,12 @@ export function OmnichannelConversationReplyBox({
       return;
     }
 
-    onOptimisticMessage?.(trimmed);
-    onSendingChange?.(true);
-    clearDraft();
-
     if (isWhatsapp) {
+      // Pesan langsung muncul (optimistik). Status dan baris akhir
+      // direkonsiliasi oleh realtime - tanpa refresh halaman.
+      const tempId = onAddOptimistic?.(trimmed);
+      clearDraft();
+
       startTransition(async () => {
         try {
           const response = await fetch("/api/communication/messages/send", {
@@ -366,22 +374,21 @@ export function OmnichannelConversationReplyBox({
             message?: string;
           };
 
-          onSendingChange?.(false);
-          onOptimisticMessage?.(null);
-
           if (response.ok && payload.ok) {
-            router.refresh();
+            // Realtime akan mengganti pesan optimistik dan memperbarui status.
             return;
           }
 
           const code = payload.code ?? "unknown";
 
           if (isPersistedFailureCode(code)) {
-            // Pesan tersimpan sebagai "failed" - refresh agar bubble + tombol
-            // coba lagi muncul di timeline.
-            router.refresh();
-          } else {
-            // Tidak pernah mencapai adapter - kembalikan teks ke composer.
+            // Pesan tersimpan sebagai "failed" di basis data; realtime akan
+            // mengganti pesan optimistik dan menandainya gagal (dengan tombol
+            // coba lagi). Biarkan pesan optimistik agar tidak berkedip.
+          } else if (tempId) {
+            // Tidak pernah mencapai adapter - hapus pesan optimistik dan
+            // kembalikan teks ke composer.
+            onRemoveOptimistic?.(tempId);
             setMessageText(trimmed);
           }
 
@@ -393,8 +400,9 @@ export function OmnichannelConversationReplyBox({
           });
         } catch {
           // Koneksi ke server kita sendiri terputus - tidak ada yang terkirim.
-          onSendingChange?.(false);
-          onOptimisticMessage?.(null);
+          if (tempId) {
+            onRemoveOptimistic?.(tempId);
+          }
           setMessageText(trimmed);
           setToast({
             variant: "error",
@@ -406,6 +414,10 @@ export function OmnichannelConversationReplyBox({
       });
       return;
     }
+
+    onOptimisticMessage?.(trimmed);
+    onSendingChange?.(true);
+    clearDraft();
 
     startTransition(async () => {
       const formData = new FormData();

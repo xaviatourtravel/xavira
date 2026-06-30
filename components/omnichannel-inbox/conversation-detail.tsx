@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, MessageSquareText, PanelRightClose, PanelRightOpen } from "lucide-react";
+import {
+  ArrowDown,
+  ChevronLeft,
+  MessageSquareText,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 
 import { markOmnichannelConversationAsRead } from "@/app/(dashboard)/inbox/omnichannel-actions";
 import { markWhatsappConversationAsRead } from "@/app/(dashboard)/inbox/whatsapp-actions";
@@ -16,6 +22,10 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import { WhatsappMessageBubble } from "@/components/omnichannel-inbox/whatsapp-message-bubble";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  isOptimisticId,
+  useWhatsappConversationMessages,
+} from "@/lib/communication/realtime";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { retryWhatsappConversationReplyAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
@@ -35,6 +45,8 @@ type OmnichannelConversationDetailPanelProps = {
   showBackButton?: boolean;
 };
 
+const NEAR_BOTTOM_THRESHOLD_PX = 140;
+
 function getAttachmentLabel(message: MessageRow) {
   const attachments = Array.isArray(message.attachments_json)
     ? message.attachments_json
@@ -44,7 +56,7 @@ function getAttachmentLabel(message: MessageRow) {
     return null;
   }
 
-  return attachments.length === 1 ? "1 attachment" : `${attachments.length} attachments`;
+  return attachments.length === 1 ? "1 lampiran" : `${attachments.length} lampiran`;
 }
 
 export function OmnichannelConversationDetailPanel({
@@ -59,36 +71,127 @@ export function OmnichannelConversationDetailPanel({
   backHref = "/inbox",
   showBackButton = false,
 }: OmnichannelConversationDetailPanelProps) {
-  const [optimisticMessageText, setOptimisticMessageText] = useState<string | null>(
-    null,
-  );
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const markedReadRef = useRef<string | null>(null);
-
-  const displayName = getConversationDisplayName(conversation);
   const isWhatsapp = (channel ?? conversation.channel) === "whatsapp";
   const showComposer = !readOnly || isWhatsapp;
 
-  const displayMessages: MessageRow[] = optimisticMessageText
-    ? [
+  // Pesan WhatsApp dikelola realtime (lihat hook). Kanal lain memakai pesan dari
+  // server + satu pesan optimistik sederhana.
+  const {
+    messages: liveMessages,
+    addOptimisticMessage,
+    removeOptimisticMessage,
+  } = useWhatsappConversationMessages({
+    conversationId: conversation.id,
+    enabled: isWhatsapp,
+    initialMessages: conversation.messages,
+  });
+
+  const [optimisticMessageText, setOptimisticMessageText] = useState<
+    string | null
+  >(null);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const markedReadRef = useRef<string | null>(null);
+  const prevCountRef = useRef(0);
+  const [newMessageCount, setNewMessageCount] = useState(0);
+
+  const displayName = getConversationDisplayName(conversation);
+
+  const displayMessages: MessageRow[] = useMemo(() => {
+    if (isWhatsapp) {
+      return liveMessages;
+    }
+
+    if (optimisticMessageText) {
+      return [
         ...conversation.messages,
         {
           id: "optimistic-outgoing",
           conversation_id: conversation.id,
-          direction: "outgoing",
+          direction: "outgoing" as const,
           external_message_id: null,
           message_text: optimisticMessageText,
           attachments_json: [],
           sent_by_user_id: null,
           created_at: new Date().toISOString(),
-          deliveryStatus: "pending",
+          deliveryStatus: "pending" as const,
         },
-      ]
-    : conversation.messages;
+      ];
+    }
 
+    return conversation.messages;
+  }, [
+    isWhatsapp,
+    liveMessages,
+    optimisticMessageText,
+    conversation.messages,
+    conversation.id,
+  ]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      container.scrollTo({ top: container.scrollHeight, behavior });
+    });
+    setNewMessageCount(0);
+  }, []);
+
+  // Saat berganti percakapan, lompat ke bawah tanpa animasi.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [displayMessages.length, optimisticMessageText]);
+    prevCountRef.current = displayMessages.length;
+    setNewMessageCount(0);
+    const container = scrollContainerRef.current;
+    if (container) {
+      requestAnimationFrame(() => {
+        container.scrollTo({ top: container.scrollHeight });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id]);
+
+  // Auto scroll cerdas: ikuti jika sudah di dekat bawah atau pesan kita sendiri,
+  // selain itu tampilkan lencana "pesan baru".
+  useEffect(() => {
+    const previous = prevCountRef.current;
+    prevCountRef.current = displayMessages.length;
+
+    if (displayMessages.length <= previous) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const nearBottom = distanceFromBottom < NEAR_BOTTOM_THRESHOLD_PX;
+    const last = displayMessages[displayMessages.length - 1];
+    const isOwnOutgoing = Boolean(last && last.direction === "outgoing");
+
+    if (nearBottom || isOwnOutgoing) {
+      scrollToBottom("smooth");
+    } else {
+      setNewMessageCount((count) => count + (displayMessages.length - previous));
+    }
+  }, [displayMessages, scrollToBottom]);
+
+  function handleScroll() {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < NEAR_BOTTOM_THRESHOLD_PX && newMessageCount > 0) {
+      setNewMessageCount(0);
+    }
+  }
 
   useEffect(() => {
     if (conversation.unreadCount <= 0) {
@@ -176,7 +279,11 @@ export function OmnichannelConversationDetailPanel({
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 dark:bg-muted/15">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 dark:bg-muted/15"
+      >
         <div
           className={cn(
             "flex w-full flex-col px-3 py-3 sm:px-4",
@@ -201,7 +308,8 @@ export function OmnichannelConversationDetailPanel({
                 key={message.id}
                 message={message}
                 onRetry={
-                  message.deliveryStatus === "failed" && message.id !== "optimistic-outgoing"
+                  message.deliveryStatus === "failed" &&
+                  !isOptimisticId(message.id)
                     ? async () => {
                         const formData = new FormData();
                         formData.set("message_id", message.id);
@@ -256,7 +364,7 @@ export function OmnichannelConversationDetailPanel({
                       )}
                     >
                       {isOptimistic
-                        ? "Sending…"
+                        ? "Mengirim..."
                         : formatInboxMessageTime(message.created_at)}
                     </p>
                   </div>
@@ -268,6 +376,21 @@ export function OmnichannelConversationDetailPanel({
         </div>
       </div>
 
+      {newMessageCount > 0 ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center">
+          <button
+            type="button"
+            onClick={() => scrollToBottom("smooth")}
+            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg animate-in fade-in slide-in-from-bottom-2"
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+            {newMessageCount === 1
+              ? "1 pesan baru"
+              : `${newMessageCount} pesan baru`}
+          </button>
+        </div>
+      ) : null}
+
       {showComposer ? (
         <div className="sticky bottom-0 z-10 shrink-0 border-t bg-background">
           <OmnichannelConversationReplyBox
@@ -277,6 +400,8 @@ export function OmnichannelConversationDetailPanel({
             canSuggestReply={canSuggestReply && !isWhatsapp}
             isUnassignedForAgent={isUnassignedForAgent}
             onOptimisticMessage={setOptimisticMessageText}
+            onAddOptimistic={addOptimisticMessage}
+            onRemoveOptimistic={removeOptimisticMessage}
           />
         </div>
       ) : null}

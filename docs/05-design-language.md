@@ -1,5 +1,6 @@
 # Desklabs Design Language
-Version: 2.0
+
+Version: 3.0
 
 ---
 
@@ -9,11 +10,106 @@ Desklabs is not an ERP.
 
 Desklabs is not a CRM.
 
-Desklabs is a calm operating workspace.
+Desklabs is a Work Operating System.
 
-Every screen should reduce cognitive load.
+Every screen reduces cognitive load.
 
-Users should feel they are working, not managing software.
+Every interaction shortens work.
+
+Users should feel they are working,
+not managing software.
+
+---
+
+# Experience Principles
+
+## Calm
+
+Whitespace is a feature.
+
+Silence is part of the interface.
+
+Never fill space simply because it exists.
+
+---
+
+## Work First
+
+People open Desklabs to finish work.
+
+Information exists only to support work.
+
+Never the opposite.
+
+---
+
+## Clear Hierarchy
+
+Every screen has:
+
+1 Primary Action
+
+2 Secondary Actions
+
+Unlimited supporting information.
+
+Never multiple competing focal points.
+
+---
+
+## Progressive Disclosure
+
+Show only what users need now.
+
+Everything else appears on demand.
+
+Never overwhelm first.
+
+---
+
+## Human Assisted
+
+AI recommends.
+
+Humans decide.
+
+AI never becomes the interface.
+
+---
+
+## Consistency
+
+If two screens solve the same problem,
+
+they must use the same components.
+
+Never redesign patterns.
+
+---
+
+# Emotional Goal
+
+Users should feel:
+
+✓ Calm
+
+✓ Fast
+
+✓ Confident
+
+✓ Organized
+
+✓ In Control
+
+Never:
+
+✗ Busy
+
+✗ Confused
+
+✗ Lost
+
+✗ Overwhelmed
 
 ---
 
@@ -21,28 +117,31 @@ Users should feel they are working, not managing software.
 
 ## 01 Calm over Busy
 
-Whitespace is a feature.
+Whitespace is functional.
 
-Never fill empty space just because it exists.
+Every empty space improves focus.
 
 ---
 
 ## 02 Information before Decoration
 
-Typography first.
+Hierarchy first.
 
-Hierarchy second.
+Typography second.
 
-Color last.
+Color third.
+
+Decoration last.
 
 ---
 
 ## 03 One Primary Action
 
-Every section has only one primary CTA.
+Every section has one primary CTA.
 
-If there are more than three primary buttons on a page,
-the page must be redesigned.
+If there are more than three primary buttons,
+
+the layout has failed.
 
 ---
 
@@ -50,7 +149,7 @@ the page must be redesigned.
 
 Cards never exist for decoration.
 
-Every card represents a meaningful object.
+Each card represents a meaningful object.
 
 Conversation
 
@@ -62,13 +161,41 @@ Payment
 
 Task
 
+Workspace
+
 ---
 
-## 05 Everything Starts from Conversation
+## 05 Conversation is the Entry Point
 
-Conversation is the primary entity.
+Conversation starts work.
 
-Everything else is context.
+Everything else provides context.
+
+---
+
+## 06 Work Before Data
+
+Users come to finish work.
+
+Not browse records.
+
+Always prioritize actions.
+
+---
+
+## 07 Progressive Context
+
+Context follows the user.
+
+The user never chases context.
+
+---
+
+## 08 Invisible AI
+
+AI appears only when useful.
+
+Never ask users to "open AI."
 
 ---
 
@@ -76,15 +203,15 @@ Everything else is context.
 
 Sidebar
 
-248px
+240px
 
 Topbar
 
 72px
 
-Content Width
+Maximum Content Width
 
-1360px
+1280px
 
 Page Padding X
 
@@ -92,23 +219,27 @@ Page Padding X
 
 Page Padding Top
 
-32px
+40px
 
 Section Gap
 
-32px
+40px
 
 Card Gap
 
 24px
 
+Card Padding
+
+24px
+
+Never stretch content full-width.
+
+Readable layouts are more important than filling space.
+
 ---
 
 # Grid
-
-Maximum Content Width
-
-1360px
 
 Desktop
 
@@ -122,6 +253,40 @@ Mobile
 
 4 Columns
 
+Main Workspace
+
+70%
+
+Supporting Panel
+
+30%
+
+---
+
+# Spacing Scale
+
+4
+
+8
+
+12
+
+16
+
+24
+
+32
+
+40
+
+48
+
+64
+
+Never invent spacing values.
+
+Only use this scale.
+
 ---
 
 # Radius
@@ -129,6 +294,10 @@ Mobile
 Card
 
 20
+
+Modal
+
+24
 
 Button
 
@@ -154,7 +323,7 @@ Only three levels exist.
 
 Level 0
 
-No shadow
+None
 
 Level 1
 
@@ -164,7 +333,9 @@ Level 2
 
 0 8px 24px rgba(15,23,42,.06)
 
-No stronger shadows are allowed.
+Never create stronger shadows.
+
+Elevation replaces heavy borders.
 
 ---
 
@@ -218,6 +389,14 @@ AI
 
 #7C3AED
 
+Primary Blue is reserved for actions.
+
+Green is reserved for success.
+
+Red is reserved for errors.
+
+Never use green as the main CTA.
+
 ---
 
 # Typography
@@ -226,9 +405,13 @@ Font
 
 Inter
 
-H1
+Display
 
 40 / 700
+
+H1
+
+32 / 700
 
 H2
 
@@ -238,13 +421,17 @@ H3
 
 22 / 600
 
+Card Title
+
+20 / 600
+
 Section Label
 
-13 / 600 / Uppercase
+12 / 700 / Uppercase
 
 Body
 
-15 / 400
+16 / 400
 
 Caption
 
@@ -254,13 +441,15 @@ Button
 
 14 / 600
 
+Always create visual hierarchy using typography before color.
+
 ---
 
 # Buttons
 
 Primary
 
-Filled
+Filled Blue
 
 Secondary
 
@@ -268,13 +457,55 @@ Outline
 
 Ghost
 
-Text only
+Text Only
 
 Danger
 
-Red
+Filled Red
 
-Never create additional button styles.
+Button Height
+
+44px
+
+Button Radius
+
+12px
+
+Only one primary button per section.
+
+---
+
+# Cards
+
+Cards communicate work.
+
+Not decoration.
+
+Every card should contain:
+
+Object
+
+Status
+
+Context
+
+Primary Action
+
+Cards should breathe.
+
+Avoid dense layouts.
+
+---
+
+# Lists
+
+Lists replace tables whenever possible.
+
+Operational queues should always use list layouts.
+
+Hover reveals affordance.
+
+Selection never requires opening another page.
 
 ---
 
@@ -288,29 +519,33 @@ Radius
 
 12px
 
-Labels always above input.
+Labels always above inputs.
 
-Never use placeholder as label.
+Never use placeholders as labels.
+
+Group related fields.
 
 ---
 
 # Tables
 
-Tables should only exist for dense operational data.
+Tables exist only for dense operational data.
 
-Otherwise use lists.
+Otherwise,
+
+prefer lists.
 
 ---
 
 # Empty States
 
-Every empty state must explain:
+Every empty state answers:
 
-Why it is empty
+Why is this empty?
 
-What user should do
+What should I do next?
 
-Primary action
+Provide one clear CTA.
 
 ---
 
@@ -330,6 +565,10 @@ Lift 2px
 
 Never animate layout shifts.
 
+Motion should reinforce hierarchy,
+
+never distract.
+
 ---
 
 # Icons
@@ -338,15 +577,19 @@ Lucide Icons only.
 
 18px
 
-Stroke 1.75
+Stroke
+
+1.75
+
+Icons support recognition.
+
+Never decoration.
 
 ---
 
 # AI
 
-AI should never dominate the interface.
-
-AI appears only when it creates value.
+AI appears as:
 
 Summary
 
@@ -354,22 +597,48 @@ Suggestion
 
 Reminder
 
-Automation
-
 Draft
 
-Never expose AI for marketing purposes.
+Automation
+
+Recommendation
+
+Never expose AI as a destination.
+
+AI should quietly improve workflows.
 
 ---
 
-# Workspace Rule
-
-Users should never wonder where to go next.
+# Workspace Rules
 
 Every workspace immediately presents work.
 
-Never landing pages.
-
 Never module launchers.
 
-Always actionable.
+Never landing pages.
+
+Never dashboards.
+
+Users should immediately know:
+
+What should I do first?
+
+What comes next?
+
+What is blocked?
+
+---
+
+# Component Philosophy
+
+Every new component must answer:
+
+Does it shorten work?
+
+Does it reduce clicks?
+
+Does it reduce thinking?
+
+If not,
+
+it should not exist.

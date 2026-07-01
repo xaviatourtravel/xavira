@@ -1,10 +1,12 @@
-# Decision Log
+# Product Laws
 
 ---
 
 ## D001
 
-Conversation is the primary object.
+Work is the primary object.
+
+Conversation is the primary entry point.
 
 ---
 
@@ -16,15 +18,25 @@ Workspace over Modules.
 
 ## D003
 
-Today is a work queue.
+Today is a Daily Briefing.
 
-Never a dashboard.
+Not a dashboard.
+
+Not a report.
+
+It tells users exactly what to do next.
 
 ---
 
 ## D004
 
+Conversation Workspace.
+
 Inbox is the heart of Desklabs.
+
+Every customer interaction begins here.
+
+Everything else provides context.
 
 ---
 
@@ -56,7 +68,13 @@ Whitespace is a feature.
 
 ## D009
 
-AI is invisible.
+AI is Invisible.
+
+AI never becomes the center of the interface.
+
+AI appears only when it shortens work.
+
+Users should never need to "ask AI."
 
 ---
 
@@ -79,18 +97,6 @@ A feature cannot be implemented before its interaction, spacing, hierarchy, and 
 
 # D012
 
-AI is Invisible.
-
-AI should never become the center of the interface.
-
-AI appears only when it shortens work.
-
-Never require users to "ask AI."
-
----
-
-# D013
-
 Context Never Leaves.
 
 Customer.
@@ -109,7 +115,7 @@ Everything should be accessible without leaving the current work.
 
 ---
 
-# D014
+# D013
 
 One Workspace.
 
@@ -119,7 +125,7 @@ Switching between external applications is considered product failure.
 
 ---
 
-# D015
+# D014
 
 Daily Briefing.
 
@@ -137,7 +143,7 @@ It answers:
 
 ---
 
-# D016
+# D015
 
 One Screen Rule.
 
@@ -149,19 +155,8 @@ Users should immediately know where to start.
 
 ---
 
-# D017
 
-Conversation Workspace.
-
-Inbox is the heart of Desklabs.
-
-Every customer interaction begins and ends here.
-
-Everything else provides context.
-
----
-
-# D018
+# D016
 
 Work Operating System.
 
@@ -175,7 +170,7 @@ Every screen answers one question:
 
 ---
 
-# D019
+# D017
 
 Zero Navigation Principle.
 
@@ -186,3 +181,65 @@ Work should come to the user.
 Navigation is for exploration.
 
 Not execution.
+
+---
+
+## D017
+
+Work Before Data.
+
+Users come to Desklabs to finish work.
+
+Not to browse records.
+
+Every screen must prioritize actions over information.
+
+---
+
+## D018
+
+One Context.
+
+Users should never lose context while working.
+
+Context follows the user.
+
+The user should not chase context.
+
+---
+
+## D019
+
+Calm Workspace.
+
+Every screen should feel calm.
+
+If a page has more than three competing actions,
+
+the design has failed.
+
+---
+
+## D020
+
+Recommendations over Decisions.
+
+Desklabs recommends.
+
+Users decide.
+
+The product should remove thinking,
+
+never remove control.
+
+---
+
+## D021
+
+Workflow over Features.
+
+New features must shorten an existing workflow.
+
+If they create a new workflow,
+
+they must justify their existence.

@@ -46,9 +46,12 @@ import {
   DsToggle,
   DsButton,
 } from "@/components/design-system";
+import { BrandIdentitySection } from "@/components/design-system/brand-identity-section";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { designSystemColors } from "@/lib/design-system/tokens";
 
 const NAV_SECTIONS = [
+  { id: "brand", label: "Brand Identity" },
   { id: "colors", label: "Warna" },
   { id: "typography", label: "Tipografi" },
   { id: "buttons", label: "Tombol" },
@@ -98,9 +101,7 @@ export function DesignSystemShowcase() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 lg:flex-row lg:gap-12 lg:px-8 lg:py-10">
       <aside className="lg:sticky lg:top-6 lg:w-56 lg:self-start">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-700">
-          Desklabs
-        </p>
+        <BrandLogo variant="icon" size="md" className="mb-1" />
         <DsH2 className="mt-1 text-lg">Design System</DsH2>
         <DsCaption className="mt-2">
           Referensi internal untuk pengembangan UI. Tidak ditampilkan di navigasi produk.
@@ -120,13 +121,22 @@ export function DesignSystemShowcase() {
 
       <div className="min-w-0 flex-1 space-y-14">
         <header className="space-y-3 border-b border-slate-200 pb-8">
-          <DsDisplay>Design System Desklabs</DsDisplay>
+          <BrandLogo variant="full" size="lg" />
+          <DsDisplay className="mt-4">Design System</DsDisplay>
           <DsBody>
             Halaman ini menjadi sumber kebenaran tunggal untuk komponen UI. Gunakan komponen
             dari <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">@/components/design-system</code>{" "}
             di semua halaman baru.
           </DsBody>
         </header>
+
+        <DsSection
+          id="brand"
+          title="Brand Identity"
+          description="Logo, favicon, palet warna, dan aturan penggunaan brand Desklabs."
+        >
+          <BrandIdentitySection />
+        </DsSection>
 
         <DsSection
           id="colors"
@@ -392,7 +402,7 @@ export function DesignSystemShowcase() {
 
         <footer className="border-t border-slate-200 pt-8">
           <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Sparkles className="h-4 w-4 text-violet-600" />
+            <Sparkles className="h-4 w-4 text-primary" />
             <span>
               Import komponen produksi dari{" "}
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">

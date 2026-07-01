@@ -83,7 +83,7 @@ export function IntelligenceSection({
 
 export function IntelligencePreviewBadge() {
   return (
-    <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
+    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
       Preview
     </span>
   );

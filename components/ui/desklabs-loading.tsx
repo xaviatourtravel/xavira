@@ -38,7 +38,7 @@ export function DesklabsSpinner({
       role="status"
       aria-label={label}
       className={cn(
-        "inline-block animate-spin rounded-full border-slate-200 border-t-slate-600 motion-reduce:animate-none",
+        "inline-block animate-spin rounded-full border-muted border-t-primary motion-reduce:animate-none",
         SPINNER_SIZE[size],
         className,
       )}

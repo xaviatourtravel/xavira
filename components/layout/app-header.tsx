@@ -71,7 +71,7 @@ export function AppHeader({
             <button
               type="button"
               onClick={() => setAiOpen(true)}
-              className="hidden h-11 items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-sm font-medium text-violet-800 transition-colors hover:bg-violet-100 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-900/40 lg:inline-flex"
+              className="hidden h-11 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15 dark:border-primary/30 dark:bg-primary/15 dark:text-primary-foreground/90 dark:hover:bg-primary/20 lg:inline-flex"
               aria-label="Asisten AI"
             >
               <Sparkles className="h-4 w-4" />
@@ -104,7 +104,7 @@ export function AppHeader({
         }
       >
         <div className="space-y-3 p-4">
-          <div className="flex items-center gap-2 text-violet-700 dark:text-violet-300">
+          <div className="flex items-center gap-2 text-primary">
             <Bot className="h-5 w-5" />
             <p className="text-sm font-medium text-foreground">Asisten kontekstual</p>
           </div>
@@ -123,9 +123,9 @@ export function AppHeader({
             className="absolute inset-0"
             onClick={() => setAiOpen(false)}
           />
-          <aside className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-violet-200 bg-card shadow-2xl dark:border-violet-900/60">
-            <div className="flex items-center gap-2 border-b border-violet-100 bg-violet-50 px-4 py-3 dark:border-violet-900/50 dark:bg-violet-950/30">
-              <Bot className="h-5 w-5 text-violet-700 dark:text-violet-300" />
+          <aside className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-2xl dark:border-primary/30">
+            <div className="flex items-center gap-2 border-b border-primary/15 bg-primary/5 px-4 py-3 dark:border-primary/25 dark:bg-primary/10">
+              <Bot className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm font-semibold text-foreground">Asisten AI</p>
                 <p className="text-xs text-muted-foreground">

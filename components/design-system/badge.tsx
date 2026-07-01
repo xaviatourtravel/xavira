@@ -11,7 +11,7 @@ const dsBadgeVariants = cva(
         aktif: "bg-emerald-50 text-emerald-800 ring-emerald-200/80",
         menunggu: "bg-amber-50 text-amber-800 ring-amber-200/80",
         diproses: "bg-sky-50 text-sky-800 ring-sky-200/80",
-        "perlu-tindakan": "bg-violet-50 text-violet-800 ring-violet-200/80",
+        "perlu-tindakan": "bg-primary/10 text-primary ring-primary/20",
         bermasalah: "bg-red-50 text-red-800 ring-red-200/80",
         netral: "bg-slate-100 text-slate-700 ring-slate-200/80",
       },

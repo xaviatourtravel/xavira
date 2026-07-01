@@ -1,3 +1,4 @@
+export { BrandIdentitySection } from "@/components/design-system/brand-identity-section";
 export { DsBadge, dsBadgeVariants } from "@/components/design-system/badge";
 export { DsButton, buttonVariants } from "@/components/design-system/button";
 export { DsCard } from "@/components/design-system/card";

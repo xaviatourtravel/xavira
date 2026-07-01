@@ -17,8 +17,8 @@ type TaskPriorityBadgeProps = {
 };
 
 const TYPE_STYLES: Partial<Record<TaskType, string>> = {
-  reply_conversation: "bg-violet-100 text-violet-800",
-  resolve_inbox_unread: "bg-violet-100 text-violet-800",
+  reply_conversation: "bg-primary/10 text-primary",
+  resolve_inbox_unread: "bg-primary/10 text-primary",
   follow_up_customer: "bg-blue-100 text-blue-800",
   confirm_payment: "bg-amber-100 text-amber-800",
   send_payment_reminder: "bg-amber-100 text-amber-800",

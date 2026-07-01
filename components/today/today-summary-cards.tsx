@@ -48,8 +48,8 @@ const CARDS: SummaryCardConfig[] = [
     label: "Unread Conversations",
     icon: Inbox,
     href: "/inbox",
-    accent: "text-violet-600",
-    iconBg: "bg-violet-50 text-violet-600",
+    accent: "text-primary",
+    iconBg: "bg-primary/10 text-primary",
   },
   {
     key: "paymentsToConfirm",

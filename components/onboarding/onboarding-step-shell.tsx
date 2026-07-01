@@ -34,14 +34,14 @@ export function OnboardingStepShell({
     >
       <div className="mb-8">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">
             Langkah {step} dari {totalSteps}
           </p>
           <p className="text-xs text-muted-foreground">{progress}%</p>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
           <div
-            className="h-full rounded-full bg-emerald-600 transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>

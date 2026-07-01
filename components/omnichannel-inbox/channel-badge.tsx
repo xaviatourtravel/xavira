@@ -7,15 +7,18 @@ const CHANNEL_STYLES: Record<
 > = {
   instagram: {
     label: "Instagram",
-    className: "bg-pink-50 text-pink-700 ring-1 ring-pink-100",
+    className:
+      "bg-fuchsia-50 text-fuchsia-700 ring-1 ring-fuchsia-200/80 dark:bg-fuchsia-500/15 dark:text-fuchsia-300 dark:ring-fuchsia-500/30",
   },
   facebook: {
     label: "Facebook",
-    className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100",
+    className:
+      "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80 dark:bg-slate-500/15 dark:text-slate-300",
   },
   whatsapp: {
     label: "WhatsApp",
-    className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+    className:
+      "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30",
   },
 };
 

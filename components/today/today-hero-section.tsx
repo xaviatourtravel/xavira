@@ -21,24 +21,24 @@ export function TodayHeroSection({
     <section className="relative overflow-hidden rounded-2xl border border-border bg-card bg-[linear-gradient(to_bottom_right,#ffffff,#f8fafc)] p-4 shadow-sm dark:bg-none sm:p-6 md:p-8">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-emerald-100/50 blur-3xl"
+        className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
       />
 
       <div className="relative space-y-6">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-emerald-700">Ruang Kerja Hari Ini</p>
+          <p className="text-sm font-medium text-primary">Ruang Kerja Hari Ini</p>
           <h1 className="break-words text-xl font-semibold tracking-tight text-foreground sm:text-2xl md:text-3xl">
             {brief.greeting}, {firstName}.
           </h1>
         </div>
 
-        <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10 sm:p-5">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10 sm:p-5">
           <div className="flex items-start gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-white">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Bot className="h-4 w-4" />
             </span>
             <div className="min-w-0 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 dark:text-emerald-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 Ringkasan AI Hari Ini
               </p>
               <p className="text-sm leading-relaxed text-foreground/80 sm:text-base">
@@ -108,11 +108,11 @@ export function TodayNextBestActionSection({ action }: TodayNextBestActionProps)
         </h2>
       </div>
 
-      <article className="rounded-2xl border border-emerald-200/70 bg-card p-6 shadow-[0_20px_60px_-40px_rgba(16,185,129,0.35)] dark:border-emerald-500/30 sm:p-7">
+      <article className="rounded-2xl border border-primary/20 bg-card p-6 shadow-[0_20px_60px_-40px_hsl(var(--primary)/0.25)] dark:border-primary/30 sm:p-7">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1 space-y-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+              <p className="text-xs font-medium uppercase tracking-wide text-primary">
                 Pelanggan
               </p>
               <p className="mt-1 text-xl font-semibold text-foreground">

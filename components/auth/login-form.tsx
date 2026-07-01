@@ -41,7 +41,7 @@ export function LoginForm() {
             <Label htmlFor="password">Password</Label>
             <Link
               href="/forgot-password"
-              className="text-xs font-medium text-violet-700 hover:text-violet-900"
+              className="text-xs font-medium text-primary hover:text-primary/80"
             >
               Lupa password?
             </Link>
@@ -70,7 +70,7 @@ export function LoginForm() {
         <p className="text-sm text-muted-foreground">Belum punya workspace?</p>
         <Link
           href="/register"
-          className="mt-1 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"
+          className="mt-1 inline-flex text-sm font-semibold text-primary hover:text-primary/80"
         >
           Daftar gratis →
         </Link>

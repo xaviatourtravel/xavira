@@ -769,15 +769,15 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
             title="Ringkasan AI"
             description="Konteks customer dalam satu pandangan."
           >
-            <div className="rounded-xl border border-violet-200/60 bg-violet-50/40 p-4 sm:p-5">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
               <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-700 text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <Bot className="h-4 w-4" />
                 </span>
                 <dl className="min-w-0 space-y-3">
                   {SUMMARY_FIELDS.map((field) => (
                     <div key={field.key}>
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-primary">
                         {field.label}
                       </dt>
                       <dd className="mt-0.5 text-sm leading-relaxed text-foreground/80">
@@ -789,11 +789,11 @@ export function CommunicationWorkspaceView({ data }: CommunicationWorkspaceViewP
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-emerald-200/70 bg-emerald-50/50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                 Rekomendasi berikutnya
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-emerald-900">
+              <p className="mt-1 text-sm leading-relaxed text-foreground/90">
                 {aiSummary.rekomendasi}
               </p>
             </div>

@@ -19,7 +19,7 @@ export function CreateWorkspaceForm({ ownerName }: CreateWorkspaceFormProps) {
   return (
     <div className="mx-auto w-full max-w-lg">
       <div className="mb-8 space-y-2 text-center">
-        <p className="text-sm font-medium text-violet-700">Selamat datang, {ownerName}</p>
+        <p className="text-sm font-medium text-primary">Selamat datang, {ownerName}</p>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
           Selamat datang di Desklabs
         </h1>
@@ -61,7 +61,7 @@ export function CreateWorkspaceForm({ ownerName }: CreateWorkspaceFormProps) {
                 <label
                   key={option.id}
                   className={cn(
-                    "flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition-colors has-[:checked]:border-violet-300 has-[:checked]:bg-violet-50/60",
+                    "flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition-colors has-[:checked]:border-primary/30 has-[:checked]:bg-primary/5",
                     disabled
                       ? "cursor-not-allowed border-slate-200/70 bg-slate-50/80 opacity-70"
                       : "border-slate-200/80 hover:border-slate-300",

@@ -10,7 +10,7 @@ const FUTURE_CHANNEL_STYLES: Record<
   email: {
     label: "Email",
     className:
-      "bg-muted text-muted-foreground ring-1 ring-border dark:ring-border",
+      "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80 dark:bg-slate-500/15 dark:text-slate-300",
   },
   telegram: {
     label: "Telegram",
@@ -20,7 +20,7 @@ const FUTURE_CHANNEL_STYLES: Record<
   website_chat: {
     label: "Website",
     className:
-      "bg-violet-50 text-violet-800 ring-1 ring-violet-200/80 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/30",
+      "bg-primary/10 text-primary ring-1 ring-primary/20 dark:bg-primary/15 dark:text-primary-foreground/90",
   },
 };
 

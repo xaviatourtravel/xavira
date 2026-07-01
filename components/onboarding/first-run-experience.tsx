@@ -54,7 +54,7 @@ export function FirstRunExperience({ ownerName }: FirstRunExperienceProps) {
   return (
     <div className="mx-auto w-full max-w-xl">
       <div className="mb-8 space-y-2 text-center">
-        <p className="text-sm font-medium text-violet-700">Selamat datang, {ownerName}</p>
+        <p className="text-sm font-medium text-primary">Selamat datang, {ownerName}</p>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
           Selamat datang di Desklabs
         </h1>
@@ -71,7 +71,7 @@ export function FirstRunExperience({ ownerName }: FirstRunExperienceProps) {
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
                 index <= stepIndex
-                  ? "bg-violet-600 text-white"
+                  ? "bg-primary text-primary-foreground"
                   : "bg-slate-100 text-slate-400",
               )}
             >
@@ -135,7 +135,7 @@ export function FirstRunExperience({ ownerName }: FirstRunExperienceProps) {
                     className={cn(
                       "flex items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
                       selected
-                        ? "border-violet-300 bg-violet-50/60"
+                        ? "border-primary/30 bg-primary/5"
                         : "border-slate-200/80 hover:border-slate-300",
                       disabled && "cursor-not-allowed opacity-70",
                     )}

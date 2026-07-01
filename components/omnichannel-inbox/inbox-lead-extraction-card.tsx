@@ -112,9 +112,9 @@ export function InboxLeadExtractionCard({
   }
 
   return (
-    <section className="rounded-xl border border-dashed border-violet-200 bg-violet-50/30 p-3 dark:border-violet-900/40 dark:bg-violet-950/20">
+    <section className="rounded-xl border border-dashed border-primary/25 bg-primary/5 p-3 dark:border-primary/30 dark:bg-primary/10">
       <div className="flex items-start gap-2">
-        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-600" />
+        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1 space-y-2">
           <div>
             <p className="text-xs font-medium text-foreground">AI Lead Extraction</p>

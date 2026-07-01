@@ -13,9 +13,9 @@ type DsAiSummaryProps = {
 export function DsAiSummary({ items, disclaimer, className }: DsAiSummaryProps) {
   return (
     <div className={cn(designSystemPanelClass, "overflow-hidden", className)}>
-      <div className="border-b border-violet-100 bg-violet-50/50 px-5 py-4">
+      <div className="border-b border-primary/15 bg-primary/5 px-5 py-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-700 text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Bot className="h-4 w-4" />
           </span>
           <div>
@@ -27,7 +27,7 @@ export function DsAiSummary({ items, disclaimer, className }: DsAiSummaryProps) 
       <dl className="space-y-3 px-5 py-4">
         {items.map((item) => (
           <div key={item.label}>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-primary">
               {item.label}
             </dt>
             <dd className="mt-0.5 text-sm leading-relaxed text-slate-700">
@@ -37,7 +37,7 @@ export function DsAiSummary({ items, disclaimer, className }: DsAiSummaryProps) 
         ))}
       </dl>
       {disclaimer ? (
-        <p className="border-t border-violet-100 px-5 py-3 text-xs text-slate-500">
+        <p className="border-t border-primary/10 px-5 py-3 text-xs text-slate-500">
           {disclaimer}
         </p>
       ) : null}
@@ -70,12 +70,12 @@ export function DsAiRecommendation({
     <div
       className={cn(
         designSystemPanelClass,
-        "border-emerald-200/70 bg-emerald-50/40 p-5",
+        "border-primary/20 bg-primary/5 p-5",
         className,
       )}
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-white">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Sparkles className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -90,8 +90,8 @@ export function DsAiRecommendation({
               Prioritas {priority}
             </span>
           </div>
-          <p className="mt-1 text-sm font-medium text-emerald-950">{title}</p>
-          <p className="mt-1 text-sm leading-relaxed text-emerald-900/90">{detail}</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{title}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{detail}</p>
           {action ? <div className="mt-4">{action}</div> : null}
         </div>
       </div>
@@ -115,7 +115,7 @@ const trendLabel = {
 export function DsAiInsight({ label, value, trend = "stabil", className }: DsAiInsightProps) {
   return (
     <div className={cn(designSystemPanelClass, "p-4", className)}>
-      <p className="text-xs font-medium uppercase tracking-wide text-cyan-700">
+      <p className="text-xs font-medium uppercase tracking-wide text-primary">
         {label}
       </p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">{value}</p>

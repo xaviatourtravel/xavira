@@ -67,7 +67,7 @@ export function RegisterWorkspaceForm() {
         <p className="text-sm text-muted-foreground">Sudah punya akun?</p>
         <Link
           href="/login"
-          className="mt-1 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"
+          className="mt-1 inline-flex text-sm font-semibold text-primary hover:text-primary/80"
         >
           Masuk →
         </Link>

@@ -32,7 +32,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
         <div className="mt-6 border-t border-slate-100 pt-6 text-center">
           <Link
             href="/login"
-            className="text-sm font-semibold text-violet-700 hover:text-violet-900"
+            className="text-sm font-semibold text-primary hover:text-primary/80"
           >
             Kembali ke halaman masuk →
           </Link>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { cn } from "@/lib/utils";
 
 export function PassportShell({
@@ -41,9 +42,7 @@ export function PassportHeader({
     <div className="relative border-b border-dashed border-soft px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-300/80">
-            Desklabs
-          </p>
+          <BrandLogo variant="icon" size="sm" className="opacity-90" />
           <h3 className="mt-1 text-sm font-semibold tracking-tight text-foreground">
             {title}
           </h3>

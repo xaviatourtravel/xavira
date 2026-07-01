@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Desklabs | Kelola seluruh perjalanan customer dalam satu platform",
+    default: "Desklabs",
     template: "%s | Desklabs",
   },
   description: siteConfig.description,

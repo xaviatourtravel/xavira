@@ -1,5 +1,9 @@
 # Product Laws
 
+Desklabs Product Laws define the non-negotiable principles that guide every product, design, and engineering decision.
+
+If a future feature violates one of these laws, the feature must change—not the law.
+
 ---
 
 ## D001
@@ -13,6 +17,10 @@ Conversation is the primary entry point.
 ## D002
 
 Workspace over Modules.
+
+Users think in workspaces.
+
+Not in database entities.
 
 ---
 
@@ -44,6 +52,10 @@ Everything else provides context.
 
 Customer Passport is the source of truth.
 
+Customer identity exists once.
+
+Every workspace references it.
+
 ---
 
 ## D006
@@ -52,17 +64,27 @@ Every workspace opens directly into work.
 
 No launcher pages.
 
+No unnecessary landing pages.
+
 ---
 
 ## D007
 
 Maximum three primary CTAs per screen.
 
+If users must decide where to click,
+
+the interface has failed.
+
 ---
 
 ## D008
 
 Whitespace is a feature.
+
+Space creates focus.
+
+Empty space is intentional.
 
 ---
 
@@ -74,7 +96,7 @@ AI never becomes the center of the interface.
 
 AI appears only when it shortens work.
 
-Users should never need to "ask AI."
+Users should never need to "Ask AI."
 
 ---
 
@@ -83,19 +105,32 @@ Users should never need to "ask AI."
 Every feature must shorten workflow.
 
 If it adds clicks,
+
 it probably should not exist.
 
 ---
 
-# D011
+## D011
 
 Design Language before Feature.
 
-A feature cannot be implemented before its interaction, spacing, hierarchy, and visual language are clearly defined.
+Interaction,
+
+Hierarchy,
+
+Spacing,
+
+Typography,
+
+Motion,
+
+States
+
+must be defined before implementation.
 
 ---
 
-# D012
+## D012
 
 Context Never Leaves.
 
@@ -111,39 +146,39 @@ Notes.
 
 AI.
 
-Everything should be accessible without leaving the current work.
+Everything should remain available without leaving the current work.
 
 ---
 
-# D013
+## D013
 
 One Workspace.
 
 Users should complete an entire workday inside Desklabs.
 
-Switching between external applications is considered product failure.
+Switching to another application is considered product failure.
 
 ---
 
-# D014
+## D014
 
-Daily Briefing.
+Daily Briefing Structure.
 
-Today is not a dashboard.
+Every morning,
 
-Today is a morning briefing prepared by AI.
+Today answers only three questions.
 
-It answers:
+1. What should I do first?
 
-• What should I do first?
+2. What comes next?
 
-• What comes next?
+3. Is my workspace healthy?
 
-• Is my workspace healthy?
+Anything outside these questions belongs elsewhere.
 
 ---
 
-# D015
+## D015
 
 One Screen Rule.
 
@@ -155,8 +190,7 @@ Users should immediately know where to start.
 
 ---
 
-
-# D016
+## D016
 
 Work Operating System.
 
@@ -164,13 +198,13 @@ Desklabs organizes work.
 
 Not data.
 
-Every screen answers one question:
+Every screen answers one question.
 
 "What should I do next?"
 
 ---
 
-# D017
+## D017
 
 Zero Navigation Principle.
 
@@ -178,13 +212,13 @@ Users should not navigate to find work.
 
 Work should come to the user.
 
-Navigation is for exploration.
+Navigation exists for exploration.
 
 Not execution.
 
 ---
 
-## D017
+## D018
 
 Work Before Data.
 
@@ -192,11 +226,11 @@ Users come to Desklabs to finish work.
 
 Not to browse records.
 
-Every screen must prioritize actions over information.
+Actions always have higher priority than information.
 
 ---
 
-## D018
+## D019
 
 One Context.
 
@@ -204,11 +238,11 @@ Users should never lose context while working.
 
 Context follows the user.
 
-The user should not chase context.
+The user should never chase context.
 
 ---
 
-## D019
+## D020
 
 Calm Workspace.
 
@@ -220,7 +254,7 @@ the design has failed.
 
 ---
 
-## D020
+## D021
 
 Recommendations over Decisions.
 
@@ -228,18 +262,54 @@ Desklabs recommends.
 
 Users decide.
 
-The product should remove thinking,
+The product removes thinking.
 
-never remove control.
+Never control.
 
 ---
 
-## D021
+## D022
 
 Workflow over Features.
 
-New features must shorten an existing workflow.
+New features must improve an existing workflow.
 
-If they create a new workflow,
+If they introduce a completely new workflow,
 
 they must justify their existence.
+
+---
+
+## D023
+
+One Source of Attention.
+
+At any moment,
+
+the interface should make one thing feel most important.
+
+Users should never compete with the interface to decide where to look.
+
+---
+
+## D024
+
+Progressive Disclosure.
+
+Only show what users need now.
+
+Reveal complexity only when requested.
+
+---
+
+## D025
+
+Default to Simplicity.
+
+When two solutions solve the same problem,
+
+choose the simpler one.
+
+Complexity requires justification.
+
+Simplicity does not.

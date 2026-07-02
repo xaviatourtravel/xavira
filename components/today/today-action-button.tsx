@@ -11,12 +11,15 @@ import { cn } from "@/lib/utils";
 type TodayActionButtonProps = {
   task: WorkspaceTask;
   size?: "default" | "lg";
+  /** Priority hero card — brand blue CTA with conversational label. */
+  variant?: "default" | "priority";
   className?: string;
 };
 
 export function TodayActionButton({
   task,
   size = "default",
+  variant = "default",
   className,
 }: TodayActionButtonProps) {
   const action = task.primaryAction;
@@ -34,20 +37,24 @@ export function TodayActionButton({
   }
 
   const label =
-    action.kind === "reply"
-      ? "Balas Sekarang"
-      : action.label === "Open Customer"
-        ? "Buka Customer"
-        : action.label === "Open Booking"
-          ? "Buka Booking"
-          : action.label;
+    variant === "priority"
+      ? "Buka Percakapan"
+      : action.kind === "reply"
+        ? "Balas Sekarang"
+        : action.label === "Open Customer"
+          ? "Buka Customer"
+          : action.label === "Open Booking"
+            ? "Buka Booking"
+            : action.label;
 
   return (
     <Link
       href={action.href}
       className={cn(
         buttonVariants({ size: size === "lg" ? "lg" : "default" }),
-        "bg-emerald-700 hover:bg-emerald-800",
+        variant === "priority"
+          ? "bg-[#2563EB] hover:bg-[#1D4ED8]"
+          : "bg-emerald-700 hover:bg-emerald-800",
         sizeClass,
         className,
       )}

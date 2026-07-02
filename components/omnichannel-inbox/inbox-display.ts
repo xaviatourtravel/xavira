@@ -1,5 +1,8 @@
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
+import { getOutgoingBubbleDeliveryStatusLabel } from "@/lib/communication/messaging/delivery";
+import type { MessageDeliveryStatus } from "@/types/omnichannel-inbox";
+import { getDesklabsAvatarInitials, getDesklabsAvatarColorClass } from "@/components/ui/desklabs-avatar";
 
 export type OmnichannelFilterCounts = Record<OmnichannelInboxFilter, number>;
 
@@ -96,7 +99,39 @@ export function formatInboxMessageTime(value: string) {
   }).format(new Date(value));
 }
 
-import { getDesklabsAvatarInitials, getDesklabsAvatarColorClass } from "@/components/ui/desklabs-avatar";
+/** Short clock time for message bubble metadata (e.g. 09:31). */
+export function formatInboxMessageBubbleTime(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "Asia/Jakarta",
+  }).format(date);
+}
+
+export function formatOutgoingBubbleMetadataLine(
+  createdAt: string | null | undefined,
+  deliveryStatus: MessageDeliveryStatus | null | undefined,
+  options?: { isOptimistic?: boolean },
+): string {
+  const time = formatInboxMessageBubbleTime(createdAt);
+  const status = getOutgoingBubbleDeliveryStatusLabel(deliveryStatus, options);
+
+  if (time && status) {
+    return `${time} • ${status}`;
+  }
+
+  return time ?? status ?? "";
+}
 
 export const getConversationAvatarInitials = getDesklabsAvatarInitials;
 export const getConversationAvatarColor = getDesklabsAvatarColorClass;

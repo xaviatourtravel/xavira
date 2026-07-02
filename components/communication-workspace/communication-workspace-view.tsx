@@ -27,6 +27,11 @@ import type {
   OmnichannelConversationListItem,
   OmnichannelInboxFilter,
 } from "@/lib/omnichannel-inbox/queries";
+import {
+  useWhatsappProfilePictureSync,
+  patchConversationAvatar,
+  patchConversationDetailAvatar,
+} from "@/lib/whatsapp-inbox/use-whatsapp-profile-picture-sync";
 import { cn } from "@/lib/utils";
 
 type CommunicationWorkspaceViewProps = {
@@ -120,6 +125,30 @@ export function CommunicationWorkspaceView({
       return next;
     });
   }, []);
+  const [liveDetail, setLiveDetail] =
+    useState<OmnichannelConversationDetail | null>(detail);
+
+  useEffect(() => {
+    setLiveDetail(detail);
+  }, [detail?.id, detail?.customerAvatar]);
+
+  const handleAvatarUpdated = useCallback(
+    (conversationId: string, profilePictureUrl: string | null) => {
+      setLiveConversations((prev) =>
+        patchConversationAvatar(prev, conversationId, profilePictureUrl),
+      );
+      setLiveDetail((prev) =>
+        patchConversationDetailAvatar(prev, conversationId, profilePictureUrl),
+      );
+    },
+    [],
+  );
+
+  useWhatsappProfilePictureSync({
+    conversation: liveDetail,
+    onAvatarUpdated: handleAvatarUpdated,
+  });
+
   const filterCounts = buildOmnichannelFilterCounts(allConversations, currentUserId);
 
   // Daftar percakapan hidup: di-seed dari data server lalu di-patch realtime.
@@ -151,6 +180,10 @@ export function CommunicationWorkspaceView({
         lastMessagePreview: patch.lastMessage ?? current.lastMessagePreview,
         lastMessageAt: patch.lastMessageAt ?? current.lastMessageAt,
         unreadCount: patch.unreadCount ?? current.unreadCount,
+        customerAvatar:
+          patch.customerAvatar !== undefined
+            ? patch.customerAvatar
+            : current.customerAvatar,
       };
 
       const rest = prev.filter((_, itemIndex) => itemIndex !== index);
@@ -258,15 +291,15 @@ export function CommunicationWorkspaceView({
             showMobileThread ? "flex flex-col" : "hidden lg:flex lg:flex-col",
           )}
         >
-          {detail ? (
+          {liveDetail ? (
             <>
               <OmnichannelConversationDetailPanel
-                conversation={detail}
+                conversation={liveDetail}
                 canReply={canReply}
                 canSuggestReply={canSuggestReply}
                 isUnassignedForAgent={isUnassignedForAgent}
                 readOnly={readOnly}
-                channel={detail.channel}
+                channel={liveDetail.channel}
                 mobilePanelOpen={mobilePanelOpen}
                 onToggleMobilePanel={() => setMobilePanelOpen((open) => !open)}
                 backHref={listHref}
@@ -284,7 +317,7 @@ export function CommunicationWorkspaceView({
                     <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
                     <div className="min-h-0 flex-1 overflow-y-auto">
                       <WorkspaceRightSidebar
-                        conversation={detail}
+                        conversation={liveDetail}
                         organizationId={organizationId}
                         orgProfiles={orgProfiles}
                         canReassign={canReassign}
@@ -310,7 +343,7 @@ export function CommunicationWorkspaceView({
         {/* Right — customer intelligence (always visible on desktop) */}
         <section className="hidden min-h-0 border-l border-soft lg:block">
           <WorkspaceRightSidebar
-            conversation={detail}
+            conversation={liveDetail}
             organizationId={organizationId}
             orgProfiles={orgProfiles}
             canReassign={canReassign}

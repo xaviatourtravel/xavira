@@ -61,6 +61,7 @@ export type ConversationListPatch = {
   lastMessage: string | null;
   lastMessageAt: string | null;
   unreadCount: number | null;
+  customerAvatar?: string | null;
 };
 
 type WhatsappConversationRecord = {
@@ -68,6 +69,7 @@ type WhatsappConversationRecord = {
   last_message?: unknown;
   last_message_at?: unknown;
   unread_count?: unknown;
+  profile_picture_url?: unknown;
 };
 
 export function mapWhatsappConversationRecord(
@@ -84,11 +86,17 @@ export function mapWhatsappConversationRecord(
     return null;
   }
 
-  return {
+  const patch: ConversationListPatch = {
     id,
     lastMessage: asString(row.last_message),
     lastMessageAt: asString(row.last_message_at),
     unreadCount:
       typeof row.unread_count === "number" ? row.unread_count : null,
   };
+
+  if ("profile_picture_url" in row) {
+    patch.customerAvatar = asString(row.profile_picture_url);
+  }
+
+  return patch;
 }

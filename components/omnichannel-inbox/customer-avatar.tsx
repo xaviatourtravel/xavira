@@ -2,6 +2,7 @@
 
 import {
   DesklabsAvatar,
+  type DesklabsAvatarChannel,
   type DesklabsAvatarSize,
 } from "@/components/ui/desklabs-avatar";
 
@@ -11,6 +12,8 @@ type CustomerAvatarProps = {
   size?: "sm" | "md" | "lg";
   className?: string;
   status?: "online" | "offline" | "busy" | "away" | null;
+  channel?: DesklabsAvatarChannel;
+  isGroupChat?: boolean;
 };
 
 const SIZE_MAP: Record<NonNullable<CustomerAvatarProps["size"]>, DesklabsAvatarSize> = {
@@ -26,6 +29,8 @@ export function CustomerAvatar({
   size = "md",
   className,
   status = null,
+  channel = "default",
+  isGroupChat = false,
 }: CustomerAvatarProps) {
   return (
     <DesklabsAvatar
@@ -33,6 +38,8 @@ export function CustomerAvatar({
       imageUrl={avatarUrl}
       size={SIZE_MAP[size]}
       status={status}
+      channel={channel}
+      isGroupChat={isGroupChat}
       className={className}
     />
   );

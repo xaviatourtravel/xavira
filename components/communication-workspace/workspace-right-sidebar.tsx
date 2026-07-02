@@ -1,28 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Brain, ChevronRight, IdCard, PanelRightOpen, Workflow } from "lucide-react";
+import { useEffect } from "react";
+import { ChevronRight, PanelRightOpen } from "lucide-react";
 
-import { CustomerPassportFromConversation } from "@/components/customer-passport/customer-passport-from-conversation";
-import { ConversationIntelligenceTab } from "@/components/communication-workspace/conversation-intelligence-tab";
-import { WorkspaceOperationsPanel } from "@/components/communication-workspace/workspace-operations-panel";
-import {
-  IntelligencePanel,
-  IntelligencePanelBody,
-  IntelligencePanelHeader,
-} from "@/components/communication-workspace/primitives";
+import { CustomerPassportInspector } from "@/components/customer-passport/inspector/customer-passport-inspector";
+import { IntelligencePanel } from "@/components/communication-workspace/primitives";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
-import { cn } from "@/lib/utils";
-
-type OrgProfile = {
-  id: string;
-  full_name: string;
-};
 
 type WorkspaceRightSidebarProps = {
   conversation: OmnichannelConversationDetail | null;
   organizationId: string;
-  orgProfiles: OrgProfile[];
+  orgProfiles: Array<{ id: string; full_name: string }>;
   canReassign: boolean;
   canUpdateStatus: boolean;
   canAddNote: boolean;
@@ -31,8 +19,6 @@ type WorkspaceRightSidebarProps = {
   collapsed: boolean;
   onToggleCollapsed: () => void;
 };
-
-type SidebarTab = "workflow" | "passport" | "intelligence";
 
 export function WorkspaceRightSidebar({
   conversation,
@@ -45,29 +31,11 @@ export function WorkspaceRightSidebar({
   collapsed,
   onToggleCollapsed,
 }: WorkspaceRightSidebarProps) {
-  const [activeTab, setActiveTab] = useState<SidebarTab>("workflow");
-
-  useEffect(() => {
-    setActiveTab("workflow");
-  }, [conversation?.id]);
-
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key === ".") {
         event.preventDefault();
         onToggleCollapsed();
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key === "1") {
-        event.preventDefault();
-        setActiveTab("workflow");
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key === "2") {
-        event.preventDefault();
-        setActiveTab("passport");
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key === "3") {
-        event.preventDefault();
-        setActiveTab("intelligence");
       }
     }
 
@@ -97,8 +65,10 @@ export function WorkspaceRightSidebar({
   if (!conversation) {
     return (
       <IntelligencePanel>
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <p className="text-sm font-semibold tracking-tight">Detail</p>
+        <div className="flex items-center justify-between px-5 py-4">
+          <p className="text-sm font-semibold tracking-tight text-foreground">
+            Detail
+          </p>
           <button
             type="button"
             onClick={onToggleCollapsed}
@@ -109,8 +79,8 @@ export function WorkspaceRightSidebar({
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-xs text-muted-foreground">
-          Pilih percakapan untuk mengelola alur kerja dan intelijen.
+        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+          Pilih percakapan untuk melihat konteks pelanggan.
         </div>
       </IntelligencePanel>
     );
@@ -118,51 +88,10 @@ export function WorkspaceRightSidebar({
 
   return (
     <IntelligencePanel>
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex gap-1 rounded-lg bg-muted/40 p-0.5">
-          <button
-            type="button"
-            onClick={() => setActiveTab("workflow")}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-              activeTab === "workflow"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            title="Alur Kerja (Ctrl+1)"
-          >
-            <Workflow className="h-3.5 w-3.5" />
-            Alur Kerja
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("passport")}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-              activeTab === "passport"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            title="Paspor (Ctrl+2)"
-          >
-            <IdCard className="h-3.5 w-3.5" />
-            Paspor
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("intelligence")}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-              activeTab === "intelligence"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            title="Intelijen (Ctrl+3)"
-          >
-            <Brain className="h-3.5 w-3.5" />
-            Intelijen
-          </button>
-        </div>
+      <div className="flex shrink-0 items-center justify-between px-5 py-4">
+        <p className="text-sm font-semibold tracking-tight text-foreground">
+          Customer Passport
+        </p>
         <button
           type="button"
           onClick={onToggleCollapsed}
@@ -174,49 +103,17 @@ export function WorkspaceRightSidebar({
         </button>
       </div>
 
-      {activeTab === "workflow" ? (
-        <>
-          <IntelligencePanelHeader
-            title="Alur kerja penjualan"
-            subtitle="Tugaskan · status · catatan · label"
-          />
-          <IntelligencePanelBody>
-            <WorkspaceOperationsPanel
-              conversation={conversation}
-              orgProfiles={orgProfiles}
-              canReassign={canReassign}
-              canUpdateStatus={canUpdateStatus}
-              canAddNote={canAddNote}
-              canConvert={canConvert}
-              canCreateFollowUp={canCreateFollowUp}
-            />
-          </IntelligencePanelBody>
-        </>
-      ) : activeTab === "passport" ? (
-        <>
-          <IntelligencePanelHeader
-            title="Paspor Pelanggan"
-            subtitle="Identitas hidup · dipakai di semua workspace"
-          />
-          <IntelligencePanelBody className="px-3 py-3">
-            <CustomerPassportFromConversation
-              conversation={conversation}
-              variant="compact"
-              showOpenLink
-            />
-          </IntelligencePanelBody>
-        </>
-      ) : (
-        <>
-          <IntelligencePanelHeader
-            title="Intelijen"
-            subtitle="Ringkasan & insight otomatis dari percakapan"
-          />
-          <IntelligencePanelBody>
-            <ConversationIntelligenceTab conversation={conversation} />
-          </IntelligencePanelBody>
-        </>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <CustomerPassportInspector
+          conversation={conversation}
+          orgProfiles={orgProfiles}
+          canReassign={canReassign}
+          canUpdateStatus={canUpdateStatus}
+          canAddNote={canAddNote}
+          canConvert={canConvert}
+          canCreateFollowUp={canCreateFollowUp}
+        />
+      </div>
     </IntelligencePanel>
   );
 }

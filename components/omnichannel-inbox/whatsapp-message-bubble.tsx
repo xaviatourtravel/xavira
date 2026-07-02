@@ -3,7 +3,10 @@
 import { useTransition } from "react";
 import { RotateCcw } from "lucide-react";
 
-import { formatInboxMessageTime } from "@/components/omnichannel-inbox/inbox-display";
+import {
+  formatInboxMessageTime,
+  formatOutgoingBubbleMetadataLine,
+} from "@/components/omnichannel-inbox/inbox-display";
 import { cn } from "@/lib/utils";
 import { designSystemPanelClass } from "@/lib/design-system/tokens";
 import type { MessageRow } from "@/types/omnichannel-inbox";
@@ -20,35 +23,35 @@ function getAttachmentLabel(message: MessageRow) {
   return attachments.length === 1 ? "1 lampiran" : `${attachments.length} lampiran`;
 }
 
-function getDeliveryLabel(message: MessageRow) {
-  if (message.id === "optimistic-outgoing" || message.deliveryStatus === "pending") {
-    return "Mengirim...";
+function getBubbleMetadataLine(message: MessageRow, isIncoming: boolean) {
+  if (isIncoming) {
+    return formatInboxMessageTime(message.created_at);
   }
 
-  if (message.deliveryStatus === "failed") {
-    return "Gagal dikirim";
-  }
-
-  if (message.deliveryStatus === "sent" || message.deliveryStatus === "delivered") {
-    return "Terkirim";
-  }
-
-  return formatInboxMessageTime(message.created_at);
+  return formatOutgoingBubbleMetadataLine(
+    message.created_at,
+    message.deliveryStatus,
+    { isOptimistic: message.id === "optimistic-outgoing" },
+  );
 }
 
 type WhatsappMessageBubbleProps = {
   message: MessageRow;
   onRetry?: () => Promise<void>;
+  /** Reserved for future group-chat sender label / avatar. */
+  isGroupChat?: boolean;
 };
 
 export function WhatsappMessageBubble({
   message,
   onRetry,
+  isGroupChat: _isGroupChat = false,
 }: WhatsappMessageBubbleProps) {
   const [isRetrying, startRetry] = useTransition();
   const isIncoming = message.direction === "incoming";
   const attachmentLabel = getAttachmentLabel(message);
   const isFailed = message.deliveryStatus === "failed";
+  const metadataLine = getBubbleMetadataLine(message, isIncoming);
 
   return (
     <div
@@ -84,25 +87,43 @@ export function WhatsappMessageBubble({
             {attachmentLabel}
           </p>
         ) : null}
-        <div
-          className={cn(
-            "mt-2 flex items-center justify-end gap-2 text-[11px] tabular-nums",
-            isIncoming ? "text-muted-foreground" : "text-white/70",
-          )}
-        >
-          <span>{getDeliveryLabel(message)}</span>
-          {onRetry ? (
+        {metadataLine ? (
+          <div
+            className={cn(
+              "mt-2 flex items-center justify-end gap-2 text-[11px] tabular-nums",
+              isIncoming ? "text-muted-foreground" : "text-white/70",
+            )}
+          >
+            <span>{metadataLine}</span>
+            {onRetry ? (
+              <button
+                type="button"
+                disabled={isRetrying}
+                onClick={() => startRetry(onRetry)}
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-red-100 hover:bg-white/10"
+              >
+                <RotateCcw
+                  className={cn("h-3 w-3", isRetrying && "animate-spin")}
+                />
+                {isRetrying ? "Mengirim..." : "Coba Lagi"}
+              </button>
+            ) : null}
+          </div>
+        ) : onRetry ? (
+          <div className="mt-2 flex justify-end">
             <button
               type="button"
               disabled={isRetrying}
               onClick={() => startRetry(onRetry)}
               className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-red-100 hover:bg-white/10"
             >
-              <RotateCcw className={cn("h-3 w-3", isRetrying && "animate-spin")} />
+              <RotateCcw
+                className={cn("h-3 w-3", isRetrying && "animate-spin")}
+              />
               {isRetrying ? "Mengirim..." : "Coba Lagi"}
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

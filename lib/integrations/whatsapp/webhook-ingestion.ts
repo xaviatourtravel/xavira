@@ -14,6 +14,7 @@ import {
   updateWhatsappConversationById,
   type WhatsappSupabaseClient,
 } from "@/lib/whatsapp-inbox/repository";
+import { scheduleWhatsappProfilePictureSync } from "@/lib/whatsapp-inbox/profile-picture";
 import type { Json } from "@/types/database";
 
 export type WhatsAppWebhookIngestResult = {
@@ -168,6 +169,12 @@ export async function ingestWhatsAppIncomingMessages(
         contact_name: message.pushName?.trim() || null,
         customer_id: customerId,
       });
+
+      scheduleWhatsappProfilePictureSync(
+        supabase,
+        workspaceId,
+        conversation.id,
+      );
     } else {
       const updates: {
         customer_id?: string;

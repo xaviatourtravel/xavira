@@ -19,6 +19,11 @@ import {
   type WhatsappSupabaseClient,
 } from "@/lib/whatsapp-inbox/repository";
 import { resolveWhatsappContactDisplay } from "@/lib/whatsapp-inbox/display";
+import {
+  scheduleStaleWhatsappProfilePictureSyncs,
+  shouldRefreshWhatsappProfilePicture,
+  syncWhatsappConversationProfilePicture,
+} from "@/lib/whatsapp-inbox/profile-picture";
 import type { ConversationLabel, MessageRow } from "@/types/omnichannel-inbox";
 import type { WhatsappConversationRow, WhatsappMessageRow } from "@/types/whatsapp-inbox";
 
@@ -57,7 +62,7 @@ function mapWhatsappConversationToListItem(
     channelLabel: "WhatsApp",
     customerName: contact.primaryName,
     customerUsername: contact.secondaryLabel,
-    customerAvatar: null,
+    customerAvatar: conversation.profile_picture_url ?? null,
     assignedUserId: conversation.assigned_user_id,
     assignedUserName: conversation.assignedUserName ?? null,
     leadId: conversation.customer_id,
@@ -118,6 +123,13 @@ export async function loadWhatsappConversationList(
     workspaceId,
     filter ?? {},
   );
+
+  scheduleStaleWhatsappProfilePictureSyncs(
+    supabase,
+    workspaceId,
+    conversations,
+  );
+
   return conversations.map(mapWhatsappConversationToListItem);
 }
 
@@ -134,6 +146,24 @@ export async function loadWhatsappConversationDetail(
 
   if (!conversation) {
     return null;
+  }
+
+  let activeConversation = conversation;
+
+  if (shouldRefreshWhatsappProfilePicture(conversation)) {
+    const syncResult = await syncWhatsappConversationProfilePicture(
+      supabase,
+      workspaceId,
+      conversationId,
+    );
+
+    if (syncResult.refreshed) {
+      activeConversation = {
+        ...conversation,
+        profile_picture_url: syncResult.profilePictureUrl,
+        profile_picture_updated_at: new Date().toISOString(),
+      };
+    }
   }
 
   const [messages, notes, tags, assignmentHistory] = await Promise.all([
@@ -153,7 +183,7 @@ export async function loadWhatsappConversationDetail(
   }));
 
   const listItem = {
-    ...mapWhatsappConversationToListItem(conversation),
+    ...mapWhatsappConversationToListItem(activeConversation),
     labels,
   };
 
@@ -163,7 +193,7 @@ export async function loadWhatsappConversationDetail(
     tags: labels.map((label) => label.tag),
     labels,
     messages: messages.map((message) =>
-      mapWhatsappMessageToOmnichannelMessage(message, conversation.id),
+      mapWhatsappMessageToOmnichannelMessage(message, activeConversation.id),
     ),
     notes,
     assignmentHistory,

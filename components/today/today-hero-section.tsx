@@ -109,8 +109,8 @@ export function TodayNextBestActionSection({ action }: TodayNextBestActionProps)
       </div>
 
       <article className="rounded-2xl border border-primary/20 bg-card p-6 shadow-[0_20px_60px_-40px_hsl(var(--primary)/0.25)] dark:border-primary/30 sm:p-7">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-4">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1 space-y-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
                 Pelanggan
@@ -121,34 +121,26 @@ export function TodayNextBestActionSection({ action }: TodayNextBestActionProps)
               <p className="mt-1 text-sm text-muted-foreground">{task.title}</p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-muted/50 px-3 py-3 ring-1 ring-border">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Alasan
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-foreground/80">{reason}</p>
-              </div>
-              <div className="rounded-xl bg-muted/50 px-3 py-3 ring-1 ring-border">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Estimasi waktu
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {formatEstimatedDuration(estimatedMinutes)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-emerald-50/80 px-3 py-3 ring-1 ring-emerald-200/60 dark:bg-emerald-500/10 dark:ring-emerald-500/30">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-                  Dampak bisnis
-                </p>
-                <p className="mt-1 text-sm font-medium text-emerald-900 dark:text-emerald-200">
-                  {businessImpact}
-                </p>
-              </div>
-            </div>
+            <p className="max-w-2xl text-sm leading-relaxed text-foreground/85">
+              {reason}
+            </p>
+
+            <p className="text-[13px] text-muted-foreground">
+              <span className="font-medium text-foreground/80">
+                {formatEstimatedDuration(estimatedMinutes)}
+              </span>
+              <span className="mx-2 text-border">·</span>
+              <span>{businessImpact}</span>
+            </p>
           </div>
 
-          <div className="shrink-0">
-            <TodayActionButton task={task} size="lg" className="w-full sm:w-auto" />
+          <div className="shrink-0 lg:pl-4">
+            <TodayActionButton
+              task={task}
+              size="lg"
+              variant="priority"
+              className="w-full sm:w-auto"
+            />
           </div>
         </div>
       </article>

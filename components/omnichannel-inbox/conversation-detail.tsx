@@ -447,6 +447,15 @@ export function OmnichannelConversationDetailPanel({
           displayName={displayName}
           avatarUrl={conversation.customerAvatar}
           size="sm"
+          channel={
+            conversation.channel === "whatsapp"
+              ? "whatsapp"
+              : conversation.channel === "instagram"
+                ? "instagram"
+                : conversation.channel === "facebook"
+                  ? "facebook"
+                  : "default"
+          }
         />
 
         <div className="min-w-0 flex-1">

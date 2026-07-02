@@ -3,6 +3,10 @@ import {
   WHATSAPP_INSTANCE_NAME,
   WHATSAPP_SERVICE_UNAVAILABLE_MESSAGE,
 } from "@/lib/integrations/whatsapp/constants";
+import {
+  buildWhatsappRemoteJid,
+  normalizeWhatsappPhoneDigits,
+} from "@/lib/integrations/whatsapp/phone";
 import type {
   WhatsAppConnectResult,
   WhatsAppConnectionState,
@@ -413,7 +417,7 @@ export async function sendWhatsAppTextMessage(
   text: string,
   instanceName = getEvolutionConfig().instanceName,
 ) {
-  const normalizedNumber = phoneNumber.replace(/\D/g, "");
+  const normalizedNumber = normalizeWhatsappPhoneDigits(phoneNumber);
 
   if (!normalizedNumber) {
     throw new Error("Nomor WhatsApp tidak valid.");
@@ -433,6 +437,249 @@ export async function sendWhatsAppTextMessage(
   return {
     messageId: payload.key?.id?.trim() || null,
   };
+}
+
+const WA_AVATAR_SYNC_LOG = "[WA_AVATAR_SYNC]";
+
+function logWaAvatarSync(
+  message: string,
+  data?: Record<string, unknown>,
+) {
+  if (data) {
+    console.log(`${WA_AVATAR_SYNC_LOG} ${message}`, data);
+  } else {
+    console.log(`${WA_AVATAR_SYNC_LOG} ${message}`);
+  }
+}
+
+function getPayloadTopLevelKeys(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return [];
+  }
+
+  return Object.keys(payload as Record<string, unknown>);
+}
+
+export type FetchWhatsAppProfilePictureInput = {
+  phoneNumber: string;
+  instanceName?: string;
+};
+
+export type FetchWhatsAppProfilePictureResult = {
+  profilePictureUrl: string | null;
+  /** True when Evolution responded; false on config/transport errors. */
+  reachedApi: boolean;
+  normalizedPhone?: string;
+  source?: "fetchProfilePictureUrl" | "findContacts" | null;
+};
+
+function extractProfilePictureUrlFromPayload(payload: unknown): string | null {
+  if (payload == null) {
+    return null;
+  }
+
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    return trimmed.startsWith("http") ? trimmed : null;
+  }
+
+  if (typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+
+  for (const key of [
+    "profilePictureUrl",
+    "profilePicUrl",
+    "profilePicture",
+    "picture",
+    "url",
+    "imgUrl",
+  ]) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  for (const nestedKey of ["data", "response", "result", "profile"]) {
+    if (nestedKey in record) {
+      const nested = extractProfilePictureUrlFromPayload(record[nestedKey]);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  return null;
+}
+
+function extractContactsFromFindContactsPayload(payload: unknown) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    if (Array.isArray(record.value)) {
+      return record.value;
+    }
+    if (Array.isArray(record.contacts)) {
+      return record.contacts;
+    }
+  }
+
+  return [];
+}
+
+async function fetchProfilePictureFromEvolutionContacts(
+  instanceName: string,
+  normalizedNumber: string,
+) {
+  const endpoint = `/chat/findContacts/${encodeURIComponent(instanceName)}`;
+  const remoteJid = buildWhatsappRemoteJid(normalizedNumber);
+
+  logWaAvatarSync("fallback findContacts request", {
+    instanceName,
+    normalizedPhone: normalizedNumber,
+    remoteJid,
+    endpoint,
+  });
+
+  const payload = await evolutionRequest<unknown>(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      where: {
+        remoteJid,
+      },
+    }),
+  });
+
+  logWaAvatarSync("fallback findContacts response", {
+    responseKeys: getPayloadTopLevelKeys(payload),
+    contactCount: extractContactsFromFindContactsPayload(payload).length,
+  });
+
+  for (const contact of extractContactsFromFindContactsPayload(payload)) {
+    const url = extractProfilePictureUrlFromPayload(contact);
+    if (url) {
+      return url;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Evolution API v2.3.7 — POST /chat/fetchProfilePictureUrl/{instanceName}
+ * Falls back to POST /chat/findContacts when primary endpoint returns null.
+ * Safe for UI: never throws; returns null when unavailable.
+ */
+export async function fetchWhatsAppProfilePictureUrlResult(
+  input: FetchWhatsAppProfilePictureInput,
+): Promise<FetchWhatsAppProfilePictureResult> {
+  const { instanceName: defaultInstanceName, baseUrl } = getEvolutionConfig();
+  const instanceName = input.instanceName?.trim() || defaultInstanceName;
+  const normalizedNumber = normalizeWhatsappPhoneDigits(input.phoneNumber);
+  const primaryEndpoint = `/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceName)}`;
+
+  logWaAvatarSync("start", {
+    instanceName,
+    normalizedPhone: normalizedNumber,
+    inputPhone: input.phoneNumber,
+    endpoint: primaryEndpoint,
+    baseUrl,
+  });
+
+  if (!normalizedNumber) {
+    logWaAvatarSync("invalid phone after normalization", {
+      inputPhone: input.phoneNumber,
+    });
+    return {
+      profilePictureUrl: null,
+      reachedApi: false,
+      normalizedPhone: normalizedNumber,
+      source: null,
+    };
+  }
+
+  try {
+    const payload = await evolutionRequest<unknown>(primaryEndpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        number: normalizedNumber,
+      }),
+    });
+
+    const responseKeys = getPayloadTopLevelKeys(payload);
+    let profilePictureUrl = extractProfilePictureUrlFromPayload(payload);
+    let source: FetchWhatsAppProfilePictureResult["source"] =
+      "fetchProfilePictureUrl";
+
+    logWaAvatarSync("primary response", {
+      responseStatus: 200,
+      responseKeys,
+      profilePictureUrlFound: Boolean(profilePictureUrl),
+      profilePictureUrl: profilePictureUrl ?? null,
+    });
+
+    if (!profilePictureUrl) {
+      try {
+        profilePictureUrl = await fetchProfilePictureFromEvolutionContacts(
+          instanceName,
+          normalizedNumber,
+        );
+        source = profilePictureUrl ? "findContacts" : "fetchProfilePictureUrl";
+      } catch (fallbackError) {
+        logWaAvatarSync("fallback findContacts failed", {
+          error:
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : String(fallbackError),
+        });
+      }
+    }
+
+    logWaAvatarSync("result", {
+      instanceName,
+      normalizedPhone: normalizedNumber,
+      profilePictureUrlFound: Boolean(profilePictureUrl),
+      profilePictureUrl: profilePictureUrl ?? null,
+      source,
+    });
+
+    return {
+      profilePictureUrl,
+      reachedApi: true,
+      normalizedPhone: normalizedNumber,
+      source,
+    };
+  } catch (error) {
+    const evolutionError = error as EvolutionRequestError;
+    logWaAvatarSync("fetch failed", {
+      instanceName,
+      normalizedPhone: normalizedNumber,
+      endpoint: primaryEndpoint,
+      responseStatus: evolutionError.status ?? null,
+      responseKeys: getPayloadTopLevelKeys(evolutionError.payload),
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      profilePictureUrl: null,
+      reachedApi: false,
+      normalizedPhone: normalizedNumber,
+      source: null,
+    };
+  }
+}
+
+export async function fetchWhatsAppProfilePictureUrl(
+  input: FetchWhatsAppProfilePictureInput,
+): Promise<string | null> {
+  const result = await fetchWhatsAppProfilePictureUrlResult(input);
+  return result.profilePictureUrl;
 }
 
 export {

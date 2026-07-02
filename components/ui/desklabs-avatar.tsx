@@ -1,8 +1,22 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { getSafeInitials } from "@/lib/ui/avatar-initials";
 import { cn } from "@/lib/utils";
 
 export type DesklabsAvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 export type DesklabsAvatarStatus = "online" | "offline" | "busy" | "away";
+
+/** Reserved for multi-channel avatar styling (WhatsApp, Instagram, etc.). */
+export type DesklabsAvatarChannel =
+  | "whatsapp"
+  | "instagram"
+  | "facebook"
+  | "telegram"
+  | "email"
+  | "default";
 
 const SIZE_CLASSES: Record<DesklabsAvatarSize, string> = {
   xs: "h-6 w-6 text-[10px]",
@@ -36,17 +50,7 @@ const FALLBACK_COLORS = [
 ] as const;
 
 export function getDesklabsAvatarInitials(name: string) {
-  const parts = name.replace(/^@/, "").trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return "?";
-  }
-
-  if (parts.length === 1) {
-    return parts[0]!.slice(0, 2).toUpperCase();
-  }
-
-  return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
+  return getSafeInitials(name);
 }
 
 export function getDesklabsAvatarColorClass(seed: string) {
@@ -65,6 +69,9 @@ export type DesklabsAvatarProps = {
   size?: DesklabsAvatarSize;
   shape?: "circle" | "rounded";
   status?: DesklabsAvatarStatus | null;
+  channel?: DesklabsAvatarChannel;
+  /** Reserved for group chats — show sender name above avatar in message rows. */
+  isGroupChat?: boolean;
   fallbackClassName?: string;
   fallbackBackgroundColor?: string;
   className?: string;
@@ -76,6 +83,8 @@ export function DesklabsAvatar({
   size = "md",
   shape = "circle",
   status = null,
+  channel: _channel = "default",
+  isGroupChat: _isGroupChat = false,
   fallbackClassName,
   fallbackBackgroundColor,
   className,
@@ -83,27 +92,15 @@ export function DesklabsAvatar({
   const radiusClass = shape === "rounded" ? "rounded-lg" : "rounded-full";
   const initials = getDesklabsAvatarInitials(name);
   const colorClass = fallbackClassName ?? getDesklabsAvatarColorClass(name);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
-  const content = imageUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={imageUrl}
-      alt={name}
-      className={cn("h-full w-full object-cover", radiusClass)}
-    />
-  ) : (
-    <span
-      className={cn(
-        "inline-flex h-full w-full items-center justify-center font-semibold",
-        radiusClass,
-        !fallbackBackgroundColor && colorClass,
-      )}
-      style={fallbackBackgroundColor ? { backgroundColor: fallbackBackgroundColor } : undefined}
-      aria-hidden={Boolean(imageUrl)}
-    >
-      <span className={fallbackBackgroundColor ? "text-white" : undefined}>{initials}</span>
-    </span>
-  );
+  const showImage = Boolean(imageUrl) && !imageFailed;
+
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageFailed(false);
+  }, [imageUrl]);
 
   return (
     <span
@@ -114,11 +111,45 @@ export function DesklabsAvatar({
         className,
       )}
     >
-      {content}
+      <span
+        className={cn(
+          "absolute inset-0 inline-flex items-center justify-center font-semibold",
+          radiusClass,
+          !fallbackBackgroundColor && colorClass,
+        )}
+        style={
+          fallbackBackgroundColor
+            ? { backgroundColor: fallbackBackgroundColor }
+            : undefined
+        }
+        aria-hidden={showImage && imageLoaded}
+      >
+        <span className={fallbackBackgroundColor ? "text-white" : undefined}>
+          {initials}
+        </span>
+      </span>
+
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl!}
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageFailed(true)}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ease-out",
+            radiusClass,
+            imageLoaded ? "opacity-100" : "opacity-0",
+          )}
+        />
+      ) : null}
+
       {status ? (
         <span
           className={cn(
-            "absolute bottom-0 right-0 rounded-full ring-2",
+            "absolute bottom-0 right-0 z-10 rounded-full ring-2",
             size === "xs" || size === "sm" ? "h-2 w-2" : "h-2.5 w-2.5",
             STATUS_DOT_CLASSES[status],
             STATUS_RING_CLASSES[status],

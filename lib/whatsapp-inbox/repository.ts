@@ -24,6 +24,8 @@ const CONVERSATION_COLUMNS = `
   instance_name,
   phone_number,
   contact_name,
+  profile_picture_url,
+  profile_picture_updated_at,
   customer_id,
   status,
   assigned_user_id,

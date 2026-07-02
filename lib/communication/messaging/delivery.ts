@@ -19,6 +19,29 @@ export const DELIVERY_STATUS_LABELS: Record<MessageDeliveryStatus, string> = {
   failed: "Gagal dikirim",
 };
 
+/** Compact labels for outgoing bubble metadata (HH:mm • Status). */
+export const DELIVERY_STATUS_BUBBLE_LABELS: Record<MessageDeliveryStatus, string> = {
+  pending: "Mengirim",
+  sent: "Terkirim",
+  delivered: "Terkirim",
+  failed: "Gagal",
+};
+
+export function getOutgoingBubbleDeliveryStatusLabel(
+  deliveryStatus: MessageDeliveryStatus | null | undefined,
+  options?: { isOptimistic?: boolean },
+): string | null {
+  if (options?.isOptimistic || deliveryStatus === "pending") {
+    return DELIVERY_STATUS_BUBBLE_LABELS.pending;
+  }
+
+  if (!deliveryStatus) {
+    return null;
+  }
+
+  return DELIVERY_STATUS_BUBBLE_LABELS[deliveryStatus] ?? null;
+}
+
 // Normalisasi status mentah dari provider menjadi salah satu dari empat status
 // yang dipahami UI. Setiap adapter melaporkan status provider; lapisan ini
 // menyatukannya agar composer dan timeline tidak perlu logika per kanal.

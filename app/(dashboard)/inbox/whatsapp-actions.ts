@@ -35,6 +35,7 @@ import {
   retryWhatsappConversationReply,
   sendWhatsappConversationReply,
 } from "@/lib/whatsapp-inbox/send-reply";
+import { syncWhatsappConversationProfilePicture } from "@/lib/whatsapp-inbox/profile-picture";
 import { createClient } from "@/utils/supabase/server";
 
 type ActionResult = {
@@ -709,6 +710,48 @@ export async function retryWhatsappConversationReplyAction(
     return {
       success: false,
       message: getWhatsappSendReplyErrorMessage(error),
+    };
+  }
+}
+
+type ProfilePictureSyncResult = ActionResult & {
+  profilePictureUrl?: string | null;
+  refreshed?: boolean;
+};
+
+export async function syncWhatsappProfilePictureAction(
+  conversationId: string,
+): Promise<ProfilePictureSyncResult> {
+  if (!conversationId.trim()) {
+    return { success: false, message: "Conversation wajib dipilih." };
+  }
+
+  try {
+    const { profile, supabase } =
+      await requireWhatsappConversationAccess(conversationId);
+
+    const result = await syncWhatsappConversationProfilePicture(
+      supabase,
+      profile.organization_id,
+      conversationId,
+    );
+
+    if (result.refreshed) {
+      revalidateInbox(conversationId);
+    }
+
+    return {
+      success: true,
+      profilePictureUrl: result.profilePictureUrl,
+      refreshed: result.refreshed,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal menyinkronkan foto profil WhatsApp.",
     };
   }
 }

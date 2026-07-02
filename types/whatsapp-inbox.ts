@@ -9,6 +9,8 @@ export type WhatsappConversationRow = {
   instance_name: string;
   phone_number: string;
   contact_name: string | null;
+  profile_picture_url: string | null;
+  profile_picture_updated_at: string | null;
   customer_id: string | null;
   status: OmnichannelConversationStatus;
   assigned_user_id: string | null;
@@ -40,6 +42,8 @@ export type WhatsappConversationInsert = {
   instance_name: string;
   phone_number: string;
   contact_name?: string | null;
+  profile_picture_url?: string | null;
+  profile_picture_updated_at?: string | null;
   customer_id?: string | null;
   last_message?: string | null;
   last_message_at?: string | null;
@@ -48,6 +52,8 @@ export type WhatsappConversationInsert = {
 
 export type WhatsappConversationUpdate = {
   contact_name?: string | null;
+  profile_picture_url?: string | null;
+  profile_picture_updated_at?: string | null;
   customer_id?: string | null;
   status?: OmnichannelConversationStatus;
   assigned_user_id?: string | null;

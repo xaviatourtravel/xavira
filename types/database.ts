@@ -955,6 +955,8 @@ export type Database = {
           last_message: string | null
           last_message_at: string | null
           phone_number: string
+          profile_picture_url: string | null
+          profile_picture_updated_at: string | null
           unread_count: number
           updated_at: string
           workspace_id: string
@@ -968,6 +970,8 @@ export type Database = {
           last_message?: string | null
           last_message_at?: string | null
           phone_number: string
+          profile_picture_url?: string | null
+          profile_picture_updated_at?: string | null
           unread_count?: number
           updated_at?: string
           workspace_id: string
@@ -981,6 +985,8 @@ export type Database = {
           last_message?: string | null
           last_message_at?: string | null
           phone_number?: string
+          profile_picture_url?: string | null
+          profile_picture_updated_at?: string | null
           unread_count?: number
           updated_at?: string
           workspace_id?: string

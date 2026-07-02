@@ -25,6 +25,42 @@ function buildConversationHref(
   return `/inbox?${params.toString()}`;
 }
 
+function formatUnreadCount(count: number) {
+  if (count > 99) {
+    return "99+";
+  }
+
+  return String(count);
+}
+
+function ConversationListEmptyState({
+  searchQuery,
+}: {
+  searchQuery: string;
+}) {
+  if (searchQuery.trim()) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
+        <p className="text-sm font-medium text-foreground">
+          Tidak ada percakapan yang cocok
+        </p>
+        <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+          Coba kata kunci lain, nomor telepon, atau isi pesan.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
+      <p className="text-sm font-medium text-foreground">Belum ada percakapan</p>
+      <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+        Pesan baru dari WhatsApp akan muncul di sini.
+      </p>
+    </div>
+  );
+}
+
 export function OmnichannelConversationList({
   conversations,
   selectedConversationId,
@@ -37,149 +73,129 @@ export function OmnichannelConversationList({
   searchQuery?: string;
 }) {
   if (conversations.length === 0) {
-    const isWhatsappFilter = activeFilter === "whatsapp";
-
-    return (
-      <div className="flex h-full flex-col items-center justify-center px-6 py-8 text-center">
-        <p className="text-sm font-semibold text-foreground">
-          {searchQuery.trim()
-            ? "Tidak ada percakapan yang cocok"
-            : isWhatsappFilter
-              ? "Belum ada percakapan WhatsApp."
-              : "No conversations yet"}
-        </p>
-        <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
-          {searchQuery.trim()
-            ? "Coba kata kunci lain, nomor telepon, atau isi pesan."
-            : isWhatsappFilter
-              ? "Pesan masuk dari WhatsApp akan muncul di sini setelah webhook aktif."
-              : "New Instagram and Facebook customer messages will appear here."}
-        </p>
-      </div>
-    );
+    return <ConversationListEmptyState searchQuery={searchQuery} />;
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-0.5 px-2 py-2">
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedConversationId;
         const isUnread = conversation.unreadCount > 0;
         const displayName = getConversationDisplayName(conversation);
+        // Reserved for future group-chat rows (sender prefix in preview, etc.).
+        const isGroupChat = false;
 
-        const secondaryLabel = conversation.customerUsername?.trim()
-          ? conversation.channel === "whatsapp"
-            ? conversation.customerUsername.trim()
-            : `@${conversation.customerUsername.trim().replace(/^@/, "")}`
-          : null;
-        const showSecondary = Boolean(
-          secondaryLabel && secondaryLabel !== displayName,
-        );
-
-        // Sembunyikan lencana kanal yang berlebihan saat filter sudah aktif.
-        const showChannelBadge = !(
-          activeFilter === "whatsapp" && conversation.channel === "whatsapp"
-        );
-        // "Baru" hanya bila belum dibaca; status lain tetap tampil (kecil).
-        const showStatusBadge = conversation.status !== "new" || isUnread;
+        const showChannelBadge = activeFilter === "all";
+        const showStatusBadge =
+          conversation.status !== "new" && conversation.status !== "closed_won";
+        const showLeadChip = Boolean(conversation.leadId);
+        const visibleLabels = conversation.labels.slice(0, 1);
+        const showMetaChips =
+          showChannelBadge ||
+          showStatusBadge ||
+          showLeadChip ||
+          visibleLabels.length > 0;
 
         return (
           <Link
             key={conversation.id}
             href={buildConversationHref(conversation.id, activeFilter)}
             className={cn(
-              "block border-b border-border/40 px-4 py-2 transition-colors hover:bg-muted/40",
-              isSelected && "bg-selected hover:bg-selected",
+              "block min-h-[72px] rounded-[14px] px-3.5 py-3 transition-colors",
+              isSelected
+                ? "bg-blue-50/90 hover:bg-blue-50"
+                : "hover:bg-[#F8FAFC]",
             )}
           >
             <div className="flex items-start gap-3">
-              <div className="relative shrink-0">
-                <CustomerAvatar
-                  displayName={displayName}
-                  avatarUrl={conversation.customerAvatar}
-                  size="sm"
-                />
-                {isUnread ? (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-600 ring-2 ring-background" />
-                ) : null}
-              </div>
+              <CustomerAvatar
+                displayName={displayName}
+                avatarUrl={conversation.customerAvatar}
+                size="md"
+                isGroupChat={isGroupChat}
+                channel={
+                  conversation.channel === "whatsapp"
+                    ? "whatsapp"
+                    : conversation.channel === "instagram"
+                      ? "instagram"
+                      : conversation.channel === "facebook"
+                        ? "facebook"
+                        : "default"
+                }
+                className="shrink-0"
+              />
 
-              <div className="min-w-0 flex-1">
-                {/* Baris 1: nama (utama) + waktu */}
-                <div className="flex items-baseline gap-2">
+              <div className="flex min-w-0 flex-1 gap-2">
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
                   <p
                     className={cn(
-                      "min-w-0 flex-1 truncate text-[15px] text-foreground",
-                      isUnread ? "font-bold" : "font-semibold",
+                      "truncate text-[15px] leading-tight text-foreground",
+                      isUnread ? "font-semibold" : "font-medium",
                     )}
                     title={displayName}
                   >
                     {displayName}
                   </p>
+
+                  <p
+                    className={cn(
+                      "truncate text-[13px] leading-snug",
+                      isUnread
+                        ? "text-foreground/75"
+                        : "text-muted-foreground",
+                    )}
+                    title={conversation.lastMessagePreview ?? undefined}
+                  >
+                    {conversation.lastMessagePreview ?? "Belum ada pesan"}
+                  </p>
+
+                  {showMetaChips ? (
+                    <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+                      {showChannelBadge ? (
+                        <OmnichannelChannelBadge
+                          channel={conversation.channel}
+                          className="shrink-0 px-1.5 py-0 text-[9px] leading-4"
+                        />
+                      ) : null}
+                      {showStatusBadge ? (
+                        <OmnichannelStatusBadge
+                          status={conversation.status}
+                          className="shrink-0 px-1.5 py-0 text-[9px] leading-4"
+                        />
+                      ) : null}
+                      {showLeadChip ? (
+                        <span className="shrink-0 rounded-full bg-emerald-50 px-1.5 py-0 text-[9px] font-medium leading-4 text-emerald-700">
+                          Lead
+                        </span>
+                      ) : null}
+                      {visibleLabels.map((label) => (
+                        <span
+                          key={label.tag}
+                          className="shrink-0 truncate rounded-full px-1.5 py-0 text-[9px] font-medium leading-4 text-white"
+                          style={{ backgroundColor: label.color }}
+                        >
+                          {label.tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
                   <span
                     className={cn(
-                      "shrink-0 text-[11px] tabular-nums",
+                      "text-[11px] leading-none tabular-nums",
                       isUnread
-                        ? "font-semibold text-emerald-700"
-                        : "font-medium text-muted-foreground",
+                        ? "font-medium text-blue-600"
+                        : "text-muted-foreground",
                     )}
                   >
                     {formatInboxRelativeTime(conversation.lastMessageAt)}
                   </span>
-                </div>
 
-                {/* Baris 2: nomor telepon / username (sekunder) */}
-                {showSecondary ? (
-                  <p
-                    className="truncate text-xs text-muted-foreground"
-                    title={secondaryLabel ?? undefined}
-                  >
-                    {secondaryLabel}
-                  </p>
-                ) : null}
-
-                {/* Baris 3: pratinjau pesan (satu baris) */}
-                <p
-                  className={cn(
-                    "mt-0.5 truncate text-[13px] leading-snug",
-                    isUnread
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {conversation.lastMessagePreview ?? "Belum ada pesan"}
-                </p>
-
-                {/* Baris 4: lencana kecil + jumlah belum dibaca */}
-                <div className="mt-1 flex flex-wrap items-center gap-1">
-                  {showChannelBadge ? (
-                    <OmnichannelChannelBadge
-                      channel={conversation.channel}
-                      className="px-1.5 py-0 text-[9px]"
-                    />
-                  ) : null}
-                  {showStatusBadge ? (
-                    <OmnichannelStatusBadge
-                      status={conversation.status}
-                      className="px-1.5 py-0 text-[9px]"
-                    />
-                  ) : null}
-                  {conversation.leadId ? (
-                    <span className="rounded-full bg-emerald-50 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">
-                      Lead
-                    </span>
-                  ) : null}
-                  {conversation.labels.slice(0, 2).map((label) => (
-                    <span
-                      key={label.tag}
-                      className="rounded-full px-1.5 py-0 text-[9px] font-semibold text-white"
-                      style={{ backgroundColor: label.color }}
-                    >
-                      {label.tag}
-                    </span>
-                  ))}
                   {isUnread ? (
-                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      {conversation.unreadCount}
+                    <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#2563EB] px-1.5 text-[10px] font-semibold leading-none text-white">
+                      {formatUnreadCount(conversation.unreadCount)}
                     </span>
                   ) : null}
                 </div>

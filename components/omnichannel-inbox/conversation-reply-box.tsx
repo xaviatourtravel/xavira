@@ -14,26 +14,18 @@ import {
   FileText,
   Film,
   ImageIcon,
-  Languages,
   Paperclip,
   Plus,
   Send,
   Smile,
   Sparkles,
   Type,
-  WandSparkles,
   X,
 } from "lucide-react";
 
 import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnichannel-actions";
-import { buttonVariants } from "@/components/ui/button";
 import { DsToast } from "@/components/design-system/toast";
-import {
-  QUICK_REPLY_TEMPLATES,
-  improveWriting,
-  suggestReply,
-  translateToEnglish,
-} from "@/lib/communication/assist";
+import { QUICK_REPLY_TEMPLATES } from "@/lib/communication/assist";
 import {
   getComposerPlaceholder,
   isPersistedFailureCode,
@@ -58,11 +50,14 @@ const EMOJIS = [
   "📎",
 ];
 
-const MAX_TEXTAREA_ROWS = 4;
-const LINE_HEIGHT_PX = 24;
+const COMPOSER_MIN_HEIGHT_PX = 44;
+const COMPOSER_MAX_HEIGHT_PX = 140;
+const COMPOSER_INPUT_PADDING_Y_PX = 14;
+const COMPOSER_MAX_TEXTAREA_HEIGHT_PX =
+  COMPOSER_MAX_HEIGHT_PX - COMPOSER_INPUT_PADDING_Y_PX * 2;
 
-const ICON_BUTTON =
-  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50";
+const GHOST_ICON_BUTTON =
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:opacity-40";
 
 type ComposerToast = {
   variant: "success" | "error" | "info";
@@ -70,7 +65,7 @@ type ComposerToast = {
   description?: string;
 };
 
-type OpenMenu = "plus" | "emoji" | "ai" | null;
+type OpenMenu = "plus" | "emoji" | null;
 
 type OmnichannelConversationReplyBoxProps = {
   conversationId: string;
@@ -164,9 +159,6 @@ export function OmnichannelConversationReplyBox({
   channel = "instagram",
   canReply,
   isUnassignedForAgent = false,
-  lastCustomerMessage = null,
-  suggestedReply = null,
-  aiSummary = null,
   onSendingChange,
   onOptimisticMessage,
   onAddOptimistic,
@@ -176,6 +168,7 @@ export function OmnichannelConversationReplyBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
+  const dragDepthRef = useRef(0);
   const { draft: messageText, setDraft: setMessageText, clearDraft } =
     useConversationDraft(conversationId);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
@@ -183,7 +176,7 @@ export function OmnichannelConversationReplyBox({
   const [toast, setToast] = useState<ComposerToast | null>(null);
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const [plusView, setPlusView] = useState<"root" | "template">("root");
-  const [aiView, setAiView] = useState<"root" | "summary" | "translate">("root");
+  const [isDragging, setIsDragging] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useOutsideClose(openMenu !== null, rowRef, () => setOpenMenu(null));
@@ -191,9 +184,6 @@ export function OmnichannelConversationReplyBox({
   useEffect(() => {
     if (openMenu !== "plus") {
       setPlusView("root");
-    }
-    if (openMenu !== "ai") {
-      setAiView("root");
     }
   }, [openMenu]);
 
@@ -230,14 +220,28 @@ export function OmnichannelConversationReplyBox({
     }
 
     textarea.style.height = "auto";
-    const maxHeight = LINE_HEIGHT_PX * MAX_TEXTAREA_ROWS + 16;
-    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    textarea.style.height = `${Math.min(
+      textarea.scrollHeight,
+      COMPOSER_MAX_TEXTAREA_HEIGHT_PX,
+    )}px`;
   }, [messageText]);
 
   function openFilePicker(accept: string) {
     setFileAccept(accept);
     setOpenMenu(null);
     requestAnimationFrame(() => fileInputRef.current?.click());
+  }
+
+  function attachFile(file: File) {
+    setAttachmentName(file.name);
+  }
+
+  function handleFileInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      attachFile(file);
+    }
+    event.target.value = "";
   }
 
   function insertAtCursor(insert: string) {
@@ -259,7 +263,6 @@ export function OmnichannelConversationReplyBox({
     });
   }
 
-  // Tidak menimpa teks kecuali composer kosong.
   function insertReply(text: string) {
     if (!messageText.trim()) {
       setMessageText(text);
@@ -267,12 +270,6 @@ export function OmnichannelConversationReplyBox({
       const separator = /\s$/.test(messageText) ? "" : " ";
       setMessageText(`${messageText}${separator}${text}`);
     }
-    setOpenMenu(null);
-    textareaRef.current?.focus();
-  }
-
-  function replaceDraft(text: string) {
-    setMessageText(text);
     setOpenMenu(null);
     textareaRef.current?.focus();
   }
@@ -365,12 +362,62 @@ export function OmnichannelConversationReplyBox({
     });
   }
 
-  const translatePreview = translateToEnglish(
-    messageText.trim() || lastCustomerMessage || "",
-  );
+  function handleComposerKeyDown(
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    const forceSend = event.metaKey || event.ctrlKey;
+    const newLine = event.shiftKey && !forceSend;
+
+    if (newLine) {
+      return;
+    }
+
+    event.preventDefault();
+    if (canSend) {
+      handleSend();
+    }
+  }
 
   return (
-    <div className="relative bg-background px-3 py-2 sm:px-4">
+    <div
+      className="relative border-t border-soft/80 bg-background px-3 py-3 sm:px-4"
+      onDragEnter={(event) => {
+        event.preventDefault();
+        dragDepthRef.current += 1;
+        setIsDragging(true);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) {
+          setIsDragging(false);
+        }
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        dragDepthRef.current = 0;
+        setIsDragging(false);
+        const file = event.dataTransfer.files?.[0];
+        if (file) {
+          attachFile(file);
+        }
+      }}
+    >
+      {isDragging ? (
+        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[22px] border-2 border-dashed border-[#2563EB]/35 bg-background/95">
+          <p className="text-sm text-muted-foreground">
+            Lepas file di sini untuk melampirkan
+          </p>
+        </div>
+      ) : null}
+
       {toast ? (
         <div className="pointer-events-none absolute bottom-full right-3 z-30 mb-2 flex justify-end sm:right-4">
           <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-1">
@@ -384,19 +431,21 @@ export function OmnichannelConversationReplyBox({
       ) : null}
 
       {attachmentName ? (
-        <div className="mb-2 flex w-fit max-w-full items-center gap-2 rounded-lg border bg-muted/30 px-2.5 py-1.5 text-xs">
-          <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="truncate" title={attachmentName}>
-            {attachmentName}
+        <div className="mb-2.5 flex flex-wrap gap-1.5">
+          <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/45 px-2.5 py-1 text-xs text-foreground">
+            <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate" title={attachmentName}>
+              {attachmentName}
+            </span>
+            <button
+              type="button"
+              onClick={() => setAttachmentName(null)}
+              aria-label="Hapus lampiran"
+              className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </span>
-          <button
-            type="button"
-            onClick={() => setAttachmentName(null)}
-            aria-label="Hapus lampiran"
-            className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
         </div>
       ) : null}
 
@@ -405,26 +454,24 @@ export function OmnichannelConversationReplyBox({
         type="file"
         accept={fileAccept || undefined}
         className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) {
-            setAttachmentName(file.name);
-          }
-          event.target.value = "";
-        }}
+        onChange={handleFileInputChange}
       />
 
-      <div ref={rowRef} className="flex items-end gap-1">
-        {/* [+] lampiran & template */}
+      <div ref={rowRef} className="flex items-end gap-1.5">
         <div className="relative shrink-0">
           <button
             type="button"
-            onClick={() => setOpenMenu((value) => (value === "plus" ? null : "plus"))}
+            onClick={() =>
+              setOpenMenu((value) => (value === "plus" ? null : "plus"))
+            }
             disabled={isDisabled}
             title="Lampiran"
             aria-label="Lampiran"
             aria-expanded={openMenu === "plus"}
-            className={cn(ICON_BUTTON, openMenu === "plus" && "bg-muted text-foreground")}
+            className={cn(
+              GHOST_ICON_BUTTON,
+              openMenu === "plus" && "bg-muted/50 text-foreground",
+            )}
           >
             <Plus className="h-5 w-5" />
           </button>
@@ -435,7 +482,11 @@ export function OmnichannelConversationReplyBox({
                   <MenuItem
                     icon={<FileText className="h-4 w-4" />}
                     label="Dokumen"
-                    onClick={() => openFilePicker(".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv")}
+                    onClick={() =>
+                      openFilePicker(
+                        ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv",
+                      )
+                    }
                   />
                   <MenuItem
                     icon={<ImageIcon className="h-4 w-4" />}
@@ -455,7 +506,10 @@ export function OmnichannelConversationReplyBox({
                 </>
               ) : (
                 <>
-                  <SubmenuHeader title="Template cepat" onBack={() => setPlusView("root")} />
+                  <SubmenuHeader
+                    title="Template cepat"
+                    onBack={() => setPlusView("root")}
+                  />
                   {QUICK_REPLY_TEMPLATES.map((template) => (
                     <button
                       key={template}
@@ -472,37 +526,10 @@ export function OmnichannelConversationReplyBox({
           ) : null}
         </div>
 
-        {/* Emoji */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setOpenMenu((value) => (value === "emoji" ? null : "emoji"))}
-            disabled={isDisabled}
-            title="Emoji"
-            aria-label="Emoji"
-            aria-expanded={openMenu === "emoji"}
-            className={cn(ICON_BUTTON, openMenu === "emoji" && "bg-muted text-foreground")}
-          >
-            <Smile className="h-5 w-5" />
-          </button>
-          {openMenu === "emoji" ? (
-            <div className="absolute bottom-full left-0 z-20 mb-2 grid grid-cols-6 gap-1 rounded-xl border bg-background p-2 shadow-lg">
-              {EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
-                  onClick={() => insertAtCursor(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        {/* Input pesan */}
-        <div className="flex min-h-[40px] min-w-0 flex-1 items-center rounded-2xl border bg-muted/20 px-3 py-1">
+        <div
+          className="flex min-h-[44px] max-h-[140px] min-w-0 flex-1 items-center rounded-[22px] bg-muted/35 px-4 py-[14px]"
+          style={{ minHeight: COMPOSER_MIN_HEIGHT_PX, maxHeight: COMPOSER_MAX_HEIGHT_PX }}
+        >
           <textarea
             ref={textareaRef}
             value={messageText}
@@ -511,128 +538,69 @@ export function OmnichannelConversationReplyBox({
             placeholder={getComposerPlaceholder(channel)}
             disabled={isDisabled}
             title={sendTitle}
-            className="max-h-[112px] w-full resize-none border-0 bg-transparent py-1.5 text-sm leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-60"
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                if (canSend) {
-                  handleSend();
-                }
-              }
-            }}
+            className="max-h-[112px] w-full resize-none border-0 bg-transparent text-sm leading-[22px] outline-none placeholder:text-muted-foreground disabled:opacity-60"
+            onKeyDown={handleComposerKeyDown}
           />
         </div>
 
-        {/* AI (ikon saja) */}
         <div className="relative shrink-0">
           <button
             type="button"
-            onClick={() => setOpenMenu((value) => (value === "ai" ? null : "ai"))}
+            onClick={() =>
+              setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
+            }
             disabled={isDisabled}
-            title="Asisten AI"
-            aria-label="Asisten AI"
-            aria-expanded={openMenu === "ai"}
-            className={cn(ICON_BUTTON, openMenu === "ai" && "bg-muted text-foreground")}
+            title="Emoji"
+            aria-label="Emoji"
+            aria-expanded={openMenu === "emoji"}
+            className={cn(
+              GHOST_ICON_BUTTON,
+              openMenu === "emoji" && "bg-muted/50 text-foreground",
+            )}
           >
-            <Sparkles className="h-5 w-5" />
+            <Smile className="h-5 w-5" />
           </button>
-          {openMenu === "ai" ? (
-            <div className="absolute bottom-full right-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
-              {aiView === "root" ? (
-                <>
-                  <MenuItem
-                    icon={<Sparkles className="h-4 w-4" />}
-                    label="Saran balasan"
-                    onClick={() =>
-                      insertReply(
-                        suggestedReply?.trim() ||
-                          suggestReply(lastCustomerMessage).text,
-                      )
-                    }
-                  />
-                  <MenuItem
-                    icon={<FileText className="h-4 w-4" />}
-                    label="Ringkas percakapan"
-                    onClick={() => setAiView("summary")}
-                  />
-                  <MenuItem
-                    icon={<Languages className="h-4 w-4" />}
-                    label="Terjemahkan"
-                    onClick={() => setAiView("translate")}
-                  />
-                  <MenuItem
-                    icon={<WandSparkles className="h-4 w-4" />}
-                    label="Perbaiki tulisan"
-                    onClick={() => {
-                      const trimmed = messageText.trim();
-                      if (trimmed) {
-                        replaceDraft(improveWriting(trimmed));
-                      } else {
-                        setOpenMenu(null);
-                      }
-                    }}
-                  />
-                </>
-              ) : aiView === "summary" ? (
-                <>
-                  <SubmenuHeader
-                    title="Ringkasan percakapan"
-                    onBack={() => setAiView("root")}
-                  />
-                  <p className="px-3 py-2.5 text-xs leading-relaxed text-foreground">
-                    {aiSummary?.trim()
-                      ? aiSummary
-                      : "Belum ada cukup pesan untuk diringkas."}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <SubmenuHeader
-                    title="Terjemahan (ID -> EN)"
-                    onBack={() => setAiView("root")}
-                  />
-                  <div className="p-2.5">
-                    <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground">
-                      {translatePreview || "Tidak ada teks untuk diterjemahkan."}
-                    </p>
-                    {translatePreview ? (
-                      <div className="mt-2 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => replaceDraft(translatePreview)}
-                          className={cn(
-                            buttonVariants({ size: "sm" }),
-                            "h-8 rounded-lg px-3 text-xs",
-                          )}
-                        >
-                          Gunakan
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </>
-              )}
+          {openMenu === "emoji" ? (
+            <div className="absolute bottom-full right-0 z-20 mb-2 grid grid-cols-6 gap-1 rounded-xl border bg-background p-2 shadow-lg">
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
+                  onClick={() => {
+                    insertAtCursor(emoji);
+                    setOpenMenu(null);
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           ) : null}
         </div>
 
-        {/* Kirim */}
+        <button
+          type="button"
+          disabled={isDisabled}
+          title="AI Draft (segera hadir)"
+          aria-label="AI Draft"
+          className={GHOST_ICON_BUTTON}
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+
         <button
           type="button"
           disabled={!canSend}
           onClick={handleSend}
           title={sendTitle}
           className={cn(
-            buttonVariants({ size: "sm" }),
-            "h-10 shrink-0 gap-1.5 rounded-full px-4",
-            !canSend && "opacity-50",
+            "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-[#2563EB] px-4 text-sm font-medium text-white transition-colors hover:bg-[#1d4ed8] disabled:pointer-events-none disabled:opacity-40",
           )}
           aria-label={isPending ? "Mengirim pesan" : "Kirim pesan"}
         >
           <Send className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {isPending ? "Mengirim..." : "Kirim"}
-          </span>
+          <span>{isPending ? "Mengirim..." : "Kirim"}</span>
         </button>
       </div>
     </div>

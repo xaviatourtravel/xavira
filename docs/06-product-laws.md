@@ -313,3 +313,13 @@ choose the simpler one.
 Complexity requires justification.
 
 Simplicity does not.
+
+---
+
+## D026
+
+Workflow Integrity.
+
+Visual redesign must never remove or hide an existing workflow.
+
+A prettier interface that slows work is a product failure.

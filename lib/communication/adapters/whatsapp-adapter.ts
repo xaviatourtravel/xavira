@@ -4,9 +4,12 @@ import {
   type SendMessageInput,
   type SendMessageResult,
 } from "@/lib/communication/messaging/types";
+import { WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE } from "@/lib/integrations/whatsapp/constants";
 import {
   EvolutionConnectError,
   EvolutionServiceUnavailableError,
+  isEvolutionDisconnectedError,
+  logWhatsAppSendFailure,
   sendWhatsAppTextMessage,
 } from "@/lib/integrations/whatsapp/evolution-client";
 
@@ -31,8 +34,22 @@ function toMessagingError(error: unknown): MessagingError {
   if (error instanceof EvolutionConnectError) {
     return new MessagingError(
       "instance_disconnected",
-      "Nomor WhatsApp terputus. Hubungkan ulang di Pengaturan.",
+      WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE,
     );
+  }
+
+  if (error instanceof Error) {
+    const requestPayload =
+      "payload" in error
+        ? (error as { payload?: unknown }).payload
+        : undefined;
+
+    if (isEvolutionDisconnectedError(error.message, requestPayload)) {
+      return new MessagingError(
+        "instance_disconnected",
+        WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE,
+      );
+    }
   }
 
   return new MessagingError(
@@ -45,15 +62,28 @@ export const whatsAppAdapter: ChannelAdapter = {
   channel: "whatsapp",
 
   async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
+    const instanceName = input.instanceName ?? undefined;
+    const evolutionEndpoint = `/message/sendText/${encodeURIComponent(
+      instanceName ?? "unknown",
+    )}`;
+
     try {
       const result = await sendWhatsAppTextMessage(
         input.recipientPhone,
         input.text,
-        input.instanceName ?? undefined,
+        instanceName,
       );
 
       return { providerMessageId: result.messageId };
     } catch (error) {
+      logWhatsAppSendFailure({
+        workspaceId: input.workspaceId,
+        conversationId: input.conversationId,
+        instanceName: input.instanceName,
+        recipientPhone: input.recipientPhone,
+        evolutionEndpoint,
+        error,
+      });
       throw toMessagingError(error);
     }
   },

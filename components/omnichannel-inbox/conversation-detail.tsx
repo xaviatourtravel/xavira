@@ -42,9 +42,10 @@ import {
 import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rule-based-intelligence";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
+import { WhatsappAiStateControl } from "@/components/omnichannel-inbox/whatsapp-ai-state-control";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
+import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
 import {
-  formatInboxActiveLabel,
   formatInboxMessageTime,
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
@@ -63,6 +64,7 @@ type OmnichannelConversationDetailPanelProps = {
   conversation: OmnichannelConversationDetail;
   canReply: boolean;
   canSuggestReply?: boolean;
+  canManageAi?: boolean;
   isUnassignedForAgent?: boolean;
   mobilePanelOpen?: boolean;
   onToggleMobilePanel?: () => void;
@@ -129,6 +131,7 @@ export function OmnichannelConversationDetailPanel({
   conversation,
   canReply,
   canSuggestReply = false,
+  canManageAi = false,
   isUnassignedForAgent = false,
   onToggleMobilePanel,
   readOnly = false,
@@ -467,10 +470,18 @@ export function OmnichannelConversationDetailPanel({
               {displayName}
             </h2>
             <OmnichannelChannelBadge channel={conversation.channel} />
+            {isWhatsapp ? (
+              <WhatsappAiStateControl
+                conversationId={conversation.id}
+                aiState={conversation.aiState}
+                aiHandoffReason={conversation.aiHandoffReason}
+                canManage={canManageAi}
+              />
+            ) : null}
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
             {phoneLabel ? `${phoneLabel} · ` : ""}
-            {formatInboxActiveLabel(conversation.lastMessageAt)}
+            <ClientOnlyActiveLabel date={conversation.lastMessageAt} />
           </p>
         </div>
 

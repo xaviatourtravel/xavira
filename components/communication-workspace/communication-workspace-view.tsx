@@ -297,6 +297,7 @@ export function CommunicationWorkspaceView({
                 conversation={liveDetail}
                 canReply={canReply}
                 canSuggestReply={canSuggestReply}
+                canManageAi={canUpdateStatus}
                 isUnassignedForAgent={isUnassignedForAgent}
                 readOnly={readOnly}
                 channel={liveDetail.channel}

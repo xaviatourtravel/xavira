@@ -4,9 +4,9 @@ import Link from "next/link";
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
+import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
 import { OmnichannelStatusBadge } from "@/components/omnichannel-inbox/status-badge";
 import {
-  formatInboxRelativeTime,
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
@@ -182,16 +182,15 @@ export function OmnichannelConversationList({
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
-                  <span
+                  <ClientOnlyRelativeTime
+                    date={conversation.lastMessageAt}
                     className={cn(
-                      "text-[11px] leading-none tabular-nums",
+                      "text-[11px] leading-none",
                       isUnread
                         ? "font-medium text-blue-600"
                         : "text-muted-foreground",
                     )}
-                  >
-                    {formatInboxRelativeTime(conversation.lastMessageAt)}
-                  </span>
+                  />
 
                   {isUnread ? (
                     <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#2563EB] px-1.5 text-[10px] font-semibold leading-none text-white">

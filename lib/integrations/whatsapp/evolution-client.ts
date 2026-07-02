@@ -1,5 +1,6 @@
 import {
   WHATSAPP_CONNECT_FAILED_MESSAGE,
+  WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE,
   WHATSAPP_INSTANCE_NAME,
   WHATSAPP_SERVICE_UNAVAILABLE_MESSAGE,
 } from "@/lib/integrations/whatsapp/constants";
@@ -57,10 +58,26 @@ export class EvolutionServiceUnavailableError extends Error {
   }
 }
 
+export type EvolutionErrorMeta = {
+  endpoint?: string;
+  status?: number;
+  payload?: unknown;
+};
+
 export class EvolutionConnectError extends Error {
-  constructor(message = WHATSAPP_CONNECT_FAILED_MESSAGE) {
+  readonly endpoint?: string;
+  readonly status?: number;
+  readonly payload?: unknown;
+
+  constructor(
+    message = WHATSAPP_CONNECT_FAILED_MESSAGE,
+    meta?: EvolutionErrorMeta,
+  ) {
     super(message);
     this.name = "EvolutionConnectError";
+    this.endpoint = meta?.endpoint;
+    this.status = meta?.status;
+    this.payload = meta?.payload;
   }
 }
 
@@ -137,10 +154,125 @@ function getErrorMessage(payload: unknown) {
   return "";
 }
 
-type EvolutionRequestError = Error & {
+export type EvolutionRequestError = Error & {
   status?: number;
   payload?: unknown;
+  endpoint?: string;
 };
+
+const WA_SEND_LOG = "[WA_SEND]";
+
+function collectErrorText(message: string, payload?: unknown) {
+  const parts = [message];
+
+  if (typeof payload === "string") {
+    parts.push(payload);
+  } else if (payload != null) {
+    try {
+      parts.push(JSON.stringify(payload));
+    } catch {
+      parts.push(String(payload));
+    }
+  }
+
+  return parts.join(" ").toLowerCase();
+}
+
+export function isEvolutionDisconnectedError(
+  message: string,
+  payload?: unknown,
+): boolean {
+  const haystack = collectErrorText(message, payload);
+
+  return (
+    haystack.includes("connection closed") ||
+    haystack.includes("session closed") ||
+    haystack.includes("connection lost") ||
+    haystack.includes("not connected") ||
+    haystack.includes("instance disconnected") ||
+    haystack.includes("is disconnected") ||
+    haystack.includes("disconnected instance") ||
+    haystack.includes("no open session") ||
+    haystack.includes("socket closed")
+  );
+}
+
+export type WhatsAppSendFailureLogContext = {
+  workspaceId?: string;
+  conversationId?: string;
+  instanceName?: string | null;
+  recipientPhone?: string;
+  evolutionEndpoint?: string;
+  error: unknown;
+};
+
+export function getEvolutionErrorDetails(error: unknown) {
+  if (error instanceof EvolutionConnectError) {
+    return {
+      evolutionEndpoint: error.endpoint,
+      evolutionStatus: error.status,
+      evolutionResponseBody: error.payload,
+      evolutionErrorMessage: error.message,
+      disconnected: true,
+    };
+  }
+
+  if (error instanceof Error && "status" in error) {
+    const requestError = error as EvolutionRequestError;
+    const disconnected = isEvolutionDisconnectedError(
+      requestError.message,
+      requestError.payload,
+    );
+
+    return {
+      evolutionEndpoint: requestError.endpoint,
+      evolutionStatus: requestError.status,
+      evolutionResponseBody: requestError.payload,
+      evolutionErrorMessage: requestError.message,
+      disconnected,
+    };
+  }
+
+  if (error instanceof Error && "code" in error) {
+    const code = String((error as { code?: string }).code ?? "");
+    const disconnected =
+      code === "instance_disconnected" ||
+      isEvolutionDisconnectedError(error.message);
+
+    return {
+      evolutionErrorMessage: error.message,
+      disconnected,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      evolutionErrorMessage: error.message,
+      disconnected: isEvolutionDisconnectedError(error.message),
+    };
+  }
+
+  return {
+    evolutionErrorMessage: String(error),
+    disconnected: false,
+  };
+}
+
+export function logWhatsAppSendFailure(context: WhatsAppSendFailureLogContext) {
+  const evolution = getEvolutionErrorDetails(context.error);
+
+  console.error(`${WA_SEND_LOG} send failed`, {
+    workspaceId: context.workspaceId,
+    conversationId: context.conversationId,
+    instanceName: context.instanceName,
+    recipientPhone: context.recipientPhone,
+    evolutionEndpoint: context.evolutionEndpoint ?? evolution.evolutionEndpoint,
+    evolutionStatus: evolution.evolutionStatus,
+    evolutionResponseBody: evolution.evolutionResponseBody,
+    evolutionErrorMessage: evolution.evolutionErrorMessage,
+    disconnected: evolution.disconnected,
+  });
+}
 
 function isInstanceAlreadyExistsError(status: number, payload: unknown) {
   if (status !== 403 && status !== 409 && status !== 400) {
@@ -199,10 +331,20 @@ async function evolutionRequest<T>(
       throw new EvolutionServiceUnavailableError();
     }
 
-    const message = getErrorMessage(payload) || response.statusText;
+    const message = getErrorMessage(payload) || response.statusText || text;
+
+    if (isEvolutionDisconnectedError(message, payload)) {
+      throw new EvolutionConnectError(WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE, {
+        endpoint: path,
+        status: response.status,
+        payload,
+      });
+    }
+
     const error = new Error(message) as EvolutionRequestError;
     error.status = response.status;
     error.payload = payload;
+    error.endpoint = path;
     throw error;
   }
 
@@ -423,20 +565,39 @@ export async function sendWhatsAppTextMessage(
     throw new Error("Nomor WhatsApp tidak valid.");
   }
 
-  const payload = await evolutionRequest<{ key?: { id?: string } }>(
-    `/message/sendText/${encodeURIComponent(instanceName)}`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        number: normalizedNumber,
-        text,
-      }),
-    },
-  );
+  const endpoint = `/message/sendText/${encodeURIComponent(instanceName)}`;
 
-  return {
-    messageId: payload.key?.id?.trim() || null,
-  };
+  try {
+    const payload = await evolutionRequest<{ key?: { id?: string } }>(
+      endpoint,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          number: normalizedNumber,
+          text,
+        }),
+      },
+    );
+
+    return {
+      messageId: payload.key?.id?.trim() || null,
+    };
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "status" in error &&
+      !(error instanceof EvolutionConnectError) &&
+      isEvolutionDisconnectedError(error.message, (error as EvolutionRequestError).payload)
+    ) {
+      throw new EvolutionConnectError(WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE, {
+        endpoint,
+        status: (error as EvolutionRequestError).status,
+        payload: (error as EvolutionRequestError).payload,
+      });
+    }
+
+    throw error;
+  }
 }
 
 const WA_AVATAR_SYNC_LOG = "[WA_AVATAR_SYNC]";

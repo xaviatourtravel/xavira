@@ -26,6 +26,7 @@ import type { WhatsappConversationRow } from "@/types/whatsapp-inbox";
 import {
   addWhatsappConversationNote,
   assignWhatsappConversation,
+  updateWhatsappConversationAiState,
   updateWhatsappConversationStatus,
 } from "@/lib/whatsapp-inbox/service";
 import { markWhatsappConversationAsRead as markWhatsappConversationAsReadInRepo } from "@/lib/whatsapp-inbox/repository";
@@ -220,6 +221,76 @@ export async function updateWhatsappConversationStatusAction(
         error instanceof Error
           ? error.message
           : "Gagal memperbarui status conversation.",
+    };
+  }
+}
+
+export async function updateWhatsappConversationAiStateAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const conversationId = getString(formData, "conversation_id");
+  const aiState = getString(formData, "ai_state");
+
+  if (!conversationId || !aiState) {
+    return {
+      success: false,
+      message: "Conversation dan status AI wajib diisi.",
+    };
+  }
+
+  try {
+    const { profile, supabase, conversation } =
+      await requireWhatsappConversationAccess(conversationId);
+
+    if (
+      !canUpdateOmnichannelConversationStatus(profile, {
+        assigned_user_id: conversation.assigned_user_id,
+      })
+    ) {
+      return {
+        success: false,
+        message: "Anda tidak memiliki izin untuk mengubah status AI conversation ini.",
+      };
+    }
+
+    await updateWhatsappConversationAiState(
+      supabase,
+      profile.organization_id,
+      conversationId,
+      aiState,
+      { userId: profile.id },
+    );
+
+    await auditFromProfile(supabase, profile, {
+      action: "conversation_status_changed",
+      entityType: "inbox",
+      entityId: conversationId,
+      entityLabel: getWhatsappConversationAuditLabel(conversation),
+      metadata: {
+        from: conversation.ai_state,
+        to: aiState,
+        channel: "whatsapp",
+        field: "ai_state",
+      },
+    });
+
+    revalidateInbox(conversationId);
+    return {
+      success: true,
+      message:
+        aiState === "AI_ACTIVE"
+          ? "AI auto-reply turned on for this chat."
+          : aiState === "HUMAN_ONLY"
+            ? "AI auto-reply turned off for this chat."
+            : "Status AI conversation diperbarui.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal memperbarui status AI conversation.",
     };
   }
 }

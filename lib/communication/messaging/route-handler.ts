@@ -7,6 +7,7 @@ import {
   sendMessage,
   type MessageChannel,
 } from "@/lib/communication/messaging";
+import { getEvolutionErrorDetails } from "@/lib/integrations/whatsapp/evolution-client";
 import type { Profile } from "@/types/app-types";
 import { createClient } from "@/utils/supabase/server";
 
@@ -43,6 +44,34 @@ type RequestBody = {
   text?: unknown;
   message?: unknown;
 };
+
+const WA_SEND_LOG = "[WA_SEND]";
+
+function logSendRouteFailure(args: {
+  workspaceId: string;
+  conversationId: string;
+  messageId: string;
+  channel: MessageChannel;
+  error: unknown;
+}) {
+  const code = getMessagingErrorCode(args.error);
+  const message = getMessagingErrorMessage(args.error);
+  const evolution = getEvolutionErrorDetails(args.error);
+
+  console.error(`${WA_SEND_LOG} API send failed`, {
+    workspaceId: args.workspaceId,
+    conversationId: args.conversationId || undefined,
+    messageId: args.messageId || undefined,
+    channel: args.channel,
+    code,
+    message,
+    evolutionEndpoint: evolution.evolutionEndpoint,
+    evolutionStatus: evolution.evolutionStatus,
+    evolutionResponseBody: evolution.evolutionResponseBody,
+    evolutionErrorMessage: evolution.evolutionErrorMessage,
+    disconnected: evolution.disconnected,
+  });
+}
 
 function jsonError(code: string, message: string) {
   return NextResponse.json(
@@ -138,6 +167,14 @@ export async function handleSendMessageRequest(
     });
   } catch (error) {
     const code = getMessagingErrorCode(error);
+
+    logSendRouteFailure({
+      workspaceId: profile.organization_id,
+      conversationId,
+      messageId,
+      channel,
+      error,
+    });
 
     if (code === "unknown") {
       console.error("Messaging send request failed", error);

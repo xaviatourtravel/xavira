@@ -6,3 +6,6 @@ export const WHATSAPP_SERVICE_UNAVAILABLE_MESSAGE =
 
 export const WHATSAPP_CONNECT_FAILED_MESSAGE =
   "Gagal menghubungkan WhatsApp. Silakan coba lagi.";
+
+export const WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE =
+  "WhatsApp instance disconnected. Please reconnect WhatsApp in Settings.";

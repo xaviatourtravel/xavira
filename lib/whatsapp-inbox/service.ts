@@ -2,6 +2,8 @@ import {
   insertWorkspaceAssignmentEvent,
 } from "@/lib/workspace/assignment-events";
 import { parseOmnichannelConversationStatus } from "@/lib/omnichannel-inbox/constants";
+import { parseWhatsappManualAiState } from "@/lib/whatsapp-inbox/ai/constants";
+import { aiOwnershipService } from "@/lib/whatsapp-inbox/ai/ownership-service";
 import {
   findWhatsappConversationById,
   insertWhatsappConversationNote,
@@ -88,6 +90,35 @@ export async function updateWhatsappConversationStatus(
     workspaceId,
     conversationId,
     { status: parsedStatus },
+  );
+}
+
+export async function updateWhatsappConversationAiState(
+  supabase: WhatsappSupabaseClient,
+  workspaceId: string,
+  conversationId: string,
+  aiState: string,
+  options: {
+    handoffReason?: string | null;
+    userId?: string | null;
+  } = {},
+) {
+  const parsedState = parseWhatsappManualAiState(aiState);
+
+  if (!parsedState) {
+    throw new WhatsappInboxError("Status AI conversation tidak valid.");
+  }
+
+  return aiOwnershipService.updateConversationAIState(
+    supabase,
+    workspaceId,
+    conversationId,
+    parsedState,
+    {
+      handoffReason: options.handoffReason,
+      changedBy: "user",
+      userId: options.userId ?? null,
+    },
   );
 }
 

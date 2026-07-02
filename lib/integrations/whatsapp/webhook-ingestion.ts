@@ -14,6 +14,8 @@ import {
   updateWhatsappConversationById,
   type WhatsappSupabaseClient,
 } from "@/lib/whatsapp-inbox/repository";
+import { DEFAULT_WHATSAPP_AI_STATE } from "@/lib/whatsapp-inbox/ai-state";
+import { scheduleWhatsappAiMessagePipeline } from "@/lib/whatsapp-inbox/ai/message-pipeline";
 import { scheduleWhatsappProfilePictureSync } from "@/lib/whatsapp-inbox/profile-picture";
 import type { Json } from "@/types/database";
 
@@ -168,6 +170,7 @@ export async function ingestWhatsAppIncomingMessages(
         phone_number: message.phoneNumber,
         contact_name: message.pushName?.trim() || null,
         customer_id: customerId,
+        ai_state: DEFAULT_WHATSAPP_AI_STATE,
       });
 
       scheduleWhatsappProfilePictureSync(
@@ -243,7 +246,7 @@ export async function ingestWhatsAppIncomingMessages(
       }
     }
 
-    await insertWhatsappMessage(supabase, {
+    const insertedMessage = await insertWhatsappMessage(supabase, {
       conversation_id: conversation.id,
       direction: message.direction,
       message_type: message.messageType,
@@ -251,6 +254,7 @@ export async function ingestWhatsAppIncomingMessages(
       media_url: message.mediaUrl,
       // Pesan keluar dari perangkat sudah terkirim oleh WhatsApp.
       status: message.direction === "outgoing" ? "sent" : "received",
+      sender_type: message.direction === "incoming" ? "customer" : "human",
       timestamp: message.timestamp,
       raw_payload: message.rawPayload as Json,
       external_message_id: message.externalMessageId,
@@ -263,6 +267,15 @@ export async function ingestWhatsAppIncomingMessages(
       phoneNumber: message.phoneNumber,
       displayName: getDisplayName(message),
     });
+
+    if (message.direction === "incoming" && message.messageText?.trim()) {
+      scheduleWhatsappAiMessagePipeline(
+        supabase,
+        workspaceId,
+        conversation.id,
+        insertedMessage.id,
+      );
+    }
   }
 
   return result;

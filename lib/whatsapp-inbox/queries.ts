@@ -18,6 +18,7 @@ import {
   findWhatsappMessagesByConversationId,
   type WhatsappSupabaseClient,
 } from "@/lib/whatsapp-inbox/repository";
+import { formatWhatsappAiStateLabel } from "@/lib/whatsapp-inbox/ai-state";
 import { resolveWhatsappContactDisplay } from "@/lib/whatsapp-inbox/display";
 import {
   scheduleStaleWhatsappProfilePictureSyncs,
@@ -74,6 +75,9 @@ function mapWhatsappConversationToListItem(
     labels: [],
     createdAt: conversation.created_at,
     updatedAt: conversation.updated_at,
+    aiState: conversation.ai_state,
+    aiStateLabel: formatWhatsappAiStateLabel(conversation.ai_state),
+    aiHandoffReason: conversation.ai_handoff_reason,
   };
 }
 

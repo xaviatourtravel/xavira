@@ -10,6 +10,7 @@ export type OrganizationWorkspaceSettings = {
   logoUrl: string | null;
   ai: {
     autoReplyEnabled: boolean;
+    humanReplyCooldownEnabled: boolean;
     responseMode: AiResponseMode;
     tone: AiTone;
     knowledgeBaseEnabled: boolean;
@@ -38,6 +39,7 @@ export const DEFAULT_ORGANIZATION_WORKSPACE_SETTINGS: OrganizationWorkspaceSetti
     logoUrl: null,
     ai: {
       autoReplyEnabled: false,
+      humanReplyCooldownEnabled: true,
       responseMode: "manual_assist",
       tone: "professional",
       knowledgeBaseEnabled: true,
@@ -103,6 +105,10 @@ export function parseOrganizationWorkspaceSettings(
       autoReplyEnabled: readBoolean(
         ai.autoReplyEnabled,
         DEFAULT_ORGANIZATION_WORKSPACE_SETTINGS.ai.autoReplyEnabled,
+      ),
+      humanReplyCooldownEnabled: readBoolean(
+        ai.humanReplyCooldownEnabled,
+        DEFAULT_ORGANIZATION_WORKSPACE_SETTINGS.ai.humanReplyCooldownEnabled,
       ),
       responseMode:
         ai.responseMode === "suggested_reply" || ai.responseMode === "auto_reply"

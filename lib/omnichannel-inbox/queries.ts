@@ -51,6 +51,10 @@ export type OmnichannelConversationListItem = {
   labels: ConversationLabel[];
   createdAt: string;
   updatedAt: string;
+  /** WhatsApp-only AI ownership state */
+  aiState?: string | null;
+  aiStateLabel?: string | null;
+  aiHandoffReason?: string | null;
 };
 
 export type OmnichannelConversationNote = ConversationNoteRow & {

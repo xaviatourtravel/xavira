@@ -12,9 +12,9 @@ import {
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
+import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
 import {
   formatInboxMessageTime,
-  formatInboxRelativeTime,
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelStatusBadge } from "@/components/omnichannel-inbox/status-badge";
@@ -177,7 +177,11 @@ export const ConversationDetailsSidebar = forwardRef<
               <OmnichannelStatusBadge status={conversation.status} />
             </div>
             <p className="text-xs text-muted-foreground">
-              Last active {formatInboxRelativeTime(conversation.lastMessageAt)}
+              Last active{" "}
+              <ClientOnlyRelativeTime
+                date={conversation.lastMessageAt}
+                className="min-w-[72px] text-xs"
+              />
             </p>
           </section>
 

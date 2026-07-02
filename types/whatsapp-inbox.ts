@@ -1,6 +1,17 @@
 import type { Json } from "@/types/database";
 import type { OmnichannelConversationStatus } from "@/types/omnichannel-inbox";
 
+export type WhatsappAiState =
+  | "AI_ACTIVE"
+  | "READY_FOR_HUMAN"
+  | "HUMAN_ASSISTED"
+  | "HUMAN_ONLY";
+
+/** @deprecated Use WhatsappAiState */
+export type WhatsappAiOwnership = WhatsappAiState;
+
+export type WhatsappMessageSenderType = "human" | "ai" | "customer";
+
 export type WhatsappMessageDirection = "incoming" | "outgoing";
 
 export type WhatsappConversationRow = {
@@ -14,6 +25,9 @@ export type WhatsappConversationRow = {
   customer_id: string | null;
   status: OmnichannelConversationStatus;
   assigned_user_id: string | null;
+  ai_state: WhatsappAiState;
+  ai_handoff_reason: string | null;
+  ai_last_action_at: string | null;
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
@@ -45,6 +59,9 @@ export type WhatsappConversationInsert = {
   profile_picture_url?: string | null;
   profile_picture_updated_at?: string | null;
   customer_id?: string | null;
+  ai_state?: WhatsappAiState;
+  ai_handoff_reason?: string | null;
+  ai_last_action_at?: string | null;
   last_message?: string | null;
   last_message_at?: string | null;
   unread_count?: number;
@@ -57,6 +74,9 @@ export type WhatsappConversationUpdate = {
   customer_id?: string | null;
   status?: OmnichannelConversationStatus;
   assigned_user_id?: string | null;
+  ai_state?: WhatsappAiState;
+  ai_handoff_reason?: string | null;
+  ai_last_action_at?: string | null;
   last_message?: string | null;
   last_message_at?: string | null;
   unread_count?: number;
@@ -73,6 +93,7 @@ export type WhatsappMessageRow = {
   timestamp: string;
   raw_payload: Json;
   external_message_id: string | null;
+  sender_type: WhatsappMessageSenderType | null;
   created_at: string;
 };
 
@@ -87,6 +108,7 @@ export type WhatsappMessageInsert = {
   timestamp: string;
   raw_payload?: Json;
   external_message_id?: string | null;
+  sender_type?: WhatsappMessageSenderType | null;
 };
 
 /** Domain aliases requested in product spec */

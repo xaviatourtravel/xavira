@@ -29,6 +29,9 @@ const CONVERSATION_COLUMNS = `
   customer_id,
   status,
   assigned_user_id,
+  ai_state,
+  ai_handoff_reason,
+  ai_last_action_at,
   last_message,
   last_message_at,
   unread_count,
@@ -68,6 +71,7 @@ const MESSAGE_COLUMNS = `
   timestamp,
   raw_payload,
   external_message_id,
+  sender_type,
   created_at
 `;
 
@@ -210,6 +214,92 @@ export async function findWhatsappMessagesByConversationId(
   }
 
   return (data ?? []) as WhatsappMessageRow[];
+}
+
+export async function findWhatsappMessageById(
+  supabase: WhatsappSupabaseClient,
+  messageId: string,
+) {
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select(MESSAGE_COLUMNS)
+    .eq("id", messageId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as WhatsappMessageRow | null) ?? null;
+}
+
+export async function updateWhatsappMessageById(
+  supabase: WhatsappSupabaseClient,
+  messageId: string,
+  input: {
+    status?: string | null;
+    external_message_id?: string | null;
+    timestamp?: string;
+  },
+) {
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .update(input)
+    .eq("id", messageId)
+    .select(MESSAGE_COLUMNS)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as WhatsappMessageRow;
+}
+
+export async function hasRecentAiOutgoingWhatsappMessage(
+  supabase: WhatsappSupabaseClient,
+  conversationId: string,
+  withinMs: number,
+) {
+  const cutoff = new Date(Date.now() - withinMs).toISOString();
+
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outgoing")
+    .eq("sender_type", "ai")
+    .gte("timestamp", cutoff)
+    .limit(1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data?.length ?? 0) > 0;
+}
+
+export async function hasRecentHumanOutgoingWhatsappMessage(
+  supabase: WhatsappSupabaseClient,
+  conversationId: string,
+  withinMs: number,
+) {
+  const cutoff = new Date(Date.now() - withinMs).toISOString();
+
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outgoing")
+    .eq("sender_type", "human")
+    .gte("timestamp", cutoff)
+    .limit(1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data?.length ?? 0) > 0;
 }
 
 export async function findWhatsappMessageByExternalId(

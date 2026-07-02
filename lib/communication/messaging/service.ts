@@ -10,7 +10,10 @@ import {
 import {
   EvolutionConnectError,
   EvolutionServiceUnavailableError,
+  getEvolutionErrorDetails,
+  isEvolutionDisconnectedError,
 } from "@/lib/integrations/whatsapp/evolution-client";
+import { WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE } from "@/lib/integrations/whatsapp/constants";
 import type { Profile } from "@/types/app-types";
 
 // Helper draft adalah bagian dari permukaan Messaging Service. Keduanya
@@ -54,8 +57,22 @@ function toMessagingError(error: unknown): MessagingError {
   if (error instanceof EvolutionConnectError) {
     return new MessagingError(
       "instance_disconnected",
-      "Nomor WhatsApp terputus. Hubungkan ulang di Pengaturan.",
+      WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE,
     );
+  }
+
+  if (error instanceof Error) {
+    const requestPayload =
+      "payload" in error
+        ? (error as { payload?: unknown }).payload
+        : undefined;
+
+    if (isEvolutionDisconnectedError(error.message, requestPayload)) {
+      return new MessagingError(
+        "instance_disconnected",
+        WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE,
+      );
+    }
   }
 
   return new MessagingError(

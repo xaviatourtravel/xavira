@@ -22,7 +22,7 @@ import type { Profile } from "@/types/app-types";
 import type { WhatsappMessageRow } from "@/types/whatsapp-inbox";
 
 const MESSAGE_SELECT =
-  "id, conversation_id, direction, message_type, text, media_url, status, timestamp, raw_payload, external_message_id, created_at";
+  "id, conversation_id, direction, message_type, text, media_url, status, timestamp, raw_payload, external_message_id, sender_type, created_at";
 
 function mapMessage(row: WhatsappMessageRow): EngineMessage {
   return {
@@ -82,6 +82,7 @@ export const whatsAppConversationGateway: ConversationGateway = {
       message_type: "text",
       text,
       status: MESSAGE_STATUS.sending,
+      sender_type: "human",
       timestamp: new Date().toISOString(),
       raw_payload: {},
     });

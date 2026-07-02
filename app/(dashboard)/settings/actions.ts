@@ -7,6 +7,7 @@ import { requireProfile } from "@/lib/auth/session";
 import { auditFromProfile } from "@/lib/audit";
 import {
   mergeOrganizationWorkspaceSettings,
+  parseOrganizationWorkspaceSettings,
   type AiTone,
   type OrganizationWorkspaceSettings,
 } from "@/lib/settings/organization-settings";
@@ -113,6 +114,9 @@ export async function saveAiSettings(
 
   const aiPatch: OrganizationWorkspaceSettings["ai"] = {
     autoReplyEnabled: getBoolean(formData, "autoReplyEnabled"),
+    humanReplyCooldownEnabled:
+      parseOrganizationWorkspaceSettings(organizationRow.settings).ai
+        .humanReplyCooldownEnabled,
     responseMode:
       responseMode === "suggested_reply" || responseMode === "auto_reply"
         ? responseMode
@@ -148,6 +152,7 @@ export async function saveAiSettings(
       response_mode: aiPatch.responseMode,
       tone: aiPatch.tone,
       auto_reply_enabled: aiPatch.autoReplyEnabled,
+      human_reply_cooldown_enabled: aiPatch.humanReplyCooldownEnabled,
       knowledge_base_enabled: aiPatch.knowledgeBaseEnabled,
     },
   });

@@ -115,9 +115,12 @@ export async function updateWhatsappConversationAiState(
     conversationId,
     parsedState,
     {
-      handoffReason: options.handoffReason,
+      handoffReason:
+        options.handoffReason ??
+        (parsedState === "READY_FOR_HUMAN" ? "Marked ready for human" : null),
       changedBy: "user",
       userId: options.userId ?? null,
+      source: "manual_ui",
     },
   );
 }

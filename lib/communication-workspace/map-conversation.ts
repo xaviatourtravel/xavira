@@ -86,6 +86,17 @@ function buildConversationTimeline(
     });
   }
 
+  for (const event of conversation.aiActivityEvents ?? []) {
+    items.push({
+      id: `ai-event-${event.id}`,
+      label: event.label,
+      detail: event.detail,
+      timestamp: event.timestamp,
+      channel: conversation.channel,
+      tone: "activity",
+    });
+  }
+
   if (conversation.leadContext?.timeline) {
     for (const entry of conversation.leadContext.timeline) {
       if (

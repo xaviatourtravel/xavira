@@ -20,6 +20,11 @@ import {
   loadWhatsappConversationDetail,
   loadWhatsappConversationList,
 } from "@/lib/whatsapp-inbox/queries";
+import {
+  getAiStateForInboxFilter,
+  isWhatsappAiInboxFilter,
+  sortReadyForHumanConversations,
+} from "@/lib/omnichannel-inbox/inbox-ai-filters";
 import { createClient } from "@/utils/supabase/server";
 
 function sortConversationsByLastMessage(
@@ -59,6 +64,37 @@ async function loadMergedConversationLists(
   activeFilter: ReturnType<typeof parseOmnichannelInboxFilter>,
 ) {
   const whatsappFilter = buildWhatsappListFilter(activeFilter, currentUserId);
+
+  if (isWhatsappAiInboxFilter(activeFilter)) {
+    const aiState = getAiStateForInboxFilter(activeFilter);
+    const [omnichannelAll, whatsappAll, filteredWhatsapp] = await Promise.all([
+      loadOmnichannelConversationList(
+        supabase,
+        organizationId,
+        "all",
+        currentUserId,
+      ),
+      loadWhatsappConversationList(supabase, organizationId, {}),
+      loadWhatsappConversationList(supabase, organizationId, { aiState }),
+    ]);
+
+    const omnichannelWithoutWhatsapp = omnichannelAll.filter(
+      (conversation) => conversation.channel !== "whatsapp",
+    );
+    const mergedAll = sortConversationsByLastMessage([
+      ...whatsappAll,
+      ...omnichannelWithoutWhatsapp,
+    ]);
+    const conversations =
+      activeFilter === "ready_for_human"
+        ? sortReadyForHumanConversations(filteredWhatsapp)
+        : sortConversationsByLastMessage(filteredWhatsapp);
+
+    return {
+      conversations,
+      allConversations: mergedAll,
+    };
+  }
 
   if (activeFilter === "whatsapp") {
     const whatsappConversations = await loadWhatsappConversationList(

@@ -456,6 +456,467 @@ export type Database = {
           },
         ]
       }
+      business_brains: {
+        Row: {
+          created_at: string
+          draft_updated_at: string
+          id: string
+          organization_id: string
+          published_at: string | null
+          published_by: string | null
+          published_version_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          draft_updated_at?: string
+          id?: string
+          organization_id: string
+          published_at?: string | null
+          published_by?: string | null
+          published_version_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          draft_updated_at?: string
+          id?: string
+          organization_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          published_version_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_brains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_brains_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_brains_published_version_id_fkey"
+            columns: ["published_version_id"]
+            isOneToOne: false
+            referencedRelation: "brain_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_versions: {
+        Row: {
+          business_brain_id: string
+          created_at: string
+          id: string
+          published_at: string
+          published_by: string | null
+          snapshot: Json
+          status: string
+          version_number: number
+        }
+        Insert: {
+          business_brain_id: string
+          created_at?: string
+          id?: string
+          published_at?: string
+          published_by?: string | null
+          snapshot?: Json
+          status?: string
+          version_number: number
+        }
+        Update: {
+          business_brain_id?: string
+          created_at?: string
+          id?: string
+          published_at?: string
+          published_by?: string | null
+          snapshot?: Json
+          status?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_versions_business_brain_id_fkey"
+            columns: ["business_brain_id"]
+            isOneToOne: false
+            referencedRelation: "business_brains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brain_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_articles: {
+        Row: {
+          ai_metadata: Json
+          business_brain_id: string
+          category: string
+          content: string
+          created_at: string
+          id: string
+          keywords: Json
+          status: string
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          ai_metadata?: Json
+          business_brain_id: string
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          keywords?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          ai_metadata?: Json
+          business_brain_id?: string
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          keywords?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_articles_business_brain_id_fkey"
+            columns: ["business_brain_id"]
+            isOneToOne: false
+            referencedRelation: "business_brains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_article_products: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_article_products_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "brain_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brain_article_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "brain_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_behaviors: {
+        Row: {
+          business_brain_id: string
+          config: Json
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          business_brain_id: string
+          config?: Json
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          business_brain_id?: string
+          config?: Json
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_behaviors_business_brain_id_fkey"
+            columns: ["business_brain_id"]
+            isOneToOne: false
+            referencedRelation: "business_brains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_document_articles: {
+        Row: {
+          article_id: string
+          created_at: string
+          document_id: string
+          id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          document_id: string
+          id?: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_document_articles_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "brain_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brain_document_articles_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "brain_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_document_products: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_document_products_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "brain_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brain_document_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "brain_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_document_triggers: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          trigger_key: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          trigger_key: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          trigger_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_document_triggers_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "brain_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_documents: {
+        Row: {
+          ai_notes: string
+          auto_send_enabled: boolean
+          business_brain_id: string
+          created_at: string
+          description: string
+          document_type: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          name: string
+          public_url: string | null
+          status: string
+          storage_path: string | null
+          tags: Json
+          updated_at: string
+        }
+        Insert: {
+          ai_notes?: string
+          auto_send_enabled?: boolean
+          business_brain_id: string
+          created_at?: string
+          description?: string
+          document_type?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          public_url?: string | null
+          status?: string
+          storage_path?: string | null
+          tags?: Json
+          updated_at?: string
+        }
+        Update: {
+          ai_notes?: string
+          auto_send_enabled?: boolean
+          business_brain_id?: string
+          created_at?: string
+          description?: string
+          document_type?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          public_url?: string | null
+          status?: string
+          storage_path?: string | null
+          tags?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_documents_business_brain_id_fkey"
+            columns: ["business_brain_id"]
+            isOneToOne: false
+            referencedRelation: "business_brains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_products: {
+        Row: {
+          ai_notes: string
+          business_brain_id: string
+          category: string
+          created_at: string
+          departures: Json
+          description: string
+          destination: string
+          excluded: Json
+          highlights: Json
+          id: string
+          included: Json
+          name: string
+          pricing: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_notes?: string
+          business_brain_id: string
+          category?: string
+          created_at?: string
+          departures?: Json
+          description?: string
+          destination?: string
+          excluded?: Json
+          highlights?: Json
+          id?: string
+          included?: Json
+          name?: string
+          pricing?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_notes?: string
+          business_brain_id?: string
+          category?: string
+          created_at?: string
+          departures?: Json
+          description?: string
+          destination?: string
+          excluded?: Json
+          highlights?: Json
+          id?: string
+          included?: Json
+          name?: string
+          pricing?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_products_business_brain_id_fkey"
+            columns: ["business_brain_id"]
+            isOneToOne: false
+            referencedRelation: "business_brains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_leads: {
         Row: {
           campaign_id: string
@@ -808,6 +1269,142 @@ export type Database = {
           },
         ]
       }
+      company_dna: {
+        Row: {
+          about: string
+          ai_goals: Json
+          brand_personality: Json
+          business_brain_id: string
+          communication_style: Json
+          company_name: string
+          created_at: string
+          id: string
+          industry: string
+          never_rules: Json
+          sales_style: string
+          updated_at: string
+          website: string
+        }
+        Insert: {
+          about?: string
+          ai_goals?: Json
+          brand_personality?: Json
+          business_brain_id: string
+          communication_style?: Json
+          company_name?: string
+          created_at?: string
+          id?: string
+          industry?: string
+          never_rules?: Json
+          sales_style?: string
+          updated_at?: string
+          website?: string
+        }
+        Update: {
+          about?: string
+          ai_goals?: Json
+          brand_personality?: Json
+          business_brain_id?: string
+          communication_style?: Json
+          company_name?: string
+          created_at?: string
+          id?: string
+          industry?: string
+          never_rules?: Json
+          sales_style?: string
+          updated_at?: string
+          website?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_dna_business_brain_id_fkey"
+            columns: ["business_brain_id"]
+            isOneToOne: true
+            referencedRelation: "business_brains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          file_name: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          mime_type: string | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          file_name?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          file_name?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "brain_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_faq_links: {
+        Row: {
+          created_at: string
+          id: string
+          knowledge_entry_id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          knowledge_entry_id: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          knowledge_entry_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_faq_links_knowledge_entry_id_fkey"
+            columns: ["knowledge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_faq_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "brain_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_notes: {
         Row: {
           conversation_id: string
@@ -947,6 +1544,10 @@ export type Database = {
       }
       whatsapp_conversations: {
         Row: {
+          ai_handoff_reason: string | null
+          ai_last_action_at: string | null
+          ai_state: string
+          assigned_user_id: string | null
           contact_name: string | null
           created_at: string
           customer_id: string | null
@@ -957,11 +1558,16 @@ export type Database = {
           phone_number: string
           profile_picture_url: string | null
           profile_picture_updated_at: string | null
+          status: string
           unread_count: number
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          ai_handoff_reason?: string | null
+          ai_last_action_at?: string | null
+          ai_state?: string
+          assigned_user_id?: string | null
           contact_name?: string | null
           created_at?: string
           customer_id?: string | null
@@ -972,11 +1578,16 @@ export type Database = {
           phone_number: string
           profile_picture_url?: string | null
           profile_picture_updated_at?: string | null
+          status?: string
           unread_count?: number
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          ai_handoff_reason?: string | null
+          ai_last_action_at?: string | null
+          ai_state?: string
+          assigned_user_id?: string | null
           contact_name?: string | null
           created_at?: string
           customer_id?: string | null
@@ -987,6 +1598,7 @@ export type Database = {
           phone_number?: string
           profile_picture_url?: string | null
           profile_picture_updated_at?: string | null
+          status?: string
           unread_count?: number
           updated_at?: string
           workspace_id?: string

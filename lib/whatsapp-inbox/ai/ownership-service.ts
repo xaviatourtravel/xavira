@@ -70,7 +70,7 @@ export const aiOwnershipService = {
     if (state === "READY_FOR_HUMAN") {
       patch.ai_handoff_reason =
         options.handoffReason?.trim() || "Dialihkan ke tim";
-    } else if (state === "AI_ACTIVE") {
+    } else {
       patch.ai_handoff_reason = null;
     }
 
@@ -89,14 +89,21 @@ export const aiOwnershipService = {
       nextState: state,
       reason: options.handoffReason ?? null,
       metadata: {
+        previousState,
+        nextState: state,
         changedBy: options.changedBy ?? "system",
         userId: options.userId ?? null,
+        source: options.source ?? "system",
       },
     });
 
     return updated;
   },
 
+  /**
+   * Auto-reply is allowed only when conversation.ai_state === "AI_ACTIVE".
+   * Workspace settings, cooldowns, and recent human replies do not override this.
+   */
   async shouldAutoReply(
     supabase: WhatsappSupabaseClient,
     workspaceId: string,

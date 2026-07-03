@@ -19,6 +19,11 @@ import {
   type WhatsappSupabaseClient,
 } from "@/lib/whatsapp-inbox/repository";
 import { formatWhatsappAiStateLabel } from "@/lib/whatsapp-inbox/ai-state";
+import { loadWhatsappAiActivityEvents } from "@/lib/whatsapp-inbox/ai/activity-events";
+import { leadQualificationService } from "@/modules/ai/services/lead-qualification-service";
+import { memoryService } from "@/modules/ai/services/memory-service";
+import { loadRecommendedDocuments } from "@/modules/inbox/lib/load-recommended-documents";
+import { loadConversationAiActions } from "@/modules/inbox/lib/load-ai-actions";
 import { resolveWhatsappContactDisplay } from "@/lib/whatsapp-inbox/display";
 import {
   scheduleStaleWhatsappProfilePictureSyncs,
@@ -46,6 +51,7 @@ function mapWhatsappMessageToOmnichannelMessage(
     sent_by_user_id: null,
     created_at: message.timestamp,
     deliveryStatus: getWhatsappMessageDeliveryStatus(message),
+    senderType: message.sender_type,
   };
 }
 
@@ -78,6 +84,7 @@ function mapWhatsappConversationToListItem(
     aiState: conversation.ai_state,
     aiStateLabel: formatWhatsappAiStateLabel(conversation.ai_state),
     aiHandoffReason: conversation.ai_handoff_reason,
+    aiLastActionAt: conversation.ai_last_action_at,
   };
 }
 
@@ -120,6 +127,7 @@ export async function loadWhatsappConversationList(
   filter?: {
     assignedUserId?: string;
     unassignedOnly?: boolean;
+    aiState?: string;
   },
 ): Promise<OmnichannelConversationListItem[]> {
   const conversations = await findWhatsappConversations(
@@ -170,7 +178,16 @@ export async function loadWhatsappConversationDetail(
     }
   }
 
-  const [messages, notes, tags, assignmentHistory] = await Promise.all([
+  const [
+    messages,
+    notes,
+    tags,
+    assignmentHistory,
+    aiActivityEvents,
+    leadQualification,
+    conversationMemory,
+    aiActions,
+  ] = await Promise.all([
     findWhatsappMessagesByConversationId(supabase, conversationId),
     loadWhatsappConversationNotesWithAuthors(
       supabase,
@@ -179,7 +196,17 @@ export async function loadWhatsappConversationDetail(
     ),
     findWhatsappConversationTagsByConversationId(supabase, conversationId),
     loadWorkspaceAssignmentHistory(supabase, workspaceId, conversationId),
+    loadWhatsappAiActivityEvents(supabase, conversationId),
+    leadQualificationService.getQualification(supabase, conversationId),
+    memoryService.getMemory(supabase, conversationId),
+    loadConversationAiActions(supabase, conversationId),
   ]);
+
+  const recommendedDocuments = await loadRecommendedDocuments(
+    supabase,
+    workspaceId,
+    { leadQualification, conversationMemory },
+  );
 
   const labels: ConversationLabel[] = tags.map((tag) => ({
     tag: tag.tag,
@@ -201,6 +228,11 @@ export async function loadWhatsappConversationDetail(
     ),
     notes,
     assignmentHistory,
+    aiActivityEvents,
+    leadQualification,
+    conversationMemory,
+    recommendedDocuments,
+    aiActions,
     leadContext: null as OmnichannelConversationDetail["leadContext"],
   };
 

@@ -600,6 +600,96 @@ export async function sendWhatsAppTextMessage(
   }
 }
 
+export type WhatsAppMediaType = "image" | "video" | "document";
+
+export type SendWhatsAppMediaInput = {
+  phoneNumber: string;
+  mediaUrl: string;
+  mediatype: WhatsAppMediaType;
+  mimetype: string;
+  fileName: string;
+  caption?: string;
+  instanceName?: string;
+};
+
+function ensureFileExtension(fileName: string, mimetype: string): string {
+  const trimmed = fileName.trim() || "document";
+  if (/\.[a-z0-9]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (mimetype === "application/pdf") return `${trimmed}.pdf`;
+  if (mimetype.startsWith("image/")) {
+    const ext = mimetype.split("/")[1] || "jpg";
+    return `${trimmed}.${ext}`;
+  }
+  if (mimetype.startsWith("video/")) {
+    const ext = mimetype.split("/")[1] || "mp4";
+    return `${trimmed}.${ext}`;
+  }
+
+  return trimmed;
+}
+
+export async function sendWhatsAppMedia(
+  input: SendWhatsAppMediaInput,
+  instanceName = input.instanceName ?? getEvolutionConfig().instanceName,
+) {
+  const normalizedNumber = normalizeWhatsappPhoneDigits(input.phoneNumber);
+
+  if (!normalizedNumber) {
+    throw new Error("Nomor WhatsApp tidak valid.");
+  }
+
+  if (!input.mediaUrl.trim()) {
+    throw new Error("Media URL tidak valid.");
+  }
+
+  const endpoint = `/message/sendMedia/${encodeURIComponent(instanceName)}`;
+  const fileName = ensureFileExtension(input.fileName, input.mimetype);
+  const body: Record<string, string> = {
+    number: normalizedNumber,
+    mediatype: input.mediatype,
+    mimetype: input.mimetype,
+    media: input.mediaUrl.trim(),
+    fileName,
+  };
+
+  if (input.caption?.trim()) {
+    body.caption = input.caption.trim();
+  }
+
+  try {
+    const payload = await evolutionRequest<{ key?: { id?: string } }>(
+      endpoint,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    );
+
+    return {
+      messageId: payload.key?.id?.trim() || null,
+      fileName,
+    };
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "status" in error &&
+      !(error instanceof EvolutionConnectError) &&
+      isEvolutionDisconnectedError(error.message, (error as EvolutionRequestError).payload)
+    ) {
+      throw new EvolutionConnectError(WHATSAPP_INSTANCE_DISCONNECTED_MESSAGE, {
+        endpoint,
+        status: (error as EvolutionRequestError).status,
+        payload: (error as EvolutionRequestError).payload,
+      });
+    }
+
+    throw error;
+  }
+}
+
 const WA_AVATAR_SYNC_LOG = "[WA_AVATAR_SYNC]";
 
 function logWaAvatarSync(

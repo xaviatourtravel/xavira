@@ -120,6 +120,26 @@ function WorkspaceNavSection({
       {expanded ? (
         <ul className="ml-4 space-y-0.5 border-l border-border pl-3">
           {workspace.items.map((item) => {
+            if (item.comingSoon) {
+              return (
+                <li key={item.title}>
+                  <span
+                    className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground/70"
+                    title="Coming soon"
+                  >
+                    <span>{item.title}</span>
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Soon
+                    </span>
+                  </span>
+                </li>
+              );
+            }
+
+            if (!item.href) {
+              return null;
+            }
+
             const childActive = isChildNavActive(pathname, searchParams, item.href);
 
             return (

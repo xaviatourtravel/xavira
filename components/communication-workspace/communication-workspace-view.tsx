@@ -130,7 +130,7 @@ export function CommunicationWorkspaceView({
 
   useEffect(() => {
     setLiveDetail(detail);
-  }, [detail?.id, detail?.customerAvatar]);
+  }, [detail]);
 
   const handleAvatarUpdated = useCallback(
     (conversationId: string, profilePictureUrl: string | null) => {

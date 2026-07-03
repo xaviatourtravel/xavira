@@ -4,6 +4,7 @@ import type { Database } from "@/types/database";
 import type { Profile } from "@/types/app-types";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { getFollowUpTodayBounds } from "@/lib/follow-ups/list-filters";
+import { QUALIFICATION_HANDOFF_REASON } from "@/modules/ai/types/lead-qualification";
 import { buildDerivedTaskId } from "@/lib/tasks/map-task-row";
 import type { WorkspaceTask } from "@/lib/tasks/types";
 
@@ -71,6 +72,51 @@ function buildConversationTask(
             },
           ]
         : []),
+    ],
+    primaryAction: { kind: "reply", href, label: "Reply" },
+    assignedTo: null,
+  };
+}
+
+function buildQualifiedLeadHandoffTask(
+  conversation: {
+    id: string;
+    contact_name: string | null;
+    phone_number: string;
+    last_message_at: string | null;
+    customer_id: string | null;
+  },
+): WorkspaceTask {
+  const customerName =
+    conversation.contact_name?.trim() ||
+    conversation.phone_number?.trim() ||
+    "Customer";
+  const href = `/inbox?filter=whatsapp&c=${conversation.id}`;
+
+  return {
+    id: buildDerivedTaskId("take_over_qualified_lead", conversation.id),
+    isDerived: true,
+    title: `Take over ${customerName}`,
+    description:
+      "Lead qualification is complete. Review details and continue the offer.",
+    taskType: "take_over_qualified_lead",
+    status: "open",
+    priority: "urgent",
+    dueAt: conversation.last_message_at,
+    customerName,
+    customerId: conversation.customer_id,
+    leadId: conversation.customer_id,
+    conversationId: conversation.id,
+    bookingId: null,
+    paymentId: null,
+    participantId: null,
+    sourceLinks: [
+      {
+        type: "conversation",
+        id: conversation.id,
+        label: "Conversation",
+        href,
+      },
     ],
     primaryAction: { kind: "reply", href, label: "Reply" },
     assignedTo: null,
@@ -321,22 +367,45 @@ export async function deriveWorkspaceTasks(
     .neq("bookings.booking_status", "cancelled")
     .limit(30);
 
+  let qualifiedHandoffQuery = supabase
+    .from("whatsapp_conversations")
+    .select(
+      "id, contact_name, phone_number, last_message_at, customer_id, assigned_user_id",
+    )
+    .eq("workspace_id", profile.organization_id)
+    .eq("ai_state", "READY_FOR_HUMAN")
+    .eq("ai_handoff_reason", QUALIFICATION_HANDOFF_REASON)
+    .order("last_message_at", { ascending: false })
+    .limit(10);
+
+  if (!viewAll) {
+    qualifiedHandoffQuery = qualifiedHandoffQuery.or(
+      `assigned_user_id.eq.${profile.id},assigned_user_id.is.null`,
+    );
+  }
+
   const [
     { data: conversations },
     { data: followUps },
     { data: bookings },
     { data: participants },
+    { data: qualifiedHandoffs },
   ] = await Promise.all([
     conversationsQuery,
     followUpsQuery,
     bookingsQuery,
     participantsQuery,
+    qualifiedHandoffQuery,
   ]);
 
   const derived: WorkspaceTask[] = [];
 
   for (const conversation of conversations ?? []) {
     derived.push(buildConversationTask(conversation));
+  }
+
+  for (const conversation of qualifiedHandoffs ?? []) {
+    derived.push(buildQualifiedLeadHandoffTask(conversation));
   }
 
   for (const followUp of followUps ?? []) {

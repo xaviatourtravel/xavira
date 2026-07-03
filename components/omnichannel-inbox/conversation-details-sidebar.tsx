@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 
+import { AiActivityAuditPanel } from "@/components/omnichannel-inbox/ai-activity-audit-panel";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
@@ -367,6 +368,8 @@ export const ConversationDetailsSidebar = forwardRef<
               </p>
             )}
           </section>
+
+          <AiActivityAuditPanel events={conversation.aiActivityEvents ?? []} />
 
           <section className="space-y-2">
             <div className="flex items-center gap-2">

@@ -8,6 +8,7 @@ export const TASK_TYPES = [
   "send_payment_reminder",
   "review_ai_suggestion",
   "resolve_inbox_unread",
+  "take_over_qualified_lead",
   "custom",
 ] as const;
 
@@ -39,6 +40,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   send_payment_reminder: "Payment Reminder",
   review_ai_suggestion: "AI Suggestion",
   resolve_inbox_unread: "Unread Inbox",
+  take_over_qualified_lead: "Take Over Lead",
   custom: "Custom",
 };
 

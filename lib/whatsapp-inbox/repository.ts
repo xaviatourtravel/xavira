@@ -81,6 +81,7 @@ export async function findWhatsappConversations(
   filters: {
     assignedUserId?: string;
     unassignedOnly?: boolean;
+    aiState?: string;
   } = {},
 ) {
   let query = supabase
@@ -91,7 +92,13 @@ export async function findWhatsappConversations(
       assigned_profile:assigned_user_id ( full_name )
     `,
     )
-    .eq("workspace_id", workspaceId)
+    .eq("workspace_id", workspaceId);
+
+  if (filters.aiState) {
+    query = query.eq("ai_state", filters.aiState);
+  }
+
+  query = query
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false });
 

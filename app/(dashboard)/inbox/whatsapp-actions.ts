@@ -37,6 +37,10 @@ import {
   sendWhatsappConversationReply,
 } from "@/lib/whatsapp-inbox/send-reply";
 import { syncWhatsappConversationProfilePicture } from "@/lib/whatsapp-inbox/profile-picture";
+import { sendManualWhatsappDocument } from "@/lib/whatsapp-inbox/ai/document-send-service";
+import { actionEngine } from "@/modules/ai/action-engine";
+import { leadQualificationService } from "@/modules/ai/services/lead-qualification-service";
+import { memoryService } from "@/modules/ai/services/memory-service";
 import { createClient } from "@/utils/supabase/server";
 
 type ActionResult = {
@@ -282,7 +286,11 @@ export async function updateWhatsappConversationAiStateAction(
           ? "AI auto-reply turned on for this chat."
           : aiState === "HUMAN_ONLY"
             ? "AI auto-reply turned off for this chat."
-            : "Status AI conversation diperbarui.",
+            : aiState === "HUMAN_ASSISTED"
+              ? "Chat marked as Human Assisted."
+              : aiState === "READY_FOR_HUMAN"
+                ? "Chat marked Ready for Human."
+                : "Status AI conversation diperbarui.",
     };
   } catch (error) {
     return {
@@ -291,6 +299,265 @@ export async function updateWhatsappConversationAiStateAction(
         error instanceof Error
           ? error.message
           : "Gagal memperbarui status AI conversation.",
+    };
+  }
+}
+
+export async function sendWhatsappDocumentAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const conversationId = getString(formData, "conversation_id");
+  const documentId = getString(formData, "document_id");
+
+  if (!conversationId || !documentId) {
+    return {
+      success: false,
+      message: "Conversation and document are required.",
+    };
+  }
+
+  try {
+    const { profile, supabase, conversation } =
+      await requireWhatsappConversationAccess(conversationId);
+
+    if (
+      !canUpdateOmnichannelConversationStatus(profile, {
+        assigned_user_id: conversation.assigned_user_id,
+      })
+    ) {
+      return {
+        success: false,
+        message: "You do not have permission to send documents here.",
+      };
+    }
+
+    await sendManualWhatsappDocument(supabase, {
+      workspaceId: profile.organization_id,
+      conversation,
+      documentId,
+      sentByUserId: profile.id,
+    });
+
+    revalidateInbox(conversationId);
+    return { success: true, message: "Document sent." };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to send document.",
+    };
+  }
+}
+
+async function buildActionEngineContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  workspaceId: string,
+  conversation: Awaited<
+    ReturnType<typeof requireWhatsappConversationAccess>
+  >["conversation"],
+) {
+  const [leadQualification, conversationMemory] = await Promise.all([
+    leadQualificationService.getQualification(supabase, conversation.id),
+    memoryService.getMemory(supabase, conversation.id),
+  ]);
+
+  return {
+    supabase,
+    workspaceId,
+    conversation,
+    leadQualification,
+    conversationMemory,
+  };
+}
+
+export async function approveWhatsappAiActionAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const conversationId = getString(formData, "conversation_id");
+  const actionId = getString(formData, "action_id");
+
+  if (!conversationId || !actionId) {
+    return {
+      success: false,
+      message: "Conversation and action are required.",
+    };
+  }
+
+  try {
+    const { profile, supabase, conversation } =
+      await requireWhatsappConversationAccess(conversationId);
+
+    if (
+      !canUpdateOmnichannelConversationStatus(profile, {
+        assigned_user_id: conversation.assigned_user_id,
+      })
+    ) {
+      return {
+        success: false,
+        message: "You do not have permission to approve AI actions.",
+      };
+    }
+
+    const context = await buildActionEngineContext(
+      supabase,
+      profile.organization_id,
+      conversation,
+    );
+
+    const result = await actionEngine.approveActionManually(actionId, context, {
+      approvedByUserId: profile.id,
+    });
+
+    revalidateInbox(conversationId);
+
+    if (result.status === "EXECUTED") {
+      return { success: true, message: "Action approved and executed." };
+    }
+
+    if (result.status === "FAILED") {
+      return {
+        success: false,
+        message: result.error ?? "Action approved but execution failed.",
+      };
+    }
+
+    if (result.status === "REJECTED") {
+      return {
+        success: false,
+        message: result.validationReason ?? "Action could not be approved.",
+      };
+    }
+
+    return { success: true, message: "Action approved." };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to approve action.",
+    };
+  }
+}
+
+export async function rejectWhatsappAiActionAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const conversationId = getString(formData, "conversation_id");
+  const actionId = getString(formData, "action_id");
+  const rejectionReason = getString(formData, "rejection_reason");
+
+  if (!conversationId || !actionId) {
+    return {
+      success: false,
+      message: "Conversation and action are required.",
+    };
+  }
+
+  try {
+    const { profile, supabase, conversation } =
+      await requireWhatsappConversationAccess(conversationId);
+
+    if (
+      !canUpdateOmnichannelConversationStatus(profile, {
+        assigned_user_id: conversation.assigned_user_id,
+      })
+    ) {
+      return {
+        success: false,
+        message: "You do not have permission to reject AI actions.",
+      };
+    }
+
+    const context = await buildActionEngineContext(
+      supabase,
+      profile.organization_id,
+      conversation,
+    );
+
+    await actionEngine.rejectActionManually(actionId, context, {
+      rejectionReason: rejectionReason || "Rejected by sales",
+      rejectedByUserId: profile.id,
+    });
+
+    revalidateInbox(conversationId);
+    return { success: true, message: "Action rejected." };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to reject action.",
+    };
+  }
+}
+
+export async function takeOverWhatsappConversationAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const conversationId = getString(formData, "conversation_id");
+
+  if (!conversationId) {
+    return { success: false, message: "Conversation wajib dipilih." };
+  }
+
+  try {
+    const { profile, supabase, conversation } =
+      await requireWhatsappConversationAccess(conversationId);
+
+    if (
+      !canUpdateOmnichannelConversationStatus(profile, {
+        assigned_user_id: conversation.assigned_user_id,
+      })
+    ) {
+      return {
+        success: false,
+        message: "Anda tidak memiliki izin untuk mengambil alih conversation ini.",
+      };
+    }
+
+    await updateWhatsappConversationAiState(
+      supabase,
+      profile.organization_id,
+      conversationId,
+      "HUMAN_ASSISTED",
+      { userId: profile.id },
+    );
+
+    if (!conversation.assigned_user_id) {
+      await assignWhatsappConversation(
+        supabase,
+        profile.organization_id,
+        conversationId,
+        profile.id,
+        profile.id,
+      );
+    }
+
+    await auditFromProfile(supabase, profile, {
+      action: "conversation_status_changed",
+      entityType: "inbox",
+      entityId: conversationId,
+      entityLabel: getWhatsappConversationAuditLabel(conversation),
+      metadata: {
+        from: conversation.ai_state,
+        to: "HUMAN_ASSISTED",
+        channel: "whatsapp",
+        field: "ai_state",
+        action: "sales_takeover",
+        assigned_to: conversation.assigned_user_id ?? profile.id,
+      },
+    });
+
+    revalidateInbox(conversationId);
+    return {
+      success: true,
+      message: "Percakapan berhasil diambil alih.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil alih percakapan.",
     };
   }
 }

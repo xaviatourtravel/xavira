@@ -46,11 +46,15 @@ export function MobileNav({
 
       return [
         { title: workspace.title, href: workspace.href, icon: workspace.icon },
-        ...workspace.items.map((item) => ({
-          title: item.title,
-          href: item.href,
-          icon: workspace.icon,
-        })),
+        ...workspace.items
+          .filter((item): item is typeof item & { href: string } =>
+            Boolean(item.href) && !item.comingSoon,
+          )
+          .map((item) => ({
+            title: item.title,
+            href: item.href,
+            icon: workspace.icon,
+          })),
       ];
     }),
     ...MOBILE_MORE_NAV.filter((item) => permissionSet.has(item.permission)).map(

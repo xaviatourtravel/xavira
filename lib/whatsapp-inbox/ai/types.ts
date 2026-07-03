@@ -6,13 +6,44 @@ export type AiEventType =
   | "AI_REPLY_SENT"
   | "AI_HANDOFF_TRIGGERED"
   | "AI_SKIPPED"
-  | "AI_STATE_CHANGED";
+  | "AI_STATE_CHANGED"
+  | "AI_LLM_REPLY_STARTED"
+  | "AI_LLM_REPLY_SENT"
+  | "AI_LLM_HANDOFF"
+  | "AI_LLM_FAILED"
+  | "AI_LLM_SKIPPED"
+  | "AI_DOCUMENT_SEND_ATTEMPTED"
+  | "AI_DOCUMENT_SENT"
+  | "AI_DOCUMENT_FAILED"
+  | "AI_DOCUMENT_SKIPPED"
+  | "AI_VALIDATION_PASSED"
+  | "AI_VALIDATION_FAILED"
+  | "AI_RESPONSE_SANITIZED"
+  | "AI_REPLY_QUALITY_CHANGED"
+  | "AI_REPLY_QUALITY_PASSED"
+  | "CONTEXT_RETRIEVED"
+  | "MEMORY_CREATED"
+  | "MEMORY_UPDATED"
+  | "MEMORY_USED"
+  | "MEMORY_EXTRACTION_STARTED"
+  | "MEMORY_EXTRACTION_COMPLETED"
+  | "MEMORY_EXTRACTION_SKIPPED"
+  | "LEAD_QUALIFICATION_UPDATED"
+  | "ACTION_RECOMMENDED"
+  | "ACTION_APPROVED"
+  | "ACTION_REJECTED"
+  | "ACTION_EXECUTED"
+  | "ACTION_FAILED"
+  | "ACTION_MANUALLY_APPROVED"
+  | "ACTION_MANUALLY_REJECTED"
+  | "ACTION_EXECUTED_AFTER_APPROVAL";
 
 export type AiIntentClassification = {
   intent: string;
   requiresHuman: boolean;
   reason?: string;
   confidence: number;
+  category: string;
 };
 
 export type AiCustomerContext = {
@@ -61,6 +92,7 @@ export type AiStateUpdateOptions = {
   handoffReason?: string | null;
   changedBy?: "system" | "user";
   userId?: string | null;
+  source?: string;
 };
 
 export type { WhatsappAiState };

@@ -13,8 +13,13 @@ import {
   type OmnichannelSupabaseClient,
 } from "@/lib/omnichannel-inbox/repository";
 import { loadInboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
+import type { WhatsappAiAuditEvent } from "@/lib/whatsapp-inbox/ai/activity-events";
 import { loadWorkspaceAssignmentHistory } from "@/lib/workspace/assignment-events";
 import type { InboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
+import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
+import type { ConversationMemoryMap } from "@/modules/ai/types/memory";
+import type { RecommendedDocumentItem } from "@/modules/inbox/lib/build-ai-command-center";
+import type { InboxAiActionItem } from "@/modules/inbox/lib/load-ai-actions";
 import type {
   ConversationNoteRow,
   ConversationLabel,
@@ -31,7 +36,11 @@ export type OmnichannelInboxFilter =
   | "whatsapp"
   | "unassigned"
   | "mine"
-  | "hot_leads";
+  | "hot_leads"
+  | "ready_for_human"
+  | "ai_active"
+  | "human_assisted"
+  | "human_only";
 
 export type OmnichannelConversationListItem = {
   id: string;
@@ -55,6 +64,7 @@ export type OmnichannelConversationListItem = {
   aiState?: string | null;
   aiStateLabel?: string | null;
   aiHandoffReason?: string | null;
+  aiLastActionAt?: string | null;
 };
 
 export type OmnichannelConversationNote = ConversationNoteRow & {
@@ -69,6 +79,11 @@ export type OmnichannelConversationDetail = OmnichannelConversationListItem & {
   notes: OmnichannelConversationNote[];
   assignmentHistory: AssignmentHistoryEntry[];
   leadContext: InboxLeadPanelContext | null;
+  aiActivityEvents?: WhatsappAiAuditEvent[];
+  leadQualification?: LeadQualificationSnapshot | null;
+  conversationMemory?: ConversationMemoryMap | null;
+  recommendedDocuments?: RecommendedDocumentItem[];
+  aiActions?: InboxAiActionItem[];
 };
 
 export type OmnichannelInboxSearchParams = {
@@ -121,6 +136,11 @@ export function parseOmnichannelInboxFilter(
     case "unassigned":
     case "mine":
     case "hot_leads":
+      return value;
+    case "ready_for_human":
+    case "ai_active":
+    case "human_assisted":
+    case "human_only":
       return value;
     default:
       return "all";

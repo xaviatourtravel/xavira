@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  Brain,
   Home,
   MessageCircle,
   Settings,
@@ -19,14 +20,17 @@ export type WorkspaceId =
   | "operational"
   | "finance"
   | "performance"
+  | "intelligence"
   | "settings";
 
 export type NavAttentionBadgeKey = "communication" | "operational" | "finance";
 
 export type WorkspaceNavChild = {
   title: string;
-  href: string;
+  href?: string;
   permission?: Permission;
+  /** Shown disabled in sidebar until the route is available. */
+  comingSoon?: boolean;
 };
 
 export type WorkspaceNavItem = {
@@ -130,6 +134,19 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     ],
   },
   {
+    id: "intelligence",
+    title: "Intelligence",
+    href: "/business-brain",
+    icon: Brain,
+    permission: "dashboard.view",
+    businessQuestion: "Seberapa siap AI memahami bisnis Anda?",
+    items: [
+      { title: "Business Brain", href: "/business-brain" },
+      { title: "Automation", comingSoon: true },
+      { title: "Insights", comingSoon: true },
+    ],
+  },
+  {
     id: "settings",
     title: "Pengaturan",
     href: "/settings",
@@ -148,6 +165,7 @@ export const WORKSPACE_ROUTE_PREFIXES: Record<WorkspaceId, readonly string[]> = 
   operational: ["/operations", "/follow-ups"],
   finance: ["/finance", "/revenue"],
   performance: ["/performance", "/dashboard", "/campaigns", "/content", "/scripts"],
+  intelligence: ["/business-brain"],
   settings: ["/settings"],
 };
 
@@ -219,7 +237,9 @@ export function isWorkspaceActive(workspace: WorkspaceNavItem, pathname: string)
     return true;
   }
 
-  return workspace.items.some((item) => isNavPathActive(pathname, item.href));
+  return workspace.items.some(
+    (item) => item.href && isNavPathActive(pathname, item.href),
+  );
 }
 
 export function filterWorkspaceNav(

@@ -60,6 +60,10 @@ function buildFocusSections(tasks: WorkspaceTask[]): TodayFocusSection[] {
     )
     .slice(0, 5);
 
+  const readyForHuman = tasks
+    .filter((task) => task.taskType === "take_over_qualified_lead")
+    .slice(0, 5);
+
   const paymentAttention = tasks
     .filter(
       (task) =>
@@ -86,6 +90,12 @@ function buildFocusSections(tasks: WorkspaceTask[]): TodayFocusSection[] {
       title: "Waiting reply",
       tasks: waitingReply,
       emptyLabel: "Inbox is caught up.",
+    },
+    {
+      id: "ready-for-human",
+      title: "Ready for human",
+      tasks: readyForHuman,
+      emptyLabel: "No qualified leads waiting for handover.",
     },
     {
       id: "payment-attention",

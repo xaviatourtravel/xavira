@@ -1,5 +1,6 @@
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
+import { countWhatsappConversationsByAiState } from "@/lib/omnichannel-inbox/inbox-ai-filters";
 import { getOutgoingBubbleDeliveryStatusLabel } from "@/lib/communication/messaging/delivery";
 import type { MessageDeliveryStatus } from "@/types/omnichannel-inbox";
 import { getDesklabsAvatarInitials, getDesklabsAvatarColorClass } from "@/components/ui/desklabs-avatar";
@@ -19,6 +20,16 @@ export function buildOmnichannelFilterCounts(
     mine: conversations.filter((item) => item.assignedUserId === currentUserId)
       .length,
     hot_leads: conversations.filter((item) => item.status === "following_up").length,
+    ready_for_human: countWhatsappConversationsByAiState(
+      conversations,
+      "READY_FOR_HUMAN",
+    ),
+    ai_active: countWhatsappConversationsByAiState(conversations, "AI_ACTIVE"),
+    human_assisted: countWhatsappConversationsByAiState(
+      conversations,
+      "HUMAN_ASSISTED",
+    ),
+    human_only: countWhatsappConversationsByAiState(conversations, "HUMAN_ONLY"),
   };
 }
 

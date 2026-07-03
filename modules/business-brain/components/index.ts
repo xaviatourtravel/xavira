@@ -1,0 +1,12 @@
+export { BusinessBrainPage } from "@/modules/business-brain/components/business-brain-page";
+export { BusinessBrainMetricCardView } from "@/modules/business-brain/components/business-brain-metric-card";
+export { BusinessBrainSidePanel } from "@/modules/business-brain/components/business-brain-side-panel";
+export { BusinessBrainLayoutShell } from "@/modules/business-brain/components/business-brain-layout-shell";
+export { BusinessBrainComingSoon } from "@/modules/business-brain/components/business-brain-coming-soon";
+export { CompanyDnaPageClient } from "@/modules/business-brain/components/company-dna-page";
+export { ProductsPageClient } from "@/modules/business-brain/components/products-page";
+export { KnowledgePageClient } from "@/modules/business-brain/components/knowledge-page";
+export { DocumentsPageClient } from "@/modules/business-brain/components/documents-page";
+export { BehaviorsPageClient } from "@/modules/business-brain/components/behaviors-page";
+export { PlaygroundPageClient } from "@/modules/business-brain/components/playground-page";
+export { PublishPageClient } from "@/modules/business-brain/components/publish-page";

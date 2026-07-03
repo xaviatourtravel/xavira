@@ -54,6 +54,8 @@ export function getTaskReason(task: WorkspaceTask): string {
       return "Data peserta belum lengkap. Berisiko menunda keberangkatan.";
     case "complete_participant_data":
       return "Detail peserta perlu dilengkapi sebelum departure.";
+    case "take_over_qualified_lead":
+      return "Lead sudah terkualifikasi. Ambil alih percakapan dan lanjutkan penawaran.";
     default:
       return "Item prioritas tinggi yang membutuhkan tindakan Anda hari ini.";
   }
@@ -70,6 +72,7 @@ export function getTaskBusinessImpact(task: WorkspaceTask): string {
   switch (task.taskType) {
     case "reply_conversation":
     case "resolve_inbox_unread":
+    case "take_over_qualified_lead":
       return "Mempertahankan momentum percakapan";
     case "follow_up_customer":
       return "Menjaga deal tetap di pipeline";
@@ -287,6 +290,7 @@ export const PRIORITY_QUEUE_GROUPS = {
       "reply_conversation",
       "resolve_inbox_unread",
       "follow_up_customer",
+      "take_over_qualified_lead",
     ],
   },
   payments: {

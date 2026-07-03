@@ -6,6 +6,7 @@ export {
   WHATSAPP_AI_DEBOUNCE_MS,
   WHATSAPP_AI_STATE_LABELS,
   formatWhatsappAiStateLabel,
+  getWhatsappAiStateDescription,
   parseWhatsappAiState,
   resolveWhatsappAiState,
   isWhatsappAiAutoReplyEnabled,
@@ -28,6 +29,7 @@ export {
   formatWhatsappConversationHistoryForAi,
   loadWhatsappConversationHistoryForAi,
   loadWhatsappConversationMessagesForGreeting,
+  mapWhatsappMessagesToConversationTurns,
   shouldUseGreeting,
   isCustomerGreetingMessage,
   WHATSAPP_AI_HISTORY_LIMIT,
@@ -55,6 +57,19 @@ export type {
 } from "@/lib/whatsapp-inbox/ai/types";
 
 export { insertAiEvent } from "@/lib/whatsapp-inbox/ai/event-log";
+export { processAiDocumentAutoSend } from "@/lib/whatsapp-inbox/ai/document-send-service";
+export {
+  loadWhatsappAiActivityEvents,
+  formatWhatsappAiAuditEvent,
+  getAiActivityEventCategory,
+  matchesAiActivityFilter,
+} from "@/lib/whatsapp-inbox/ai/activity-events";
+export type {
+  WhatsappAiAuditEvent,
+  WhatsappAiActivityEvent,
+  AiActivityFilter,
+  AiActivityEventCategory,
+} from "@/lib/whatsapp-inbox/ai/activity-events";
 export { aiOwnershipService } from "@/lib/whatsapp-inbox/ai/ownership-service";
 export { intentClassifierService } from "@/lib/whatsapp-inbox/ai/intent-classifier-service";
 export { aiHandoffService } from "@/lib/whatsapp-inbox/ai/handoff-service";

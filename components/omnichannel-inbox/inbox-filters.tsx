@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
 const FILTERS: Array<{ value: OmnichannelInboxFilter; label: string }> = [
   { value: "all", label: "Semua" },
   { value: "whatsapp", label: "WhatsApp" },
+  { value: "ready_for_human", label: "Ready for Human" },
+  { value: "ai_active", label: "AI Active" },
+  { value: "human_assisted", label: "Human Assisted" },
+  { value: "human_only", label: "Human Only" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
   { value: "unassigned", label: "Unassigned" },

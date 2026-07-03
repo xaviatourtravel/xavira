@@ -88,6 +88,8 @@ export type MessageRow = {
   sent_by_user_id: string | null;
   created_at: string;
   deliveryStatus?: MessageDeliveryStatus | null;
+  /** WhatsApp-only: who authored an outgoing message. */
+  senderType?: "ai" | "human" | "customer" | null;
 };
 
 export type MessageInsert = {

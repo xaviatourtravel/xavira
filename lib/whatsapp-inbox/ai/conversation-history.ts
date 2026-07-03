@@ -1,3 +1,4 @@
+import type { WhatsAppConversationTurn } from "@/modules/business-brain/types/prompt";
 import type { WhatsappMessageRow } from "@/types/whatsapp-inbox";
 import {
   findWhatsappMessagesByConversationId,
@@ -117,4 +118,39 @@ export function formatWhatsappConversationHistoryForAi(
   }
 
   return messages.map(formatHistoryLine).join("\n");
+}
+
+function mapWhatsappMessageToConversationTurn(
+  message: WhatsappMessageRow,
+): WhatsAppConversationTurn | null {
+  const text = message.text?.trim() ?? "";
+  if (!text) {
+    return null;
+  }
+
+  if (message.direction === "incoming") {
+    return {
+      sender: "customer",
+      text,
+      createdAt: message.timestamp,
+    };
+  }
+
+  return {
+    sender: message.sender_type === "ai" ? "ai" : "human",
+    text,
+    createdAt: message.timestamp,
+  };
+}
+
+export function mapWhatsappMessagesToConversationTurns(
+  messages: WhatsappMessageRow[],
+  options?: { excludeMessageIds?: string[] },
+): WhatsAppConversationTurn[] {
+  const excludedIds = new Set(options?.excludeMessageIds ?? []);
+
+  return messages
+    .filter((message) => !excludedIds.has(message.id))
+    .map(mapWhatsappMessageToConversationTurn)
+    .filter((turn): turn is WhatsAppConversationTurn => turn !== null);
 }

@@ -11,7 +11,26 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
+import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
 import { cn } from "@/lib/utils";
+
+const EMPTY_STATE_COPY: Partial<
+  Record<OmnichannelInboxFilter, { title: string; description?: string }>
+> = {
+  ready_for_human: {
+    title: "No conversations need human attention right now.",
+  },
+  ai_active: {
+    title: "No AI-active conversations right now.",
+    description: "Turn on AI in a WhatsApp chat to see it here.",
+  },
+  human_assisted: {
+    title: "No human-assisted conversations right now.",
+  },
+  human_only: {
+    title: "No human-only conversations right now.",
+  },
+};
 
 function buildConversationHref(
   conversationId: string,
@@ -35,8 +54,10 @@ function formatUnreadCount(count: number) {
 
 function ConversationListEmptyState({
   searchQuery,
+  activeFilter,
 }: {
   searchQuery: string;
+  activeFilter: OmnichannelInboxFilter;
 }) {
   if (searchQuery.trim()) {
     return (
@@ -47,6 +68,21 @@ function ConversationListEmptyState({
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
           Coba kata kunci lain, nomor telepon, atau isi pesan.
         </p>
+      </div>
+    );
+  }
+
+  const filterCopy = EMPTY_STATE_COPY[activeFilter];
+
+  if (filterCopy) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
+        <p className="text-sm font-medium text-foreground">{filterCopy.title}</p>
+        {filterCopy.description ? (
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+            {filterCopy.description}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -73,7 +109,12 @@ export function OmnichannelConversationList({
   searchQuery?: string;
 }) {
   if (conversations.length === 0) {
-    return <ConversationListEmptyState searchQuery={searchQuery} />;
+    return (
+      <ConversationListEmptyState
+        searchQuery={searchQuery}
+        activeFilter={activeFilter}
+      />
+    );
   }
 
   return (
@@ -95,6 +136,9 @@ export function OmnichannelConversationList({
           showStatusBadge ||
           showLeadChip ||
           visibleLabels.length > 0;
+        const isReadyForHuman =
+          conversation.channel === "whatsapp" &&
+          resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN";
 
         return (
           <Link
@@ -148,6 +192,22 @@ export function OmnichannelConversationList({
                   >
                     {conversation.lastMessagePreview ?? "Belum ada pesan"}
                   </p>
+
+                  {isReadyForHuman ? (
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200/80">
+                        Ready for Human
+                      </span>
+                      {conversation.aiHandoffReason?.trim() ? (
+                        <p
+                          className="truncate text-[11px] text-amber-800/90"
+                          title={conversation.aiHandoffReason}
+                        >
+                          {conversation.aiHandoffReason}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {showMetaChips ? (
                     <div className="flex min-w-0 items-center gap-1 overflow-hidden">

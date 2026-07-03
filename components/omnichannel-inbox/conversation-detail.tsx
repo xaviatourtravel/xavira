@@ -43,6 +43,8 @@ import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rul
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { WhatsappAiStateControl } from "@/components/omnichannel-inbox/whatsapp-ai-state-control";
+import { WhatsappLeadProgressBadge } from "@/components/omnichannel-inbox/whatsapp-lead-progress-badge";
+import { WhatsappQualificationHandoffPanel } from "@/components/omnichannel-inbox/whatsapp-qualification-handoff-panel";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
 import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
 import {
@@ -478,6 +480,9 @@ export function OmnichannelConversationDetailPanel({
                 canManage={canManageAi}
               />
             ) : null}
+            {isWhatsapp ? (
+              <WhatsappLeadProgressBadge qualification={conversation.leadQualification} />
+            ) : null}
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
             {phoneLabel ? `${phoneLabel} · ` : ""}
@@ -609,6 +614,16 @@ export function OmnichannelConversationDetailPanel({
         </div>
 
       </header>
+
+      {isWhatsapp ? (
+        <WhatsappQualificationHandoffPanel
+          conversationId={conversation.id}
+          aiState={conversation.aiState}
+          aiHandoffReason={conversation.aiHandoffReason}
+          qualification={conversation.leadQualification}
+          canManage={canManageAi}
+        />
+      ) : null}
 
       {searchOpen ? (
         <div className="flex shrink-0 items-center gap-2 border-b bg-background px-3 py-2 sm:px-4">

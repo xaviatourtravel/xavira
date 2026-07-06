@@ -28,6 +28,10 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+/**
+ * All new UI must use t() or tStrict(). Hardcoded visible labels are not allowed.
+ * Add every new string to both id and en dictionaries. See .cursor/rules/i18n-enforcement.mdc
+ */
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [isReady, setIsReady] = useState(false);

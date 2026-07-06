@@ -4,8 +4,19 @@ import { useEffect } from "react";
 import { ChevronRight, PanelRightOpen } from "lucide-react";
 
 import { IntelligencePanel } from "@/components/communication-workspace/primitives";
-import { AiCommandCenter } from "@/modules/inbox/components/ai-command-center";
+import {
+  useWorkspaceScrollPersistence,
+  WorkspaceLazyPanels,
+} from "@/components/communication-workspace/workspace-panel-content";
+import { WorkspaceTabNav } from "@/components/communication-workspace/workspace-tab-nav";
+import { Tabs } from "@/components/ui/tabs";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
+import {
+  useWorkspaceTab,
+  WorkspaceTabProvider,
+  type WorkspaceTabId,
+} from "@/modules/inbox/context/workspace-tab-context";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 
 type WorkspaceRightSidebarProps = {
   conversation: OmnichannelConversationDetail | null;
@@ -20,13 +31,54 @@ type WorkspaceRightSidebarProps = {
   onToggleCollapsed: () => void;
 };
 
-export function WorkspaceRightSidebar({
+function WorkspaceChromeHeader({
+  onToggleCollapsed,
+}: {
+  onToggleCollapsed: () => void;
+}) {
+  const { ti } = useInboxTranslation();
+
+  return (
+    <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-6 py-4">
+      <div className="min-w-0">
+        <p className="text-lg font-semibold tracking-tight text-foreground">
+          {ti("workspaceTitle")}
+        </p>
+        <p className="truncate text-[13px] text-muted-foreground">
+          {ti("workspaceSubtitle")}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onToggleCollapsed}
+        className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title={ti("collapsePanel")}
+        aria-label={ti("collapsePanel")}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function WorkspaceRightSidebarContent({
   conversation,
   organizationId,
   canUpdateStatus,
   collapsed,
   onToggleCollapsed,
-}: WorkspaceRightSidebarProps) {
+}: Omit<
+  WorkspaceRightSidebarProps,
+  "orgProfiles" | "canReassign" | "canAddNote" | "canConvert" | "canCreateFollowUp"
+>) {
+  const { ti } = useInboxTranslation();
+  const { activeTab, setActiveTab, bindConversation } = useWorkspaceTab();
+  const scrollRef = useWorkspaceScrollPersistence(activeTab);
+
+  useEffect(() => {
+    bindConversation(conversation?.id ?? null);
+  }, [bindConversation, conversation?.id]);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key === ".") {
@@ -45,13 +97,13 @@ export function WorkspaceRightSidebar({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className="flex flex-col items-center gap-2 rounded-lg px-1.5 py-3 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          title="Buka AI Command Center (Ctrl+.)"
-          aria-label="Buka AI Command Center"
+          className="flex flex-col items-center gap-2 rounded-lg px-1.5 py-3 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          title={ti("expandPanel")}
+          aria-label={ti("expandPanel")}
         >
           <PanelRightOpen className="h-4 w-4" />
           <span className="rotate-180 text-[11px] font-medium tracking-wide [writing-mode:vertical-rl]">
-            AI Center
+            {ti("workspaceTitle")}
           </span>
         </button>
       </div>
@@ -61,22 +113,9 @@ export function WorkspaceRightSidebar({
   if (!conversation) {
     return (
       <IntelligencePanel>
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="text-sm font-semibold tracking-tight text-foreground">
-            AI Command Center
-          </p>
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60"
-            title="Ciutkan panel (Ctrl+.)"
-            aria-label="Ciutkan panel"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        <WorkspaceChromeHeader onToggleCollapsed={onToggleCollapsed} />
         <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          Select a conversation to open the AI Command Center.
+          {ti("selectConversation")}
         </div>
       </IntelligencePanel>
     );
@@ -84,31 +123,32 @@ export function WorkspaceRightSidebar({
 
   return (
     <IntelligencePanel>
-      <div className="flex shrink-0 items-center justify-between border-b border-border/70 px-4 py-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-tight text-foreground">
-            AI Command Center
-          </p>
-          <p className="truncate text-[11px] text-muted-foreground">
-            Status, qualification, and takeover readiness
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60"
-          title="Ciutkan panel (Ctrl+.)"
-          aria-label="Ciutkan panel"
+      <WorkspaceChromeHeader onToggleCollapsed={onToggleCollapsed} />
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as WorkspaceTabId)}
+        className="min-h-0 flex-1"
+      >
+        <WorkspaceTabNav />
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-
-      <AiCommandCenter
-        conversation={conversation}
-        organizationId={organizationId}
-        canManageAi={canUpdateStatus}
-      />
+          <WorkspaceLazyPanels
+            conversation={conversation}
+            organizationId={organizationId}
+            canManageAi={canUpdateStatus}
+          />
+        </div>
+      </Tabs>
     </IntelligencePanel>
+  );
+}
+
+export function WorkspaceRightSidebar(props: WorkspaceRightSidebarProps) {
+  return (
+    <WorkspaceTabProvider>
+      <WorkspaceRightSidebarContent {...props} />
+    </WorkspaceTabProvider>
   );
 }

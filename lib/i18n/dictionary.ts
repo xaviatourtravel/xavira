@@ -5,6 +5,12 @@ import {
   type BbUiKey,
   type BusinessBrainUiDictionary,
 } from "@/lib/i18n/bb-ui-dictionary";
+import {
+  inboxEn,
+  inboxId,
+  type InboxDictionary,
+  type InboxKey,
+} from "@/lib/i18n/inbox-dictionary";
 
 export type TestAiDictionary = {
   simulator: string;
@@ -201,7 +207,7 @@ export type Dictionary = {
   };
   testAi: TestAiDictionary;
   bbUi: BusinessBrainUiDictionary;
-  inbox: Record<string, never>;
+  inbox: InboxDictionary;
   ai: Record<string, never>;
 };
 
@@ -483,7 +489,7 @@ const id: Dictionary = {
   },
   testAi: testAiId,
   bbUi: bbUiId,
-  inbox: {},
+  inbox: inboxId,
   ai: {},
 };
 
@@ -625,7 +631,7 @@ const en: Dictionary = {
   },
   testAi: testAiEn,
   bbUi: bbUiEn,
-  inbox: {},
+  inbox: inboxEn,
   ai: {},
 };
 
@@ -637,7 +643,7 @@ export type TranslationKey =
   | `businessBrain.${keyof Dictionary["businessBrain"]}`
   | `testAi.${keyof TestAiDictionary}`
   | `bbUi.${BbUiKey}`
-  | `inbox.${string}`
+  | `inbox.${InboxKey}`
   | `ai.${string}`;
 
 export type TranslateFn = (key: TranslationKey | string) => string;
@@ -676,6 +682,7 @@ export function createStrictTranslator(locale: Locale): StrictTranslateFn {
       return value;
     }
 
+    // Development guard: warn and show bracketed key — never silently fall back to English in id locale.
     if (process.env.NODE_ENV === "development") {
       console.warn(`[i18n] Missing translation key: ${key} (locale: ${locale})`);
       return `[${key}]`;

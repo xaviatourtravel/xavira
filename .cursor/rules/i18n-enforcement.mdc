@@ -1,0 +1,58 @@
+---
+description: Global i18n enforcement — all UI text must use translation keys for id/en locales
+alwaysApply: true
+---
+
+# i18n Enforcement
+
+Every new UI element must respect the active language toggle (`id` | `en`).
+
+## Never hardcode visible UI text
+
+```tsx
+// ❌ BAD
+<button>Save Draft</button>
+<p>No products match your search.</p>
+
+// ✅ GOOD
+const { t, tStrict } = useTranslation();
+<button>{t("common.saveDraft")}</button>
+<p>{tStrict("bbUi.noProductsMatch")}</p>
+```
+
+- Use `t()` or `tStrict()` from `useTranslation()`.
+- Business Brain UI: prefer `useBbTranslation()` → `bb("key")` (maps to `bbUi.*`).
+- Add keys to **both** `id` and `en` dictionaries before shipping.
+
+## Locale rules
+
+| Locale | UI language |
+|--------|-------------|
+| `id` | Bahasa Indonesia — no English UI labels |
+| `en` | English |
+
+Brand terms may stay unchanged: Business Brain, AI, WhatsApp, Desklabs.
+
+## Do NOT translate (user-generated content)
+
+Customer messages, AI replies, product names, article content, document names, company profile text, WhatsApp messages.
+
+System defaults only (e.g. `untitledProduct` → `Produk Tanpa Nama`).
+
+## DO translate (product UI)
+
+Labels, buttons, placeholders, filters, empty states, helper text, status badges, tooltips, tabs, section titles, error messages.
+
+## Missing keys (development guard)
+
+`createStrictTranslator` / `tStrict`:
+- Logs `[i18n] Missing translation key: …` in development
+- Renders `[key]` in development — never silently falls back to English when locale is `id`
+
+Prefer `tStrict()` for new UI so missing keys surface immediately.
+
+## Adding translations
+
+1. Add key to English dictionary (`lib/i18n/dictionary.ts`, `lib/i18n/bb-ui-dictionary.ts`, etc.)
+2. Add matching Indonesian translation
+3. Reference via typed key: `t("namespace.key")` or `bb("key")`

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -32,6 +33,7 @@ import {
   resolveSendErrorToast,
 } from "@/lib/communication/composer";
 import { useConversationDraft } from "@/lib/communication/drafts";
+import { useInboxComposer } from "@/modules/inbox/context/inbox-composer-context";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
 
@@ -171,6 +173,7 @@ export function OmnichannelConversationReplyBox({
   const dragDepthRef = useRef(0);
   const { draft: messageText, setDraft: setMessageText, clearDraft } =
     useConversationDraft(conversationId);
+  const { registerInsertHandler } = useInboxComposer();
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const [fileAccept, setFileAccept] = useState<string>("");
   const [toast, setToast] = useState<ComposerToast | null>(null);
@@ -263,16 +266,24 @@ export function OmnichannelConversationReplyBox({
     });
   }
 
-  function insertReply(text: string) {
-    if (!messageText.trim()) {
-      setMessageText(text);
-    } else {
-      const separator = /\s$/.test(messageText) ? "" : " ";
-      setMessageText(`${messageText}${separator}${text}`);
-    }
-    setOpenMenu(null);
-    textareaRef.current?.focus();
-  }
+  const insertReply = useCallback(
+    (text: string) => {
+      if (!messageText.trim()) {
+        setMessageText(text);
+      } else {
+        const separator = /\s$/.test(messageText) ? "" : " ";
+        setMessageText(`${messageText}${separator}${text}`);
+      }
+      setOpenMenu(null);
+      textareaRef.current?.focus();
+    },
+    [messageText, setMessageText],
+  );
+
+  useEffect(() => {
+    registerInsertHandler(insertReply);
+    return () => registerInsertHandler(null);
+  }, [insertReply, registerInsertHandler]);
 
   function handleSend() {
     const trimmed = messageText.trim();

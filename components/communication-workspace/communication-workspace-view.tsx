@@ -7,6 +7,7 @@ import {
   type ConversationListPatch,
 } from "@/lib/communication/realtime";
 import { WorkspaceRightSidebar } from "@/components/communication-workspace/workspace-right-sidebar";
+import { InboxComposerProvider } from "@/modules/inbox/context/inbox-composer-context";
 import {
   OmnichannelConversationDetailPanel,
   OmnichannelConversationEmptyState,
@@ -232,6 +233,7 @@ export function CommunicationWorkspaceView({
         </div>
       ) : null}
 
+      <InboxComposerProvider>
       <div
         className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border border-soft bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[grid-template-columns] duration-200 ease-out lg:grid-cols-[var(--workspace-list-width)_minmax(0,1fr)_var(--workspace-sidebar-width)]"
         style={{
@@ -357,6 +359,7 @@ export function CommunicationWorkspaceView({
           />
         </section>
       </div>
+      </InboxComposerProvider>
     </div>
   );
 }

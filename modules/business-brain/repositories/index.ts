@@ -6,6 +6,14 @@ export {
 } from "@/modules/business-brain/repositories/business-brain-repository";
 
 export {
+  ensureDefaultBrainActionPermissions,
+  findBrainActionPermission,
+  findBrainActionPermissionForWorkspace,
+  listBrainActionPermissions,
+  upsertBrainActionPermission,
+} from "@/modules/business-brain/repositories/brain-action-permission-repository";
+
+export {
   findCompanyDnaByBusinessBrainId,
   mapCompanyDnaRow,
   upsertCompanyDna,

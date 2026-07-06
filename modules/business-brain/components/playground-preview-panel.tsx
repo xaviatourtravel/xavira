@@ -73,7 +73,7 @@ function UsedSourcesSection({ labels }: { labels: string[] }) {
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Used Sources
         </p>
-        <p className="text-sm text-muted-foreground">No Business Brain sources were referenced.</p>
+        <p className="text-sm text-muted-foreground">No sources were referenced in this response.</p>
       </div>
     );
   }
@@ -156,7 +156,7 @@ export function PlaygroundPreviewPanel({
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm font-medium text-foreground">Testing AI...</p>
           <p className="text-xs text-muted-foreground">
-            Building context, prompt, and calling the LLM.
+            Preparing context and generating a response.
           </p>
         </div>
       </DsCard>
@@ -167,15 +167,15 @@ export function PlaygroundPreviewPanel({
     return (
       <DsCard
         title="AI Preview Reply"
-        description="Run a test to see how AI would respond."
+        description="See how your AI will respond using the current configuration."
         className="min-h-[420px]"
       >
         <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 text-center">
           {errorMessage ? (
             <p className="text-sm text-destructive">{errorMessage}</p>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Enter a customer message and click Run Test to preview the AI reply.
+        <p className="text-sm text-muted-foreground">
+              Nothing here yet. Enter a customer message and run a test to preview the response.
             </p>
           )}
         </div>

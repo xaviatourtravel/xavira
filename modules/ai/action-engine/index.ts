@@ -4,18 +4,25 @@ export {
   processActions,
   approveActionManually,
   rejectActionManually,
+  retryFailedAction,
   recommendActionsFromLlm,
   recommendQualificationHandoverAction,
   createAction,
 } from "@/modules/ai/action-engine/action-engine";
 export { validateAction } from "@/modules/ai/action-engine/action-validator";
 export { executeAction } from "@/modules/ai/action-engine/action-executor";
-export { ACTION_REGISTRY, getActionDefinition } from "@/modules/ai/action-engine/action-registry";
+export {
+  processScheduledAIActions,
+  cancelScheduledAction,
+  executeScheduledActionNow,
+} from "@/modules/ai/action-engine/scheduled-action-processor";
+export { formatScheduledFollowUpLabel, formatScheduledActionTime } from "@/modules/ai/action-engine/schedule-utils";
 export type {
   AIAction,
   AIActionType,
   AIActionStatus,
   AIActionRecord,
+  AIActionRetryMetadata,
   ActionEngineContext,
   ActionProcessResult,
   ActionValidationResult,

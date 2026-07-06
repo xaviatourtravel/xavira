@@ -42,7 +42,7 @@ export function PlaygroundTestInputPanel({
   };
 
   return (
-    <DsCard title="Test Input" description="Simulate a customer message and optional context.">
+    <DsCard title="Test Input" description="Simulate a customer message with optional context.">
       <div className="space-y-4">
         <DsField label="Customer Message">
           <DsTextarea
@@ -114,7 +114,7 @@ export function PlaygroundTestInputPanel({
         </DsButton>
 
         <p className="text-xs text-muted-foreground">
-          Uses draft Business Brain data with live LLM preview.
+          Uses your draft Business Brain configuration for a live response preview.
         </p>
       </div>
     </DsCard>

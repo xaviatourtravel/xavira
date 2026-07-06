@@ -43,9 +43,9 @@ export function BehaviorCategoriesPanel({
   const showRuleList = !isConfigCategory(activeCategory);
 
   return (
-    <DsCard className="flex h-full min-h-[520px] flex-col p-4 md:p-5">
+    <DsCard className="p-4 md:p-5">
       <div className="mb-4 space-y-3">
-        <h2 className="text-base font-semibold text-foreground">Behavior Categories</h2>
+        <h2 className="text-base font-semibold text-foreground">Rule Categories</h2>
         <div className="space-y-1">
           {BRAIN_BEHAVIOR_TYPES.map((type) => {
             const count = behaviors.filter((item) => item.type === type).length;
@@ -71,7 +71,7 @@ export function BehaviorCategoriesPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
           {BRAIN_BEHAVIOR_TYPE_DESCRIPTIONS[activeCategory]}
         </p>
@@ -94,7 +94,7 @@ export function BehaviorCategoriesPanel({
             <div className="space-y-2">
               {categoryBehaviors.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-                  No rules yet.
+                  Nothing here yet. Add a rule to get started.
                 </div>
               ) : (
                 categoryBehaviors.map((behavior) => {

@@ -11,6 +11,7 @@ import {
 } from "@/modules/ai/types/lead-qualification";
 import { memoryService } from "@/modules/ai/services/memory-service";
 import { leadQualificationService } from "@/modules/ai/services/lead-qualification-service";
+import { sendAiWhatsappMessage } from "@/lib/whatsapp-inbox/ai/message-sender";
 import { sendManualWhatsappDocument } from "@/lib/whatsapp-inbox/ai/document-send-service";
 import { aiHandoffService } from "@/lib/whatsapp-inbox/ai/handoff-service";
 import { insertWhatsappConversationNote } from "@/lib/whatsapp-inbox/repository";
@@ -310,6 +311,52 @@ async function executeAskQualification(
   };
 }
 
+async function executeFollowUpMessage(
+  action: AIAction,
+  context: ActionEngineContext,
+): Promise<ActionExecutionResult> {
+  const message =
+    typeof action.payload.message === "string"
+      ? action.payload.message.trim()
+      : "";
+
+  if (!message) {
+    return {
+      success: false,
+      reason: "Follow-up message is required",
+      code: "missing_message",
+    };
+  }
+
+  try {
+    const sent = await sendAiWhatsappMessage(context.supabase, {
+      workspaceId: context.workspaceId,
+      conversation: context.conversation,
+      text: message,
+      incomingMessageId: context.incomingMessageId ?? undefined,
+      rawPayload: {
+        source: "follow_up_action",
+        actionType: action.type,
+        reason: action.reason,
+      },
+    });
+
+    return {
+      success: true,
+      metadata: {
+        outgoingMessageId: sent.id,
+        messageLength: message.length,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      reason: error instanceof Error ? error.message : String(error),
+      code: "follow_up_send_failed",
+    };
+  }
+}
+
 export async function executeAction(
   action: AIAction,
   context: ActionEngineContext,
@@ -329,6 +376,8 @@ export async function executeAction(
       return executeSuggestPackage(action, context);
     case "ASK_QUALIFICATION":
       return executeAskQualification(action, context);
+    case "FOLLOW_UP_MESSAGE":
+      return executeFollowUpMessage(action, context);
     case "NO_ACTION":
       return { success: true, metadata: { noop: true } };
     default:

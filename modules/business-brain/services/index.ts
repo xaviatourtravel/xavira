@@ -1,51 +1,45 @@
-import type { BusinessBrainDashboardPlaceholder } from "@/modules/business-brain/types";
+import { calculateBusinessBrainHealth } from "@/modules/business-brain/services/calculate-business-brain-health";
+import { calculateBusinessBrainCoach } from "@/modules/business-brain/services/calculate-business-brain-coach";
+import { emptyBusinessBrainTimelineResult } from "@/modules/business-brain/lib/build-business-brain-timeline";
+import type { BusinessBrainOverviewSummary } from "@/modules/business-brain/types";
 
-/** Static placeholder dashboard until Business Brain data sources are wired. */
-export function getBusinessBrainDashboardPlaceholder(): BusinessBrainDashboardPlaceholder {
+/** @deprecated Use getBusinessBrainOverview */
+export function getBusinessBrainDashboardPlaceholder(): BusinessBrainOverviewSummary {
+  const emptyInput = {
+    identity: null,
+    products: [],
+    knowledge: [],
+    documents: [],
+    behaviors: [],
+    isPublished: false,
+  };
+  const health = calculateBusinessBrainHealth(emptyInput);
+  const coach = calculateBusinessBrainCoach(emptyInput);
+
   return {
-    metrics: [
-      {
-        id: "brain-health",
-        title: "Brain Health",
-        description: "Overall completeness of your business knowledge.",
-        statusLabel: "Not configured",
-      },
-      {
-        id: "ai-readiness",
-        title: "AI Readiness",
-        description: "How prepared AI is to assist customers and your team.",
-        statusLabel: "Setup pending",
-      },
-      {
-        id: "knowledge",
-        title: "Knowledge",
-        description: "FAQs, policies, and operational notes for AI context.",
-        statusLabel: "No entries linked",
-      },
-      {
-        id: "products",
-        title: "Products",
-        description: "Packages, itineraries, and sellable offers.",
-        statusLabel: "No catalog linked",
-      },
-      {
-        id: "documents",
-        title: "Documents",
-        description: "Brochures, SOPs, and reference files.",
-        statusLabel: "No documents uploaded",
-      },
-      {
-        id: "publish-status",
-        title: "Publish Status",
-        description: "What is live for AI and customer-facing channels.",
-        statusLabel: "Nothing published",
-      },
-    ],
+    health,
+    coach,
+    timeline: emptyBusinessBrainTimelineResult(),
+    brainHealthPercent: 0,
+    aiReadinessPercent: 0,
+    estimatedAiAccuracy: health.estimatedAiAccuracy,
+    knowledgeCount: 0,
+    productCount: 0,
+    documentCount: 0,
+    publishStatus: "draft",
+    metrics: [],
     suggestions: [],
     recentChanges: [],
   };
 }
 
+export { getBusinessBrainOverview } from "@/modules/business-brain/services/business-brain-overview-service";
+
+export { calculateBusinessBrainHealth } from "@/modules/business-brain/services/calculate-business-brain-health";
+
+export { calculateBusinessBrainCoach } from "@/modules/business-brain/services/calculate-business-brain-coach";
+
+export { calculateKnowledgeCoverage } from "@/modules/business-brain/services/knowledge-coverage-engine";
 export {
   getCompanyDNA,
   saveDraft,
@@ -92,6 +86,12 @@ export {
   updateQualificationRules,
   updateReplyStyle,
 } from "@/modules/business-brain/services/business-brain-behavior-service";
+
+export {
+  getActionPermission,
+  getActionPermissions,
+  updateActionPermission,
+} from "@/modules/business-brain/services/business-brain-action-permission-service";
 
 export {
   getAvailableContext,

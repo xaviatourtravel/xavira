@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { DsEmptyState } from "@/components/design-system";
 import { designSystemPanelClass } from "@/lib/design-system/tokens";
@@ -52,17 +53,32 @@ export function BusinessBrainSidePanel({
                 key={item.id}
                 className="rounded-xl border border-border bg-muted/30 p-3"
               >
-                <p className="text-sm font-medium text-foreground">{item.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {item.description}
-                </p>
+                {item.href ? (
+                  <Link href={item.href} className="block hover:opacity-90">
+                    <p className="text-sm font-medium text-foreground">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </Link>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-foreground">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </>
+                )}
               </li>
             ))}
           </ul>
         ) : (
           <DsEmptyState
             title="No suggestions yet"
-            description="Connect knowledge, products, and documents to unlock tailored recommendations."
+            description="Add Company DNA, products, knowledge, and documents to generate suggestions."
             className="border-dashed bg-muted/20 py-8"
           />
         )}
@@ -89,7 +105,7 @@ export function BusinessBrainSidePanel({
         ) : (
           <DsEmptyState
             title="No recent changes"
-            description="Updates to knowledge, products, and publish status will appear here."
+            description="Updates to your Business Brain will appear here."
             className="border-dashed bg-muted/20 py-8"
           />
         )}

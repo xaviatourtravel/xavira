@@ -15,11 +15,11 @@ export const BRAIN_PUBLISH_SECTIONS = [
 export type BrainPublishSection = (typeof BRAIN_PUBLISH_SECTIONS)[number];
 
 export const BRAIN_PUBLISH_SECTION_LABELS: Record<BrainPublishSection, string> = {
-  companyDna: "Company DNA",
+  companyDna: "Identity",
   products: "Products",
   knowledge: "Knowledge",
   documents: "Documents",
-  behaviors: "Behaviors",
+  behaviors: "Rules",
 };
 
 export type BrainSectionChangeSummary = {

@@ -1,259 +1,368 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useState } from "react";
 
-import {
-  runPlaygroundTestAction,
-  savePlaygroundExampleAction,
-} from "@/modules/business-brain/actions/playground-actions";
-import { PlaygroundContextInspector } from "@/modules/business-brain/components/playground-context-inspector";
-import { PlaygroundMemoryTestPanel } from "@/modules/business-brain/components/playground-memory-test-panel";
-import {
-  DEFAULT_PLAYGROUND_CONTEXT,
-  PlaygroundTestInputPanel,
-} from "@/modules/business-brain/components/playground-test-input";
-import { DEFAULT_PLAYGROUND_MEMORY_TEST } from "@/modules/ai/types/memory";
-import { PlaygroundPreviewPanel } from "@/modules/business-brain/components/playground-preview-panel";
+import { saveBrainTestSessionAction } from "@/modules/business-brain/actions/brain-test-session-actions";
+import { runPlaygroundTestAction } from "@/modules/business-brain/actions/playground-actions";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
+import { PlaygroundInspector } from "@/modules/business-brain/components/inspector/playground-inspector";
+import { PlaygroundSavedTestsSidebar } from "@/modules/business-brain/components/playground-saved-tests-sidebar";
+import { PlaygroundSimulatorPanel } from "@/modules/business-brain/components/playground-simulator-panel";
+import { getPlaygroundConversationScenario } from "@/modules/business-brain/lib/playground-conversation-scenarios";
+import type { BrainTestSessionRecord } from "@/modules/business-brain/types/brain-test-session";
 import type {
   PlaygroundAvailableContext,
-  PlaygroundCustomerContext,
-  PlaygroundFeedbackStatus,
-  PlaygroundMemoryTestInput,
-  PlaygroundPreviewResult,
   PlaygroundSavedExample,
   PlaygroundTestResult,
 } from "@/modules/business-brain/types/playground";
+import type { SimulatorChatMessage } from "@/modules/business-brain/types/playground-simulator";
+import type { BusinessBrainHealth } from "@/modules/business-brain/types/business-brain-health";
+import type { KnowledgeCoverageResult } from "@/modules/business-brain/types/knowledge-coverage";
+import type { WhatsAppConversationTurn } from "@/modules/business-brain/types/prompt";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type PlaygroundPageClientProps = {
   initialAvailableContext: PlaygroundAvailableContext;
   initialSavedExamples: PlaygroundSavedExample[];
+  initialSavedTestSessions: BrainTestSessionRecord[];
   canEdit: boolean;
   llmConfigured: boolean;
+  health: BusinessBrainHealth;
+  knowledgeCoverage: KnowledgeCoverageResult;
 };
 
-type MobilePanel = "input" | "preview" | "context";
+type MobilePanel = "simulator" | "inspector" | "saved";
+
+type TurnResult =
+  | {
+      ok: true;
+      messages: SimulatorChatMessage[];
+      result: PlaygroundTestResult;
+    }
+  | {
+      ok: false;
+      messages: SimulatorChatMessage[];
+      error: string;
+    };
+
+function createMessageId() {
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toConversationHistory(messages: SimulatorChatMessage[]): WhatsAppConversationTurn[] {
+  return messages.map((message) => ({
+    sender: message.role === "customer" ? "customer" : "ai",
+    text: message.text,
+  }));
+}
 
 export function PlaygroundPageClient({
-  initialAvailableContext,
-  initialSavedExamples,
-  canEdit,
   llmConfigured,
+  health,
+  knowledgeCoverage,
+  initialSavedTestSessions,
 }: PlaygroundPageClientProps) {
-  const [availableContext] = useState(initialAvailableContext);
-  const [savedExamples, setSavedExamples] = useState(initialSavedExamples);
-  const [customerMessage, setCustomerMessage] = useState(
-    "Halo kak, saya mau tanya paket umrah bulan September untuk 4 orang",
-  );
-  const [context, setContext] = useState<PlaygroundCustomerContext>(DEFAULT_PLAYGROUND_CONTEXT);
-  const [memoryTest, setMemoryTest] = useState<PlaygroundMemoryTestInput>(
-    DEFAULT_PLAYGROUND_MEMORY_TEST,
-  );
+  const { tStrict } = useTranslation();
+  const [messages, setMessages] = useState<SimulatorChatMessage[]>([]);
+  const [draftMessage, setDraftMessage] = useState("");
   const [testResult, setTestResult] = useState<PlaygroundTestResult | null>(null);
-  const [editedReply, setEditedReply] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [feedbackStatus, setFeedbackStatus] = useState<PlaygroundFeedbackStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("input");
-  const [isRunning, startRunTransition] = useTransition();
-  const [isSavingExample, startSaveTransition] = useTransition();
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("simulator");
+  const [isRunning, setIsRunning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSessions, setSavedSessions] = useState(initialSavedTestSessions);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (testResult?.preview.aiReply) {
-      setEditedReply(testResult.preview.aiReply);
-    }
-  }, [testResult]);
+  const hasAiReply = messages.some((message) => message.role === "ai");
+  const canSave = hasAiReply && testResult !== null && !isRunning && !isSaving;
 
-  const handleRunTest = () => {
-    if (!llmConfigured) {
-      setErrorMessage("LLM is not configured. Add OPENAI_API_KEY to enable AI preview.");
+  const executeTurn = useCallback(
+    async (
+      customerMessage: string,
+      priorMessages: SimulatorChatMessage[],
+    ): Promise<TurnResult> => {
+      const trimmedMessage = customerMessage.trim();
+      if (!trimmedMessage) {
+        return {
+          ok: false,
+          messages: priorMessages,
+          error: tStrict("testAi.customerMessageRequired"),
+        };
+      }
+
+      const customerEntry: SimulatorChatMessage = {
+        id: createMessageId(),
+        role: "customer",
+        text: trimmedMessage,
+      };
+
+      const withCustomer = [...priorMessages, customerEntry];
+      setMessages(withCustomer);
+
+      const response = await runPlaygroundTestAction({
+        customerMessage: trimmedMessage,
+        conversationHistory: toConversationHistory(priorMessages),
+      });
+
+      if (!response.ok || !response.result) {
+        return {
+          ok: false,
+          messages: withCustomer,
+          error: response.ok
+            ? tStrict("testAi.aiPreviewFailed")
+            : (response.error ?? tStrict("testAi.aiPreviewFailed")),
+        };
+      }
+
+      const aiEntry: SimulatorChatMessage = {
+        id: createMessageId(),
+        role: "ai",
+        text: response.result.preview.aiReply,
+        aiScore: response.result.aiScore,
+      };
+
+      const fullMessages = [...withCustomer, aiEntry];
+      setMessages(fullMessages);
+      setTestResult(response.result);
+
+      return {
+        ok: true,
+        messages: fullMessages,
+        result: response.result,
+      };
+    },
+    [tStrict],
+  );
+
+  const runSingleTurn = useCallback(
+    async (customerMessage: string, priorMessages: SimulatorChatMessage[]) => {
+      if (!llmConfigured) {
+        setErrorMessage(tStrict("testAi.llmNotConfigured"));
+        return;
+      }
+
+      setActiveSessionId(null);
+      setErrorMessage(null);
+      setDraftMessage("");
+      setMobilePanel("simulator");
+      setIsRunning(true);
+
+      const outcome = await executeTurn(customerMessage, priorMessages);
+
+      setIsRunning(false);
+
+      if (!outcome.ok) {
+        setErrorMessage(outcome.error);
+        setMessages(outcome.messages);
+        return;
+      }
+
+      setMobilePanel("inspector");
+    },
+    [executeTurn, llmConfigured, tStrict],
+  );
+
+  const handleSend = () => {
+    void runSingleTurn(draftMessage, messages);
+  };
+
+  const handleSuggestedQuestion = (question: string) => {
+    setDraftMessage(question);
+    void runSingleTurn(question, messages);
+  };
+
+  const handleScenario = useCallback(
+    async (scenarioId: string) => {
+      if (!llmConfigured || isRunning) {
+        if (!llmConfigured) {
+          setErrorMessage(tStrict("testAi.llmNotConfigured"));
+        }
+        return;
+      }
+
+      const scenario = getPlaygroundConversationScenario(scenarioId);
+      if (!scenario) {
+        return;
+      }
+
+      setActiveSessionId(null);
+      setActiveScenarioId(scenarioId);
+      setErrorMessage(null);
+      setDraftMessage("");
+      setMessages([]);
+      setTestResult(null);
+      setMobilePanel("simulator");
+      setIsRunning(true);
+
+      let currentMessages: SimulatorChatMessage[] = [];
+
+      for (const customerMessage of scenario.messages) {
+        const outcome = await executeTurn(customerMessage, currentMessages);
+
+        if (!outcome.ok) {
+          setErrorMessage(outcome.error);
+          setMessages(outcome.messages);
+          setIsRunning(false);
+          return;
+        }
+
+        currentMessages = outcome.messages;
+      }
+
+      setIsRunning(false);
+      setMobilePanel("inspector");
+    },
+    [executeTurn, isRunning, llmConfigured, tStrict],
+  );
+
+  const handleResetConversation = () => {
+    if (isRunning) {
       return;
     }
 
-    setErrorMessage(null);
-    setStatusMessage(null);
-    setFeedbackStatus("idle");
-    setIsEditing(false);
+    setMessages([]);
     setTestResult(null);
-
-    startRunTransition(async () => {
-      const result = await runPlaygroundTestAction({
-        customerMessage,
-        context,
-        memoryTest,
-      });
-
-      if (!result.ok || !result.result) {
-        setErrorMessage(
-          result.ok
-            ? "AI preview failed. Please try again."
-            : result.error ?? "AI preview failed. Please try again.",
-        );
-        setMobilePanel("preview");
-        return;
-      }
-
-      setTestResult(result.result);
-      setEditedReply(result.result.preview.aiReply);
-      setMobilePanel("preview");
-    });
+    setDraftMessage("");
+    setErrorMessage(null);
+    setActiveSessionId(null);
+    setActiveScenarioId(null);
+    setMobilePanel("simulator");
   };
 
-  const handleApprove = () => {
-    setFeedbackStatus("approved");
-    setStatusMessage(null);
-  };
-
-  const handleReject = () => {
-    setFeedbackStatus("rejected");
-    setStatusMessage(null);
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    setFeedbackStatus("edited");
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    if (testResult) {
-      setEditedReply(testResult.preview.aiReply);
+  const handleSaveTest = async () => {
+    if (!canSave || !testResult) {
+      return;
     }
-  };
 
-  const handleSaveExample = () => {
-    if (!testResult) return;
+    setIsSaving(true);
+    setErrorMessage(null);
 
-    startSaveTransition(async () => {
-      const result = await savePlaygroundExampleAction({
-        customerMessage,
-        aiReply: editedReply || testResult.preview.aiReply,
-      });
-
-      if (!result.ok || !result.example) {
-        setStatusMessage(result.ok ? "Save failed." : result.error);
-        return;
-      }
-
-      setSavedExamples((current) => [result.example, ...current].slice(0, 10));
-      setStatusMessage("Example saved locally (no learning applied yet).");
+    const result = await saveBrainTestSessionAction({
+      scenario: activeScenarioId,
+      conversation: messages,
+      inspector: testResult,
+      score: testResult.aiScore.breakdown.overall,
     });
+
+    setIsSaving(false);
+
+    if (!result.ok || !result.session) {
+      setErrorMessage(result.ok ? tStrict("testAi.saveFailed") : result.error);
+      return;
+    }
+
+    setSavedSessions((current) => [result.session!, ...current]);
+    setActiveSessionId(result.session.id);
   };
 
-  const preview: PlaygroundPreviewResult | null = testResult?.preview ?? null;
+  const handleReplay = (session: BrainTestSessionRecord) => {
+    if (isRunning) {
+      return;
+    }
+
+    setMessages(session.conversation);
+    setTestResult(session.inspector);
+    setActiveScenarioId(session.scenario);
+    setActiveSessionId(session.id);
+    setDraftMessage("");
+    setErrorMessage(null);
+    setMobilePanel("inspector");
+  };
+
+  const mobileTabLabels: Record<MobilePanel, string> = {
+    simulator: tStrict("testAi.simulator"),
+    inspector: tStrict("testAi.inspector"),
+    saved: tStrict("testAi.savedTests"),
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground md:text-2xl">Playground</h2>
-        <p className="text-sm text-muted-foreground">
-          Test how AI would answer using your draft Business Brain configuration.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(tStrict, "playground")}
+        iconSlug="playground"
+        description={translateBusinessBrainSectionDescription(tStrict, "playground")}
+      />
 
       {!llmConfigured ? (
         <div className="rounded-xl border border-amber-300/40 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
-          LLM is not configured. Add OPENAI_API_KEY to enable AI preview.
+          {tStrict("testAi.llmNotConfigured")}
         </div>
       ) : null}
 
-      <div className="flex gap-2 lg:hidden">
-        {(["input", "preview", "context"] as const).map((panel) => (
+      <div className="flex gap-2 xl:hidden">
+        {(["simulator", "inspector", "saved"] as const).map((panel) => (
           <button
             key={panel}
             type="button"
             onClick={() => setMobilePanel(panel)}
             className={cn(
-              "flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition-colors",
+              "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
               mobilePanel === panel
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground",
             )}
           >
-            {panel === "input" ? "Input" : panel === "preview" ? "Preview" : "Context"}
+            {mobileTabLabels[panel]}
           </button>
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)]">
-        <div className={cn(mobilePanel === "input" ? "block" : "hidden xl:block")}>
-          <div className="space-y-4">
-            <PlaygroundTestInputPanel
-              customerMessage={customerMessage}
-              context={context}
-              canEdit={canEdit}
+      <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <main
+          className={cn(
+            "min-w-0 space-y-6",
+            mobilePanel !== "simulator" && mobilePanel !== "saved" && "hidden xl:block",
+          )}
+        >
+          <div className={cn(mobilePanel === "saved" && "hidden xl:block")}>
+            <PlaygroundSimulatorPanel
+              messages={messages}
+              draftMessage={draftMessage}
               isRunning={isRunning}
               llmConfigured={llmConfigured}
               errorMessage={errorMessage}
-              onCustomerMessageChange={setCustomerMessage}
-              onContextChange={setContext}
-              onRunTest={handleRunTest}
-            />
-            <PlaygroundMemoryTestPanel
-              memoryTest={memoryTest}
-              canEdit={canEdit}
-              onMemoryTestChange={setMemoryTest}
+              onDraftMessageChange={setDraftMessage}
+              onSend={handleSend}
+              onSuggestedQuestion={handleSuggestedQuestion}
+              onScenario={handleScenario}
+              onResetConversation={handleResetConversation}
             />
           </div>
-        </div>
 
-        <div className={cn(mobilePanel === "preview" ? "block" : "hidden xl:block")}>
-          <PlaygroundPreviewPanel
-            preview={preview}
-            editedReply={editedReply}
-            isEditing={isEditing}
-            isRunning={isRunning}
-            feedbackStatus={feedbackStatus}
-            canEdit={canEdit}
-            isSavingExample={isSavingExample}
-            statusMessage={statusMessage}
-            errorMessage={errorMessage}
-            onEditedReplyChange={setEditedReply}
-            onApprove={handleApprove}
-            onEdit={handleEdit}
-            onCancelEdit={handleCancelEdit}
-            onReject={handleReject}
-            onSaveExample={handleSaveExample}
-          />
-        </div>
+          <div className={cn(mobilePanel === "simulator" && "hidden xl:block", "xl:block")}>
+            <PlaygroundSavedTestsSidebar
+              compact
+              sessions={savedSessions}
+              activeSessionId={activeSessionId}
+              isRunning={isRunning}
+              canSave={canSave}
+              isSaving={isSaving}
+              onSaveTest={() => void handleSaveTest()}
+              onReplay={handleReplay}
+              onSessionsChange={setSavedSessions}
+            />
+          </div>
+        </main>
 
-        <div
+        <aside
           className={cn(
-            "space-y-4",
-            mobilePanel === "context" ? "block" : "hidden xl:block",
+            "w-full shrink-0 xl:sticky xl:top-6 xl:w-[380px]",
+            mobilePanel !== "inspector" && "hidden xl:block",
           )}
         >
-          <PlaygroundContextInspector
-            context={testResult?.contextUsed ?? availableContext}
-            mode={testResult ? "used" : "available"}
-            retrievalSummary={testResult?.retrievalSummary}
-            customerMemoryUsed={testResult?.customerMemoryUsed}
-            leadQualification={testResult?.leadQualification}
+          <PlaygroundInspector
+            testResult={testResult}
+            health={health}
+            knowledgeCoverage={knowledgeCoverage}
           />
-        </div>
+        </aside>
       </div>
-
-      {savedExamples.length > 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <h3 className="text-sm font-semibold text-foreground">Saved Examples (session)</h3>
-          <ul className="mt-3 space-y-2">
-            {savedExamples.slice(0, 3).map((example) => (
-              <li
-                key={example.id}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
-              >
-                <span className="font-medium text-foreground">{example.customerMessage}</span>
-                <span className="mx-2">→</span>
-                <span>
-                  {example.aiReply.slice(0, 120)}
-                  {example.aiReply.length > 120 ? "…" : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -1,23 +1,23 @@
 import { createClient } from "@/utils/supabase/server";
 
-import { createLLMAdapter } from "@/modules/ai/services/llm-adapter";
 import { classifyIntent } from "@/modules/ai/services/intent-classifier";
 import { retrieveRelevantContext } from "@/modules/ai/services/context-retrieval-engine";
 import { extractMemoryFromMessage } from "@/modules/ai/services/memory-extractor";
+import type { ExtractedMessageMemory } from "@/modules/ai/services/memory-extractor";
 import { leadQualificationService } from "@/modules/ai/services/lead-qualification-service";
 import { memoryService } from "@/modules/ai/services/memory-service";
+import { validateAIResponse } from "@/modules/ai/services/ai-safety-validator";
+import { improveReplyQuality } from "@/modules/ai/services/ai-reply-quality-guard";
 import type { ConversationMemoryKey, ConversationMemoryMap } from "@/modules/ai/types/memory";
 import {
-  mergePromptMemoryItems,
-  playgroundMemoryTestToPromptItems,
-  promptItemsToPlaygroundMemoryDisplay,
   toConversationMemoryPromptItems,
+  promptItemsToPlaygroundMemoryDisplay,
 } from "@/modules/ai/types/memory";
 import { toPromptBusinessBrainContext } from "@/modules/ai/types/context-retrieval";
 import { mapBusinessBrainContextToPlayground } from "@/modules/business-brain/lib/map-context-to-playground";
 import { mapUsedContextToPlayground } from "@/modules/business-brain/lib/map-playground-used-context";
+import { calculatePlaygroundAiScore } from "@/modules/business-brain/lib/calculate-playground-ai-score";
 import { resolveDocumentActionDisplays } from "@/modules/business-brain/lib/parse-document-actions";
-import { parseWhatsAppSalesLlmResponse } from "@/modules/business-brain/lib/parse-whatsapp-sales-llm-response";
 import { resolveAiSourceLabels } from "@/modules/business-brain/lib/resolve-ai-source-labels";
 import {
   playgroundSaveExampleSchema,
@@ -25,20 +25,28 @@ import {
   type PlaygroundSaveExampleInput,
 } from "@/modules/business-brain/schemas/playground";
 import { buildBusinessBrainContextBody } from "@/modules/business-brain/services/context-builder";
-import { buildWhatsAppSalesPrompt } from "@/modules/business-brain/services/prompt-builder";
+import { EMPTY_BUSINESS_BRAIN_CONTEXT } from "@/modules/business-brain/types/context";
+import type { WhatsAppConversationTurn } from "@/modules/business-brain/types/prompt";
 import type {
   PlaygroundAvailableContext,
-  PlaygroundCustomerContext,
+  PlaygroundPreviewResult,
   PlaygroundSavedExample,
   PlaygroundTestResult,
 } from "@/modules/business-brain/types/playground";
+import { aiHandoffService } from "@/lib/whatsapp-inbox/ai/handoff-service";
+import {
+  aiLLMReplyService,
+  WHATSAPP_AI_LLM_FALLBACK_REPLY,
+} from "@/lib/whatsapp-inbox/ai/llm-reply-service";
+import { aiReplyService } from "@/lib/whatsapp-inbox/ai/reply-service";
+import { sanitizeAiReplyBranding } from "@/lib/whatsapp-inbox/ai/workspace-profile";
 
 const exampleStore = new Map<string, PlaygroundSavedExample[]>();
 const memoryStore = new Map<string, ConversationMemoryMap>();
 
 export class PlaygroundLlmNotConfiguredError extends Error {
   constructor() {
-    super("LLM is not configured. Add OPENAI_API_KEY to enable AI preview.");
+    super("AI preview is not available. Add OPENAI_API_KEY to enable response testing.");
     this.name = "PlaygroundLlmNotConfiguredError";
   }
 }
@@ -69,32 +77,40 @@ async function resolveWorkspaceName(organizationId: string): Promise<string> {
   return data?.name?.trim() || "Workspace";
 }
 
-function buildCustomerContextSummary(context: PlaygroundCustomerContext): string | null {
-  const lines = [
-    context.customerName ? `Customer name: ${context.customerName}` : null,
-    context.destinationInterest ? `Destination interest: ${context.destinationInterest}` : null,
-    context.budget ? `Budget: ${context.budget}` : null,
-    context.departureMonth ? `Departure month: ${context.departureMonth}` : null,
-    context.passengerCount ? `Passenger count: ${context.passengerCount}` : null,
-  ].filter(Boolean);
-
-  if (lines.length === 0) {
-    return null;
-  }
-
-  return lines.join("\n");
+function mapExtractedMemories(memories: ExtractedMessageMemory[]) {
+  return memories.map((memory) => ({
+    memoryKey: memory.key as ConversationMemoryKey,
+    memoryValue: memory.value,
+    confidence: memory.confidence,
+    source: memory.source,
+  }));
 }
 
-function buildPlaygroundCustomerMessage(
-  customerMessage: string,
-  context: PlaygroundCustomerContext,
-): string {
-  const summary = buildCustomerContextSummary(context);
-  if (!summary) {
-    return customerMessage;
-  }
+function buildPreviewResult(args: {
+  reply: string;
+  confidence: number;
+  handoffRequired: boolean;
+  handoffReason: string | null;
+  suggestedActions: string[];
+  usedSources: string[];
+  businessBrainContext: ReturnType<typeof toPromptBusinessBrainContext> | null;
+  documentActions: PlaygroundPreviewResult["documentActions"];
+}): PlaygroundPreviewResult {
+  const sourceLabels = resolveAiSourceLabels(
+    args.businessBrainContext ?? EMPTY_BUSINESS_BRAIN_CONTEXT,
+    args.usedSources,
+  );
 
-  return `${customerMessage}\n\nOptional customer context:\n${summary}`;
+  return {
+    aiReply: args.reply,
+    confidence: args.confidence,
+    handoffRequired: args.handoffRequired,
+    handoffReason: args.handoffReason,
+    suggestedActions: args.suggestedActions,
+    usedSources: args.usedSources,
+    sourceLabels,
+    documentActions: args.documentActions,
+  };
 }
 
 export async function getAvailableContext(
@@ -107,6 +123,23 @@ export async function getAvailableContext(
   return mapBusinessBrainContextToPlayground(context);
 }
 
+type PlaygroundTestResultBody = Omit<PlaygroundTestResult, "aiScore">;
+
+function finalizePlaygroundTestResult(
+  body: PlaygroundTestResultBody,
+  customerMessage: string,
+  conversationHistory: WhatsAppConversationTurn[],
+): PlaygroundTestResult {
+  return {
+    ...body,
+    aiScore: calculatePlaygroundAiScore({
+      result: body,
+      customerMessage,
+      conversationHistory,
+    }),
+  };
+}
+
 export async function runTest(
   organizationId: string,
   input: unknown,
@@ -117,10 +150,11 @@ export async function runTest(
     throw new PlaygroundLlmNotConfiguredError();
   }
 
-  const llm = createLLMAdapter();
-  if (!llm) {
-    throw new PlaygroundLlmNotConfiguredError();
-  }
+  const priorHistory: WhatsAppConversationTurn[] = parsed.conversationHistory;
+  const intentHistory = priorHistory.map(({ sender, text }) => ({ sender, text }));
+  const hasPriorBusinessReplies = priorHistory.some(
+    (turn) => turn.sender === "ai" || turn.sender === "human",
+  );
 
   const [workspaceName, businessBrainContext] = await Promise.all([
     resolveWorkspaceName(organizationId),
@@ -130,61 +164,107 @@ export async function runTest(
     }),
   ]);
 
-  const effectiveCustomerMessage = buildPlaygroundCustomerMessage(
-    parsed.customerMessage,
-    parsed.context,
-  );
-
-  const sessionMemoryItems = toConversationMemoryPromptItems(
-    memoryStore.get(organizationId) ?? {},
-  );
-  const manualMemoryItems = playgroundMemoryTestToPromptItems(parsed.memoryTest);
-  const extractedMemoryItems = extractMemoryFromMessage({
+  const sessionMemory = memoryStore.get(organizationId) ?? {};
+  const initialExtraction = extractMemoryFromMessage({
     messageText: parsed.customerMessage,
     conversationId: "playground",
     workspaceId: organizationId,
-  }).memories.map((memory) => ({
-    memory_key: memory.key,
-    memory_value: memory.value,
-    confidence: memory.confidence,
-  }));
+  }).memories;
 
-  const customerMemoryUsed = mergePromptMemoryItems(
-    sessionMemoryItems,
-    manualMemoryItems,
-    extractedMemoryItems,
+  let conversationMemory = memoryService.mergeExtractedMemory(
+    sessionMemory,
+    mapExtractedMemories(initialExtraction),
   );
 
+  const customerMemoryUsed = toConversationMemoryPromptItems(conversationMemory);
   const leadQualification = leadQualificationService.snapshotFromPromptItems(
     customerMemoryUsed,
   );
 
   const intentResult = classifyIntent({
-    customerMessage: effectiveCustomerMessage,
-    conversationHistory: [],
+    customerMessage: parsed.customerMessage,
+    conversationHistory: intentHistory,
   });
+
+  if (aiHandoffService.requiresHandoff(intentResult)) {
+    memoryStore.set(organizationId, conversationMemory);
+
+    const handoffReply = sanitizeAiReplyBranding(
+      aiReplyService.getHandoffReply(),
+      parsed.customerMessage,
+      workspaceName,
+    );
+
+    return finalizePlaygroundTestResult(
+      {
+        preview: buildPreviewResult({
+          reply: handoffReply,
+          confidence: intentResult.confidence,
+          handoffRequired: true,
+          handoffReason: `Intent ${intentResult.intent} requires a human agent.`,
+          suggestedActions: [],
+          usedSources: [],
+          businessBrainContext: null,
+          documentActions: [],
+        }),
+        contextUsed: mapUsedContextToPlayground(businessBrainContext, []),
+        retrievalSummary: {
+          intent: intentResult.intent,
+          matchedKeywords: [],
+          productCount: 0,
+          articleCount: 0,
+          documentCount: 0,
+          behaviorCount: 0,
+        },
+        customerMemory: promptItemsToPlaygroundMemoryDisplay(customerMemoryUsed),
+        customerMemoryUsed,
+        leadQualification,
+      },
+      parsed.customerMessage,
+      priorHistory,
+    );
+  }
 
   const retrievedContext = retrieveRelevantContext({
     workspaceId: organizationId,
-    customerMessage: effectiveCustomerMessage,
+    customerMessage: parsed.customerMessage,
     intent: intentResult.intent,
     businessBrainContext,
   });
 
-  const promptBundle = buildWhatsAppSalesPrompt({
-    workspaceName,
-    customerMessage: effectiveCustomerMessage,
-    conversationHistory: [],
-    retrievedContext,
-    conversationMemory: customerMemoryUsed,
-    leadQualification,
-  });
+  const enrichedExtraction = extractMemoryFromMessage(
+    {
+      messageText: parsed.customerMessage,
+      conversationId: "playground",
+      workspaceId: organizationId,
+    },
+    {
+      productDestinations: retrievedContext.relevantProducts
+        .map((product) => product.destination)
+        .filter((destination): destination is string => Boolean(destination?.trim())),
+    },
+  ).memories;
 
-  const llmResult = await llm.generateJSON({
-    systemPrompt: promptBundle.systemPrompt,
-    userPrompt: promptBundle.userPrompt,
-    temperature: 0.4,
-    maxTokens: 900,
+  conversationMemory = memoryService.mergeExtractedMemory(
+    conversationMemory,
+    mapExtractedMemories(enrichedExtraction),
+  );
+  memoryStore.set(organizationId, conversationMemory);
+
+  const promptMemoryItems = toConversationMemoryPromptItems(conversationMemory);
+  const refreshedLeadQualification = leadQualificationService.snapshotFromPromptItems(
+    promptMemoryItems,
+  );
+
+  const llmResult = await aiLLMReplyService.generateWhatsAppReply({
+    workspaceId: organizationId,
+    workspaceName,
+    customerMessage: parsed.customerMessage,
+    conversationHistory: priorHistory,
+    retrievedContext,
+    conversationMemory,
+    leadQualification: refreshedLeadQualification,
+    contextSource: "playground_simulator",
   });
 
   if (!llmResult.success) {
@@ -193,66 +273,101 @@ export async function runTest(
     );
   }
 
-  const contract = parseWhatsAppSalesLlmResponse(llmResult.data);
-  if (!contract) {
-    throw new PlaygroundLlmFailedError("AI preview failed. Please try again.");
+  const businessBrainContextForValidation =
+    llmResult.businessBrainContext ?? EMPTY_BUSINESS_BRAIN_CONTEXT;
+
+  const safetyValidation = validateAIResponse({
+    reply: llmResult.reply,
+    handoffRequired: llmResult.handoffRequired,
+    handoffReason: llmResult.handoffReason,
+    documentActions: llmResult.documentActions,
+    actions: llmResult.actions,
+    businessBrainContext: businessBrainContextForValidation,
+    customerMessage: parsed.customerMessage,
+    hasPriorBusinessReplies,
+    companyName: workspaceName,
+  });
+
+  if (safetyValidation.forceHandoff || !safetyValidation.allowed) {
+    const handoffReply = sanitizeAiReplyBranding(
+      aiReplyService.getHandoffReply(),
+      parsed.customerMessage,
+      workspaceName,
+    );
+
+    const documentActions = resolveDocumentActionDisplays(
+      businessBrainContextForValidation,
+      llmResult.documentActions,
+    );
+
+    return finalizePlaygroundTestResult(
+      {
+        preview: buildPreviewResult({
+          reply: handoffReply,
+          confidence: llmResult.confidence,
+          handoffRequired: true,
+          handoffReason:
+            safetyValidation.reason ?? "Response did not pass safety validation.",
+          suggestedActions: llmResult.suggestedActions,
+          usedSources: llmResult.usedSources,
+          businessBrainContext: businessBrainContextForValidation,
+          documentActions,
+        }),
+        contextUsed: mapUsedContextToPlayground(
+          llmResult.retrievedContext ?? retrievedContext,
+          llmResult.usedSources,
+        ),
+        retrievalSummary: llmResult.retrievalSummary ?? retrievedContext.retrievalSummary,
+        customerMemory: promptItemsToPlaygroundMemoryDisplay(promptMemoryItems),
+        customerMemoryUsed: promptMemoryItems,
+        leadQualification: refreshedLeadQualification,
+      },
+      parsed.customerMessage,
+      priorHistory,
+    );
   }
 
-  const sourceLabels = resolveAiSourceLabels(
-    toPromptBusinessBrainContext(promptBundle.sanitizedContext),
-    contract.usedSources,
-  );
+  const validatedReplyText =
+    safetyValidation.sanitizedReply ??
+    sanitizeAiReplyBranding(llmResult.reply, parsed.customerMessage, workspaceName);
+
+  const qualityResult = improveReplyQuality({
+    reply: validatedReplyText,
+    conversationHistory: priorHistory,
+    customerMessage: parsed.customerMessage,
+    businessBrainContext: businessBrainContextForValidation,
+  });
+
+  const finalReplyText = qualityResult.reply.trim() || WHATSAPP_AI_LLM_FALLBACK_REPLY;
   const documentActions = resolveDocumentActionDisplays(
-    toPromptBusinessBrainContext(promptBundle.sanitizedContext),
-    contract.documentActions,
+    businessBrainContextForValidation,
+    llmResult.documentActions,
   );
 
-  const preview = {
-    aiReply: contract.reply,
-    confidence: contract.confidence,
-    handoffRequired: contract.handoffRequired,
-    handoffReason: contract.handoffReason,
-    suggestedActions: contract.suggestedActions,
-    usedSources: contract.usedSources,
-    sourceLabels,
-    documentActions,
-  };
-
-  const contextUsed = mapUsedContextToPlayground(
-    promptBundle.sanitizedContext,
-    contract.usedSources,
+  return finalizePlaygroundTestResult(
+    {
+      preview: buildPreviewResult({
+        reply: finalReplyText,
+        confidence: llmResult.confidence,
+        handoffRequired: llmResult.handoffRequired,
+        handoffReason: llmResult.handoffReason,
+        suggestedActions: llmResult.suggestedActions,
+        usedSources: llmResult.usedSources,
+        businessBrainContext: businessBrainContextForValidation,
+        documentActions,
+      }),
+      contextUsed: mapUsedContextToPlayground(
+        llmResult.retrievedContext ?? retrievedContext,
+        llmResult.usedSources,
+      ),
+      retrievalSummary: llmResult.retrievalSummary ?? retrievedContext.retrievalSummary,
+      customerMemory: promptItemsToPlaygroundMemoryDisplay(promptMemoryItems),
+      customerMemoryUsed: promptMemoryItems,
+      leadQualification: refreshedLeadQualification,
+    },
+    parsed.customerMessage,
+    priorHistory,
   );
-
-  const extracted = extractMemoryFromMessage({
-    messageText: parsed.customerMessage,
-    conversationId: "playground",
-    workspaceId: organizationId,
-  }, {
-    productDestinations: retrievedContext.relevantProducts
-      .map((product) => product.destination)
-      .filter((destination): destination is string => Boolean(destination?.trim())),
-  }).memories.map((memory) => ({
-    memoryKey: memory.key as ConversationMemoryKey,
-    memoryValue: memory.value,
-    confidence: memory.confidence,
-    source: memory.source,
-  }));
-
-  const updatedMemory = memoryService.mergeExtractedMemory(
-    memoryStore.get(organizationId) ?? {},
-    extracted,
-  );
-  memoryStore.set(organizationId, updatedMemory);
-  const customerMemory = promptItemsToPlaygroundMemoryDisplay(customerMemoryUsed);
-
-  return {
-    preview,
-    contextUsed,
-    retrievalSummary: retrievedContext.retrievalSummary,
-    customerMemory,
-    customerMemoryUsed,
-    leadQualification,
-  };
 }
 
 export async function saveExample(

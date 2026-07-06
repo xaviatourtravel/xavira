@@ -35,6 +35,8 @@ export async function findBusinessBrainByOrganizationId(
   return data as BusinessBrainRow | null;
 }
 
+import { ensureDefaultBrainActionPermissions } from "@/modules/business-brain/repositories/brain-action-permission-repository";
+
 export async function createBusinessBrain(
   organizationId: string,
 ): Promise<BusinessBrainRow> {
@@ -53,7 +55,10 @@ export async function createBusinessBrain(
     throw new Error(error.message);
   }
 
-  return data as BusinessBrainRow;
+  const brain = data as BusinessBrainRow;
+  await ensureDefaultBrainActionPermissions(brain.id);
+
+  return brain;
 }
 
 export async function ensureBusinessBrain(

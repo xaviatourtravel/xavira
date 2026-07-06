@@ -11,6 +11,7 @@ export const AI_ACTION_TYPES = [
   "UPDATE_LEAD_PROGRESS",
   "SUGGEST_PACKAGE",
   "ASK_QUALIFICATION",
+  "FOLLOW_UP_MESSAGE",
   "NO_ACTION",
 ] as const;
 
@@ -29,9 +30,24 @@ export const AI_ACTION_STATUSES = [
   "REJECTED",
   "EXECUTED",
   "FAILED",
+  "SCHEDULED",
 ] as const;
 
 export type AIActionStatus = (typeof AI_ACTION_STATUSES)[number];
+
+export type AIActionRetryMetadata = {
+  retryCount: number;
+  lastRetryAt: string | null;
+  lastRetryBy: string | null;
+  lastRetryError: string | null;
+};
+
+export const EMPTY_AI_ACTION_RETRY_METADATA: AIActionRetryMetadata = {
+  retryCount: 0,
+  lastRetryAt: null,
+  lastRetryBy: null,
+  lastRetryError: null,
+};
 
 export type AIActionRecord = {
   id: string;
@@ -42,6 +58,9 @@ export type AIActionRecord = {
   confidence: number;
   reason: string | null;
   payload: Record<string, unknown>;
+  metadata: AIActionRetryMetadata;
+  scheduledFor: string | null;
+  executedByJob: boolean;
   executedAt: string | null;
   createdAt: string;
 };

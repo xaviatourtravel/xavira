@@ -1,14 +1,16 @@
 import { getActionDefinition } from "@/modules/ai/action-engine/action-registry";
+import { validateFollowUpMessage } from "@/modules/ai/action-engine/follow-up-message-validator";
 import {
-  normalizeActionConfidence,
+  checkActionPermission,
+  mergeRequiresApproval,
+} from "@/modules/ai/action-engine/action-permission-check";
+import {
   type ActionEngineContext,
   type ActionValidationResult,
   type AIAction,
 } from "@/modules/ai/action-engine/types";
 import { isConversationMemoryKey } from "@/modules/ai/types/memory";
 import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
-
-const SEND_DOCUMENT_AUTO_EXECUTE_CONFIDENCE = 0.95;
 
 type BrainDocumentRow = {
   id: string;
@@ -65,31 +67,12 @@ function requireAiActive(context: ActionEngineContext): ActionValidationResult {
   return { approved: true, requiresApproval: false };
 }
 
-function requireConfidence(
-  action: AIAction,
-  minConfidence: number,
-): ActionValidationResult {
-  const confidence = normalizeActionConfidence(action.confidence);
-  if (confidence < minConfidence) {
-    return {
-      approved: false,
-      reason: `Confidence ${confidence.toFixed(2)} is below minimum ${minConfidence}`,
-      code: "low_confidence",
-    };
-  }
-  return { approved: true, requiresApproval: false };
-}
-
 async function validateSendDocument(
   action: AIAction,
   context: ActionEngineContext,
 ): Promise<ActionValidationResult> {
   const active = requireAiActive(context);
   if (!active.approved) return active;
-
-  const definition = getActionDefinition("SEND_DOCUMENT");
-  const confidenceCheck = requireConfidence(action, definition.minConfidence);
-  if (!confidenceCheck.approved) return confidenceCheck;
 
   const documentId =
     typeof action.payload.documentId === "string"
@@ -133,20 +116,15 @@ async function validateSendDocument(
     };
   }
 
-  const confidence = normalizeActionConfidence(action.confidence);
-  const canAutoExecute =
-    confidence >= SEND_DOCUMENT_AUTO_EXECUTE_CONFIDENCE &&
-    document.auto_send_enabled;
-
   return {
     approved: true,
-    // Auto-execute only when confidence is high and auto_send is enabled.
-    requiresApproval: !canAutoExecute,
+    // Document-level auto-send still gates automatic execution.
+    requiresApproval: !document.auto_send_enabled,
   };
 }
 
 function validateHandover(
-  action: AIAction,
+  _action: AIAction,
   context: ActionEngineContext,
 ): ActionValidationResult {
   const state = resolveWhatsappAiState(context.conversation.ai_state);
@@ -167,21 +145,10 @@ function validateHandover(
     };
   }
 
-  const definition = getActionDefinition("HANDOVER");
-  const confidenceCheck = requireConfidence(action, definition.minConfidence);
-  if (!confidenceCheck.approved) return confidenceCheck;
-
-  return { approved: true, requiresApproval: true };
+  return { approved: true, requiresApproval: false };
 }
 
-function validateCreateLeadNote(
-  action: AIAction,
-  _context: ActionEngineContext,
-): ActionValidationResult {
-  const definition = getActionDefinition("CREATE_LEAD_NOTE");
-  const confidenceCheck = requireConfidence(action, definition.minConfidence);
-  if (!confidenceCheck.approved) return confidenceCheck;
-
+function validateCreateLeadNote(action: AIAction): ActionValidationResult {
   const note =
     typeof action.payload.note === "string" ? action.payload.note.trim() : "";
 
@@ -193,17 +160,10 @@ function validateCreateLeadNote(
     };
   }
 
-  return { approved: true, requiresApproval: true };
+  return { approved: true, requiresApproval: false };
 }
 
-function validateUpdateMemory(
-  action: AIAction,
-  _context: ActionEngineContext,
-): ActionValidationResult {
-  const definition = getActionDefinition("UPDATE_MEMORY");
-  const confidenceCheck = requireConfidence(action, definition.minConfidence);
-  if (!confidenceCheck.approved) return confidenceCheck;
-
+function validateUpdateMemory(action: AIAction): ActionValidationResult {
   const memoryKey =
     typeof action.payload.memoryKey === "string"
       ? action.payload.memoryKey.trim()
@@ -232,14 +192,7 @@ function validateUpdateMemory(
   return { approved: true, requiresApproval: false };
 }
 
-function validateUpdateLeadProgress(
-  action: AIAction,
-  _context: ActionEngineContext,
-): ActionValidationResult {
-  const definition = getActionDefinition("UPDATE_LEAD_PROGRESS");
-  const confidenceCheck = requireConfidence(action, definition.minConfidence);
-  if (!confidenceCheck.approved) return confidenceCheck;
-
+function validateUpdateLeadProgress(action: AIAction): ActionValidationResult {
   const fields = action.payload.fields;
   if (!fields || typeof fields !== "object" || Array.isArray(fields)) {
     return {
@@ -249,18 +202,14 @@ function validateUpdateLeadProgress(
     };
   }
 
-  return { approved: true, requiresApproval: true };
-}
-
-function validateSoftAction(action: AIAction): ActionValidationResult {
-  const definition = getActionDefinition(action.type);
-  const confidenceCheck = requireConfidence(action, definition.minConfidence);
-  if (!confidenceCheck.approved) return confidenceCheck;
-
   return { approved: true, requiresApproval: false };
 }
 
-export async function validateAction(
+function validateSoftAction(): ActionValidationResult {
+  return { approved: true, requiresApproval: false };
+}
+
+async function validateActionType(
   action: AIAction,
   context: ActionEngineContext,
 ): Promise<ActionValidationResult> {
@@ -270,14 +219,16 @@ export async function validateAction(
     case "HANDOVER":
       return validateHandover(action, context);
     case "CREATE_LEAD_NOTE":
-      return validateCreateLeadNote(action, context);
+      return validateCreateLeadNote(action);
     case "UPDATE_MEMORY":
-      return validateUpdateMemory(action, context);
+      return validateUpdateMemory(action);
     case "UPDATE_LEAD_PROGRESS":
-      return validateUpdateLeadProgress(action, context);
+      return validateUpdateLeadProgress(action);
     case "SUGGEST_PACKAGE":
     case "ASK_QUALIFICATION":
-      return validateSoftAction(action);
+      return validateSoftAction();
+    case "FOLLOW_UP_MESSAGE":
+      return validateFollowUpMessage(action, context);
     case "NO_ACTION":
       return { approved: true, requiresApproval: false };
     default:
@@ -288,3 +239,33 @@ export async function validateAction(
       };
   }
 }
+
+export async function validateAction(
+  action: AIAction,
+  context: ActionEngineContext,
+): Promise<ActionValidationResult> {
+  if (action.type === "NO_ACTION") {
+    return { approved: true, requiresApproval: false };
+  }
+
+  const permissionResult = await checkActionPermission(action, context);
+  if (!permissionResult.approved) {
+    return permissionResult;
+  }
+
+  const typeResult = await validateActionType(action, context);
+  if (!typeResult.approved) {
+    return typeResult;
+  }
+
+  return {
+    approved: true,
+    requiresApproval: mergeRequiresApproval(
+      permissionResult.requiresApproval,
+      typeResult.requiresApproval,
+    ),
+  };
+}
+
+// Re-export for tests and callers that need action metadata.
+export { getActionDefinition };

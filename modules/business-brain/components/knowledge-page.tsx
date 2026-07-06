@@ -8,12 +8,18 @@ import {
 } from "@/modules/business-brain/actions/knowledge-actions";
 import { KnowledgeEditor } from "@/modules/business-brain/components/knowledge-editor";
 import { KnowledgeListPanel } from "@/modules/business-brain/components/knowledge-list-panel";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainArticleCategory,
   BrainArticleDetail,
   BrainArticleListItem,
   BrainArticleStatus,
 } from "@/modules/business-brain/types/knowledge";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type ProductOption = {
@@ -32,6 +38,7 @@ export function KnowledgePageClient({
   productOptions,
   canEdit,
 }: KnowledgePageClientProps) {
+  const { t } = useTranslation();
   const [articles, setArticles] = useState(initialArticles);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(
     initialArticles[0]?.id ?? null,
@@ -112,14 +119,12 @@ export function KnowledgePageClient({
   }, [loadArticle, selectedArticle, selectedArticleId]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground md:text-2xl">Knowledge</h2>
-        <p className="text-sm text-muted-foreground">
-          Structured knowledge base — the primary source of truth for AI.
-        </p>
-      </div>
-
+    <div className="space-y-6">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(t, "knowledge")}
+        iconSlug="knowledge"
+        description={translateBusinessBrainSectionDescription(t, "knowledge")}
+      />
       <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
         <div className={cn(mobileShowEditor ? "hidden lg:block" : "block")}>
           <KnowledgeListPanel
@@ -156,7 +161,7 @@ export function KnowledgePageClient({
                   ? "Loading article..."
                   : selectedArticleId
                     ? "Loading knowledge editor..."
-                    : "Select an article or create a new one to start editing."}
+                    : "Nothing here yet. Select an article or create one to start editing."}
               </p>
               {selectedArticleId && !isLoadingArticle ? (
                 <button

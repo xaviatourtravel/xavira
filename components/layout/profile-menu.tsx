@@ -8,7 +8,9 @@ import { ChevronDown, LogOut } from "lucide-react";
 import { signOut } from "@/actions/auth";
 import { UserAvatar, formatProfileRoleLabel } from "@/components/layout/user-avatar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import {
   PROFILE_MENU_FLAT_ITEMS,
@@ -34,6 +36,7 @@ function MenuItemLink({
   onSelect: (index: number) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const flatIndex = PROFILE_MENU_FLAT_ITEMS.findIndex((entry) => entry.id === item.id);
 
   return (
@@ -57,7 +60,7 @@ function MenuItemLink({
       <span>{item.label}</span>
       {item.status === "coming_soon" ? (
         <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
-          Segera
+          {t("common.comingSoon")}
         </span>
       ) : null}
     </Link>
@@ -83,6 +86,8 @@ function ProfileMenuContent({
   onClose: () => void;
   listRef?: RefObject<HTMLDivElement | null>;
 }) {
+  const { t } = useTranslation();
+
   return (
     <>
       <div className="border-b border-border px-4 py-4">
@@ -124,7 +129,16 @@ function ProfileMenuContent({
 
       <div className="border-t border-border p-2">
         <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Tampilan
+          {t("common.language")}
+        </p>
+        <div className="px-1 pb-1">
+          <LanguageToggle />
+        </div>
+      </div>
+
+      <div className="border-t border-border p-2">
+        <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          {t("common.appearance")}
         </p>
         <div className="px-1 pb-1">
           <ThemeToggle />
@@ -133,7 +147,7 @@ function ProfileMenuContent({
 
       <div className="border-t border-border p-2">
         <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Sesi
+          {t("common.session")}
         </p>
         <form action={signOut}>
           <button
@@ -141,7 +155,7 @@ function ProfileMenuContent({
             className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground/80 transition-colors hover:bg-muted/60"
           >
             <LogOut className="h-4 w-4 text-muted-foreground" />
-            Keluar
+            {t("common.signOut")}
           </button>
         </form>
       </div>

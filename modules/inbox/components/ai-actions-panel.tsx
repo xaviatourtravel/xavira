@@ -16,11 +16,12 @@ import {
 import { formatInboxMessageTime } from "@/components/omnichannel-inbox/inbox-display";
 import { cn } from "@/lib/utils";
 
-type AiActionsFilter = "all" | "PENDING" | "EXECUTED" | "REJECTED" | "FAILED";
+type AiActionsFilter = "all" | "PENDING" | "SCHEDULED" | "EXECUTED" | "REJECTED" | "FAILED";
 
 const FILTERS: Array<{ id: AiActionsFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "PENDING", label: "Pending" },
+  { id: "SCHEDULED", label: "Scheduled" },
   { id: "EXECUTED", label: "Executed" },
   { id: "REJECTED", label: "Rejected" },
   { id: "FAILED", label: "Failed" },
@@ -37,6 +38,8 @@ const STATUS_STYLES: Record<AIActionStatus, string> = {
     "bg-emerald-50 text-emerald-800 ring-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60",
   FAILED:
     "bg-red-50 text-red-800 ring-red-200/80 dark:bg-red-950/40 dark:text-red-200 dark:ring-red-800/60",
+  SCHEDULED:
+    "bg-violet-50 text-violet-800 ring-violet-200/80 dark:bg-violet-950/40 dark:text-violet-200 dark:ring-violet-800/60",
 };
 
 type AiActionsPanelProps = {

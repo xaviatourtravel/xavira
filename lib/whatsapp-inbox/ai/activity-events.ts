@@ -73,6 +73,19 @@ const AUDIT_EVENT_TYPES: AiEventType[] = [
   "ACTION_MANUALLY_APPROVED",
   "ACTION_MANUALLY_REJECTED",
   "ACTION_EXECUTED_AFTER_APPROVAL",
+  "ACTION_PERMISSION_BLOCKED",
+  "ACTION_PERMISSION_APPROVED",
+  "ACTION_RETRY_ATTEMPTED",
+  "ACTION_RETRY_SUCCEEDED",
+  "ACTION_RETRY_FAILED",
+  "ACTION_SCHEDULED",
+  "ACTION_SCHEDULE_EXECUTED",
+  "ACTION_SCHEDULE_CANCELLED",
+  "ACTION_EXECUTED_NOW",
+  "AI_FOLLOW_UP_SCHEDULED",
+  "AI_FOLLOW_UP_CANCELLED",
+  "AI_FOLLOW_UP_SENT",
+  "AI_FOLLOW_UP_SKIPPED",
 ];
 
 const AI_EVENT_LABELS: Record<AiEventType, string> = {
@@ -111,6 +124,19 @@ const AI_EVENT_LABELS: Record<AiEventType, string> = {
   ACTION_MANUALLY_APPROVED: "Action manually approved",
   ACTION_MANUALLY_REJECTED: "Action manually rejected",
   ACTION_EXECUTED_AFTER_APPROVAL: "Action executed after approval",
+  ACTION_PERMISSION_BLOCKED: "Action blocked by permission",
+  ACTION_PERMISSION_APPROVED: "Action passed permission check",
+  ACTION_RETRY_ATTEMPTED: "Action retry attempted",
+  ACTION_RETRY_SUCCEEDED: "Action retry succeeded",
+  ACTION_RETRY_FAILED: "Action retry failed",
+  ACTION_SCHEDULED: "Action scheduled",
+  ACTION_SCHEDULE_EXECUTED: "Scheduled action executed",
+  ACTION_SCHEDULE_CANCELLED: "Scheduled action cancelled",
+  ACTION_EXECUTED_NOW: "Scheduled action executed now",
+  AI_FOLLOW_UP_SCHEDULED: "AI follow-up scheduled",
+  AI_FOLLOW_UP_CANCELLED: "AI follow-up cancelled",
+  AI_FOLLOW_UP_SENT: "AI follow-up sent",
+  AI_FOLLOW_UP_SKIPPED: "AI follow-up skipped",
 };
 
 const REPLY_EVENT_TYPES = new Set<AiEventType>([

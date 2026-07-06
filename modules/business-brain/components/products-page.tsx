@@ -8,11 +8,17 @@ import {
 } from "@/modules/business-brain/actions/product-actions";
 import { ProductEditor } from "@/modules/business-brain/components/product-editor";
 import { ProductListPanel } from "@/modules/business-brain/components/product-list-panel";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainProductDetail,
   BrainProductListItem,
   BrainProductStatus,
 } from "@/modules/business-brain/types/products";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type FaqOption = {
@@ -32,6 +38,7 @@ export function ProductsPageClient({
   faqOptions,
   canEdit,
 }: ProductsPageClientProps) {
+  const { t } = useTranslation();
   const [products, setProducts] = useState(initialProducts);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     initialProducts[0]?.id ?? null,
@@ -120,14 +127,12 @@ export function ProductsPageClient({
   }, [loadProduct, selectedProduct, selectedProductId]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground md:text-2xl">Products</h2>
-        <p className="text-sm text-muted-foreground">
-          Teach AI everything about the packages and services you sell.
-        </p>
-      </div>
-
+    <div className="space-y-6">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(t, "products")}
+        iconSlug="products"
+        description={translateBusinessBrainSectionDescription(t, "products")}
+      />
       <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
         <div className={cn(mobileShowEditor ? "hidden lg:block" : "block")}>
           <ProductListPanel
@@ -162,7 +167,7 @@ export function ProductsPageClient({
                   ? "Loading product..."
                   : selectedProductId
                     ? "Loading product editor..."
-                    : "Select a product or create a new one to start editing."}
+                    : "Nothing here yet. Select a product or create one to start editing."}
               </p>
               {selectedProductId && !isLoadingProduct ? (
                 <button

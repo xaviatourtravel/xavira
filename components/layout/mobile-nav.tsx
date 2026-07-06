@@ -19,6 +19,8 @@ import {
   type NavAttentionBadges,
 } from "@/config/navigation";
 import type { Permission } from "@/lib/auth/permission-matrix";
+import { translateMobileNavTitle } from "@/lib/i18n/navigation-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type MobileNavProps = {
@@ -33,6 +35,7 @@ export function MobileNav({
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const permissionSet = new Set(permissions);
+  const { t } = useTranslation();
 
   const primaryNav = MOBILE_PRIMARY_NAV.filter((item) =>
     permissionSet.has(item.permission),
@@ -116,7 +119,7 @@ export function MobileNav({
         )}
       >
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <p className="text-sm font-semibold">Workspaces</p>
+          <p className="text-sm font-semibold">{t("common.workspaces")}</p>
           <button
             type="button"
             aria-label="Close more menu"
@@ -144,7 +147,7 @@ export function MobileNav({
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {item.title}
+                {translateMobileNavTitle(t, item.href, item.title)}
               </Link>
             );
           })}
@@ -173,7 +176,7 @@ export function MobileNav({
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span className="truncate">{item.title}</span>
+                <span className="truncate">{translateMobileNavTitle(t, item.href, item.title)}</span>
                 {badge > 0 ? (
                   <span className="absolute right-2 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold text-slate-950">
                     {badge > 9 ? "9+" : badge}
@@ -192,7 +195,7 @@ export function MobileNav({
             )}
           >
             <Menu className="h-5 w-5" />
-            <span>Lainnya</span>
+            <span>{t("common.more")}</span>
           </button>
         </div>
       </nav>

@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 
 import { BehaviorCategoriesPanel } from "@/modules/business-brain/components/behavior-categories-panel";
 import { BehaviorEditor } from "@/modules/business-brain/components/behavior-editor";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainBehaviorRecord,
   BrainBehaviorType,
 } from "@/modules/business-brain/types/behaviors";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type BehaviorsPageClientProps = {
@@ -20,6 +26,7 @@ export function BehaviorsPageClient({
   initialBehaviors,
   canEdit,
 }: BehaviorsPageClientProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [behaviors, setBehaviors] = useState(initialBehaviors);
   const [activeCategory, setActiveCategory] = useState<BrainBehaviorType>("ALWAYS_DO");
@@ -103,14 +110,12 @@ export function BehaviorsPageClient({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground md:text-2xl">Behaviors</h2>
-        <p className="text-sm text-muted-foreground">
-          Teach AI what to always do, never do, and when to hand over to humans.
-        </p>
-      </div>
-
+    <div className="space-y-6">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(t, "behaviors")}
+        iconSlug="behaviors"
+        description={translateBusinessBrainSectionDescription(t, "behaviors")}
+      />
       <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
         <div className={cn(mobileShowEditor ? "hidden lg:block" : "block")}>
           <BehaviorCategoriesPanel

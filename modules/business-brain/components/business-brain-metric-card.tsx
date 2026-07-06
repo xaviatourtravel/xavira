@@ -1,19 +1,49 @@
-import type { LucideIcon } from "lucide-react";
+"use client";
 
-import { DsCardPlaceholder } from "@/components/design-system";
+import Link from "next/link";
+
+import { useBusinessBrainWorkspaceOptional } from "@/modules/business-brain/components/business-brain-workspace-context";
 import { designSystemPanelClass } from "@/lib/design-system/tokens";
 import type { BusinessBrainMetricCard } from "@/modules/business-brain/types";
+import { sectionSlugFromHref } from "@/modules/business-brain/types/business-brain-workspace";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 
 type BusinessBrainMetricCardViewProps = {
   card: BusinessBrainMetricCard;
   icon: LucideIcon;
 };
 
+function MetricCardCta({ href, label }: { href: string; label: string }) {
+  const workspace = useBusinessBrainWorkspaceOptional();
+  const slug = sectionSlugFromHref(href);
+
+  if (workspace && slug) {
+    return (
+      <button
+        type="button"
+        onClick={() => workspace.navigate(slug)}
+        className="inline-flex text-sm font-medium text-primary hover:underline"
+      >
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={href} className="inline-flex text-sm font-medium text-primary hover:underline">
+      {label}
+    </Link>
+  );
+}
+
 export function BusinessBrainMetricCardView({
   card,
   icon: Icon,
 }: BusinessBrainMetricCardViewProps) {
+  const showProgress =
+    typeof card.progressPercent === "number" && card.progressPercent > 0;
+
   return (
     <article
       className={cn(
@@ -34,11 +64,27 @@ export function BusinessBrainMetricCardView({
       </div>
 
       <div className="mt-auto space-y-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Status
-        </p>
-        <p className="text-sm font-medium text-foreground">{card.statusLabel}</p>
-        <DsCardPlaceholder className="h-16 rounded-xl" />
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Status
+          </p>
+          <p className="mt-1 text-sm font-medium text-foreground">
+            {card.statusLabel}
+          </p>
+        </div>
+
+        {showProgress ? (
+          <div className="space-y-1.5">
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${card.progressPercent}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <MetricCardCta href={card.ctaHref} label={card.ctaLabel} />
       </div>
     </article>
   );

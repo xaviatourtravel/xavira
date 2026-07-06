@@ -14,6 +14,11 @@ import {
 } from "@/config/navigation";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import type { Permission } from "@/lib/auth/permission-matrix";
+import {
+  translateNavChildTitle,
+  translateWorkspaceTitle,
+} from "@/lib/i18n/navigation-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type SidebarNavigationProps = {
@@ -42,6 +47,7 @@ export function SidebarNavigation({
   const visibleWorkspaces = filterWorkspaceNav(PRIMARY_WORKSPACES, permissionSet);
   const settingsWorkspace = WORKSPACE_NAV.find((item) => item.id === "settings");
   const activeWorkspaceId = getWorkspaceForPath(pathname);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -59,7 +65,7 @@ export function SidebarNavigation({
 
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Workspaces
+          {t("common.workspaces")}
         </p>
 
         {visibleWorkspaces.map((workspace) => (
@@ -73,6 +79,7 @@ export function SidebarNavigation({
               workspace.badgeKey ? attentionBadges[workspace.badgeKey] : 0
             }
             onNavigate={onNavigate}
+            t={t}
           />
         ))}
       </nav>
@@ -83,12 +90,15 @@ export function SidebarNavigation({
             workspace={settingsWorkspace}
             isActive={activeWorkspaceId === "settings"}
             onNavigate={onNavigate}
+            t={t}
           />
         </div>
       ) : null}
     </>
   );
 }
+
+import type { TranslateFn } from "@/lib/i18n/dictionary";
 
 function WorkspaceNavSection({
   workspace,
@@ -97,6 +107,7 @@ function WorkspaceNavSection({
   isActive,
   badgeCount,
   onNavigate,
+  t,
 }: {
   workspace: WorkspaceNavItem;
   pathname: string;
@@ -104,6 +115,7 @@ function WorkspaceNavSection({
   isActive: boolean;
   badgeCount: number;
   onNavigate?: () => void;
+  t: TranslateFn;
 }) {
   const hasChildren = workspace.items.length > 0;
   const expanded = isActive && hasChildren;
@@ -115,6 +127,7 @@ function WorkspaceNavSection({
         isActive={isActive}
         badgeCount={badgeCount}
         onNavigate={onNavigate}
+        t={t}
       />
 
       {expanded ? (
@@ -125,11 +138,11 @@ function WorkspaceNavSection({
                 <li key={item.title}>
                   <span
                     className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground/70"
-                    title="Coming soon"
+                    title={t("common.comingSoon")}
                   >
-                    <span>{item.title}</span>
+                    <span>{translateNavChildTitle(t, item.href, item.title)}</span>
                     <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Soon
+                      {t("common.soon")}
                     </span>
                   </span>
                 </li>
@@ -154,7 +167,7 @@ function WorkspaceNavSection({
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
                 >
-                  {item.title}
+                  {translateNavChildTitle(t, item.href, item.title)}
                 </Link>
               </li>
             );
@@ -170,13 +183,16 @@ function SidebarLink({
   isActive,
   badgeCount = 0,
   onNavigate,
+  t,
 }: {
   workspace: WorkspaceNavItem;
   isActive: boolean;
   badgeCount?: number;
   onNavigate?: () => void;
+  t: TranslateFn;
 }) {
   const Icon = workspace.icon;
+  const title = translateWorkspaceTitle(t, workspace.id, workspace.title);
 
   return (
     <Link
@@ -196,7 +212,7 @@ function SidebarLink({
           isActive ? "text-primary-foreground" : "text-muted-foreground",
         )}
       />
-      <span className="min-w-0 flex-1 truncate">{workspace.title}</span>
+      <span className="min-w-0 flex-1 truncate">{title}</span>
       {badgeCount > 0 ? (
         <AttentionBadge count={badgeCount} inverted={isActive} />
       ) : null}

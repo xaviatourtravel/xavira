@@ -108,3 +108,24 @@ export async function findProductDocumentById(
 
   return data;
 }
+
+export async function listProductIdsWithItinerary(
+  productIds: string[],
+): Promise<Set<string>> {
+  if (productIds.length === 0) {
+    return new Set();
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("product_documents")
+    .select("product_id")
+    .in("product_id", productIds)
+    .eq("document_type", "itinerary");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return new Set((data ?? []).map((row) => row.product_id));
+}

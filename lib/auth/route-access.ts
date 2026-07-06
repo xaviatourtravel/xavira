@@ -23,6 +23,7 @@ const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: Permission }> 
     { prefix: "/scripts", permission: "leads.view" },
     { prefix: "/today", permission: "today.view" },
     { prefix: "/dashboard", permission: "dashboard.view" },
+    { prefix: "/ai-actions", permission: "dashboard.view" },
   ];
 
 export function getRequiredPermissionForPath(pathname: string): Permission | null {

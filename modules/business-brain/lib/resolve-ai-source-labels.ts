@@ -66,7 +66,7 @@ export function resolveAiSourceLabels(
 
   if (usedSources.length === 0) {
     if (context.companyDNA) {
-      addUniqueLabel(labels, seen, "Company DNA");
+      addUniqueLabel(labels, seen, "Identity");
     }
     for (const product of context.products) {
       addUniqueLabel(labels, seen, `Product: ${product.name}`);
@@ -75,7 +75,7 @@ export function resolveAiSourceLabels(
       addUniqueLabel(labels, seen, `Knowledge: ${article.title}`);
     }
     for (const behavior of context.behaviors) {
-      addUniqueLabel(labels, seen, `Behavior: ${behavior.name}`);
+      addUniqueLabel(labels, seen, `Rule: ${behavior.name}`);
     }
     for (const document of context.documents) {
       addUniqueLabel(labels, seen, `Document: ${document.name}`);
@@ -91,7 +91,7 @@ export function resolveAiSourceLabels(
       normalizedSource === "Company DNA" ||
       (!companyMatched && isCompanyDnaSource(source) && context.companyDNA)
     ) {
-      addUniqueLabel(labels, seen, "Company DNA");
+      addUniqueLabel(labels, seen, "Identity");
       companyMatched = true;
       continue;
     }
@@ -123,7 +123,7 @@ export function resolveAiSourceLabels(
         sourceMatchesId(source, item.id) || sourceMatchesName(source, item.name),
     );
     if (behavior) {
-      addUniqueLabel(labels, seen, `Behavior: ${behavior.name}`);
+      addUniqueLabel(labels, seen, `Rule: ${behavior.name}`);
       continue;
     }
 

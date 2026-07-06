@@ -7,7 +7,7 @@ export function mapBusinessBrainContextToPlayground(
   return {
     companyDna: {
       id: "company-dna",
-      title: "Company DNA Used",
+      title: "Identity",
       items: context.companyDNA
         ? [
             {
@@ -26,51 +26,51 @@ export function mapBusinessBrainContextToPlayground(
               : []),
           ]
         : [],
-      emptyLabel: "No Company DNA configured yet.",
+      emptyLabel: "Nothing here yet. Complete Identity to give your AI business context.",
     },
     products: {
       id: "products",
-      title: "Products Used",
+      title: "Products",
       items: context.products.map((item) => ({
         id: item.id,
         label: item.name,
         detail: item.destination || item.category,
       })),
-      emptyLabel: "No published products available.",
+      emptyLabel: "Nothing here yet. Add products so your AI can recommend them.",
     },
     knowledge: {
       id: "knowledge",
-      title: "Knowledge Used",
+      title: "Knowledge",
       items: context.knowledge.map((item) => ({
         id: item.id,
         label: item.title,
         detail: item.category,
       })),
-      emptyLabel: "No published knowledge articles available.",
+      emptyLabel: "Nothing here yet. Add knowledge articles for your AI to reference.",
     },
     documents: {
       id: "documents",
-      title: "Documents Used",
+      title: "Documents",
       items: context.documents.map((item) => ({
         id: item.id,
         label: item.name,
         detail: item.documentType,
       })),
-      emptyLabel: "No published documents available.",
+      emptyLabel: "Nothing here yet. Upload documents your AI can send to customers.",
     },
     behaviors: {
       id: "behaviors",
-      title: "Behaviors Applied",
+      title: "Rules",
       items: context.behaviors.map((item) => ({
         id: item.id,
         label: item.name,
         detail: item.type === "ALWAYS_DO" ? "Always do" : "Never do",
       })),
-      emptyLabel: "No enabled behavior rules yet.",
+      emptyLabel: "Nothing here yet. Add rules to guide how your AI responds.",
     },
     handoverRules: {
       id: "handover-rules",
-      title: "Handover Rules Checked",
+      title: "Handover Rules",
       items: context.handoverRules.map((item) => ({
         id: item.id,
         label: item.name,
@@ -78,7 +78,7 @@ export function mapBusinessBrainContextToPlayground(
           ? `${item.triggerIntent} → ${item.assignToRole}`
           : "Disabled",
       })),
-      emptyLabel: "No handover rules configured.",
+      emptyLabel: "Nothing here yet. Add handover rules for sensitive conversations.",
     },
   };
 }

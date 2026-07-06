@@ -336,7 +336,7 @@ export function BehaviorEditor({
     return (
       <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
         <p className="text-sm text-muted-foreground">
-          Select a category and rule to edit, or add a new rule.
+          Select a category and rule to edit, or add a new rule to get started.
         </p>
       </div>
     );

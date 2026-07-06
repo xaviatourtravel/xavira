@@ -1,5 +1,11 @@
 export { loadBusinessBrainDashboardAction } from "@/modules/business-brain/actions/dashboard-actions";
 
+export { loadBusinessBrainCoachAction } from "@/modules/business-brain/actions/coach-actions";
+
+export { loadBusinessBrainTimelineAction } from "@/modules/business-brain/actions/timeline-actions";
+
+export { loadKnowledgeCoverageAction } from "@/modules/business-brain/actions/knowledge-coverage-actions";
+
 export {
   loadCompanyDnaAction,
   saveCompanyDnaDraftAction,
@@ -54,6 +60,11 @@ export {
   updateQualificationRulesAction,
   updateReplyStyleAction,
 } from "@/modules/business-brain/actions/behavior-actions";
+
+export {
+  loadBrainActionPermissionsAction,
+  updateBrainActionPermissionAction,
+} from "@/modules/business-brain/actions/action-permission-actions";
 
 export {
   loadPlaygroundAction,

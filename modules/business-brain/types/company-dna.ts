@@ -104,15 +104,7 @@ export const DEFAULT_COMPANY_DNA_FORM: CompanyDnaFormValues = {
   neverRules: [],
 };
 
-export const BUSINESS_BRAIN_NAV_ITEMS = [
-  { id: "overview", title: "Overview", href: "/business-brain" },
-  { id: "company-dna", title: "Company DNA", href: "/business-brain/company-dna" },
-  { id: "products", title: "Products", href: "/business-brain/products" },
-  { id: "knowledge", title: "Knowledge", href: "/business-brain/knowledge" },
-  { id: "documents", title: "Documents", href: "/business-brain/documents" },
-  { id: "behaviors", title: "Behaviors", href: "/business-brain/behaviors" },
-  { id: "playground", title: "Playground", href: "/business-brain/playground" },
-  { id: "publish", title: "Publish", href: "/business-brain/publish" },
-] as const;
-
-export type BusinessBrainNavId = (typeof BUSINESS_BRAIN_NAV_ITEMS)[number]["id"];
+export {
+  BUSINESS_BRAIN_NAV_ITEMS,
+  type BusinessBrainNavId,
+} from "@/modules/business-brain/types/business-brain-workspace";

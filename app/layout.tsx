@@ -5,6 +5,8 @@ import {
   ThemeProvider,
   THEME_INIT_SCRIPT,
 } from "@/components/theme/theme-provider";
+import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/config";
+import { I18nProvider } from "@/lib/i18n/provider";
 import { branding } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 
@@ -54,9 +56,12 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }} />
       </head>
       <body className={inter.className}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

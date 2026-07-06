@@ -52,6 +52,12 @@ export const ACTION_REGISTRY: Record<AIActionType, ActionDefinition> = {
     minConfidence: 0.5,
     hasSideEffects: false,
   },
+  FOLLOW_UP_MESSAGE: {
+    type: "FOLLOW_UP_MESSAGE",
+    description: "Schedule a gentle follow-up WhatsApp message for later.",
+    minConfidence: 0.85,
+    hasSideEffects: true,
+  },
   NO_ACTION: {
     type: "NO_ACTION",
     description: "Explicit no-op recommendation.",

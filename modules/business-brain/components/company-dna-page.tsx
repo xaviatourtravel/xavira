@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { X } from "lucide-react";
 
-import { AppWorkspaceFrame } from "@/components/layout/app-workspace-frame";
 import { DsButton } from "@/components/design-system/button";
 import { DsCard } from "@/components/design-system/card";
 import {
@@ -14,7 +13,10 @@ import {
   DsTextarea,
 } from "@/components/design-system/form-controls";
 import { saveCompanyDnaDraftAction } from "@/modules/business-brain/actions/company-dna-actions";
-import { CompanyDnaPreview } from "@/modules/business-brain/components/company-dna-preview";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
+import { BusinessBrainSectionLayout } from "@/modules/business-brain/components/business-brain-section-layout";
+import { CompanyDnaInspector } from "@/modules/business-brain/components/inspector";
+import { SegmentedControl } from "@/modules/business-brain/components/segmented-control";
 import {
   AI_GOAL_OPTIONS,
   BRAND_PERSONALITY_OPTIONS,
@@ -25,6 +27,11 @@ import {
   type CompanyDnaFormValues,
   type CompanyDnaRecord,
 } from "@/modules/business-brain/types/company-dna";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 const AI_GOAL_LABELS: Record<AiGoal, string> = {
@@ -172,52 +179,6 @@ function TagInput({
   );
 }
 
-function SegmentedRadio({
-  name,
-  value,
-  onChange,
-  options,
-  disabled = false,
-}: {
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => {
-        const selected = value === option.value;
-
-        return (
-          <label
-            key={option.value}
-            className={cn(
-              "inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm transition-colors",
-              disabled && "cursor-not-allowed opacity-50",
-              selected
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <input
-              type="radio"
-              name={name}
-              value={option.value}
-              checked={selected}
-              disabled={disabled}
-              onChange={() => onChange(option.value)}
-              className="sr-only"
-            />
-            {option.label}
-          </label>
-        );
-      })}
-    </div>
-  );
-}
-
 type CompanyDnaPageClientProps = {
   initialRecord: CompanyDnaRecord | null;
   canEdit: boolean;
@@ -227,6 +188,7 @@ export function CompanyDnaPageClient({
   initialRecord,
   canEdit,
 }: CompanyDnaPageClientProps) {
+  const { t } = useTranslation();
   const [savedValues, setSavedValues] = useState(() =>
     valuesFromRecord(initialRecord),
   );
@@ -289,55 +251,53 @@ export function CompanyDnaPageClient({
   };
 
   return (
-    <AppWorkspaceFrame
-      header={
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-foreground md:text-2xl">
-            Company DNA
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Define your business identity and how AI should communicate with
-            customers.
-          </p>
-        </div>
-      }
-      toolbar={
-        <div className="flex flex-wrap items-center gap-2">
-          <DsButton
-            type="button"
-            onClick={handleSaveDraft}
-            loading={isPending}
-            disabled={!canEdit || !isDirty}
-          >
-            Save Draft
-          </DsButton>
-          <DsButton
-            type="button"
-            variant="outline"
-            onClick={handleDiscard}
-            disabled={!isDirty || isPending}
-          >
-            Discard Changes
-          </DsButton>
-          {statusMessage ? (
-            <span className="text-sm text-emerald-600 dark:text-emerald-400">
-              {statusMessage}
-            </span>
-          ) : null}
-          {errorMessage ? (
-            <span className="text-sm text-destructive">{errorMessage}</span>
-          ) : null}
-          {!canEdit ? (
-            <span className="text-sm text-muted-foreground">
-              View only — owners and admins can edit.
-            </span>
-          ) : null}
-        </div>
-      }
-      contextPanel={<CompanyDnaPreview values={values} />}
-    >
-      <div className="space-y-6">
-        <DsCard title="Business Identity">
+    <div className="space-y-6">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(t, "identity")}
+        iconSlug="identity"
+        description={translateBusinessBrainSectionDescription(t, "identity")}
+        actions={
+          canEdit ? (
+            <>
+              <DsButton
+                type="button"
+                onClick={handleSaveDraft}
+                loading={isPending}
+                disabled={!isDirty}
+              >
+                {t("common.saveDraft")}
+              </DsButton>
+              <DsButton
+                type="button"
+                variant="outline"
+                onClick={handleDiscard}
+                disabled={!isDirty || isPending}
+              >
+                {t("common.discardChanges")}
+              </DsButton>
+            </>
+          ) : null
+        }
+        status={
+          <>
+            {statusMessage ? (
+              <span className="text-sm text-emerald-600 dark:text-emerald-400">
+                {statusMessage}
+              </span>
+            ) : null}
+            {errorMessage ? (
+              <span className="text-sm text-destructive">{errorMessage}</span>
+            ) : null}
+            {!canEdit ? (
+              <span className="text-sm text-muted-foreground">
+                View only — owners and admins can edit.
+              </span>
+            ) : null}
+          </>
+        }
+      />
+      <BusinessBrainSectionLayout inspector={<CompanyDnaInspector values={values} />}>
+      <DsCard title="Business Identity">
           <div className="grid gap-4 md:grid-cols-2">
             <DsField label="Company Name *">
               <DsTextInput
@@ -407,8 +367,7 @@ export function CompanyDnaPageClient({
         <DsCard title="Communication Style">
           <div className="space-y-5">
             <DsField label="Reply Length">
-              <SegmentedRadio
-                name="replyLength"
+              <SegmentedControl
                 value={values.communicationStyle.replyLength}
                 onChange={(replyLength) =>
                   updateValues({
@@ -427,8 +386,7 @@ export function CompanyDnaPageClient({
               />
             </DsField>
             <DsField label="Greeting Style">
-              <SegmentedRadio
-                name="greetingStyle"
+              <SegmentedControl
                 value={values.communicationStyle.greetingStyle}
                 onChange={(greetingStyle) =>
                   updateValues({
@@ -447,8 +405,7 @@ export function CompanyDnaPageClient({
               />
             </DsField>
             <DsField label="Emoji Usage">
-              <SegmentedRadio
-                name="emojiUsage"
+              <SegmentedControl
                 value={values.communicationStyle.emojiUsage}
                 onChange={(emojiUsage) =>
                   updateValues({
@@ -468,8 +425,7 @@ export function CompanyDnaPageClient({
               />
             </DsField>
             <DsField label="Language">
-              <SegmentedRadio
-                name="language"
+              <SegmentedControl
                 value={values.communicationStyle.language}
                 onChange={(language) =>
                   updateValues({
@@ -523,7 +479,7 @@ export function CompanyDnaPageClient({
             placeholder="e.g. Never negotiate price"
           />
         </DsCard>
-      </div>
-    </AppWorkspaceFrame>
+      </BusinessBrainSectionLayout>
+    </div>
   );
 }

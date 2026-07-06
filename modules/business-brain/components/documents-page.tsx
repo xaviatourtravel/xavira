@@ -6,12 +6,18 @@ import { loadBrainDocumentAction } from "@/modules/business-brain/actions/docume
 import { DocumentDetailsPanel } from "@/modules/business-brain/components/document-details-panel";
 import { DocumentListPanel } from "@/modules/business-brain/components/document-list-panel";
 import { DocumentUploadZone } from "@/modules/business-brain/components/document-upload-zone";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainDocumentDetail,
   BrainDocumentListItem,
   BrainDocumentStatus,
   BrainDocumentType,
 } from "@/modules/business-brain/types/documents";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type ProductOption = { id: string; name: string };
@@ -30,6 +36,7 @@ export function DocumentsPageClient({
   articleOptions,
   canEdit,
 }: DocumentsPageClientProps) {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState(initialDocuments);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     initialDocuments[0]?.id ?? null,
@@ -102,14 +109,12 @@ export function DocumentsPageClient({
   }, [loadDocument, selectedDocument, selectedDocumentId]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground md:text-2xl">Documents</h2>
-        <p className="text-sm text-muted-foreground">
-          Teach AI what files to send and when customers ask for them.
-        </p>
-      </div>
-
+    <div className="space-y-6">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(t, "documents")}
+        iconSlug="documents"
+        description={translateBusinessBrainSectionDescription(t, "documents")}
+      />
       {canEdit ? <DocumentUploadZone canEdit={canEdit} onUploaded={handleUploaded} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
@@ -146,7 +151,7 @@ export function DocumentsPageClient({
                   ? "Loading document..."
                   : selectedDocumentId
                     ? "Loading document details..."
-                    : "Upload a document or select one from the list."}
+                    : "Nothing here yet. Upload a document or select one from the list."}
               </p>
               {selectedDocumentId && !isLoadingDocument ? (
                 <button

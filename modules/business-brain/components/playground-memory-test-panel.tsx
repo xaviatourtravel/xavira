@@ -25,9 +25,9 @@ export function PlaygroundMemoryTestPanel({
   return (
     <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
       <div>
-        <p className="text-sm font-medium text-foreground">Memory Test Panel</p>
+        <p className="text-sm font-medium text-foreground">Customer Memory</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Pre-fill customer memory to test memory-aware prompting.
+          Pre-fill customer memory to test how prior context affects responses.
         </p>
       </div>
 

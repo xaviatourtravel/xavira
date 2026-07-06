@@ -8,12 +8,18 @@ import { Eye, Rocket, Upload } from "lucide-react";
 import { DsButton } from "@/components/design-system/button";
 import { DsCard } from "@/components/design-system/card";
 import { publishBusinessBrainAction } from "@/modules/business-brain/actions/publish-actions";
+import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainDraftSummary,
   BrainPublishStatusView,
   BrainSectionChangeSummary,
   BrainVersionListItem,
 } from "@/modules/business-brain/types/publish";
+import {
+  translateBusinessBrainSectionDescription,
+  translateBusinessBrainSectionTitle,
+} from "@/lib/i18n/business-brain-labels";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
 
 type PublishPageClientProps = {
@@ -32,6 +38,7 @@ function formatDateTime(value: string | null) {
 }
 
 function StatusBadge({ status }: { status: BrainPublishStatusView["status"] }) {
+  const { tStrict } = useTranslation();
   const published = status === "published";
   return (
     <span
@@ -42,7 +49,7 @@ function StatusBadge({ status }: { status: BrainPublishStatusView["status"] }) {
           : "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300",
       )}
     >
-      {published ? "Published" : "Draft"}
+      {published ? tStrict("businessBrain.published") : tStrict("businessBrain.draft")}
     </span>
   );
 }
@@ -61,10 +68,12 @@ function ChangeCountCell({ value }: { value: number }) {
 }
 
 function ChangeSummaryTable({ sections }: { sections: BrainSectionChangeSummary[] }) {
+  const { tStrict } = useTranslation();
+
   if (sections.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-        No Business Brain content yet. Configure modules before publishing.
+        {tStrict("businessBrain.changeSummaryEmpty")}
       </p>
     );
   }
@@ -74,10 +83,10 @@ function ChangeSummaryTable({ sections }: { sections: BrainSectionChangeSummary[
       <table className="min-w-full text-sm">
         <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
           <tr>
-            <th className="px-4 py-3 font-medium">Section</th>
-            <th className="px-4 py-3 font-medium">Added</th>
-            <th className="px-4 py-3 font-medium">Edited</th>
-            <th className="px-4 py-3 font-medium">Removed</th>
+            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.section")}</th>
+            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.added")}</th>
+            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.edited")}</th>
+            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.removed")}</th>
           </tr>
         </thead>
         <tbody>
@@ -107,6 +116,7 @@ export function PublishPageClient({
   initialVersions,
   canPublish,
 }: PublishPageClientProps) {
+  const { tStrict } = useTranslation();
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [draftSummary, setDraftSummary] = useState(initialDraftSummary);
@@ -126,7 +136,7 @@ export function PublishPageClient({
     startPublishTransition(async () => {
       const result = await publishBusinessBrainAction();
       if (!result.ok || !result.result) {
-        setErrorMessage(result.ok ? "Publish failed." : result.error);
+        setErrorMessage(result.ok ? tStrict("businessBrain.publishFailed") : result.error);
         return;
       }
 
@@ -149,20 +159,46 @@ export function PublishPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground md:text-2xl">
-          Publish Business Brain
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Review changes before your AI uses them in live conversations.
-        </p>
-      </div>
-
-      <DsCard title="Publish Status">
+      <BusinessBrainSectionHeader
+        title={translateBusinessBrainSectionTitle(tStrict, "publish")}
+        iconSlug="publish"
+        description={translateBusinessBrainSectionDescription(tStrict, "publish")}
+        actions={
+          canPublish ? (
+            <DsButton
+              type="button"
+              onClick={handlePublish}
+              loading={isPublishing}
+              disabled={!canPublishNow}
+            >
+              <Rocket className="h-4 w-4" />
+              {tStrict("businessBrain.publishButton")}
+            </DsButton>
+          ) : null
+        }
+        status={
+          <>
+            {successMessage ? (
+              <span className="text-sm text-emerald-600 dark:text-emerald-400">
+                {successMessage}
+              </span>
+            ) : null}
+            {errorMessage ? (
+              <span className="text-sm text-destructive">{errorMessage}</span>
+            ) : null}
+            {!canPublish ? (
+              <span className="text-sm text-muted-foreground">
+                {tStrict("businessBrain.adminOnlyPublish")}
+              </span>
+            ) : null}
+          </>
+        }
+      />
+      <DsCard title={tStrict("businessBrain.publishStatus")}>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-background px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Current Status
+              {tStrict("businessBrain.currentStatus")}
             </p>
             <div className="mt-2">
               <StatusBadge status={status.status} />
@@ -170,7 +206,7 @@ export function PublishPageClient({
           </div>
           <div className="rounded-xl border border-border bg-background px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Last Published At
+              {tStrict("businessBrain.lastPublishedAt")}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
               {formatDateTime(status.lastPublishedAt)}
@@ -178,7 +214,7 @@ export function PublishPageClient({
           </div>
           <div className="rounded-xl border border-border bg-background px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Last Published By
+              {tStrict("businessBrain.lastPublishedBy")}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
               {status.lastPublishedBy?.name ?? "—"}
@@ -186,7 +222,7 @@ export function PublishPageClient({
           </div>
           <div className="rounded-xl border border-border bg-background px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Draft Changes Count
+              {tStrict("businessBrain.draftChangesCount")}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
               {draftSummary.totalChanges}
@@ -201,63 +237,47 @@ export function PublishPageClient({
       </DsCard>
 
       <DsCard
-        title="Change Summary"
-        description="Unpublished edits compared to the last published version."
+        title={tStrict("businessBrain.changeSummary")}
+        description={tStrict("businessBrain.changeSummaryDescription")}
       >
         <ChangeSummaryTable sections={draftSummary.sections} />
       </DsCard>
 
-      <DsCard title="Preview & Publish">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link
-            href="/business-brain/playground"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            <Eye className="h-4 w-4" />
-            Preview AI
-          </Link>
-          {canPublish ? (
-            <DsButton
-              type="button"
-              onClick={handlePublish}
-              loading={isPublishing}
-              disabled={!canPublishNow}
-            >
-              <Rocket className="h-4 w-4" />
-              Publish Business Brain
-            </DsButton>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Only admins and owners can publish changes.
-            </p>
-          )}
-        </div>
+      <DsCard title={tStrict("businessBrain.preview")}>
+        <Link
+          href="/business-brain/playground"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+        >
+          <Eye className="h-4 w-4" />
+          {tStrict("businessBrain.previewInTestAi")}
+        </Link>
         {!canPublishNow && canPublish && status.status === "published" ? (
           <p className="mt-3 text-sm text-muted-foreground">
-            No unpublished changes. Edit Business Brain modules to create a new draft.
+            {tStrict("businessBrain.noUnpublishedChanges")}
           </p>
-        ) : null}
-        {errorMessage ? <p className="mt-3 text-sm text-destructive">{errorMessage}</p> : null}
-        {successMessage ? (
-          <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">{successMessage}</p>
         ) : null}
       </DsCard>
 
-      <DsCard title="Version History" description="Published snapshots. Rollback is not available yet.">
+      <DsCard
+        title={tStrict("businessBrain.versionHistory")}
+        description={tStrict("businessBrain.versionHistoryDescription")}
+      >
         {versions.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
             <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No published versions yet.</p>
+            <p className="text-sm text-muted-foreground">
+              {tStrict("businessBrain.noVersionsYet")}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="min-w-full text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Version</th>
-                  <th className="px-4 py-3 font-medium">Published At</th>
-                  <th className="px-4 py-3 font-medium">Published By</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.version")}</th>
+                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.publishedAt")}</th>
+                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.publishedBy")}</th>
+                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,7 +301,9 @@ export function PublishPageClient({
                             : "bg-muted text-muted-foreground",
                         )}
                       >
-                        {version.status === "published" ? "Active" : "Superseded"}
+                        {version.status === "published"
+                          ? tStrict("businessBrain.active")
+                          : tStrict("businessBrain.superseded")}
                       </span>
                     </td>
                   </tr>

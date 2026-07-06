@@ -1,11 +1,23 @@
+import {
+  cancelScheduledAction,
+  executeScheduledActionNow,
+  processScheduledAIActions,
+} from "@/modules/ai/action-engine/scheduled-action-processor";
 import { validateAction } from "@/modules/ai/action-engine/action-validator";
+import { isPermissionBlockedCode } from "@/modules/ai/action-engine/action-permission-check";
 import { executeAction } from "@/modules/ai/action-engine/action-executor";
+import { parseRetryMetadata } from "@/modules/ai/action-engine/retry-metadata";
+import {
+  isScheduledInFuture,
+  resolveScheduledFor,
+} from "@/modules/ai/action-engine/schedule-utils";
 import {
   isAIActionType,
   normalizeActionConfidence,
   type ActionEngineContext,
   type ActionProcessResult,
   type AIAction,
+  type AIActionRetryMetadata,
   type AIActionStatus,
   type AIActionType,
 } from "@/modules/ai/action-engine/types";
@@ -64,7 +76,13 @@ async function updateActionStatus(
   context: ActionEngineContext,
   actionId: string | null,
   status: AIActionStatus,
-  options?: { executedAt?: string | null; reason?: string | null },
+  options?: {
+    executedAt?: string | null;
+    reason?: string | null;
+    metadata?: AIActionRetryMetadata;
+    scheduledFor?: string | null;
+    executedByJob?: boolean;
+  },
 ) {
   if (!actionId) return;
 
@@ -72,6 +90,9 @@ async function updateActionStatus(
     status: AIActionStatus;
     executed_at?: string | null;
     reason?: string | null;
+    metadata?: Json;
+    scheduled_for?: string | null;
+    executed_by_job?: boolean;
   } = { status };
 
   if (options?.executedAt !== undefined) {
@@ -79,6 +100,15 @@ async function updateActionStatus(
   }
   if (options?.reason !== undefined) {
     patch.reason = options.reason;
+  }
+  if (options?.metadata !== undefined) {
+    patch.metadata = options.metadata as Json;
+  }
+  if (options?.scheduledFor !== undefined) {
+    patch.scheduled_for = options.scheduledFor;
+  }
+  if (options?.executedByJob !== undefined) {
+    patch.executed_by_job = options.executedByJob;
   }
 
   const { error } = await context.supabase
@@ -106,7 +136,16 @@ async function logActionEvent(
     | "ACTION_FAILED"
     | "ACTION_MANUALLY_APPROVED"
     | "ACTION_MANUALLY_REJECTED"
-    | "ACTION_EXECUTED_AFTER_APPROVAL",
+    | "ACTION_EXECUTED_AFTER_APPROVAL"
+    | "ACTION_PERMISSION_BLOCKED"
+    | "ACTION_PERMISSION_APPROVED"
+    | "ACTION_RETRY_ATTEMPTED"
+    | "ACTION_RETRY_SUCCEEDED"
+    | "ACTION_RETRY_FAILED"
+    | "ACTION_SCHEDULED"
+    | "ACTION_SCHEDULE_EXECUTED"
+    | "ACTION_SCHEDULE_CANCELLED"
+    | "ACTION_EXECUTED_NOW",
   action: AIAction,
   metadata?: Record<string, unknown>,
 ) {
@@ -227,6 +266,15 @@ export async function processAction(
     await updateActionStatus(context, actionId, "REJECTED", {
       reason: validation.reason,
     });
+
+    if (isPermissionBlockedCode(validation.code)) {
+      await logActionEvent(context, "ACTION_PERMISSION_BLOCKED", action, {
+        actionId,
+        code: validation.code,
+        rejectionReason: validation.reason,
+      });
+    }
+
     await logActionEvent(context, "ACTION_REJECTED", action, {
       actionId,
       code: validation.code,
@@ -249,6 +297,10 @@ export async function processAction(
 
   // Valid but needs a human — leave PENDING for manual approval.
   if (validation.requiresApproval) {
+    await logActionEvent(context, "ACTION_PERMISSION_APPROVED", action, {
+      actionId,
+      requiresManualApproval: true,
+    });
     logEngine("ACTION_AWAITING_APPROVAL", {
       conversationId: context.conversation.id,
       actionType: action.type,
@@ -262,7 +314,55 @@ export async function processAction(
     };
   }
 
+  const scheduledFor = resolveScheduledFor(action);
+  const shouldSchedule =
+    action.type === "FOLLOW_UP_MESSAGE" || isScheduledInFuture(action);
+
+  if (shouldSchedule && scheduledFor) {
+    await updateActionStatus(context, actionId, "SCHEDULED", {
+      scheduledFor: scheduledFor.toISOString(),
+    });
+    await logActionEvent(context, "ACTION_SCHEDULED", action, {
+      actionId,
+      scheduledFor: scheduledFor.toISOString(),
+    });
+
+    if (action.type === "FOLLOW_UP_MESSAGE") {
+      await insertAiEvent(context.supabase, {
+        workspaceId: context.workspaceId,
+        conversationId: context.conversation.id,
+        messageId: context.incomingMessageId ?? null,
+        eventType: "AI_FOLLOW_UP_SCHEDULED",
+        confidence: normalizeActionConfidence(action.confidence),
+        reason: action.reason,
+        metadata: {
+          actionId,
+          actionType: action.type,
+          scheduledFor: scheduledFor.toISOString(),
+          payload: action.payload,
+        },
+      });
+    }
+
+    logEngine("ACTION_SCHEDULED", {
+      conversationId: context.conversation.id,
+      actionType: action.type,
+      actionId,
+      scheduledFor: scheduledFor.toISOString(),
+    });
+
+    return {
+      action,
+      actionId,
+      status: "SCHEDULED",
+    };
+  }
+
   await updateActionStatus(context, actionId, "APPROVED");
+  await logActionEvent(context, "ACTION_PERMISSION_APPROVED", action, {
+    actionId,
+    requiresManualApproval: false,
+  });
   await logActionEvent(context, "ACTION_APPROVED", action, { actionId });
   logEngine("ACTION_APPROVED", {
     conversationId: context.conversation.id,
@@ -305,6 +405,15 @@ export async function approveActionManually(
     await updateActionStatus(context, actionId, "REJECTED", {
       reason: validation.reason,
     });
+
+    if (isPermissionBlockedCode(validation.code)) {
+      await logActionEvent(context, "ACTION_PERMISSION_BLOCKED", action, {
+        actionId,
+        code: validation.code,
+        rejectionReason: validation.reason,
+      });
+    }
+
     await logActionEvent(context, "ACTION_REJECTED", action, {
       actionId,
       code: validation.code,
@@ -386,6 +495,154 @@ export async function rejectActionManually(
     actionId,
     status: "REJECTED",
     validationReason: rejectionReason,
+  };
+}
+
+export async function retryFailedAction(
+  actionId: string,
+  context: ActionEngineContext,
+  options?: { retriedByUserId?: string | null },
+): Promise<ActionProcessResult> {
+  const { data, error } = await context.supabase
+    .from("ai_actions")
+    .select(
+      "id, action_type, status, confidence, reason, payload, conversation_id, metadata",
+    )
+    .eq("id", actionId)
+    .eq("workspace_id", context.workspaceId)
+    .eq("conversation_id", context.conversation.id)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Action not found.");
+  }
+
+  if (data.status !== "FAILED") {
+    throw new Error("Only failed actions can be retried.");
+  }
+
+  const action = rowToAction(data);
+  if (!action) {
+    throw new Error("Unsupported action type.");
+  }
+
+  const currentMetadata = parseRetryMetadata(data.metadata);
+  const nextRetryCount = currentMetadata.retryCount + 1;
+  const retriedAt = new Date().toISOString();
+  const retriedByUserId = options?.retriedByUserId ?? null;
+
+  await logActionEvent(context, "ACTION_RETRY_ATTEMPTED", action, {
+    actionId,
+    retryCount: nextRetryCount,
+    retriedByUserId,
+  });
+  logEngine("ACTION_RETRY_ATTEMPTED", {
+    conversationId: context.conversation.id,
+    actionType: action.type,
+    actionId,
+    retryCount: nextRetryCount,
+  });
+
+  const validation = await validateAction(action, context);
+  if (!validation.approved) {
+    const metadata: AIActionRetryMetadata = {
+      retryCount: nextRetryCount,
+      lastRetryAt: retriedAt,
+      lastRetryBy: retriedByUserId,
+      lastRetryError: validation.reason,
+    };
+
+    await updateActionStatus(context, actionId, "FAILED", {
+      reason: validation.reason,
+      metadata,
+    });
+    await logActionEvent(context, "ACTION_RETRY_FAILED", action, {
+      actionId,
+      code: validation.code,
+      ...metadata,
+    });
+    logEngine("ACTION_RETRY_FAILED", {
+      conversationId: context.conversation.id,
+      actionType: action.type,
+      actionId,
+      code: validation.code,
+      reason: validation.reason,
+    });
+
+    return {
+      action,
+      actionId,
+      status: "FAILED",
+      validationReason: validation.reason,
+      error: validation.reason,
+    };
+  }
+
+  const execution = await executeAction(action, context);
+
+  if (!execution.success) {
+    const metadata: AIActionRetryMetadata = {
+      retryCount: nextRetryCount,
+      lastRetryAt: retriedAt,
+      lastRetryBy: retriedByUserId,
+      lastRetryError: execution.reason,
+    };
+
+    await updateActionStatus(context, actionId, "FAILED", {
+      reason: execution.reason,
+      metadata,
+    });
+    await logActionEvent(context, "ACTION_RETRY_FAILED", action, {
+      actionId,
+      code: execution.code,
+      failureReason: execution.reason,
+      ...metadata,
+    });
+    logEngine("ACTION_RETRY_FAILED", {
+      conversationId: context.conversation.id,
+      actionType: action.type,
+      actionId,
+      code: execution.code,
+      reason: execution.reason,
+    });
+
+    return {
+      action,
+      actionId,
+      status: "FAILED",
+      error: execution.reason,
+    };
+  }
+
+  const executedAt = new Date().toISOString();
+  const metadata: AIActionRetryMetadata = {
+    retryCount: nextRetryCount,
+    lastRetryAt: retriedAt,
+    lastRetryBy: retriedByUserId,
+    lastRetryError: null,
+  };
+
+  await updateActionStatus(context, actionId, "EXECUTED", {
+    executedAt,
+    metadata,
+  });
+  await logActionEvent(context, "ACTION_RETRY_SUCCEEDED", action, {
+    actionId,
+    ...metadata,
+    ...execution.metadata,
+  });
+  logEngine("ACTION_RETRY_SUCCEEDED", {
+    conversationId: context.conversation.id,
+    actionType: action.type,
+    actionId,
+    retryCount: nextRetryCount,
+  });
+
+  return {
+    action,
+    actionId,
+    status: "EXECUTED",
+    executionMetadata: execution.metadata,
   };
 }
 
@@ -575,6 +832,10 @@ export const actionEngine = {
   processActions,
   approveActionManually,
   rejectActionManually,
+  retryFailedAction,
+  processScheduledAIActions,
+  cancelScheduledAction,
+  executeScheduledActionNow,
   recommendActionsFromLlm,
   recommendQualificationHandoverAction,
   createAction,

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 import { DEFAULT_PLAYGROUND_MEMORY_TEST } from "@/modules/ai/types/memory";
+import { DEFAULT_PLAYGROUND_CONTEXT } from "@/modules/business-brain/types/playground";
+
+const playgroundConversationTurnSchema = z.object({
+  sender: z.enum(["customer", "human", "ai"]),
+  text: z.string(),
+  createdAt: z.string().optional(),
+});
 
 export const playgroundMemoryTestSchema = z.object({
   destination: z.string().trim(),
@@ -21,7 +28,8 @@ export const playgroundCustomerContextSchema = z.object({
 
 export const playgroundTestInputSchema = z.object({
   customerMessage: z.string().trim().min(1, "Customer message is required."),
-  context: playgroundCustomerContextSchema,
+  conversationHistory: z.array(playgroundConversationTurnSchema).default([]),
+  context: playgroundCustomerContextSchema.default(DEFAULT_PLAYGROUND_CONTEXT),
   memoryTest: playgroundMemoryTestSchema.default(DEFAULT_PLAYGROUND_MEMORY_TEST),
 });
 

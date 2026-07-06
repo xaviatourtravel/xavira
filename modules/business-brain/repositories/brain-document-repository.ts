@@ -243,6 +243,46 @@ export async function listDocumentTriggers(
     );
 }
 
+export async function listDocumentTriggersByDocumentIds(
+  documentIds: string[],
+): Promise<Map<string, BrainDocumentTrigger[]>> {
+  const result = new Map<string, BrainDocumentTrigger[]>();
+  if (documentIds.length === 0) {
+    return result;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("brain_document_triggers")
+    .select("document_id, trigger_key")
+    .in("document_id", documentIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const validTriggers = new Set<BrainDocumentTrigger>([
+    "customer_asks_itinerary",
+    "customer_asks_brochure",
+    "customer_asks_package_details",
+    "customer_asks_visa",
+    "customer_asks_payment",
+    "customer_asks_company_profile",
+  ]);
+
+  for (const row of data ?? []) {
+    if (!validTriggers.has(row.trigger_key as BrainDocumentTrigger)) {
+      continue;
+    }
+
+    const current = result.get(row.document_id) ?? [];
+    current.push(row.trigger_key as BrainDocumentTrigger);
+    result.set(row.document_id, current);
+  }
+
+  return result;
+}
+
 export async function replaceDocumentTriggers(
   documentId: string,
   triggers: BrainDocumentTrigger[],

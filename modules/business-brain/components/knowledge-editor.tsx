@@ -16,6 +16,7 @@ import {
   updateBrainArticleAction,
 } from "@/modules/business-brain/actions/knowledge-actions";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
+import { SegmentedControl } from "@/modules/business-brain/components/segmented-control";
 import {
   BRAIN_ARTICLE_CATEGORIES,
   BRAIN_ARTICLE_CATEGORY_LABELS,
@@ -117,51 +118,6 @@ function TagInput({
           ))}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function SegmentedRadio({
-  name,
-  value,
-  onChange,
-  options,
-  disabled = false,
-}: {
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => {
-        const selected = value === option.value;
-        return (
-          <label
-            key={option.value}
-            className={cn(
-              "inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm transition-colors",
-              disabled && "cursor-not-allowed opacity-50",
-              selected
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <input
-              type="radio"
-              name={name}
-              value={option.value}
-              checked={selected}
-              disabled={disabled}
-              onChange={() => onChange(option.value)}
-              className="sr-only"
-            />
-            {option.label}
-          </label>
-        );
-      })}
     </div>
   );
 }
@@ -381,8 +337,8 @@ export function KnowledgeEditor({
         </DsCard>
 
         <DsCard title="Visibility">
-          <SegmentedRadio
-            name="visibility"
+          <SegmentedControl
+            aria-label="Visibility"
             value={values.visibility}
             onChange={(visibility) =>
               updateValues({
@@ -398,8 +354,8 @@ export function KnowledgeEditor({
         </DsCard>
 
         <DsCard title="Status">
-          <SegmentedRadio
-            name="status"
+          <SegmentedControl
+            aria-label="Status"
             value={values.status}
             onChange={(status) =>
               updateValues({ status: status as BrainArticleStatus })

@@ -64,7 +64,7 @@ export function DocumentListPanel({
   });
 
   return (
-    <DsCard className="flex h-full min-h-[520px] flex-col p-4 md:p-5">
+    <DsCard className="p-4 md:p-5">
       <div className="mb-4 space-y-3">
         <h2 className="text-base font-semibold text-foreground">Document List</h2>
         <DsSearchInput
@@ -108,7 +108,7 @@ export function DocumentListPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+      <div className="space-y-2">
         {filteredDocuments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             <Search className="mx-auto mb-2 h-5 w-5 opacity-60" />

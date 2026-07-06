@@ -692,6 +692,47 @@ export type Database = {
           },
         ]
       }
+      brain_test_sessions: {
+        Row: {
+          conversation: Json
+          created_at: string
+          id: string
+          inspector: Json
+          scenario: string | null
+          score: number
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          conversation?: Json
+          created_at?: string
+          id?: string
+          inspector?: Json
+          scenario?: string | null
+          score?: number
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          conversation?: Json
+          created_at?: string
+          id?: string
+          inspector?: Json
+          scenario?: string | null
+          score?: number
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_test_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brain_document_articles: {
         Row: {
           article_id: string

@@ -17,8 +17,12 @@ export type PlaygroundCustomerContext = {
   passengerCount: string;
 };
 
+import type { WhatsAppConversationTurn } from "@/modules/business-brain/types/prompt";
+import type { PlaygroundAiScore } from "@/modules/business-brain/types/playground-ai-score";
+
 export type PlaygroundTestInput = {
   customerMessage: string;
+  conversationHistory?: WhatsAppConversationTurn[];
   context: PlaygroundCustomerContext;
   memoryTest: PlaygroundMemoryTestInput;
 };
@@ -83,6 +87,7 @@ export type PlaygroundTestResult = {
   customerMemory: PlaygroundMemoryDisplay;
   customerMemoryUsed: ConversationMemoryPromptItem[];
   leadQualification: LeadQualificationSnapshot;
+  aiScore: PlaygroundAiScore;
 };
 
 export type PlaygroundSavedExample = {

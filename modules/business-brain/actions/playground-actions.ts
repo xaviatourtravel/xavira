@@ -11,6 +11,7 @@ import {
   runTest,
   saveExample,
 } from "@/modules/business-brain/services/business-brain-playground-service";
+import { getBrainTestSessions } from "@/modules/business-brain/services/brain-test-session-service";
 
 function requireOrgId(profile: { organization_id: string | null }) {
   if (!profile.organization_id) {
@@ -22,14 +23,16 @@ function requireOrgId(profile: { organization_id: string | null }) {
 export async function loadPlaygroundAction() {
   const { profile } = await requireProfile();
   const organizationId = requireOrgId(profile);
-  const [availableContext, savedExamples] = await Promise.all([
+  const [availableContext, savedExamples, savedTestSessions] = await Promise.all([
     getAvailableContext(organizationId),
     Promise.resolve(listSavedExamples(organizationId)),
+    getBrainTestSessions(organizationId),
   ]);
 
   return {
     availableContext,
     savedExamples,
+    savedTestSessions,
     canEdit: true,
     llmConfigured: isPlaygroundLlmConfigured(),
   };

@@ -30,18 +30,23 @@ import {
   updateBrainProductAction,
   uploadProductDocumentAction,
 } from "@/modules/business-brain/actions/product-actions";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import {
   createEmptyDepartureItem,
   createEmptyPricingItem,
 } from "@/modules/business-brain/lib/product-knowledge-score";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  bbDepartureStatusLabel,
+  bbDisplayArticleTitle,
+  bbProductDocumentTypeLabel,
+  bbProductStatusLabel,
+} from "@/modules/business-brain/lib/bb-ui-labels";
 import {
   BRAIN_PRODUCT_CATEGORIES,
-  BRAIN_PRODUCT_STATUS_LABELS,
-  DEPARTURE_STATUS_LABELS,
   HIGHLIGHT_SUGGESTIONS,
   PRODUCT_CURRENCIES,
-  PRODUCT_DOCUMENT_TYPE_LABELS,
   type BrainProductDetail,
   type BrainProductFormValues,
   type BrainProductStatus,
@@ -94,6 +99,7 @@ function DynamicTextList({
   suggestions?: readonly string[];
   disabled?: boolean;
 }) {
+  const { bb } = useBbTranslation();
   const [draft, setDraft] = useState("");
 
   const addItem = () => {
@@ -138,7 +144,7 @@ function DynamicTextList({
           disabled={disabled}
         />
         <DsButton type="button" variant="outline" onClick={addItem} disabled={disabled}>
-          Add
+          {bb("add")}
         </DsButton>
       </div>
       <ul className="space-y-2">
@@ -153,7 +159,7 @@ function DynamicTextList({
                 type="button"
                 onClick={() => onChange(values.filter((value) => value !== item))}
                 className="text-muted-foreground hover:text-destructive"
-                aria-label={`Remove ${item}`}
+                aria-label={formatTranslation(bb("removeItem"), { item })}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -173,6 +179,7 @@ export function ProductEditor({
   onProductUpdated,
   onProductArchived,
 }: ProductEditorProps) {
+  const { bb } = useBbTranslation();
   const [savedValues, setSavedValues] = useState(() => valuesFromProduct(product));
   const [values, setValues] = useState(savedValues);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -208,11 +215,11 @@ export function ProductEditor({
     startTransition(async () => {
       const result = await updateBrainProductAction(product.id, values);
       if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? "Product not found." : result.error);
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
         return;
       }
       syncProduct(result.product);
-      setStatusMessage("Draft saved.");
+      setStatusMessage(bb("draftSaved"));
     });
   };
 
@@ -225,11 +232,11 @@ export function ProductEditor({
       }
       const result = await publishBrainProductAction(product.id);
       if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? "Product not found." : result.error);
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
         return;
       }
       syncProduct(result.product);
-      setStatusMessage("Product published.");
+      setStatusMessage(bb("productPublished"));
     });
   };
 
@@ -249,12 +256,12 @@ export function ProductEditor({
     startTransition(async () => {
       const result = await linkProductFaqAction(product.id, selectedFaqId);
       if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? "Product not found." : result.error);
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
         return;
       }
       syncProduct(result.product);
       setSelectedFaqId("");
-      setStatusMessage("FAQ linked.");
+      setStatusMessage(bb("faqLinked"));
     });
   };
 
@@ -265,13 +272,13 @@ export function ProductEditor({
         content: newFaqContent,
       });
       if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? "Product not found." : result.error);
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
         return;
       }
       syncProduct(result.product);
       setNewFaqTitle("");
       setNewFaqContent("");
-      setStatusMessage("FAQ created and linked.");
+      setStatusMessage(bb("faqCreatedAndLinked"));
     });
   };
 
@@ -292,12 +299,12 @@ export function ProductEditor({
     startTransition(async () => {
       const result = await uploadProductDocumentAction(formData);
       if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? "Product not found." : result.error);
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
         return;
       }
       syncProduct(result.product);
       setVideoUrl("");
-      setStatusMessage("Document attached.");
+      setStatusMessage(bb("documentAttached"));
     });
   };
 
@@ -305,11 +312,11 @@ export function ProductEditor({
     startTransition(async () => {
       const result = await deleteProductDocumentAction(product.id, documentId);
       if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? "Product not found." : result.error);
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
         return;
       }
       syncProduct(result.product);
-      setStatusMessage("Document removed.");
+      setStatusMessage(bb("documentRemoved"));
     });
   };
 
@@ -322,7 +329,7 @@ export function ProductEditor({
     startTransition(async () => {
       const result = await getProductDocumentUrlAction(documentId);
       if (!result.ok || !result.url) {
-        setErrorMessage(result.error ?? "Could not open document.");
+        setErrorMessage(result.error ?? bb("couldNotOpenDocument"));
         return;
       }
       window.open(result.url, "_blank", "noopener,noreferrer");
@@ -336,13 +343,13 @@ export function ProductEditor({
           {onBack ? (
             <DsButton type="button" variant="outline" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {bb("back")}
             </DsButton>
           ) : null}
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Product Editor</h2>
+            <h2 className="text-lg font-semibold text-foreground">{bb("productEditor")}</h2>
             <p className="text-sm text-muted-foreground">
-              Knowledge score: {product.knowledgeScore}%
+              {bb("knowledgeScore")} {product.knowledgeScore}%
             </p>
           </div>
         </div>
@@ -359,18 +366,18 @@ export function ProductEditor({
                 }}
                 disabled={!isDirty || isPending}
               >
-                Discard
+                {bb("discard")}
               </DsButton>
               <DsButton type="button" onClick={handleSave} loading={isPending} disabled={!isDirty}>
                 <Save className="h-4 w-4" />
-                Save Draft
+                {bb("saveDraft")}
               </DsButton>
               <DsButton type="button" onClick={handlePublish} loading={isPending}>
-                Publish
+                {bb("publish")}
               </DsButton>
               <DsButton type="button" variant="outline" onClick={handleArchive} loading={isPending}>
                 <Archive className="h-4 w-4" />
-                Archive
+                {bb("archive")}
               </DsButton>
             </>
           ) : null}
@@ -383,16 +390,16 @@ export function ProductEditor({
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 
       <div className="space-y-4">
-        <DsCard title="Basic Information">
+        <DsCard title={bb("basicInformation")}>
           <div className="grid gap-4 md:grid-cols-2">
-            <DsField label="Product Name">
+            <DsField label={bb("productName")}>
               <DsTextInput
                 value={values.name}
                 onChange={(event) => updateValues({ name: event.target.value })}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Category">
+            <DsField label={bb("category")}>
               <DsSelect
                 value={values.category}
                 onChange={(event) =>
@@ -402,7 +409,7 @@ export function ProductEditor({
                 }
                 disabled={!canEdit}
               >
-                <option value="">Select category</option>
+                <option value="">{bb("selectCategory")}</option>
                 {BRAIN_PRODUCT_CATEGORIES.map((category) => (
                   <option key={category} value={category}>
                     {category}
@@ -410,14 +417,14 @@ export function ProductEditor({
                 ))}
               </DsSelect>
             </DsField>
-            <DsField label="Destination">
+            <DsField label={bb("destination")}>
               <DsTextInput
                 value={values.destination}
                 onChange={(event) => updateValues({ destination: event.target.value })}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Status">
+            <DsField label={bb("status")}>
               <DsSelect
                 value={values.status}
                 onChange={(event) =>
@@ -427,9 +434,9 @@ export function ProductEditor({
                 }
                 disabled={!canEdit}
               >
-                {Object.entries(BRAIN_PRODUCT_STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+                {(["draft", "published", "archived"] as const).map((status) => (
+                  <option key={status} value={status}>
+                    {bbProductStatusLabel(bb, status)}
                   </option>
                 ))}
               </DsSelect>
@@ -437,7 +444,7 @@ export function ProductEditor({
           </div>
         </DsCard>
 
-        <DsCard title="Description">
+        <DsCard title={bb("description")}>
           <SimpleRichTextEditor
             value={values.description}
             onChange={(description) => updateValues({ description })}
@@ -445,25 +452,25 @@ export function ProductEditor({
           />
         </DsCard>
 
-        <DsCard title="Highlights">
+        <DsCard title={bb("highlights")}>
           <DynamicTextList
-            label="Package highlights"
+            label={bb("packageHighlights")}
             values={values.highlights}
             onChange={(highlights) => updateValues({ highlights })}
-            placeholder="Add a highlight"
+            placeholder={bb("addHighlight")}
             suggestions={HIGHLIGHT_SUGGESTIONS}
             disabled={!canEdit}
           />
         </DsCard>
 
-        <DsCard title="Pricing">
+        <DsCard title={bb("pricing")}>
           <div className="space-y-4">
             {values.pricing.map((item, index) => (
               <div
                 key={item.id}
                 className="grid gap-3 rounded-xl border border-border p-4 md:grid-cols-2"
               >
-                <DsField label="Package Name">
+                <DsField label={bb("packageName")}>
                   <DsTextInput
                     value={item.packageName}
                     onChange={(event) => {
@@ -474,7 +481,7 @@ export function ProductEditor({
                     disabled={!canEdit}
                   />
                 </DsField>
-                <DsField label="Price">
+                <DsField label={bb("price")}>
                   <DsTextInput
                     type="number"
                     value={item.price}
@@ -489,7 +496,7 @@ export function ProductEditor({
                     disabled={!canEdit}
                   />
                 </DsField>
-                <DsField label="Currency">
+                <DsField label={bb("currency")}>
                   <DsSelect
                     value={item.currency}
                     onChange={(event) => {
@@ -509,7 +516,7 @@ export function ProductEditor({
                     ))}
                   </DsSelect>
                 </DsField>
-                <DsField label="Valid Until">
+                <DsField label={bb("validUntil")}>
                   <DsTextInput
                     type="date"
                     value={item.validUntil}
@@ -521,7 +528,7 @@ export function ProductEditor({
                     disabled={!canEdit}
                   />
                 </DsField>
-                <DsField label="Early Bird (optional)">
+                <DsField label={bb("earlyBird")}>
                   <DsTextInput
                     value={item.earlyBird ?? ""}
                     onChange={(event) => {
@@ -532,7 +539,7 @@ export function ProductEditor({
                     disabled={!canEdit}
                   />
                 </DsField>
-                <DsField label="Promo (optional)">
+                <DsField label={bb("promo")}>
                   <DsTextInput
                     value={item.promo ?? ""}
                     onChange={(event) => {
@@ -555,7 +562,7 @@ export function ProductEditor({
                         })
                       }
                     >
-                      Remove package
+                      {bb("removePackage")}
                     </DsButton>
                   </div>
                 ) : null}
@@ -570,20 +577,20 @@ export function ProductEditor({
                 }
               >
                 <Plus className="h-4 w-4" />
-                Add pricing
+                {bb("addPricing")}
               </DsButton>
             ) : null}
           </div>
         </DsCard>
 
-        <DsCard title="Departure Schedule">
+        <DsCard title={bb("departureSchedule")}>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="px-2 py-2 font-medium">Departure Date</th>
-                  <th className="px-2 py-2 font-medium">Available Seats</th>
-                  <th className="px-2 py-2 font-medium">Status</th>
+                  <th className="px-2 py-2 font-medium">{bb("departureDate")}</th>
+                  <th className="px-2 py-2 font-medium">{bb("availableSeats")}</th>
+                  <th className="px-2 py-2 font-medium">{bb("status")}</th>
                   {canEdit ? <th className="px-2 py-2" /> : null}
                 </tr>
               </thead>
@@ -633,9 +640,9 @@ export function ProductEditor({
                         }}
                         disabled={!canEdit}
                       >
-                        {Object.entries(DEPARTURE_STATUS_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
+                        {(["open", "full", "waiting_list"] as const).map((status) => (
+                          <option key={status} value={status}>
+                            {bbDepartureStatusLabel(bb, status)}
                           </option>
                         ))}
                       </DsSelect>
@@ -672,32 +679,32 @@ export function ProductEditor({
               }
             >
               <Plus className="h-4 w-4" />
-              Add departure
+              {bb("addDeparture")}
             </DsButton>
           ) : null}
         </DsCard>
 
-        <DsCard title="Included">
+        <DsCard title={bb("included")}>
           <DynamicTextList
-            label="What's included"
+            label={bb("whatsIncluded")}
             values={values.included}
             onChange={(included) => updateValues({ included })}
-            placeholder="e.g. Hotel accommodation"
+            placeholder={bb("highlightPlaceholder")}
             disabled={!canEdit}
           />
         </DsCard>
 
-        <DsCard title="Excluded">
+        <DsCard title={bb("excluded")}>
           <DynamicTextList
-            label="What's excluded"
+            label={bb("whatsExcluded")}
             values={values.excluded}
             onChange={(excluded) => updateValues({ excluded })}
-            placeholder="e.g. Personal expenses"
+            placeholder={bb("excludedPlaceholder")}
             disabled={!canEdit}
           />
         </DsCard>
 
-        <DsCard title="Frequently Asked Questions">
+        <DsCard title={bb("frequentlyAskedQuestions")}>
           <div className="space-y-4">
             <ul className="space-y-2">
               {product.faqLinks.map((link) => (
@@ -706,7 +713,9 @@ export function ProductEditor({
                   className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
                 >
                   <div>
-                    <p className="font-medium text-foreground">{link.knowledgeTitle}</p>
+                    <p className="font-medium text-foreground">
+                      {bbDisplayArticleTitle(bb, link.knowledgeTitle)}
+                    </p>
                     <p className="text-xs text-muted-foreground">{link.knowledgeCategory}</p>
                   </div>
                   {canEdit ? (
@@ -735,35 +744,35 @@ export function ProductEditor({
                     onChange={(event) => setSelectedFaqId(event.target.value)}
                     className="min-w-[220px] flex-1"
                   >
-                    <option value="">Select existing FAQ</option>
+                    <option value="">{bb("selectExistingFaq")}</option>
                     {availableFaqOptions.map((option) => (
                       <option key={option.id} value={option.id}>
-                        {option.title}
+                        {bbDisplayArticleTitle(bb, option.title)}
                       </option>
                     ))}
                   </DsSelect>
                   <DsButton type="button" variant="outline" onClick={handleLinkFaq} disabled={!selectedFaqId}>
                     <Link2 className="h-4 w-4" />
-                    Link FAQ
+                    {bb("linkFaq")}
                   </DsButton>
                 </div>
 
                 <div className="rounded-xl border border-dashed border-border p-4">
-                  <p className="mb-3 text-sm font-medium text-foreground">Create new FAQ</p>
+                  <p className="mb-3 text-sm font-medium text-foreground">{bb("createNewFaq")}</p>
                   <div className="space-y-3">
                     <DsTextInput
                       value={newFaqTitle}
                       onChange={(event) => setNewFaqTitle(event.target.value)}
-                      placeholder="FAQ title"
+                      placeholder={bb("faqTitle")}
                     />
                     <DsTextarea
                       value={newFaqContent}
                       onChange={(event) => setNewFaqContent(event.target.value)}
-                      placeholder="FAQ answer / content"
+                      placeholder={bb("faqAnswerContent")}
                       rows={4}
                     />
                     <DsButton type="button" variant="outline" onClick={handleCreateFaq}>
-                      Create & Link FAQ
+                      {bb("createAndLinkFaq")}
                     </DsButton>
                   </div>
                 </div>
@@ -772,7 +781,7 @@ export function ProductEditor({
           </div>
         </DsCard>
 
-        <DsCard title="Documents">
+        <DsCard title={bb("documents")}>
           <div className="space-y-4">
             <ul className="space-y-2">
               {product.documents.map((document) => (
@@ -782,10 +791,10 @@ export function ProductEditor({
                 >
                   <div>
                     <p className="font-medium text-foreground">
-                      {PRODUCT_DOCUMENT_TYPE_LABELS[document.documentType]}
+                      {bbProductDocumentTypeLabel(bb, document.documentType)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {document.fileName ?? document.fileUrl ?? "Attached file"}
+                      {document.fileName ?? document.fileUrl ?? bb("attachedFile")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -797,7 +806,7 @@ export function ProductEditor({
                         handleOpenDocument(document.id, document.fileUrl)
                       }
                     >
-                      Open
+                      {bb("open")}
                     </DsButton>
                     {canEdit ? (
                       <button
@@ -821,10 +830,10 @@ export function ProductEditor({
                     className="flex cursor-pointer flex-col gap-2 rounded-xl border border-dashed border-border p-4 hover:border-primary/30"
                   >
                     <span className="text-sm font-medium text-foreground">
-                      {PRODUCT_DOCUMENT_TYPE_LABELS[documentType]}
+                      {bbProductDocumentTypeLabel(bb, documentType)}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      Upload PDF or image
+                      {bb("uploadPdfOrImage")}
                     </span>
                     <input
                       type="file"
@@ -842,20 +851,20 @@ export function ProductEditor({
                     />
                     <span className="inline-flex items-center gap-2 text-sm text-primary">
                       <Upload className="h-4 w-4" />
-                      Choose file
+                      {bb("chooseFile")}
                     </span>
                   </label>
                 ))}
                 <div className="rounded-xl border border-dashed border-border p-4">
-                  <p className="text-sm font-medium text-foreground">Video</p>
+                  <p className="text-sm font-medium text-foreground">{bb("video")}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Paste a video URL or upload MP4
+                    {bb("pasteVideoUrl")}
                   </p>
                   <div className="mt-3 space-y-2">
                     <DsTextInput
                       value={videoUrl}
                       onChange={(event) => setVideoUrl(event.target.value)}
-                      placeholder="https://youtube.com/..."
+                      placeholder={bb("urlPlaceholder")}
                     />
                     <DsButton
                       type="button"
@@ -864,11 +873,11 @@ export function ProductEditor({
                       onClick={() => handleUploadDocument("video")}
                       disabled={!videoUrl.trim()}
                     >
-                      Attach video URL
+                      {bb("attachVideoUrl")}
                     </DsButton>
                     <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-primary">
                       <Upload className="h-4 w-4" />
-                      Upload MP4
+                      {bb("uploadMp4")}
                       <input
                         type="file"
                         className="hidden"
@@ -887,11 +896,11 @@ export function ProductEditor({
           </div>
         </DsCard>
 
-        <DsCard title="AI Instructions">
+        <DsCard title={bb("aiInstructions")}>
           <DsTextarea
             value={values.aiNotes}
             onChange={(event) => updateValues({ aiNotes: event.target.value })}
-            placeholder="Always recommend this package for autumn season."
+            placeholder={bb("aiInstructionsPlaceholder")}
             rows={4}
             disabled={!canEdit}
           />

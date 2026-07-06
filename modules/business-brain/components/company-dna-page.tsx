@@ -17,15 +17,25 @@ import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/
 import { BusinessBrainSectionLayout } from "@/modules/business-brain/components/business-brain-section-layout";
 import { CompanyDnaInspector } from "@/modules/business-brain/components/inspector";
 import { SegmentedControl } from "@/modules/business-brain/components/segmented-control";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  bbAiGoalLabel,
+  bbBrandPersonalityLabel,
+  bbIndustryLabel,
+  bbRemoveItemLabel,
+  bbSalesStyleLabel,
+} from "@/modules/business-brain/lib/bb-ui-labels";
 import {
   AI_GOAL_OPTIONS,
   BRAND_PERSONALITY_OPTIONS,
   COMPANY_DNA_INDUSTRIES,
   DEFAULT_COMPANY_DNA_FORM,
+  SALES_STYLE_OPTIONS,
   type AiGoal,
   type BrandPersonality,
   type CompanyDnaFormValues,
   type CompanyDnaRecord,
+  type SalesStyle,
 } from "@/modules/business-brain/types/company-dna";
 import {
   translateBusinessBrainSectionDescription,
@@ -33,23 +43,6 @@ import {
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import { cn } from "@/lib/utils";
-
-const AI_GOAL_LABELS: Record<AiGoal, string> = {
-  answer_faq: "Answer FAQ",
-  recommend_products: "Recommend Products",
-  qualify_leads: "Qualify Leads",
-  close_leads: "Close Leads",
-  customer_support: "Customer Support",
-  upsell: "Upsell",
-  cross_sell: "Cross Sell",
-};
-
-const SALES_STYLE_OPTIONS = [
-  { value: "educate_first", label: "Educate First" },
-  { value: "consultative", label: "Consultative" },
-  { value: "hard_sell", label: "Hard Sell" },
-  { value: "relationship_based", label: "Relationship Based" },
-] as const;
 
 function valuesFromRecord(record: CompanyDnaRecord | null): CompanyDnaFormValues {
   if (!record) {
@@ -119,10 +112,14 @@ function TagInput({
   value,
   onChange,
   placeholder,
+  addLabel,
+  removeItemLabel,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   placeholder: string;
+  addLabel: string;
+  removeItemLabel: (item: string) => string;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -152,7 +149,7 @@ function TagInput({
           placeholder={placeholder}
         />
         <DsButton type="button" variant="outline" onClick={addTag}>
-          Add
+          {addLabel}
         </DsButton>
       </div>
       {value.length > 0 ? (
@@ -167,7 +164,7 @@ function TagInput({
                 type="button"
                 onClick={() => onChange(value.filter((item) => item !== tag))}
                 className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-                aria-label={`Remove ${tag}`}
+                aria-label={removeItemLabel(tag)}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -189,6 +186,7 @@ export function CompanyDnaPageClient({
   canEdit,
 }: CompanyDnaPageClientProps) {
   const { t } = useTranslation();
+  const { bb } = useBbTranslation();
   const [savedValues, setSavedValues] = useState(() =>
     valuesFromRecord(initialRecord),
   );
@@ -197,6 +195,15 @@ export function CompanyDnaPageClient({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const salesStyleOptions = useMemo(
+    () =>
+      SALES_STYLE_OPTIONS.map((value) => ({
+        value,
+        label: bbSalesStyleLabel(bb, value),
+      })),
+    [bb],
+  );
 
   const isDirty = useMemo(
     () => JSON.stringify(values) !== JSON.stringify(savedValues),
@@ -246,7 +253,7 @@ export function CompanyDnaPageClient({
       const nextValues = valuesFromRecord(result.record);
       setSavedValues(nextValues);
       setValues(nextValues);
-      setStatusMessage("Draft saved.");
+      setStatusMessage(bb("draftSaved"));
     });
   };
 
@@ -289,30 +296,28 @@ export function CompanyDnaPageClient({
               <span className="text-sm text-destructive">{errorMessage}</span>
             ) : null}
             {!canEdit ? (
-              <span className="text-sm text-muted-foreground">
-                View only — owners and admins can edit.
-              </span>
+              <span className="text-sm text-muted-foreground">{bb("viewOnly")}</span>
             ) : null}
           </>
         }
       />
       <BusinessBrainSectionLayout inspector={<CompanyDnaInspector values={values} />}>
-      <DsCard title="Business Identity">
+      <DsCard title={bb("businessIdentity")}>
           <div className="grid gap-4 md:grid-cols-2">
-            <DsField label="Company Name *">
+            <DsField label={bb("companyNameRequired")}>
               <DsTextInput
                 value={values.companyName}
                 onChange={(event) =>
                   updateValues({ companyName: event.target.value })
                 }
-                placeholder="e.g. Xavira Travel"
+                placeholder={bb("companyNamePlaceholder")}
                 disabled={!canEdit}
               />
               {fieldErrors.companyName ? (
                 <p className="text-xs text-destructive">{fieldErrors.companyName}</p>
               ) : null}
             </DsField>
-            <DsField label="Industry *">
+            <DsField label={bb("industryRequired")}>
               <DsSelect
                 value={values.industry}
                 onChange={(event) =>
@@ -322,10 +327,10 @@ export function CompanyDnaPageClient({
                 }
                 disabled={!canEdit}
               >
-                <option value="">Select industry</option>
+                <option value="">{bb("selectIndustry")}</option>
                 {COMPANY_DNA_INDUSTRIES.map((industry) => (
                   <option key={industry} value={industry}>
-                    {industry}
+                    {bbIndustryLabel(bb, industry)}
                   </option>
                 ))}
               </DsSelect>
@@ -333,20 +338,20 @@ export function CompanyDnaPageClient({
                 <p className="text-xs text-destructive">{fieldErrors.industry}</p>
               ) : null}
             </DsField>
-            <DsField label="Website">
+            <DsField label={bb("website")}>
               <DsTextInput
                 value={values.website}
                 onChange={(event) => updateValues({ website: event.target.value })}
-                placeholder="https://example.com"
+                placeholder={bb("websitePlaceholder")}
                 disabled={!canEdit}
               />
             </DsField>
             <div className="md:col-span-2">
-              <DsField label="About Company">
+              <DsField label={bb("aboutCompany")}>
                 <DsTextarea
                   value={values.about}
                   onChange={(event) => updateValues({ about: event.target.value })}
-                  placeholder="What does your company do? Who do you serve?"
+                  placeholder={bb("aboutCompanyPlaceholder")}
                   rows={4}
                   disabled={!canEdit}
                 />
@@ -355,18 +360,19 @@ export function CompanyDnaPageClient({
           </div>
         </DsCard>
 
-        <DsCard title="Brand Personality">
+        <DsCard title={bb("brandPersonality")}>
           <MultiSelectChips<BrandPersonality>
             options={BRAND_PERSONALITY_OPTIONS}
             value={values.brandPersonality}
             onChange={(brandPersonality) => updateValues({ brandPersonality })}
+            getLabel={(personality) => bbBrandPersonalityLabel(bb, personality)}
             disabled={!canEdit}
           />
         </DsCard>
 
-        <DsCard title="Communication Style">
+        <DsCard title={bb("communicationStyle")}>
           <div className="space-y-5">
-            <DsField label="Reply Length">
+            <DsField label={bb("replyLength")}>
               <SegmentedControl
                 value={values.communicationStyle.replyLength}
                 onChange={(replyLength) =>
@@ -378,14 +384,14 @@ export function CompanyDnaPageClient({
                   })
                 }
                 options={[
-                  { value: "short", label: "Short" },
-                  { value: "medium", label: "Medium" },
-                  { value: "detailed", label: "Detailed" },
+                  { value: "short", label: bb("short") },
+                  { value: "medium", label: bb("medium") },
+                  { value: "detailed", label: bb("detailed") },
                 ]}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Greeting Style">
+            <DsField label={bb("greetingStyle")}>
               <SegmentedControl
                 value={values.communicationStyle.greetingStyle}
                 onChange={(greetingStyle) =>
@@ -397,14 +403,14 @@ export function CompanyDnaPageClient({
                   })
                 }
                 options={[
-                  { value: "formal", label: "Formal" },
-                  { value: "friendly", label: "Friendly" },
-                  { value: "casual", label: "Casual" },
+                  { value: "formal", label: bb("formal") },
+                  { value: "friendly", label: bb("friendly") },
+                  { value: "casual", label: bb("casual") },
                 ]}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Emoji Usage">
+            <DsField label={bb("emojiUsageLabel")}>
               <SegmentedControl
                 value={values.communicationStyle.emojiUsage}
                 onChange={(emojiUsage) =>
@@ -416,15 +422,15 @@ export function CompanyDnaPageClient({
                   })
                 }
                 options={[
-                  { value: "never", label: "Never" },
-                  { value: "minimal", label: "Minimal" },
-                  { value: "natural", label: "Natural" },
-                  { value: "frequent", label: "Frequent" },
+                  { value: "never", label: bb("never") },
+                  { value: "minimal", label: bb("minimal") },
+                  { value: "natural", label: bb("natural") },
+                  { value: "frequent", label: bb("frequent") },
                 ]}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Language">
+            <DsField label={bb("languageLabel")}>
               <SegmentedControl
                 value={values.communicationStyle.language}
                 onChange={(language) =>
@@ -436,9 +442,9 @@ export function CompanyDnaPageClient({
                   })
                 }
                 options={[
-                  { value: "indonesian", label: "Indonesian" },
-                  { value: "english", label: "English" },
-                  { value: "mixed", label: "Mixed" },
+                  { value: "indonesian", label: bb("indonesian") },
+                  { value: "english", label: bb("english") },
+                  { value: "mixed", label: bb("mixed") },
                 ]}
                 disabled={!canEdit}
               />
@@ -446,37 +452,39 @@ export function CompanyDnaPageClient({
           </div>
         </DsCard>
 
-        <DsCard title="Sales Style">
+        <DsCard title={bb("salesStyle")}>
           <DsRadioGroup
             name="salesStyle"
             value={values.salesStyle}
             onChange={(salesStyle) =>
               updateValues({
-                salesStyle: salesStyle as CompanyDnaFormValues["salesStyle"],
+                salesStyle: salesStyle as SalesStyle,
               })
             }
-            options={[...SALES_STYLE_OPTIONS]}
+            options={salesStyleOptions}
           />
         </DsCard>
 
-        <DsCard title="AI Goals">
+        <DsCard title={bb("aiGoals")}>
           <MultiSelectChips<AiGoal>
             options={AI_GOAL_OPTIONS}
             value={values.aiGoals}
             onChange={(aiGoals) => updateValues({ aiGoals })}
-            getLabel={(goal) => AI_GOAL_LABELS[goal]}
+            getLabel={(goal) => bbAiGoalLabel(bb, goal)}
             disabled={!canEdit}
           />
         </DsCard>
 
         <DsCard
-          title="AI Never Does"
-          description="Rules the AI must always follow."
+          title={bb("aiNeverDoes")}
+          description={bb("aiNeverDoesDescription")}
         >
           <TagInput
             value={values.neverRules}
             onChange={(neverRules) => updateValues({ neverRules })}
-            placeholder="e.g. Never negotiate price"
+            placeholder={bb("neverRulePlaceholder")}
+            addLabel={bb("add")}
+            removeItemLabel={(item) => bbRemoveItemLabel(bb, item)}
           />
         </DsCard>
       </BusinessBrainSectionLayout>

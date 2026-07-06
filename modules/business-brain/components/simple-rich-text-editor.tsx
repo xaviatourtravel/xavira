@@ -3,6 +3,7 @@
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 type SimpleRichTextEditorProps = {
@@ -20,11 +21,13 @@ function exec(command: string) {
 export function SimpleRichTextEditor({
   value,
   onChange,
-  placeholder = "Describe your product...",
+  placeholder,
   disabled = false,
   className,
 }: SimpleRichTextEditorProps) {
+  const { bb } = useBbTranslation();
   const editorRef = useRef<HTMLDivElement>(null);
+  const resolvedPlaceholder = placeholder ?? bb("describeProductPlaceholder");
 
   useEffect(() => {
     const node = editorRef.current;
@@ -34,15 +37,17 @@ export function SimpleRichTextEditor({
     }
   }, [value]);
 
+  const toolbarItems = [
+    { icon: Bold, command: "bold", label: bb("bold") },
+    { icon: Italic, command: "italic", label: bb("italic") },
+    { icon: List, command: "insertUnorderedList", label: bb("bulletList") },
+    { icon: ListOrdered, command: "insertOrderedList", label: bb("numberedList") },
+  ];
+
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border", className)}>
       <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-2 py-1.5">
-        {[
-          { icon: Bold, command: "bold", label: "Bold" },
-          { icon: Italic, command: "italic", label: "Italic" },
-          { icon: List, command: "insertUnorderedList", label: "Bullet list" },
-          { icon: ListOrdered, command: "insertOrderedList", label: "Numbered list" },
-        ].map(({ icon: Icon, command, label }) => (
+        {toolbarItems.map(({ icon: Icon, command, label }) => (
           <button
             key={command}
             type="button"
@@ -62,7 +67,7 @@ export function SimpleRichTextEditor({
         ref={editorRef}
         contentEditable={!disabled}
         suppressContentEditableWarning
-        data-placeholder={placeholder}
+        data-placeholder={resolvedPlaceholder}
         onInput={() => onChange(editorRef.current?.innerHTML ?? "")}
         className={cn(
           "min-h-[180px] px-3 py-3 text-sm leading-relaxed text-foreground outline-none",

@@ -9,17 +9,16 @@ import { useBusinessBrainWorkspace } from "@/modules/business-brain/components/b
 import { BUSINESS_BRAIN_WORKSPACE_TABS } from "@/modules/business-brain/types/business-brain-workspace";
 import { translateBusinessBrainTabLabel } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 export function BusinessBrainNav() {
   const { section, navigate } = useBusinessBrainWorkspace();
   const { t } = useTranslation();
-
-
+  const { bb } = useBbTranslation();
 
   return (
-
-    <nav aria-label="Business Brain sections" className="-mx-1 overflow-x-auto pb-1">
+    <nav aria-label={bb("navSectionsAriaLabel")} className="-mx-1 overflow-x-auto pb-1">
 
       <ul className="flex min-w-max items-center gap-1 px-1">
 

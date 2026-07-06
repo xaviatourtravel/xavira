@@ -17,11 +17,16 @@ import {
 } from "@/modules/business-brain/actions/knowledge-actions";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
 import { SegmentedControl } from "@/modules/business-brain/components/segmented-control";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  bbArticleCategoryLabel,
+  bbArticleStatusLabel,
+  bbArticleVisibilityLabel,
+  bbDisplayProductName,
+} from "@/modules/business-brain/lib/bb-ui-labels";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import {
   BRAIN_ARTICLE_CATEGORIES,
-  BRAIN_ARTICLE_CATEGORY_LABELS,
-  BRAIN_ARTICLE_STATUS_LABELS,
-  BRAIN_ARTICLE_VISIBILITY_LABELS,
   BRAIN_ARTICLE_VISIBILITIES,
   type BrainArticleDetail,
   type BrainArticleFormValues,
@@ -60,11 +65,14 @@ function TagInput({
   value,
   onChange,
   disabled,
+  placeholder,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   disabled?: boolean;
+  placeholder?: string;
 }) {
+  const { bb } = useBbTranslation();
   const [draft, setDraft] = useState("");
 
   const addTag = () => {
@@ -89,11 +97,11 @@ function TagInput({
               addTag();
             }
           }}
-          placeholder="Add keyword"
+          placeholder={placeholder ?? bb("addKeyword")}
           disabled={disabled}
         />
         <DsButton type="button" variant="outline" onClick={addTag} disabled={disabled}>
-          Add
+          {bb("add")}
         </DsButton>
       </div>
       {value.length > 0 ? (
@@ -109,7 +117,7 @@ function TagInput({
                   type="button"
                   onClick={() => onChange(value.filter((item) => item !== tag))}
                   className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-                  aria-label={`Remove ${tag}`}
+                  aria-label={formatTranslation(bb("removeItem"), { item: tag })}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -130,6 +138,7 @@ export function KnowledgeEditor({
   onArticleUpdated,
   onArticleDeleted,
 }: KnowledgeEditorProps) {
+  const { bb } = useBbTranslation();
   const [savedValues, setSavedValues] = useState(() => valuesFromArticle(article));
   const [values, setValues] = useState(savedValues);
   const [showAiMetadata, setShowAiMetadata] = useState(false);
@@ -159,11 +168,11 @@ export function KnowledgeEditor({
     startTransition(async () => {
       const result = await updateBrainArticleAction(article.id, values);
       if (!result.ok || !result.article) {
-        setErrorMessage(result.ok ? "Article not found." : result.error);
+        setErrorMessage(result.ok ? bb("articleNotFound") : result.error);
         return;
       }
       syncArticle(result.article);
-      setStatusMessage("Draft saved.");
+      setStatusMessage(bb("draftSaved"));
     });
   };
 
@@ -176,16 +185,16 @@ export function KnowledgeEditor({
       }
       const result = await publishBrainArticleAction(article.id);
       if (!result.ok || !result.article) {
-        setErrorMessage(result.ok ? "Article not found." : result.error);
+        setErrorMessage(result.ok ? bb("articleNotFound") : result.error);
         return;
       }
       syncArticle(result.article);
-      setStatusMessage("Article published.");
+      setStatusMessage(bb("articlePublished"));
     });
   };
 
   const handleDelete = () => {
-    if (!window.confirm("Delete this knowledge article?")) return;
+    if (!window.confirm(bb("deleteArticleConfirm"))) return;
 
     startTransition(async () => {
       const result = await deleteBrainArticleAction(article.id);
@@ -213,13 +222,13 @@ export function KnowledgeEditor({
           {onBack ? (
             <DsButton type="button" variant="outline" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {bb("back")}
             </DsButton>
           ) : null}
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Knowledge Editor</h2>
+            <h2 className="text-lg font-semibold text-foreground">{bb("knowledgeEditor")}</h2>
             <p className="text-sm text-muted-foreground">
-              Structured knowledge for AI retrieval.
+              {bb("knowledgeEditorDescription")}
             </p>
           </div>
         </div>
@@ -236,18 +245,18 @@ export function KnowledgeEditor({
                 }}
                 disabled={!isDirty || isPending}
               >
-                Discard
+                {bb("discard")}
               </DsButton>
               <DsButton type="button" onClick={handleSave} loading={isPending} disabled={!isDirty}>
                 <Save className="h-4 w-4" />
-                Save Draft
+                {bb("saveDraft")}
               </DsButton>
               <DsButton type="button" onClick={handlePublish} loading={isPending}>
-                Publish
+                {bb("publish")}
               </DsButton>
               <DsButton type="button" variant="outline" onClick={handleDelete} loading={isPending}>
                 <Trash2 className="h-4 w-4" />
-                Delete
+                {bb("delete")}
               </DsButton>
             </>
           ) : null}
@@ -260,16 +269,16 @@ export function KnowledgeEditor({
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 
       <div className="space-y-4">
-        <DsCard title="Article">
+        <DsCard title={bb("article")}>
           <div className="grid gap-4 md:grid-cols-2">
-            <DsField label="Title">
+            <DsField label={bb("title")}>
               <DsTextInput
                 value={values.title}
                 onChange={(event) => updateValues({ title: event.target.value })}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Category">
+            <DsField label={bb("category")}>
               <DsSelect
                 value={values.category}
                 onChange={(event) =>
@@ -281,7 +290,7 @@ export function KnowledgeEditor({
               >
                 {BRAIN_ARTICLE_CATEGORIES.map((category) => (
                   <option key={category} value={category}>
-                    {BRAIN_ARTICLE_CATEGORY_LABELS[category]}
+                    {bbArticleCategoryLabel(bb, category)}
                   </option>
                 ))}
               </DsSelect>
@@ -289,16 +298,16 @@ export function KnowledgeEditor({
           </div>
         </DsCard>
 
-        <DsCard title="Content">
+        <DsCard title={bb("content")}>
           <SimpleRichTextEditor
             value={values.content}
             onChange={(content) => updateValues({ content })}
             disabled={!canEdit}
-            placeholder="Write the knowledge article content..."
+            placeholder={bb("writeArticleContent")}
           />
         </DsCard>
 
-        <DsCard title="Keywords">
+        <DsCard title={bb("keywords")}>
           <TagInput
             value={values.keywords}
             onChange={(keywords) => updateValues({ keywords })}
@@ -306,10 +315,10 @@ export function KnowledgeEditor({
           />
         </DsCard>
 
-        <DsCard title="Related Products">
+        <DsCard title={bb("relatedProducts")}>
           {productOptions.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No products yet. Create products in Business Brain to link them here.
+              {bb("noProductsForLink")}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -328,7 +337,7 @@ export function KnowledgeEditor({
                         : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
                     )}
                   >
-                    {product.name}
+                    {bbDisplayProductName(bb, product.name)}
                   </button>
                 );
               })}
@@ -336,9 +345,9 @@ export function KnowledgeEditor({
           )}
         </DsCard>
 
-        <DsCard title="Visibility">
+        <DsCard title={bb("visibility")}>
           <SegmentedControl
-            aria-label="Visibility"
+            aria-label={bb("visibility")}
             value={values.visibility}
             onChange={(visibility) =>
               updateValues({
@@ -347,22 +356,22 @@ export function KnowledgeEditor({
             }
             options={BRAIN_ARTICLE_VISIBILITIES.map((value) => ({
               value,
-              label: BRAIN_ARTICLE_VISIBILITY_LABELS[value],
+              label: bbArticleVisibilityLabel(bb, value),
             }))}
             disabled={!canEdit}
           />
         </DsCard>
 
-        <DsCard title="Status">
+        <DsCard title={bb("status")}>
           <SegmentedControl
-            aria-label="Status"
+            aria-label={bb("status")}
             value={values.status}
             onChange={(status) =>
               updateValues({ status: status as BrainArticleStatus })
             }
-            options={Object.entries(BRAIN_ARTICLE_STATUS_LABELS).map(([value, label]) => ({
-              value,
-              label,
+            options={(["draft", "published"] as const).map((status) => ({
+              value: status,
+              label: bbArticleStatusLabel(bb, status),
             }))}
             disabled={!canEdit}
           />
@@ -375,9 +384,9 @@ export function KnowledgeEditor({
             className="flex w-full items-center justify-between text-left"
           >
             <div>
-              <h3 className="text-base font-semibold text-foreground">AI Metadata</h3>
+              <h3 className="text-base font-semibold text-foreground">{bb("aiMetadata")}</h3>
               <p className="text-sm text-muted-foreground">
-                Hidden settings for future AI retrieval tuning.
+                {bb("aiMetadataDescription")}
               </p>
             </div>
             <ChevronDown
@@ -390,7 +399,7 @@ export function KnowledgeEditor({
 
           {showAiMetadata ? (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <DsField label="Confidence Weight (future)">
+              <DsField label={bb("confidenceWeight")}>
                 <DsTextInput
                   type="number"
                   value={values.aiMetadata.confidenceWeight ?? ""}
@@ -404,11 +413,11 @@ export function KnowledgeEditor({
                       },
                     })
                   }
-                  placeholder="0–100"
+                  placeholder={bb("confidenceWeightPlaceholder")}
                   disabled={!canEdit}
                 />
               </DsField>
-              <DsField label="Priority (future)">
+              <DsField label={bb("priority")}>
                 <DsTextInput
                   type="number"
                   value={values.aiMetadata.priority ?? ""}
@@ -422,12 +431,12 @@ export function KnowledgeEditor({
                       },
                     })
                   }
-                  placeholder="0–10"
+                  placeholder={bb("priorityPlaceholder")}
                   disabled={!canEdit}
                 />
               </DsField>
               <div className="md:col-span-2">
-                <DsField label="Related Documents">
+                <DsField label={bb("relatedDocuments")}>
                   <TagInput
                     value={values.aiMetadata.relatedDocuments ?? []}
                     onChange={(relatedDocuments) =>
@@ -439,6 +448,7 @@ export function KnowledgeEditor({
                       })
                     }
                     disabled={!canEdit}
+                    placeholder={bb("addTag")}
                   />
                 </DsField>
               </div>

@@ -19,6 +19,7 @@ import {
   translateBusinessBrainSectionTitle,
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 type FaqOption = {
@@ -39,6 +40,7 @@ export function ProductsPageClient({
   canEdit,
 }: ProductsPageClientProps) {
   const { t } = useTranslation();
+  const { bb } = useBbTranslation();
   const [products, setProducts] = useState(initialProducts);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     initialProducts[0]?.id ?? null,
@@ -164,10 +166,10 @@ export function ProductsPageClient({
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
               <p className="text-sm text-muted-foreground">
                 {isLoadingProduct
-                  ? "Loading product..."
+                  ? bb("loadingProduct")
                   : selectedProductId
-                    ? "Loading product editor..."
-                    : "Nothing here yet. Select a product or create one to start editing."}
+                    ? bb("loadingProductEditor")
+                    : bb("productsEmptyState")}
               </p>
               {selectedProductId && !isLoadingProduct ? (
                 <button
@@ -175,7 +177,7 @@ export function ProductsPageClient({
                   className="mt-3 text-sm text-primary hover:underline"
                   onClick={() => loadProduct(selectedProductId)}
                 >
-                  Retry loading
+                  {bb("retryLoading")}
                 </button>
               ) : null}
             </div>

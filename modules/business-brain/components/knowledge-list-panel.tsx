@@ -6,10 +6,14 @@ import { DsButton } from "@/components/design-system/button";
 import { DsCard } from "@/components/design-system/card";
 import { DsSearchInput } from "@/components/design-system/form-controls";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  bbArticleCategoryLabel,
+  bbArticleStatusLabel,
+  bbDisplayArticleTitle,
+} from "@/modules/business-brain/lib/bb-ui-labels";
 import {
   BRAIN_ARTICLE_CATEGORIES,
-  BRAIN_ARTICLE_CATEGORY_LABELS,
-  BRAIN_ARTICLE_STATUS_LABELS,
   type BrainArticleCategory,
   type BrainArticleListItem,
   type BrainArticleStatus,
@@ -54,6 +58,7 @@ export function KnowledgeListPanel({
   onSelectArticle,
   onCreateArticle,
 }: KnowledgeListPanelProps) {
+  const { bb } = useBbTranslation();
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredArticles = articles.filter((article) => {
@@ -64,7 +69,7 @@ export function KnowledgeListPanel({
     const matchesSearch =
       !normalizedSearch ||
       article.title.toLowerCase().includes(normalizedSearch) ||
-      BRAIN_ARTICLE_CATEGORY_LABELS[article.category]
+      bbArticleCategoryLabel(bb, article.category)
         .toLowerCase()
         .includes(normalizedSearch);
 
@@ -75,7 +80,7 @@ export function KnowledgeListPanel({
     <DsCard className="p-4 md:p-5">
       <div className="mb-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-foreground">Knowledge List</h2>
+          <h2 className="text-base font-semibold text-foreground">{bb("knowledgeList")}</h2>
           {canEdit ? (
             <DsButton
               type="button"
@@ -84,12 +89,12 @@ export function KnowledgeListPanel({
               loading={isCreating}
             >
               <Plus className="h-4 w-4" />
-              New Article
+              {bb("newArticle")}
             </DsButton>
           ) : null}
         </div>
         <DsSearchInput
-          placeholder="Search knowledge..."
+          placeholder={bb("searchKnowledge")}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
@@ -104,7 +109,7 @@ export function KnowledgeListPanel({
                 : "bg-muted text-muted-foreground hover:text-foreground",
             )}
           >
-            All Categories
+            {bb("allCategories")}
           </button>
           {BRAIN_ARTICLE_CATEGORIES.map((category) => (
             <button
@@ -118,7 +123,7 @@ export function KnowledgeListPanel({
                   : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
-              {BRAIN_ARTICLE_CATEGORY_LABELS[category]}
+              {bbArticleCategoryLabel(bb, category)}
             </button>
           ))}
         </div>
@@ -135,7 +140,7 @@ export function KnowledgeListPanel({
                   : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
-              {filter === "all" ? "All Status" : BRAIN_ARTICLE_STATUS_LABELS[filter]}
+              {filter === "all" ? bb("allStatus") : bbArticleStatusLabel(bb, filter)}
             </button>
           ))}
         </div>
@@ -144,7 +149,7 @@ export function KnowledgeListPanel({
       <div className="space-y-2">
         {filteredArticles.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            No articles match your filters.
+            {bb("noArticlesMatch")}
           </div>
         ) : (
           filteredArticles.map((article) => {
@@ -164,9 +169,11 @@ export function KnowledgeListPanel({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">{article.title}</p>
+                    <p className="truncate font-medium text-foreground">
+                      {bbDisplayArticleTitle(bb, article.title)}
+                    </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {BRAIN_ARTICLE_CATEGORY_LABELS[article.category]}
+                      {bbArticleCategoryLabel(bb, article.category)}
                     </p>
                   </div>
                   <span
@@ -175,11 +182,11 @@ export function KnowledgeListPanel({
                       statusBadgeClass(article.status),
                     )}
                   >
-                    {BRAIN_ARTICLE_STATUS_LABELS[article.status]}
+                    {bbArticleStatusLabel(bb, article.status)}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Updated{" "}
+                  {bb("updated")}{" "}
                   <ClientOnlyRelativeTime date={article.updatedAt} className="inline" />
                 </p>
               </button>

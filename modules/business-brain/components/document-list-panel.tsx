@@ -5,9 +5,14 @@ import { Search, Zap } from "lucide-react";
 import { DsCard } from "@/components/design-system/card";
 import { DsSearchInput } from "@/components/design-system/form-controls";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
+import { formatTranslation } from "@/lib/i18n/dictionary";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
-  BRAIN_DOCUMENT_STATUS_LABELS,
-  BRAIN_DOCUMENT_TYPE_LABELS,
+  bbDisplayDocumentName,
+  bbDocumentStatusLabel,
+  bbDocumentTypeLabel,
+} from "@/modules/business-brain/lib/bb-ui-labels";
+import {
   type BrainDocumentListItem,
   type BrainDocumentStatus,
   type BrainDocumentType,
@@ -47,6 +52,7 @@ export function DocumentListPanel({
   onStatusFilterChange,
   onSelectDocument,
 }: DocumentListPanelProps) {
+  const { bb } = useBbTranslation();
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredDocuments = documents.filter((document) => {
@@ -56,7 +62,7 @@ export function DocumentListPanel({
     const matchesSearch =
       !normalizedSearch ||
       document.name.toLowerCase().includes(normalizedSearch) ||
-      BRAIN_DOCUMENT_TYPE_LABELS[document.documentType]
+      bbDocumentTypeLabel(bb, document.documentType)
         .toLowerCase()
         .includes(normalizedSearch);
 
@@ -66,9 +72,9 @@ export function DocumentListPanel({
   return (
     <DsCard className="p-4 md:p-5">
       <div className="mb-4 space-y-3">
-        <h2 className="text-base font-semibold text-foreground">Document List</h2>
+        <h2 className="text-base font-semibold text-foreground">{bb("documentList")}</h2>
         <DsSearchInput
-          placeholder="Search documents..."
+          placeholder={bb("searchDocuments")}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
@@ -85,7 +91,7 @@ export function DocumentListPanel({
                   : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
-              {filter === "all" ? "All Types" : BRAIN_DOCUMENT_TYPE_LABELS[filter]}
+              {filter === "all" ? bb("allTypes") : bbDocumentTypeLabel(bb, filter)}
             </button>
           ))}
         </div>
@@ -102,7 +108,7 @@ export function DocumentListPanel({
                   : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
-              {filter === "all" ? "All Status" : BRAIN_DOCUMENT_STATUS_LABELS[filter]}
+              {filter === "all" ? bb("allStatus") : bbDocumentStatusLabel(bb, filter)}
             </button>
           ))}
         </div>
@@ -112,7 +118,7 @@ export function DocumentListPanel({
         {filteredDocuments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             <Search className="mx-auto mb-2 h-5 w-5 opacity-60" />
-            No documents match your filters.
+            {bb("noDocumentsMatch")}
           </div>
         ) : (
           filteredDocuments.map((document) => {
@@ -132,9 +138,11 @@ export function DocumentListPanel({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">{document.name}</p>
+                    <p className="truncate font-medium text-foreground">
+                      {bbDisplayDocumentName(bb, document.name)}
+                    </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {BRAIN_DOCUMENT_TYPE_LABELS[document.documentType]}
+                      {bbDocumentTypeLabel(bb, document.documentType)}
                     </p>
                   </div>
                   <span
@@ -143,19 +151,23 @@ export function DocumentListPanel({
                       statusBadgeClass(document.status),
                     )}
                   >
-                    {BRAIN_DOCUMENT_STATUS_LABELS[document.status]}
+                    {bbDocumentStatusLabel(bb, document.status)}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span>{document.linkedProductCount} products</span>
+                  <span>
+                    {formatTranslation(bb("productsCount"), {
+                      count: document.linkedProductCount,
+                    })}
+                  </span>
                   {document.autoSendEnabled ? (
                     <span className="inline-flex items-center gap-1 text-primary">
                       <Zap className="h-3.5 w-3.5" />
-                      Auto Send
+                      {bb("autoSend")}
                     </span>
                   ) : null}
                   <span>
-                    Updated{" "}
+                    {bb("updated")}{" "}
                     <ClientOnlyRelativeTime date={document.updatedAt} className="inline" />
                   </span>
                 </div>

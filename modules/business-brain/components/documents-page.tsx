@@ -18,6 +18,7 @@ import {
   translateBusinessBrainSectionTitle,
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 type ProductOption = { id: string; name: string };
@@ -37,6 +38,7 @@ export function DocumentsPageClient({
   canEdit,
 }: DocumentsPageClientProps) {
   const { t } = useTranslation();
+  const { bb } = useBbTranslation();
   const [documents, setDocuments] = useState(initialDocuments);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     initialDocuments[0]?.id ?? null,
@@ -148,10 +150,10 @@ export function DocumentsPageClient({
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
               <p className="text-sm text-muted-foreground">
                 {isLoadingDocument
-                  ? "Loading document..."
+                  ? bb("loadingDocument")
                   : selectedDocumentId
-                    ? "Loading document details..."
-                    : "Nothing here yet. Upload a document or select one from the list."}
+                    ? bb("loadingDocumentDetails")
+                    : bb("documentsEmptyState")}
               </p>
               {selectedDocumentId && !isLoadingDocument ? (
                 <button
@@ -159,7 +161,7 @@ export function DocumentsPageClient({
                   className="mt-3 text-sm text-primary hover:underline"
                   onClick={() => loadDocument(selectedDocumentId)}
                 >
-                  Retry loading
+                  {bb("retryLoading")}
                 </button>
               ) : null}
             </div>

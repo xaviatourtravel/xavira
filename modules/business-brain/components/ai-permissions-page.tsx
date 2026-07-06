@@ -17,6 +17,7 @@ import {
   translateBusinessBrainSectionTitle,
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 type AiPermissionsPageClientProps = {
@@ -76,14 +77,14 @@ function ConfidenceSlider({
   onChange: (value: number) => void;
   disabled?: boolean;
 }) {
+  const { bb } = useBbTranslation();
+
   return (
     <div className="space-y-2 rounded-xl border border-border px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Minimum confidence</p>
-          <p className="text-xs text-muted-foreground">
-            Actions below this confidence are blocked automatically.
-          </p>
+          <p className="text-sm font-medium text-foreground">{bb("minimumConfidence")}</p>
+          <p className="text-xs text-muted-foreground">{bb("minimumConfidenceDescription")}</p>
         </div>
         <span className="text-sm font-semibold tabular-nums text-foreground">
           {value.toFixed(2)}
@@ -116,6 +117,7 @@ function ActionPermissionCard({
   canEdit: boolean;
   onUpdated: (permission: BrainActionPermissionRecord) => void;
 }) {
+  const { bb } = useBbTranslation();
   const [local, setLocal] = useState(permission);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -161,16 +163,16 @@ function ActionPermissionCard({
 
       <div className="space-y-3">
         <PermissionToggle
-          label="Enabled"
-          description="Allow the AI to recommend and execute this action."
+          label={bb("enabledLabel")}
+          description={bb("enabledDescription")}
           checked={local.enabled}
           disabled={disabled}
           onChange={(enabled) => persist({ ...local, enabled })}
         />
 
         <PermissionToggle
-          label="Require manual approval"
-          description="Keep matching actions pending until a teammate approves."
+          label={bb("requireManualApproval")}
+          description={bb("requireManualApprovalDescription")}
           checked={local.requireManualApproval}
           disabled={disabled || !local.enabled}
           onChange={(requireManualApproval) =>
@@ -189,7 +191,7 @@ function ActionPermissionCard({
 
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       {isPending ? (
-        <p className="text-xs text-muted-foreground">Saving…</p>
+        <p className="text-xs text-muted-foreground">{bb("saving")}</p>
       ) : null}
     </DsCard>
   );

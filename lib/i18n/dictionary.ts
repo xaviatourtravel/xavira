@@ -1,4 +1,10 @@
 import type { Locale } from "@/lib/i18n/config";
+import {
+  bbUiEn,
+  bbUiId,
+  type BbUiKey,
+  type BusinessBrainUiDictionary,
+} from "@/lib/i18n/bb-ui-dictionary";
 
 export type TestAiDictionary = {
   simulator: string;
@@ -194,6 +200,7 @@ export type Dictionary = {
     categories: string;
   };
   testAi: TestAiDictionary;
+  bbUi: BusinessBrainUiDictionary;
   inbox: Record<string, never>;
   ai: Record<string, never>;
 };
@@ -475,6 +482,7 @@ const id: Dictionary = {
     categories: "Kategori",
   },
   testAi: testAiId,
+  bbUi: bbUiId,
   inbox: {},
   ai: {},
 };
@@ -616,6 +624,7 @@ const en: Dictionary = {
     categories: "Categories",
   },
   testAi: testAiEn,
+  bbUi: bbUiEn,
   inbox: {},
   ai: {},
 };
@@ -627,6 +636,7 @@ export type TranslationKey =
   | `navigation.${keyof Dictionary["navigation"]}`
   | `businessBrain.${keyof Dictionary["businessBrain"]}`
   | `testAi.${keyof TestAiDictionary}`
+  | `bbUi.${BbUiKey}`
   | `inbox.${string}`
   | `ai.${string}`;
 
@@ -662,10 +672,16 @@ export function createStrictTranslator(locale: Locale): StrictTranslateFn {
 
   return (key: string) => {
     const value = resolveDictionaryValue(dictionary, key);
-    if (value === undefined && process.env.NODE_ENV === "development") {
-      console.warn(`[i18n] Missing translation key: ${key}`);
+    if (value !== undefined) {
+      return value;
     }
-    return value ?? key;
+
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[i18n] Missing translation key: ${key} (locale: ${locale})`);
+      return `[${key}]`;
+    }
+
+    return key;
   };
 }
 

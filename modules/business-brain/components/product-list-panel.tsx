@@ -6,9 +6,14 @@ import { DsButton } from "@/components/design-system/button";
 import { DsCard } from "@/components/design-system/card";
 import { DsSearchInput } from "@/components/design-system/form-controls";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
-import { knowledgeScoreLabel } from "@/modules/business-brain/lib/product-knowledge-score";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
-  BRAIN_PRODUCT_STATUS_LABELS,
+  bbDisplayProductName,
+  bbDocsCount,
+  bbKnowledgeScoreLabel,
+  bbProductStatusLabel,
+} from "@/modules/business-brain/lib/bb-ui-labels";
+import {
   type BrainProductListItem,
   type BrainProductStatus,
 } from "@/modules/business-brain/types/products";
@@ -56,6 +61,7 @@ export function ProductListPanel({
   onSelectProduct,
   onCreateProduct,
 }: ProductListPanelProps) {
+  const { bb } = useBbTranslation();
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredProducts = products.filter((product) => {
@@ -74,7 +80,7 @@ export function ProductListPanel({
     <DsCard className="p-4 md:p-5">
       <div className="mb-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-foreground">Product List</h2>
+          <h2 className="text-base font-semibold text-foreground">{bb("productList")}</h2>
           {canEdit ? (
             <DsButton
               type="button"
@@ -83,12 +89,12 @@ export function ProductListPanel({
               loading={isCreating}
             >
               <Plus className="h-4 w-4" />
-              New Product
+              {bb("newProduct")}
             </DsButton>
           ) : null}
         </div>
         <DsSearchInput
-          placeholder="Search products..."
+          placeholder={bb("searchProducts")}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
@@ -105,7 +111,7 @@ export function ProductListPanel({
                   : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
-              {filter === "all" ? "All" : BRAIN_PRODUCT_STATUS_LABELS[filter]}
+              {filter === "all" ? bb("all") : bbProductStatusLabel(bb, filter)}
             </button>
           ))}
         </div>
@@ -114,7 +120,7 @@ export function ProductListPanel({
       <div className="space-y-2">
         {filteredProducts.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            No products match your search.
+            {bb("noProductsMatch")}
           </div>
         ) : (
           filteredProducts.map((product) => {
@@ -135,12 +141,12 @@ export function ProductListPanel({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-foreground">
-                      {product.name}
+                      {bbDisplayProductName(bb, product.name)}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {[product.category, product.destination]
                         .filter(Boolean)
-                        .join(" · ") || "No category"}
+                        .join(" · ") || bb("noCategory")}
                     </p>
                   </div>
                   <span
@@ -149,12 +155,12 @@ export function ProductListPanel({
                       statusBadgeClass(product.status),
                     )}
                   >
-                    {BRAIN_PRODUCT_STATUS_LABELS[product.status]}
+                    {bbProductStatusLabel(bb, product.status)}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span>
-                    Updated{" "}
+                    {bb("updated")}{" "}
                     <ClientOnlyRelativeTime
                       date={product.updatedAt}
                       className="inline"
@@ -162,11 +168,11 @@ export function ProductListPanel({
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <Sparkles className="h-3.5 w-3.5" />
-                    {product.knowledgeScore}% · {knowledgeScoreLabel(product.knowledgeScore)}
+                    {product.knowledgeScore}% · {bbKnowledgeScoreLabel(bb, product.knowledgeScore)}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5" />
-                    {product.documentCount} docs
+                    {bbDocsCount(bb, product.documentCount)}
                   </span>
                 </div>
               </button>

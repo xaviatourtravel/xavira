@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { Rocket } from "lucide-react";
 
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import { BusinessBrainInspector } from "@/modules/business-brain/components/business-brain-inspector";
 import {
   InspectorBadge,
   InspectorList,
   InspectorSection,
 } from "@/modules/business-brain/components/inspector/inspector-primitives";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import type {
   BrainDraftSummary,
   BrainPublishStatusView,
@@ -20,15 +22,16 @@ type PublishInspectorProps = {
   draftSummary: BrainDraftSummary;
 };
 
-function formatDateTime(value: string | null) {
+function formatDateTime(value: string | null, locale: string) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(locale === "id" ? "id-ID" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
 export function PublishInspector({ status, draftSummary }: PublishInspectorProps) {
+  const { bb, locale } = useBbTranslation();
   const published = status.status === "published";
   const changedSections = draftSummary.sections.filter(
     (section) => section.added + section.edited + section.removed > 0,
@@ -36,40 +39,43 @@ export function PublishInspector({ status, draftSummary }: PublishInspectorProps
 
   return (
     <BusinessBrainInspector
-      title="Publish Summary"
-      subtitle="Live status and pending changes."
+      title={bb("publishSummary")}
+      subtitle={bb("publishSummarySubtitle")}
       icon={Rocket}
       contentKey={`${status.status}-${draftSummary.totalChanges}`}
     >
-      <InspectorSection title="Status">
+      <InspectorSection title={bb("status")}>
         <InspectorBadge variant={published ? "success" : "warning"}>
-          {published ? "Published" : "Draft"}
+          {published ? bb("published") : bb("draft")}
         </InspectorBadge>
         <div className="mt-3 space-y-2 text-xs text-muted-foreground">
           <p>
-            Last published:{" "}
-            <span className="text-foreground">{formatDateTime(status.lastPublishedAt)}</span>
+            {bb("lastPublished")}{" "}
+            <span className="text-foreground">
+              {formatDateTime(status.lastPublishedAt, locale)}
+            </span>
           </p>
           {status.lastPublishedBy ? (
             <p>
-              By: <span className="text-foreground">{status.lastPublishedBy.name}</span>
+              {bb("by")}{" "}
+              <span className="text-foreground">{status.lastPublishedBy.name}</span>
             </p>
           ) : null}
           {status.currentVersionNumber ? (
             <p>
-              Live version:{" "}
+              {bb("liveVersion")}{" "}
               <span className="text-foreground">v{status.currentVersionNumber}</span>
             </p>
           ) : null}
         </div>
       </InspectorSection>
 
-      <InspectorSection title="Pending Changes">
+      <InspectorSection title={bb("pendingChanges")}>
         <InspectorBadge
           variant={draftSummary.totalChanges > 0 ? "warning" : "success"}
           className={cn("tabular-nums")}
         >
-          {draftSummary.totalChanges} change{draftSummary.totalChanges === 1 ? "" : "s"}
+          {formatTranslation(bb("changesCount"), { count: draftSummary.totalChanges })}
         </InspectorBadge>
         {changedSections.length > 0 ? (
           <div className="mt-3">
@@ -84,12 +90,12 @@ export function PublishInspector({ status, draftSummary }: PublishInspectorProps
         ) : null}
       </InspectorSection>
 
-      <InspectorSection title="Quick Actions">
+      <InspectorSection title={bb("quickActions")}>
         <Link
           href="/business-brain/playground"
           className="inline-flex text-xs font-medium text-primary hover:underline"
         >
-          Preview in Test AI →
+          {bb("previewInTestAiLink")}
         </Link>
       </InspectorSection>
     </BusinessBrainInspector>

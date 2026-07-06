@@ -21,6 +21,8 @@ import type {
 } from "@/modules/business-brain/types/knowledge-coverage";
 import { sectionSlugFromHref } from "@/modules/business-brain/types/business-brain-workspace";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import { bbCoverageStatusLabel } from "@/modules/business-brain/lib/bb-ui-labels";
 import { cn } from "@/lib/utils";
 
 type BusinessBrainKnowledgeCoverageSectionProps = {
@@ -102,6 +104,7 @@ function CategoryRow({
   item: KnowledgeCoverageCategoryResult;
   onNavigate: (targetPage: string) => void;
 }) {
+  const { bb } = useBbTranslation();
   const nav = getKnowledgeCoverageNavTarget(item.category);
   const displayName = knowledgeCoverageCategoryDisplayName(item.category);
 
@@ -125,7 +128,7 @@ function CategoryRow({
           STATUS_BADGE_STYLES[item.status],
         )}
       >
-        {item.status}
+        {bbCoverageStatusLabel(bb, item.status)}
       </span>
     </button>
   );
@@ -175,6 +178,7 @@ export function BusinessBrainKnowledgeCoverageSection({
   isRefreshing = false,
 }: BusinessBrainKnowledgeCoverageSectionProps) {
   const { tStrict } = useTranslation();
+  const { bb } = useBbTranslation();
   const navigateToTarget = useNavigateToTargetPage();
   const weakest = getWeakestCoverageCategories(coverage.categories, 3);
 
@@ -227,7 +231,7 @@ export function BusinessBrainKnowledgeCoverageSection({
       {weakest.length > 0 ? (
         <DsCard
           title={tStrict("businessBrain.weakestCoverage")}
-          description="The three areas most likely to affect answer quality."
+          description={bb("weakestCoverageDescription")}
         >
           <div className="space-y-3">
             {weakest.map((item) => (

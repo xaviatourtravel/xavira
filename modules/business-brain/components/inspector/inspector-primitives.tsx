@@ -1,6 +1,9 @@
+"use client";
+
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 export function InspectorSection({
@@ -73,13 +76,16 @@ export type InspectorListItem = {
 
 export function InspectorList({
   items,
-  emptyMessage = "Nothing here yet.",
+  emptyMessage,
 }: {
   items: InspectorListItem[];
   emptyMessage?: string;
 }) {
+  const { bb } = useBbTranslation();
+  const resolvedEmptyMessage = emptyMessage ?? bb("emptyStateDefault");
+
   if (items.length === 0) {
-    return <InspectorEmptyState message={emptyMessage} />;
+    return <InspectorEmptyState message={resolvedEmptyMessage} />;
   }
 
   return (

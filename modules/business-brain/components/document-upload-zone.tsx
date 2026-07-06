@@ -6,6 +6,7 @@ import { FileUp, Link2, Upload } from "lucide-react";
 import { DsButton } from "@/components/design-system/button";
 import { DsField, DsTextInput } from "@/components/design-system/form-controls";
 import { uploadBrainDocumentAction, uploadBrainDocumentUrlAction } from "@/modules/business-brain/actions/document-actions";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 type DocumentUploadZoneProps = {
@@ -14,6 +15,7 @@ type DocumentUploadZoneProps = {
 };
 
 export function DocumentUploadZone({ canEdit, onUploaded }: DocumentUploadZoneProps) {
+  const { bb } = useBbTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const [urlName, setUrlName] = useState("");
   const [urlValue, setUrlValue] = useState("");
@@ -30,13 +32,13 @@ export function DocumentUploadZone({ canEdit, onUploaded }: DocumentUploadZonePr
       startTransition(async () => {
         const result = await uploadBrainDocumentAction(formData);
         if (!result.ok || !result.document) {
-          setErrorMessage(result.ok ? "Upload failed." : result.error);
+          setErrorMessage(result.ok ? bb("uploadFailed") : result.error);
           return;
         }
         onUploaded(result.document.id);
       });
     },
-    [onUploaded],
+    [bb, onUploaded],
   );
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -58,7 +60,7 @@ export function DocumentUploadZone({ canEdit, onUploaded }: DocumentUploadZonePr
         publicUrl: urlValue.trim(),
       });
       if (!result.ok || !result.document) {
-        setErrorMessage(result.ok ? "Failed to add URL." : result.error);
+        setErrorMessage(result.ok ? bb("urlAddFailed") : result.error);
         return;
       }
       setUrlName("");
@@ -89,12 +91,12 @@ export function DocumentUploadZone({ canEdit, onUploaded }: DocumentUploadZonePr
           <Upload className="h-5 w-5" />
         </div>
         <p className="mt-3 text-sm font-medium text-foreground">
-          Drag & drop PDF, image, or video
+          {bb("dragDropFiles")}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Max 50MB per file</p>
+        <p className="mt-1 text-xs text-muted-foreground">{bb("maxFileSize")}</p>
         <label className="mt-4 inline-flex cursor-pointer items-center gap-2 text-sm text-primary">
           <FileUp className="h-4 w-4" />
-          Browse files
+          {bb("browseFiles")}
           <input
             type="file"
             className="hidden"
@@ -111,21 +113,21 @@ export function DocumentUploadZone({ canEdit, onUploaded }: DocumentUploadZonePr
       <div className="rounded-2xl border border-border p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
           <Link2 className="h-4 w-4" />
-          Add URL document
+          {bb("addUrlDocument")}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <DsField label="Name">
+          <DsField label={bb("name")}>
             <DsTextInput
               value={urlName}
               onChange={(event) => setUrlName(event.target.value)}
-              placeholder="Company profile"
+              placeholder={bb("name")}
             />
           </DsField>
-          <DsField label="URL">
+          <DsField label={bb("url")}>
             <DsTextInput
               value={urlValue}
               onChange={(event) => setUrlValue(event.target.value)}
-              placeholder="https://..."
+              placeholder={bb("urlPlaceholder")}
             />
           </DsField>
         </div>
@@ -137,7 +139,7 @@ export function DocumentUploadZone({ canEdit, onUploaded }: DocumentUploadZonePr
           loading={isPending}
           disabled={!urlValue.trim()}
         >
-          Add URL
+          {bb("addUrl")}
         </DsButton>
       </div>
 

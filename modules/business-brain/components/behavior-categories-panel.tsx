@@ -4,9 +4,12 @@ import { Plus } from "lucide-react";
 
 import { DsButton } from "@/components/design-system/button";
 import { DsCard } from "@/components/design-system/card";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
-  BRAIN_BEHAVIOR_TYPE_DESCRIPTIONS,
-  BRAIN_BEHAVIOR_TYPE_LABELS,
+  bbBehaviorTypeDescription,
+  bbBehaviorTypeLabel,
+} from "@/modules/business-brain/lib/bb-ui-labels";
+import {
   BRAIN_BEHAVIOR_TYPES,
   CONFIG_BEHAVIOR_TYPES,
   type BrainBehaviorRecord,
@@ -39,13 +42,14 @@ export function BehaviorCategoriesPanel({
   onSelectBehavior,
   onCreateRule,
 }: BehaviorCategoriesPanelProps) {
+  const { bb } = useBbTranslation();
   const categoryBehaviors = behaviors.filter((item) => item.type === activeCategory);
   const showRuleList = !isConfigCategory(activeCategory);
 
   return (
     <DsCard className="p-4 md:p-5">
       <div className="mb-4 space-y-3">
-        <h2 className="text-base font-semibold text-foreground">Rule Categories</h2>
+        <h2 className="text-base font-semibold text-foreground">{bb("ruleCategories")}</h2>
         <div className="space-y-1">
           {BRAIN_BEHAVIOR_TYPES.map((type) => {
             const count = behaviors.filter((item) => item.type === type).length;
@@ -63,7 +67,7 @@ export function BehaviorCategoriesPanel({
                     : "border-border text-foreground hover:border-primary/30 hover:bg-muted/30",
                 )}
               >
-                <span className="font-medium">{BRAIN_BEHAVIOR_TYPE_LABELS[type]}</span>
+                <span className="font-medium">{bbBehaviorTypeLabel(bb, type)}</span>
                 <span className="text-xs text-muted-foreground">{count}</span>
               </button>
             );
@@ -73,7 +77,7 @@ export function BehaviorCategoriesPanel({
 
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          {BRAIN_BEHAVIOR_TYPE_DESCRIPTIONS[activeCategory]}
+          {bbBehaviorTypeDescription(bb, activeCategory)}
         </p>
 
         {showRuleList ? (
@@ -87,14 +91,14 @@ export function BehaviorCategoriesPanel({
                 className="w-full"
               >
                 <Plus className="h-4 w-4" />
-                Add Rule
+                {bb("addRule")}
               </DsButton>
             ) : null}
 
             <div className="space-y-2">
               {categoryBehaviors.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-                  Nothing here yet. Add a rule to get started.
+                  {bb("rulesEmptyState")}
                 </div>
               ) : (
                 categoryBehaviors.map((behavior) => {
@@ -122,7 +126,7 @@ export function BehaviorCategoriesPanel({
                               : "bg-muted text-muted-foreground",
                           )}
                         >
-                          {behavior.enabled ? "On" : "Off"}
+                          {behavior.enabled ? bb("on") : bb("off")}
                         </span>
                       </div>
                       {behavior.description ? (
@@ -150,11 +154,11 @@ export function BehaviorCategoriesPanel({
                 : "border-border bg-background hover:border-primary/30 hover:bg-muted/30",
             )}
           >
-            <p className="font-medium text-foreground">Configure settings</p>
+            <p className="font-medium text-foreground">{bb("configureSettings")}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {CONFIG_BEHAVIOR_TYPES.includes(activeCategory as "REPLY_STYLE")
-                ? "Reply tone and formatting defaults"
-                : "Required qualification questions"}
+                ? bb("replyToneDefaults")
+                : bb("requiredQualificationQuestions")}
             </p>
           </button>
         )}

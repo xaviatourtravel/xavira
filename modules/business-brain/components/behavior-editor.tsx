@@ -11,6 +11,14 @@ import {
   DsTextInput,
   DsTextarea,
 } from "@/components/design-system/form-controls";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  ALWAYS_DO_EXAMPLE_KEYS,
+  bbHandoverExampleLabel,
+  bbHandoverTriggerLabel,
+  bbQualificationFieldLabel,
+  NEVER_DO_EXAMPLE_KEYS,
+} from "@/modules/business-brain/lib/bb-ui-labels";
 import {
   createBrainBehaviorAction,
   deleteBrainBehaviorAction,
@@ -21,18 +29,14 @@ import {
   updateReplyStyleAction,
 } from "@/modules/business-brain/actions/behavior-actions";
 import {
-  ALWAYS_DO_EXAMPLES,
   BEHAVIOR_EMOJI_USAGE_OPTIONS,
   BEHAVIOR_REPLY_LENGTH_OPTIONS,
   CTA_STYLE_OPTIONS,
   DEFAULT_HANDOFF_MESSAGE,
   HANDOVER_ASSIGN_ROLES,
   HANDOVER_EXAMPLES,
-  HANDOVER_TRIGGER_LABELS,
   HANDOVER_TRIGGER_INTENTS,
   LANGUAGE_STYLE_OPTIONS,
-  NEVER_DO_EXAMPLES,
-  QUALIFICATION_FIELD_LABELS,
   type BrainBehaviorRecord,
   type HandoverRuleConfig,
   type QualificationConfig,
@@ -137,6 +141,7 @@ export function BehaviorEditor({
   onBehaviorDeleted,
   onCancelCreate,
 }: BehaviorEditorProps) {
+  const { bb } = useBbTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(true);
@@ -198,20 +203,26 @@ export function BehaviorEditor({
   }, [behavior, isNew]);
 
   const editorTitle = useMemo(() => {
-    if (isNew) return "New Rule";
-    if (category === "REPLY_STYLE") return "Reply Style";
-    if (category === "QUALIFICATION_RULE") return "Qualification Rules";
-    return behavior?.name ?? "Behavior Editor";
-  }, [behavior?.name, category, isNew]);
+    if (isNew) return bb("newRule");
+    if (category === "REPLY_STYLE") return bb("replyStyle");
+    if (category === "QUALIFICATION_RULE") return bb("qualificationRules");
+    return behavior?.name ?? bb("behaviorEditor");
+  }, [bb, behavior?.name, category, isNew]);
 
   const exampleChips = useMemo(() => {
-    if (category === "ALWAYS_DO") return ALWAYS_DO_EXAMPLES;
-    if (category === "NEVER_DO") return NEVER_DO_EXAMPLES;
+    if (category === "ALWAYS_DO") {
+      return ALWAYS_DO_EXAMPLE_KEYS.map((key) => bb(key));
+    }
+    if (category === "NEVER_DO") {
+      return NEVER_DO_EXAMPLE_KEYS.map((key) => bb(key));
+    }
     return [];
-  }, [category]);
+  }, [bb, category]);
 
   const applyHandoverExample = (example: (typeof HANDOVER_EXAMPLES)[number]) => {
-    setName(example.name);
+    setName(
+      bbHandoverExampleLabel(bb, example.triggerIntent, example.assignToRole),
+    );
     setHandoverConfig({
       triggerIntent: example.triggerIntent,
       assignToRole: example.assignToRole,
@@ -228,7 +239,7 @@ export function BehaviorEditor({
 
         const trimmedName = name.trim();
         if (!trimmedName && category !== "HANDOVER_RULE") {
-          setErrorMessage("Rule name is required.");
+          setErrorMessage(bb("ruleNameRequired"));
           return;
         }
 
@@ -236,7 +247,9 @@ export function BehaviorEditor({
           category === "HANDOVER_RULE"
             ? {
                 type: category,
-                name: trimmedName || HANDOVER_TRIGGER_LABELS[handoverConfig.triggerIntent],
+                name:
+                  trimmedName ||
+                  bbHandoverTriggerLabel(bb, handoverConfig.triggerIntent),
                 description,
                 config: handoverConfig,
               }
@@ -248,12 +261,12 @@ export function BehaviorEditor({
 
         const result = await createBrainBehaviorAction(payload);
         if (!result.ok || !result.behavior) {
-          setErrorMessage(result.ok ? "Create failed." : result.error);
+          setErrorMessage(result.ok ? bb("createFailed") : result.error);
           return;
         }
 
         onBehaviorUpdated(result.behavior);
-        setStatusMessage("Rule created.");
+        setStatusMessage(bb("ruleCreated"));
         return;
       }
 
@@ -263,11 +276,11 @@ export function BehaviorEditor({
           enabled,
         });
         if (!result.ok || !result.behavior) {
-          setErrorMessage(result.ok ? "Save failed." : result.error);
+          setErrorMessage(result.ok ? bb("saveFailed") : result.error);
           return;
         }
         onBehaviorUpdated(result.behavior);
-        setStatusMessage("Reply style saved.");
+        setStatusMessage(bb("replyStyleSaved"));
         return;
       }
 
@@ -277,11 +290,11 @@ export function BehaviorEditor({
           enabled,
         });
         if (!result.ok || !result.behavior) {
-          setErrorMessage(result.ok ? "Save failed." : result.error);
+          setErrorMessage(result.ok ? bb("saveFailed") : result.error);
           return;
         }
         onBehaviorUpdated(result.behavior);
-        setStatusMessage("Qualification rules saved.");
+        setStatusMessage(bb("qualificationRulesSaved"));
         return;
       }
 
@@ -296,12 +309,12 @@ export function BehaviorEditor({
       });
 
       if (!result.ok || !result.behavior) {
-        setErrorMessage(result.ok ? "Save failed." : result.error);
+        setErrorMessage(result.ok ? bb("saveFailed") : result.error);
         return;
       }
 
       onBehaviorUpdated(result.behavior);
-      setStatusMessage("Rule saved.");
+      setStatusMessage(bb("ruleSaved"));
     });
   };
 
@@ -312,7 +325,7 @@ export function BehaviorEditor({
         ? await disableBrainBehaviorAction(behavior.id)
         : await enableBrainBehaviorAction(behavior.id);
       if (!result.ok || !result.behavior) {
-        setErrorMessage(result.ok ? "Update failed." : result.error);
+        setErrorMessage(result.ok ? bb("updateFailed") : result.error);
         return;
       }
       onBehaviorUpdated(result.behavior);
@@ -321,7 +334,7 @@ export function BehaviorEditor({
   };
 
   const handleDelete = () => {
-    if (!behavior || !window.confirm("Delete this rule?")) return;
+    if (!behavior || !window.confirm(bb("deleteRuleConfirm"))) return;
     startTransition(async () => {
       const result = await deleteBrainBehaviorAction(behavior.id);
       if (!result.ok) {
@@ -335,9 +348,7 @@ export function BehaviorEditor({
   if (!behavior && !isNew) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          Select a category and rule to edit, or add a new rule to get started.
-        </p>
+        <p className="text-sm text-muted-foreground">{bb("rulesSelectPrompt")}</p>
       </div>
     );
   }
@@ -349,14 +360,12 @@ export function BehaviorEditor({
           {onBack ? (
             <DsButton type="button" variant="outline" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {bb("back")}
             </DsButton>
           ) : null}
           <div>
             <h2 className="text-lg font-semibold text-foreground">{editorTitle}</h2>
-            <p className="text-sm text-muted-foreground">
-              Teach AI how your team works.
-            </p>
+            <p className="text-sm text-muted-foreground">{bb("teachAiHowTeamWorks")}</p>
           </div>
         </div>
         {canEdit && (behavior || isNew) ? (
@@ -364,22 +373,22 @@ export function BehaviorEditor({
             {!isNew && behavior && category !== "REPLY_STYLE" && category !== "QUALIFICATION_RULE" ? (
               <>
                 <DsButton type="button" variant="outline" onClick={handleToggleEnabled} loading={isPending}>
-                  {enabled ? "Disable" : "Enable"}
+                  {enabled ? bb("disable") : bb("enable")}
                 </DsButton>
                 <DsButton type="button" variant="outline" onClick={handleDelete} loading={isPending}>
                   <Trash2 className="h-4 w-4" />
-                  Delete
+                  {bb("delete")}
                 </DsButton>
               </>
             ) : null}
             {isNew ? (
               <DsButton type="button" variant="outline" onClick={onCancelCreate}>
-                Cancel
+                {bb("cancel")}
               </DsButton>
             ) : null}
             <DsButton type="button" onClick={handleSave} loading={isPending}>
               <Save className="h-4 w-4" />
-              {isNew ? "Create Rule" : "Save"}
+              {isNew ? bb("createRule") : bb("save")}
             </DsButton>
           </div>
         ) : null}
@@ -391,12 +400,12 @@ export function BehaviorEditor({
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 
       {(category === "ALWAYS_DO" || category === "NEVER_DO") && (behavior || isNew) ? (
-        <DsCard title="Rule">
+        <DsCard title={bb("rule")}>
           <div className="space-y-4">
-            <DsField label="Rule Name">
+            <DsField label={bb("ruleName")}>
               <DsTextInput value={name} onChange={(e) => setName(e.target.value)} disabled={!canEdit} />
             </DsField>
-            <DsField label="Description">
+            <DsField label={bb("description")}>
               <DsTextarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -420,7 +429,7 @@ export function BehaviorEditor({
             ) : null}
             {!isNew ? (
               <ToggleRow
-                label="Enabled"
+                label={bb("enabled")}
                 checked={enabled}
                 onChange={setEnabled}
                 disabled={!canEdit}
@@ -431,12 +440,12 @@ export function BehaviorEditor({
       ) : null}
 
       {category === "HANDOVER_RULE" && (behavior || isNew) ? (
-        <DsCard title="Handover Rule">
+        <DsCard title={bb("handoverRule")}>
           <div className="space-y-4">
-            <DsField label="Rule Name">
+            <DsField label={bb("ruleName")}>
               <DsTextInput value={name} onChange={(e) => setName(e.target.value)} disabled={!canEdit} />
             </DsField>
-            <DsField label="Trigger Intent">
+            <DsField label={bb("triggerIntent")}>
               <DsSelect
                 value={handoverConfig.triggerIntent}
                 onChange={(e) =>
@@ -449,12 +458,12 @@ export function BehaviorEditor({
               >
                 {HANDOVER_TRIGGER_INTENTS.map((intent) => (
                   <option key={intent} value={intent}>
-                    {HANDOVER_TRIGGER_LABELS[intent]}
+                    {bbHandoverTriggerLabel(bb, intent)}
                   </option>
                 ))}
               </DsSelect>
             </DsField>
-            <DsField label="Assign To Role">
+            <DsField label={bb("assignToRole")}>
               <DsSelect
                 value={handoverConfig.assignToRole}
                 onChange={(e) =>
@@ -472,7 +481,7 @@ export function BehaviorEditor({
                 ))}
               </DsSelect>
             </DsField>
-            <DsField label="AI Handoff Message">
+            <DsField label={bb("aiHandoffMessage")}>
               <DsTextarea
                 value={handoverConfig.handoffMessage}
                 onChange={(e) =>
@@ -485,7 +494,7 @@ export function BehaviorEditor({
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Description (optional)">
+            <DsField label={bb("descriptionOptional")}>
               <DsTextarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -502,14 +511,14 @@ export function BehaviorEditor({
                     onClick={() => applyHandoverExample(example)}
                     className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
                   >
-                    {example.name}
+                    {bbHandoverExampleLabel(bb, example.triggerIntent, example.assignToRole)}
                   </button>
                 ))}
               </div>
             ) : null}
             {!isNew ? (
               <ToggleRow
-                label="Enabled"
+                label={bb("enabled")}
                 checked={enabled}
                 onChange={setEnabled}
                 disabled={!canEdit}
@@ -520,25 +529,25 @@ export function BehaviorEditor({
       ) : null}
 
       {category === "REPLY_STYLE" && behavior ? (
-        <DsCard title="Reply Style">
+        <DsCard title={bb("replyStyle")}>
           <div className="space-y-4">
             <ToggleRow
-              label={'Use "Kak"'}
-              description="Address customers with Kak in Indonesian replies."
+              label={bb("useKak")}
+              description={bb("useKakDescription")}
               checked={replyStyle.useKak}
               onChange={(useKak) => setReplyStyle((current) => ({ ...current, useKak }))}
               disabled={!canEdit}
             />
             <ToggleRow
-              label="Avoid repeated greeting"
-              description="Do not greet again in ongoing conversations."
+              label={bb("avoidRepeatedGreeting")}
+              description={bb("avoidRepeatedGreetingDescription")}
               checked={replyStyle.avoidRepeatedGreeting}
               onChange={(avoidRepeatedGreeting) =>
                 setReplyStyle((current) => ({ ...current, avoidRepeatedGreeting }))
               }
               disabled={!canEdit}
             />
-            <DsField label="Maximum reply length">
+            <DsField label={bb("maxReplyLength")}>
               <SegmentedOptions
                 value={replyStyle.maxReplyLength}
                 onChange={(maxReplyLength) =>
@@ -549,12 +558,12 @@ export function BehaviorEditor({
                 }
                 options={BEHAVIOR_REPLY_LENGTH_OPTIONS.map((value) => ({
                   value,
-                  label: value.charAt(0).toUpperCase() + value.slice(1),
+                  label: bb(value),
                 }))}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Emoji usage">
+            <DsField label={bb("emojiUsage")}>
               <SegmentedOptions
                 value={replyStyle.emojiUsage}
                 onChange={(emojiUsage) =>
@@ -565,12 +574,12 @@ export function BehaviorEditor({
                 }
                 options={BEHAVIOR_EMOJI_USAGE_OPTIONS.map((value) => ({
                   value,
-                  label: value.charAt(0).toUpperCase() + value.slice(1),
+                  label: bb(value),
                 }))}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="CTA style">
+            <DsField label={bb("ctaStyle")}>
               <SegmentedOptions
                 value={replyStyle.ctaStyle}
                 onChange={(ctaStyle) =>
@@ -581,12 +590,12 @@ export function BehaviorEditor({
                 }
                 options={CTA_STYLE_OPTIONS.map((value) => ({
                   value,
-                  label: value.charAt(0).toUpperCase() + value.slice(1),
+                  label: bb(value),
                 }))}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Language style">
+            <DsField label={bb("languageStyle")}>
               <SegmentedOptions
                 value={replyStyle.languageStyle}
                 onChange={(languageStyle) =>
@@ -597,13 +606,13 @@ export function BehaviorEditor({
                 }
                 options={LANGUAGE_STYLE_OPTIONS.map((value) => ({
                   value,
-                  label: value.charAt(0).toUpperCase() + value.slice(1),
+                  label: bb(value),
                 }))}
                 disabled={!canEdit}
               />
             </DsField>
             <ToggleRow
-              label="Configuration enabled"
+              label={bb("configEnabled")}
               checked={enabled}
               onChange={setEnabled}
               disabled={!canEdit}
@@ -613,13 +622,13 @@ export function BehaviorEditor({
       ) : null}
 
       {category === "QUALIFICATION_RULE" && behavior ? (
-        <DsCard title="Required Questions">
+        <DsCard title={bb("requiredQuestions")}>
           <div className="space-y-3">
-            {(Object.keys(QUALIFICATION_FIELD_LABELS) as Array<keyof QualificationConfig>).map(
+            {(Object.keys(qualification) as Array<keyof QualificationConfig>).map(
               (field) => (
                 <ToggleRow
                   key={field}
-                  label={QUALIFICATION_FIELD_LABELS[field]}
+                  label={bbQualificationFieldLabel(bb, field)}
                   checked={qualification[field]}
                   onChange={(value) =>
                     setQualification((current) => ({ ...current, [field]: value }))
@@ -629,7 +638,7 @@ export function BehaviorEditor({
               ),
             )}
             <ToggleRow
-              label="Qualification rules enabled"
+              label={bb("qualificationRulesEnabled")}
               checked={enabled}
               onChange={setEnabled}
               disabled={!canEdit}

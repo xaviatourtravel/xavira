@@ -11,6 +11,14 @@ import {
   DsTextInput,
   DsTextarea,
 } from "@/components/design-system/form-controls";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  bbDisplayDocumentName,
+  bbDocumentStatusLabel,
+  bbDocumentTriggerLabel,
+  bbDocumentTypeLabel,
+  bbRemoveItemLabel,
+} from "@/modules/business-brain/lib/bb-ui-labels";
 import {
   deleteBrainDocumentAction,
   publishBrainDocumentAction,
@@ -18,10 +26,7 @@ import {
 } from "@/modules/business-brain/actions/document-actions";
 import {
   BRAIN_DOCUMENT_STATUSES,
-  BRAIN_DOCUMENT_STATUS_LABELS,
-  BRAIN_DOCUMENT_TRIGGER_LABELS,
   BRAIN_DOCUMENT_TRIGGERS,
-  BRAIN_DOCUMENT_TYPE_LABELS,
   BRAIN_DOCUMENT_TYPES,
   formatFileSize,
   type BrainDocumentDetail,
@@ -62,10 +67,16 @@ function TagInput({
   value,
   onChange,
   disabled,
+  addTagLabel,
+  addButtonLabel,
+  removeItemLabel,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   disabled?: boolean;
+  addTagLabel: string;
+  addButtonLabel: string;
+  removeItemLabel: (item: string) => string;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -91,11 +102,11 @@ function TagInput({
               addTag();
             }
           }}
-          placeholder="Add tag"
+          placeholder={addTagLabel}
           disabled={disabled}
         />
         <DsButton type="button" variant="outline" onClick={addTag} disabled={disabled}>
-          Add
+          {addButtonLabel}
         </DsButton>
       </div>
       {value.length > 0 ? (
@@ -111,7 +122,7 @@ function TagInput({
                   type="button"
                   onClick={() => onChange(value.filter((item) => item !== tag))}
                   className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-                  aria-label={`Remove ${tag}`}
+                  aria-label={removeItemLabel(tag)}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -125,17 +136,18 @@ function TagInput({
 }
 
 function DocumentPreview({ document }: { document: BrainDocumentDetail }) {
+  const { bb } = useBbTranslation();
   const uploadDate = new Date(document.createdAt).toLocaleString();
 
   return (
-    <DsCard title="Preview">
+    <DsCard title={bb("preview")}>
       <div className="space-y-4">
         <div className="overflow-hidden rounded-xl border border-border bg-muted/20">
           {document.documentType === "image" && document.previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={document.previewUrl}
-              alt={document.name}
+              alt={bbDisplayDocumentName(bb, document.name)}
               className="max-h-72 w-full object-contain"
             />
           ) : document.documentType === "video" && document.previewUrl ? (
@@ -147,7 +159,7 @@ function DocumentPreview({ document }: { document: BrainDocumentDetail }) {
           ) : document.documentType === "pdf" && document.previewUrl ? (
             <iframe
               src={document.previewUrl}
-              title={document.name}
+              title={bbDisplayDocumentName(bb, document.name)}
               className="h-72 w-full"
             />
           ) : document.documentType === "url" && document.publicUrl ? (
@@ -159,24 +171,24 @@ function DocumentPreview({ document }: { document: BrainDocumentDetail }) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
               >
-                Open <ExternalLink className="h-4 w-4" />
+                {bb("open")} <ExternalLink className="h-4 w-4" />
               </a>
             </div>
           ) : (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              Preview unavailable
+              {bb("previewUnavailable")}
             </div>
           )}
         </div>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-muted-foreground">File size</dt>
+            <dt className="text-muted-foreground">{bb("fileSize")}</dt>
             <dd className="font-medium text-foreground">
               {formatFileSize(document.fileSize)}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Upload date</dt>
+            <dt className="text-muted-foreground">{bb("uploadDate")}</dt>
             <dd className="font-medium text-foreground">{uploadDate}</dd>
           </div>
         </dl>
@@ -194,6 +206,7 @@ export function DocumentDetailsPanel({
   onDocumentUpdated,
   onDocumentDeleted,
 }: DocumentDetailsPanelProps) {
+  const { bb } = useBbTranslation();
   const [savedValues, setSavedValues] = useState(() => valuesFromDocument(document));
   const [values, setValues] = useState(savedValues);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -249,11 +262,11 @@ export function DocumentDetailsPanel({
     startTransition(async () => {
       const result = await updateBrainDocumentAction(document.id, values);
       if (!result.ok || !result.document) {
-        setErrorMessage(result.ok ? "Document not found." : result.error);
+        setErrorMessage(result.ok ? bb("documentNotFound") : result.error);
         return;
       }
       syncDocument(result.document);
-      setStatusMessage("Draft saved.");
+      setStatusMessage(bb("draftSaved"));
     });
   };
 
@@ -266,16 +279,16 @@ export function DocumentDetailsPanel({
       }
       const result = await publishBrainDocumentAction(document.id);
       if (!result.ok || !result.document) {
-        setErrorMessage(result.ok ? "Document not found." : result.error);
+        setErrorMessage(result.ok ? bb("documentNotFound") : result.error);
         return;
       }
       syncDocument(result.document);
-      setStatusMessage("Document published.");
+      setStatusMessage(bb("documentPublished"));
     });
   };
 
   const handleDelete = () => {
-    if (!window.confirm("Delete this document?")) return;
+    if (!window.confirm(bb("deleteDocumentConfirm"))) return;
 
     startTransition(async () => {
       const result = await deleteBrainDocumentAction(document.id);
@@ -294,13 +307,13 @@ export function DocumentDetailsPanel({
           {onBack ? (
             <DsButton type="button" variant="outline" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {bb("back")}
             </DsButton>
           ) : null}
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Document Details</h2>
+            <h2 className="text-lg font-semibold text-foreground">{bb("documentDetails")}</h2>
             <p className="text-sm text-muted-foreground">
-              Configure what AI can send and when.
+              {bb("documentDetailsDescription")}
             </p>
           </div>
         </div>
@@ -316,18 +329,18 @@ export function DocumentDetailsPanel({
               }}
               disabled={!isDirty || isPending}
             >
-              Discard
+              {bb("discard")}
             </DsButton>
             <DsButton type="button" onClick={handleSave} loading={isPending} disabled={!isDirty}>
               <Save className="h-4 w-4" />
-              Save Draft
+              {bb("saveDraft")}
             </DsButton>
             <DsButton type="button" onClick={handlePublish} loading={isPending}>
-              Publish
+              {bb("publish")}
             </DsButton>
             <DsButton type="button" variant="outline" onClick={handleDelete} loading={isPending}>
               <Trash2 className="h-4 w-4" />
-              Delete
+              {bb("delete")}
             </DsButton>
           </div>
         ) : null}
@@ -341,16 +354,16 @@ export function DocumentDetailsPanel({
       <DocumentPreview document={document} />
 
       <div className="space-y-4">
-        <DsCard title="Details">
+        <DsCard title={bb("details")}>
           <div className="grid gap-4 md:grid-cols-2">
-            <DsField label="Name">
+            <DsField label={bb("name")}>
               <DsTextInput
                 value={values.name}
                 onChange={(event) => updateValues({ name: event.target.value })}
                 disabled={!canEdit}
               />
             </DsField>
-            <DsField label="Document Type">
+            <DsField label={bb("documentType")}>
               <DsSelect
                 value={values.documentType}
                 onChange={(event) =>
@@ -362,13 +375,13 @@ export function DocumentDetailsPanel({
               >
                 {BRAIN_DOCUMENT_TYPES.map((type) => (
                   <option key={type} value={type}>
-                    {BRAIN_DOCUMENT_TYPE_LABELS[type]}
+                    {bbDocumentTypeLabel(bb, type)}
                   </option>
                 ))}
               </DsSelect>
             </DsField>
             <div className="md:col-span-2">
-              <DsField label="Description">
+              <DsField label={bb("description")}>
                 <DsTextarea
                   value={values.description}
                   onChange={(event) => updateValues({ description: event.target.value })}
@@ -380,17 +393,20 @@ export function DocumentDetailsPanel({
           </div>
         </DsCard>
 
-        <DsCard title="Tags">
+        <DsCard title={bb("tags")}>
           <TagInput
             value={values.tags}
             onChange={(tags) => updateValues({ tags })}
             disabled={!canEdit}
+            addTagLabel={bb("addTag")}
+            addButtonLabel={bb("add")}
+            removeItemLabel={(item) => bbRemoveItemLabel(bb, item)}
           />
         </DsCard>
 
-        <DsCard title="Related Products">
+        <DsCard title={bb("relatedProducts")}>
           {productOptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No products available yet.</p>
+            <p className="text-sm text-muted-foreground">{bb("noProductsAvailable")}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {productOptions.map((product) => {
@@ -416,9 +432,9 @@ export function DocumentDetailsPanel({
           )}
         </DsCard>
 
-        <DsCard title="Related Knowledge">
+        <DsCard title={bb("relatedKnowledge")}>
           {articleOptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No knowledge articles available yet.</p>
+            <p className="text-sm text-muted-foreground">{bb("noArticlesAvailable")}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {articleOptions.map((article) => {
@@ -444,12 +460,12 @@ export function DocumentDetailsPanel({
           )}
         </DsCard>
 
-        <DsCard title="Auto Send Rules">
+        <DsCard title={bb("autoSendRules")}>
           <label className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-foreground">Enable Auto Send</p>
+              <p className="text-sm font-medium text-foreground">{bb("enableAutoSend")}</p>
               <p className="text-xs text-muted-foreground">
-                Allow AI to send this document when matching triggers fire.
+                {bb("allowAutoSendDescription")}
               </p>
             </div>
             <button
@@ -488,23 +504,23 @@ export function DocumentDetailsPanel({
                   onChange={() => toggleTrigger(trigger)}
                   className="h-4 w-4 rounded border-border"
                 />
-                {BRAIN_DOCUMENT_TRIGGER_LABELS[trigger]}
+                {bbDocumentTriggerLabel(bb, trigger)}
               </label>
             ))}
           </div>
         </DsCard>
 
-        <DsCard title="AI Notes">
+        <DsCard title={bb("aiNotes")}>
           <DsTextarea
             value={values.aiNotes}
             onChange={(event) => updateValues({ aiNotes: event.target.value })}
-            placeholder="Always send this before discussing pricing."
+            placeholder={bb("aiNotesPlaceholder")}
             rows={4}
             disabled={!canEdit}
           />
         </DsCard>
 
-        <DsCard title="Status">
+        <DsCard title={bb("status")}>
           <div className="flex flex-wrap gap-2">
             {BRAIN_DOCUMENT_STATUSES.map((status) => (
               <button
@@ -519,7 +535,7 @@ export function DocumentDetailsPanel({
                     : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
-                {BRAIN_DOCUMENT_STATUS_LABELS[status]}
+                {bbDocumentStatusLabel(bb, status)}
               </button>
             ))}
           </div>

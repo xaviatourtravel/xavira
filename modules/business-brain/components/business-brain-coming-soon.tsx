@@ -1,6 +1,9 @@
+"use client";
+
 import { Construction } from "lucide-react";
 
 import { DsCard } from "@/components/design-system/card";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 
 type BusinessBrainComingSoonProps = {
   title: string;
@@ -11,6 +14,8 @@ export function BusinessBrainComingSoon({
   title,
   description,
 }: BusinessBrainComingSoonProps) {
+  const { bb } = useBbTranslation();
+
   return (
     <DsCard className="max-w-2xl">
       <div className="flex items-start gap-4">
@@ -22,7 +27,7 @@ export function BusinessBrainComingSoon({
           <p className="text-sm leading-relaxed text-muted-foreground">
             {description}
           </p>
-          <p className="text-xs text-muted-foreground">Coming soon.</p>
+          <p className="text-xs text-muted-foreground">{bb("comingSoonLabel")}</p>
         </div>
       </div>
     </DsCard>

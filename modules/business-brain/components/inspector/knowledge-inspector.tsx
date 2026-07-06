@@ -2,6 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import { BusinessBrainInspector } from "@/modules/business-brain/components/business-brain-inspector";
 import {
   InspectorBadge,
@@ -9,10 +10,12 @@ import {
   InspectorEmptyState,
   InspectorSection,
 } from "@/modules/business-brain/components/inspector/inspector-primitives";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
-  BRAIN_ARTICLE_CATEGORY_LABELS,
-  type BrainArticleDetail,
-} from "@/modules/business-brain/types/knowledge";
+  bbArticleCategoryLabel,
+  bbDisplayArticleTitle,
+} from "@/modules/business-brain/lib/bb-ui-labels";
+import type { BrainArticleDetail } from "@/modules/business-brain/types/knowledge";
 
 type KnowledgeInspectorProps = {
   article: BrainArticleDetail | null;
@@ -37,14 +40,16 @@ function generateExampleReply(article: BrainArticleDetail): string {
 }
 
 export function KnowledgeInspector({ article, productOptions }: KnowledgeInspectorProps) {
+  const { bb } = useBbTranslation();
+
   if (!article) {
     return (
       <BusinessBrainInspector
-        title="AI Knowledge Usage"
-        subtitle="How AI retrieves and applies this knowledge."
+        title={bb("aiKnowledgeUsage")}
+        subtitle={bb("aiKnowledgeUsageSubtitle")}
         icon={BookOpen}
       >
-        <InspectorEmptyState message="Select an article to preview AI knowledge usage." />
+        <InspectorEmptyState message={bb("selectArticleInspector")} />
       </BusinessBrainInspector>
     );
   }
@@ -59,25 +64,25 @@ export function KnowledgeInspector({ article, productOptions }: KnowledgeInspect
 
   return (
     <BusinessBrainInspector
-      title="AI Knowledge Usage"
-      subtitle="How AI retrieves and applies this knowledge."
+      title={bb("aiKnowledgeUsage")}
+      subtitle={bb("aiKnowledgeUsageSubtitle")}
       icon={BookOpen}
       contentKey={`${article.id}-${article.updatedAt}`}
     >
-      <InspectorSection title="Knowledge Summary">
+      <InspectorSection title={bb("knowledgeSummary")}>
         <p className="text-sm font-medium text-foreground">
-          {article.title || "Untitled Article"}
+          {bbDisplayArticleTitle(bb, article.title)}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {BRAIN_ARTICLE_CATEGORY_LABELS[article.category]}
+          {bbArticleCategoryLabel(bb, article.category)}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-          {summaryText || "No content yet."}
+          {summaryText || bb("noContentYet")}
         </p>
       </InspectorSection>
 
       {article.keywords.length > 0 ? (
-        <InspectorSection title="Matching Keywords">
+        <InspectorSection title={bb("matchingKeywords")}>
           <div className="flex flex-wrap gap-1.5">
             {article.keywords.map((keyword) => (
               <InspectorBadge key={keyword}>{keyword}</InspectorBadge>
@@ -86,7 +91,7 @@ export function KnowledgeInspector({ article, productOptions }: KnowledgeInspect
         </InspectorSection>
       ) : null}
 
-      <InspectorSection title="Related Products">
+      <InspectorSection title={bb("relatedProducts")}>
         {relatedProducts.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {relatedProducts.map((product) => (
@@ -96,17 +101,19 @@ export function KnowledgeInspector({ article, productOptions }: KnowledgeInspect
             ))}
           </div>
         ) : (
-          <InspectorEmptyState message="No linked products." />
+          <InspectorEmptyState message={bb("noLinkedProducts")} />
         )}
       </InspectorSection>
 
-      <InspectorSection title="Confidence">
+      <InspectorSection title={bb("confidence")}>
         <InspectorBadge variant={confidence != null && confidence >= 70 ? "success" : "muted"}>
-          {confidence != null ? `${confidence}% weight` : "Not configured"}
+          {confidence != null
+            ? formatTranslation(bb("confidenceWeightFormatted"), { confidence })
+            : bb("notConfigured")}
         </InspectorBadge>
       </InspectorSection>
 
-      <InspectorSection title="AI Example Reply">
+      <InspectorSection title={bb("aiExampleReply")}>
         <InspectorConversationBubble role="ai">{exampleReply}</InspectorConversationBubble>
       </InspectorSection>
     </BusinessBrainInspector>

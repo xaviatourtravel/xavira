@@ -2,6 +2,8 @@
 
 import { Package } from "lucide-react";
 
+import type { BbUiKey } from "@/lib/i18n/bb-ui-dictionary";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import { BusinessBrainInspector } from "@/modules/business-brain/components/business-brain-inspector";
 import {
   InspectorBadge,
@@ -9,10 +11,12 @@ import {
   InspectorList,
   InspectorSection,
 } from "@/modules/business-brain/components/inspector/inspector-primitives";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
-  BRAIN_PRODUCT_STATUS_LABELS,
-  type BrainProductDetail,
-} from "@/modules/business-brain/types/products";
+  bbProductStatusLabel,
+  bbScorePercent,
+} from "@/modules/business-brain/lib/bb-ui-labels";
+import type { BrainProductDetail } from "@/modules/business-brain/types/products";
 
 type ProductInspectorProps = {
   product: BrainProductDetail | null;
@@ -31,26 +35,31 @@ function buildMatchingKeywords(product: BrainProductDetail): string[] {
   return Array.from(keywords).slice(0, 8);
 }
 
-function recommendWhen(product: BrainProductDetail): string {
+function recommendWhen(
+  product: BrainProductDetail,
+  bb: (key: BbUiKey) => string,
+): string {
   if (product.aiNotes.trim()) return product.aiNotes.trim();
   const parts = [
     product.category ? `customers ask about ${product.category.toLowerCase()}` : null,
     product.destination ? `trips to ${product.destination}` : null,
   ].filter(Boolean);
   return parts.length > 0
-    ? `When ${parts.join(" or ")}.`
-    : "When customer intent matches product category or destination.";
+    ? formatTranslation(bb("whenConditions"), { conditions: parts.join(" or ") })
+    : bb("whenIntentMatches");
 }
 
 export function ProductInspector({ product }: ProductInspectorProps) {
+  const { bb } = useBbTranslation();
+
   if (!product) {
     return (
       <BusinessBrainInspector
-        title="AI Product Usage"
-        subtitle="How AI retrieves and recommends this product."
+        title={bb("aiProductUsage")}
+        subtitle={bb("aiProductUsageSubtitle")}
         icon={Package}
       >
-        <InspectorEmptyState message="Select a product to see how AI will use it in conversations." />
+        <InspectorEmptyState message={bb("selectProductInspector")} />
       </BusinessBrainInspector>
     );
   }
@@ -65,25 +74,25 @@ export function ProductInspector({ product }: ProductInspectorProps) {
 
   return (
     <BusinessBrainInspector
-      title="AI Product Usage"
-      subtitle="How AI retrieves and recommends this product."
+      title={bb("aiProductUsage")}
+      subtitle={bb("aiProductUsageSubtitle")}
       icon={Package}
       contentKey={`${product.id}-${product.updatedAt}`}
     >
-      <InspectorSection title="Summary">
+      <InspectorSection title={bb("summary")}>
         <p className="text-sm leading-relaxed text-foreground/90">
-          {summary || "No description yet."}
+          {summary || bb("noDescriptionYet")}
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <InspectorBadge variant={product.status === "published" ? "success" : "warning"}>
-            {BRAIN_PRODUCT_STATUS_LABELS[product.status]}
+            {bbProductStatusLabel(bb, product.status)}
           </InspectorBadge>
           {product.category ? <InspectorBadge>{product.category}</InspectorBadge> : null}
         </div>
       </InspectorSection>
 
       {product.highlights.length > 0 ? (
-        <InspectorSection title="Highlights">
+        <InspectorSection title={bb("highlights")}>
           <InspectorList
             items={product.highlights.slice(0, 5).map((item, index) => ({
               id: `${index}-${item}`,
@@ -94,7 +103,7 @@ export function ProductInspector({ product }: ProductInspectorProps) {
       ) : null}
 
       {keywords.length > 0 ? (
-        <InspectorSection title="Matching Keywords">
+        <InspectorSection title={bb("matchingKeywords")}>
           <div className="flex flex-wrap gap-1.5">
             {keywords.map((keyword) => (
               <InspectorBadge key={keyword}>{keyword}</InspectorBadge>
@@ -103,17 +112,19 @@ export function ProductInspector({ product }: ProductInspectorProps) {
         </InspectorSection>
       ) : null}
 
-      <InspectorSection title="When AI Will Recommend">
-        <p className="text-sm leading-relaxed text-muted-foreground">{recommendWhen(product)}</p>
+      <InspectorSection title={bb("whenAiWillRecommend")}>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {recommendWhen(product, bb)}
+        </p>
       </InspectorSection>
 
-      <InspectorSection title="Knowledge Coverage">
+      <InspectorSection title={bb("knowledgeCoverageInspector")}>
         <div className="flex flex-wrap gap-2">
           <InspectorBadge variant={faqCount > 0 ? "success" : "muted"}>
-            {faqCount} linked article{faqCount === 1 ? "" : "s"}
+            {formatTranslation(bb("linkedArticles"), { count: faqCount })}
           </InspectorBadge>
           <InspectorBadge variant={knowledgeScore >= 70 ? "success" : "warning"}>
-            Score {knowledgeScore}%
+            {bbScorePercent(bb, knowledgeScore)}
           </InspectorBadge>
         </div>
       </InspectorSection>

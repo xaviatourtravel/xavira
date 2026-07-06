@@ -10,6 +10,7 @@ import {
   InspectorList,
   InspectorSection,
 } from "@/modules/business-brain/components/inspector/inspector-primitives";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { sectionSlugFromHref } from "@/modules/business-brain/types/business-brain-workspace";
 import type {
   BusinessBrainRecentChange,
@@ -55,14 +56,16 @@ function SuggestionLink({
 }
 
 export function OverviewInspector({ suggestions, recentChanges }: OverviewInspectorProps) {
+  const { bb } = useBbTranslation();
+
   return (
     <BusinessBrainInspector
-      title="Insights"
-      subtitle="Recommended improvements and recent activity."
+      title={bb("insights")}
+      subtitle={bb("insightsSubtitle")}
       icon={Lightbulb}
       contentKey={`${suggestions.length}-${recentChanges.length}`}
     >
-      <InspectorSection title="Recommended Actions">
+      <InspectorSection title={bb("recommendedActions")}>
         {suggestions.length > 0 ? (
           <ul className="space-y-2">
             {suggestions.map((item) => (
@@ -85,11 +88,11 @@ export function OverviewInspector({ suggestions, recentChanges }: OverviewInspec
             ))}
           </ul>
         ) : (
-          <InspectorEmptyState message="Nothing here yet. Add content to surface recommended actions." />
+          <InspectorEmptyState message={bb("overviewEmptyActions")} />
         )}
       </InspectorSection>
 
-      <InspectorSection title="Recent Changes">
+      <InspectorSection title={bb("recentChanges")}>
         {recentChanges.length > 0 ? (
           <InspectorList
             items={recentChanges.map((item) => ({
@@ -99,7 +102,7 @@ export function OverviewInspector({ suggestions, recentChanges }: OverviewInspec
             }))}
           />
         ) : (
-          <InspectorEmptyState message="Nothing here yet. Changes will appear here as you edit." />
+          <InspectorEmptyState message={bb("overviewEmptyChanges")} />
         )}
       </InspectorSection>
     </BusinessBrainInspector>

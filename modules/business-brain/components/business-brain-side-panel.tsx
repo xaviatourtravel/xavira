@@ -1,8 +1,11 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { DsEmptyState } from "@/components/design-system";
 import { designSystemPanelClass } from "@/lib/design-system/tokens";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import type {
   BusinessBrainRecentChange,
   BusinessBrainSuggestion,
@@ -40,11 +43,13 @@ export function BusinessBrainSidePanel({
   suggestions,
   recentChanges,
 }: BusinessBrainSidePanelProps) {
+  const { bb } = useBbTranslation();
+
   return (
     <div className="space-y-4">
       <SidePanelSection
-        title="Suggestions"
-        description="Recommended next steps to improve AI understanding of your business."
+        title={bb("suggestions")}
+        description={bb("suggestionsDescription")}
       >
         {suggestions.length > 0 ? (
           <ul className="space-y-3">
@@ -77,16 +82,16 @@ export function BusinessBrainSidePanel({
           </ul>
         ) : (
           <DsEmptyState
-            title="No suggestions yet"
-            description="Add Company DNA, products, knowledge, and documents to generate suggestions."
+            title={bb("noSuggestionsYet")}
+            description={bb("noSuggestionsDescription")}
             className="border-dashed bg-muted/20 py-8"
           />
         )}
       </SidePanelSection>
 
       <SidePanelSection
-        title="Recent Changes"
-        description="Latest updates to your business brain configuration."
+        title={bb("sidePanelRecentChanges")}
+        description={bb("sidePanelRecentChangesDescription")}
       >
         {recentChanges.length > 0 ? (
           <ul className="space-y-2">
@@ -104,8 +109,8 @@ export function BusinessBrainSidePanel({
           </ul>
         ) : (
           <DsEmptyState
-            title="No recent changes"
-            description="Updates to your Business Brain will appear here."
+            title={bb("noRecentChanges")}
+            description={bb("noRecentChangesSidePanelDescription")}
             className="border-dashed bg-muted/20 py-8"
           />
         )}

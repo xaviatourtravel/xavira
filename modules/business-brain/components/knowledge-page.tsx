@@ -20,6 +20,7 @@ import {
   translateBusinessBrainSectionTitle,
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
 
 type ProductOption = {
@@ -39,6 +40,7 @@ export function KnowledgePageClient({
   canEdit,
 }: KnowledgePageClientProps) {
   const { t } = useTranslation();
+  const { bb } = useBbTranslation();
   const [articles, setArticles] = useState(initialArticles);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(
     initialArticles[0]?.id ?? null,
@@ -158,10 +160,10 @@ export function KnowledgePageClient({
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
               <p className="text-sm text-muted-foreground">
                 {isLoadingArticle
-                  ? "Loading article..."
+                  ? bb("loadingArticle")
                   : selectedArticleId
-                    ? "Loading knowledge editor..."
-                    : "Nothing here yet. Select an article or create one to start editing."}
+                    ? bb("loadingKnowledgeEditor")
+                    : bb("knowledgeEmptyState")}
               </p>
               {selectedArticleId && !isLoadingArticle ? (
                 <button
@@ -169,7 +171,7 @@ export function KnowledgePageClient({
                   className="mt-3 text-sm text-primary hover:underline"
                   onClick={() => loadArticle(selectedArticleId)}
                 >
-                  Retry loading
+                  {bb("retryLoading")}
                 </button>
               ) : null}
             </div>

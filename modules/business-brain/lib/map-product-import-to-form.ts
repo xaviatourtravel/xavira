@@ -1,7 +1,11 @@
 import { formatIdrAmount } from "@/modules/business-brain/lib/parse-currency";
 import { createEmptyDepartureItem, createEmptyPricingItem } from "@/modules/business-brain/lib/product-knowledge-score";
 import type { ParsedProductImport, ProductImportWarningKey } from "@/modules/business-brain/types/product-import";
-import type { BrainProductFormValues, ProductPricingItem } from "@/modules/business-brain/types/products";
+import type {
+  BrainProductFormValues,
+  ProductDepartureItem,
+  ProductPricingItem,
+} from "@/modules/business-brain/types/products";
 
 function appendSection(lines: string[], label: string, value: string | null | undefined) {
   const trimmed = value?.trim();
@@ -95,22 +99,54 @@ function buildPricingItems(parsed: ParsedProductImport): ProductPricingItem[] {
   return items;
 }
 
-function normalizeDepartureDate(value: string | null): string {
-  if (!value?.trim()) return "";
+function parseMinParticipants(value: string | null | undefined): number {
+  if (!value?.trim()) return 0;
+  const digits = value.replace(/[^\d]/g, "");
+  if (!digits) return 0;
+  const parsed = Number(digits);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
-  const trimmed = value.trim();
-  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) return trimmed;
+function buildImportedDepartureItem(parsed: ParsedProductImport): ProductDepartureItem | null {
+  if (!parsed.departureDate) return null;
 
-  const dmyMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (dmyMatch) {
-    const day = dmyMatch[1].padStart(2, "0");
-    const month = dmyMatch[2].padStart(2, "0");
-    const year = dmyMatch[3];
-    return `${year}-${month}-${day}`;
+  return {
+    ...createEmptyDepartureItem(),
+    departureDate: parsed.departureDate,
+    availableSeats: parseMinParticipants(parsed.minParticipants),
+    status: "open",
+  };
+}
+
+function mergeImportedDepartures(
+  current: ProductDepartureItem[],
+  imported: ProductDepartureItem[] | undefined,
+): ProductDepartureItem[] {
+  const importedItem = imported?.[0];
+  if (!importedItem?.departureDate) return current;
+
+  if (current.some((item) => item.departureDate === importedItem.departureDate)) {
+    return current;
   }
 
-  return trimmed;
+  if (current.length === 0) {
+    return [importedItem];
+  }
+
+  const [first, ...rest] = current;
+  if (!first.departureDate.trim()) {
+    return [
+      {
+        ...first,
+        departureDate: importedItem.departureDate,
+        availableSeats: importedItem.availableSeats,
+        status: importedItem.status,
+      },
+      ...rest,
+    ];
+  }
+
+  return [...current, importedItem];
 }
 
 export function buildProductImportWarnings(
@@ -135,7 +171,7 @@ export function buildProductImportWarnings(
     warnings.push("missingStartingPrice");
   }
 
-  if (!parsed.departureDate?.trim()) {
+  if (!parsed.departureDate) {
     warnings.push("missingDepartureDate");
   }
 
@@ -154,7 +190,7 @@ export function mapProductImportToFormValues(
   const description = buildDescription(parsed);
   const aiNotes = buildAiNotes(parsed);
   const pricing = buildPricingItems(parsed);
-  const departureDate = normalizeDepartureDate(parsed.departureDate);
+  const importedDeparture = buildImportedDepartureItem(parsed);
 
   const patch: Partial<BrainProductFormValues> = {};
 
@@ -165,14 +201,7 @@ export function mapProductImportToFormValues(
   if (parsed.included.length > 0) patch.included = parsed.included;
   if (parsed.excluded.length > 0) patch.excluded = parsed.excluded;
   if (pricing.length > 0) patch.pricing = pricing;
-  if (departureDate) {
-    patch.departures = [
-      {
-        ...createEmptyDepartureItem(),
-        departureDate,
-      },
-    ];
-  }
+  if (importedDeparture) patch.departures = [importedDeparture];
   if (aiNotes.trim()) patch.aiNotes = aiNotes;
 
   return patch;
@@ -192,6 +221,6 @@ export function mergeProductImportPatch(
     included: patch.included?.length ? patch.included : current.included,
     excluded: patch.excluded?.length ? patch.excluded : current.excluded,
     pricing: patch.pricing?.length ? patch.pricing : current.pricing,
-    departures: patch.departures?.length ? patch.departures : current.departures,
+    departures: mergeImportedDepartures(current.departures, patch.departures),
   };
 }

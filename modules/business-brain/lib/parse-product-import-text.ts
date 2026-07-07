@@ -1,4 +1,5 @@
 import { parseCurrency } from "@/modules/business-brain/lib/parse-currency";
+import { parseDepartureDate } from "@/modules/business-brain/lib/parse-departure-date";
 import type { ParsedProductImport } from "@/modules/business-brain/types/product-import";
 
 const KNOWN_KEYS = new Set([
@@ -140,7 +141,7 @@ export function parseProductImportText(input: string): ParsedProductImport {
         result.duration = value || null;
         break;
       case "DEPARTURE_DATE":
-        result.departureDate = value || null;
+        result.departureDate = parseDepartureDate(value);
         break;
       case "YEAR":
         result.year = value || null;

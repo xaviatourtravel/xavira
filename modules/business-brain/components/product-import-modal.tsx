@@ -11,6 +11,7 @@ import {
   mapProductImportToFormValues,
 } from "@/modules/business-brain/lib/map-product-import-to-form";
 import { formatIdrCurrency } from "@/modules/business-brain/lib/parse-currency";
+import { formatDepartureDatePreview } from "@/modules/business-brain/lib/parse-departure-date";
 import { parseProductImportText } from "@/modules/business-brain/lib/parse-product-import-text";
 import type { ParsedProductImport, ProductImportWarningKey } from "@/modules/business-brain/types/product-import";
 import type { BrainProductFormValues } from "@/modules/business-brain/types/products";
@@ -29,7 +30,7 @@ export function ProductImportModal({
   onApply,
   isApplying = false,
 }: ProductImportModalProps) {
-  const { bb } = useBbTranslation();
+  const { bb, locale } = useBbTranslation();
   const [text, setText] = useState("");
   const [parsed, setParsed] = useState<ParsedProductImport | null>(null);
 
@@ -141,7 +142,7 @@ export function ProductImportModal({
                     <PreviewRow label={bb("destination")} value={parsed.country || "—"} />
                     <PreviewRow
                       label={bb("departureDate")}
-                      value={parsed.departureDate || "—"}
+                      value={formatDepartureDatePreview(parsed.departureDate, locale)}
                     />
                     <PreviewRow
                       label={bb("productImportPreviewAdultPrice")}

@@ -52,9 +52,9 @@ function buildAiNotes(parsed: ParsedProductImport): string {
     appendSection(lines, "Product ID", parsed.productId);
   }
 
-  if (parsed.unknownFields.length > 0) {
-    lines.push("Imported Extra Fields:");
-    for (const field of parsed.unknownFields) {
+  if (parsed.additionalFields.length > 0) {
+    lines.push("Additional Fields:");
+    for (const field of parsed.additionalFields) {
       lines.push(`- ${field.key}: ${field.value}`);
     }
   }
@@ -173,12 +173,6 @@ export function buildProductImportWarnings(
 
   if (!parsed.departureDate) {
     warnings.push("missingDepartureDate");
-  }
-
-  for (const field of parsed.unknownFields) {
-    warnings.push("unknownField");
-    void field;
-    break;
   }
 
   return warnings;

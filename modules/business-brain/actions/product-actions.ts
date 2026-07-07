@@ -16,6 +16,8 @@ import {
   createProductFaqSchema,
   brainProductFormSchema,
 } from "@/modules/business-brain/schemas/products";
+import { normalizeFaqQuestion } from "@/modules/business-brain/lib/parse-faq-import-text";
+import type { FaqImportApplyItem, FaqImportApplyResult } from "@/modules/business-brain/types/faq-import";
 import {
   deleteProductDocument,
   findProductDocumentById,
@@ -255,6 +257,94 @@ export async function createAndLinkProductFaqAction(
     return {
       ok: false as const,
       error: error instanceof Error ? error.message : "Failed to create FAQ.",
+    };
+  }
+}
+
+export async function importProductFaqsAction(
+  productId: string,
+  items: FaqImportApplyItem[],
+) {
+  const { profile } = await requireProfile();
+  if (!isAdminOrOwner(profile)) {
+    return { ok: false as const, error: "Permission denied." };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return {
+      ok: false as const,
+      error: "No FAQ entries to import.",
+    };
+  }
+
+  try {
+    const organizationId = requireOrgId(profile);
+    const product = await getProduct(organizationId, productId);
+    if (!product) {
+      return { ok: false as const, error: "Product not found." };
+    }
+    const supabase = await createClient();
+
+    const existingQuestions = new Set(
+      product.faqLinks.map((link) => normalizeFaqQuestion(link.knowledgeTitle)),
+    );
+    const batchQuestions = new Set<string>();
+
+    const result: FaqImportApplyResult = {
+      created: 0,
+      skippedDuplicates: 0,
+      skippedInvalid: 0,
+      duplicateQuestions: [],
+    };
+
+    for (const item of items) {
+      const title = item.question?.trim() ?? "";
+      const content = item.content?.trim() ?? "";
+
+      if (!title || !content) {
+        result.skippedInvalid += 1;
+        continue;
+      }
+
+      const normalized = normalizeFaqQuestion(title);
+      if (existingQuestions.has(normalized) || batchQuestions.has(normalized)) {
+        result.skippedDuplicates += 1;
+        result.duplicateQuestions.push(title);
+        continue;
+      }
+
+      const { data, error } = await supabase
+        .from("knowledge_entries")
+        .insert({
+          organization_id: organizationId,
+          created_by: profile.id,
+          title,
+          category: "faq",
+          content,
+          tags: ["product-faq"],
+          source_type: "manual",
+          ai_status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message ?? "Failed to create FAQ.");
+      }
+
+      await insertProductFaqLink(productId, data.id);
+      existingQuestions.add(normalized);
+      batchQuestions.add(normalized);
+      result.created += 1;
+    }
+
+    const refreshedProduct = await getProduct(organizationId, productId);
+    revalidateProducts();
+    return { ok: true as const, product: refreshedProduct, result };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Failed to import FAQ entries.",
     };
   }
 }

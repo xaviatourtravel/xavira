@@ -12,15 +12,27 @@ import {
 } from "@/modules/business-brain/lib/map-product-import-to-form";
 import { formatIdrCurrency } from "@/modules/business-brain/lib/parse-currency";
 import { formatDepartureDatePreview } from "@/modules/business-brain/lib/parse-departure-date";
-import { parseProductImportText } from "@/modules/business-brain/lib/parse-product-import-text";
+import {
+  parseCombinedProductImportInput,
+  summarizeFaqImport,
+} from "@/modules/business-brain/lib/parse-faq-import-text";
+import { parseProductImportTextFromProductSection } from "@/modules/business-brain/lib/parse-product-import-text";
+import type { ParsedFaqImport } from "@/modules/business-brain/types/faq-import";
 import type { ParsedProductImport, ProductImportWarningKey } from "@/modules/business-brain/types/product-import";
 import type { BrainProductFormValues } from "@/modules/business-brain/types/products";
 import { cn } from "@/lib/utils";
 
+type ProductImportApplyPayload = {
+  patch: Partial<BrainProductFormValues>;
+  parsed: ParsedProductImport;
+  faqImport: ParsedFaqImport | null;
+  importFaqs: boolean;
+};
+
 type ProductImportModalProps = {
   open: boolean;
   onClose: () => void;
-  onApply: (patch: Partial<BrainProductFormValues>, parsed: ParsedProductImport) => void;
+  onApply: (payload: ProductImportApplyPayload) => void;
   isApplying?: boolean;
 };
 
@@ -33,51 +45,60 @@ export function ProductImportModal({
   const { bb, locale } = useBbTranslation();
   const [text, setText] = useState("");
   const [parsed, setParsed] = useState<ParsedProductImport | null>(null);
+  const [faqImport, setFaqImport] = useState<ParsedFaqImport | null>(null);
+  const [alsoImportFaqs, setAlsoImportFaqs] = useState(true);
 
   const warnings = useMemo(
     () => (parsed ? buildProductImportWarnings(parsed) : []),
     [parsed],
   );
 
+  const faqSummary = useMemo(
+    () => (faqImport ? summarizeFaqImport(faqImport) : null),
+    [faqImport],
+  );
+
   useEffect(() => {
     if (!open) {
       setText("");
       setParsed(null);
+      setFaqImport(null);
+      setAlsoImportFaqs(true);
     }
   }, [open]);
 
   if (!open) return null;
 
   function handleParse() {
-    setParsed(parseProductImportText(text));
+    const combined = parseCombinedProductImportInput(text);
+    setParsed(parseProductImportTextFromProductSection(combined.productText));
+    setFaqImport(combined.faqImport.faqs.length > 0 ? combined.faqImport : null);
+    setAlsoImportFaqs(combined.faqImport.faqs.length > 0);
   }
 
   function handleApply() {
     if (!parsed) return;
-    onApply(mapProductImportToFormValues(parsed), parsed);
+    onApply({
+      patch: mapProductImportToFormValues(parsed),
+      parsed,
+      faqImport,
+      importFaqs: alsoImportFaqs && Boolean(faqImport?.faqs.length),
+    });
   }
 
   function handleClose() {
     setText("");
     setParsed(null);
+    setFaqImport(null);
     onClose();
   }
 
-  function warningLabel(key: ProductImportWarningKey, parsedValue: ParsedProductImport) {
-    if (key === "unknownField") {
-      const firstUnknown = parsedValue.unknownFields[0];
-      if (!firstUnknown) return bb("productImportWarningUnknownField");
-      return formatTranslation(bb("productImportWarningUnknownFieldNamed"), {
-        field: firstUnknown.key,
-      });
-    }
-
+  function warningLabel(key: ProductImportWarningKey) {
     const labels: Record<ProductImportWarningKey, string> = {
       missingProductName: bb("productImportWarningMissingName"),
       missingDestination: bb("productImportWarningMissingDestination"),
       missingStartingPrice: bb("productImportWarningMissingPrice"),
       missingDepartureDate: bb("productImportWarningMissingDeparture"),
-      unknownField: bb("productImportWarningUnknownField"),
     };
 
     return labels[key];
@@ -168,7 +189,27 @@ export function ProductImportModal({
                       label={bb("excluded")}
                       value={String(parsed.excluded.length)}
                     />
+                    {faqSummary && faqSummary.total > 0 ? (
+                      <PreviewRow
+                        label={bb("frequentlyAskedQuestions")}
+                        value={formatTranslation(bb("productImportDetectedFaqs"), {
+                          count: String(faqSummary.total),
+                        })}
+                      />
+                    ) : null}
                   </dl>
+
+                  {faqSummary && faqSummary.total > 0 ? (
+                    <label className="flex items-start gap-2 rounded-lg border border-border/70 px-3 py-2.5 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={alsoImportFaqs}
+                        onChange={(event) => setAlsoImportFaqs(event.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>{bb("productImportAlsoImportFaqs")}</span>
+                    </label>
+                  ) : null}
 
                   {warnings.length > 0 ? (
                     <div className="rounded-lg bg-amber-500/10 px-3 py-3">
@@ -178,14 +219,7 @@ export function ProductImportModal({
                       </div>
                       <ul className="space-y-1 text-[13px] text-amber-950 dark:text-amber-100">
                         {warnings.map((warning, index) => (
-                          <li key={`${warning}-${index}`}>{warningLabel(warning, parsed)}</li>
-                        ))}
-                        {parsed.unknownFields.slice(1).map((field) => (
-                          <li key={field.key}>
-                            {formatTranslation(bb("productImportWarningUnknownFieldNamed"), {
-                              field: field.key,
-                            })}
-                          </li>
+                          <li key={`${warning}-${index}`}>{warningLabel(warning)}</li>
                         ))}
                       </ul>
                     </div>

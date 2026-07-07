@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 
 import {
   createBrainProductAction,
+  importProductFaqsAction,
   loadBrainProductAction,
 } from "@/modules/business-brain/actions/product-actions";
 import { ProductEditor } from "@/modules/business-brain/components/product-editor";
 import { ProductImportModal } from "@/modules/business-brain/components/product-import-modal";
 import { ProductListPanel } from "@/modules/business-brain/components/product-list-panel";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
+import { mapParsedFaqsToApplyItems } from "@/modules/business-brain/lib/parse-faq-import-text";
 import type {
   BrainProductDetail,
   BrainProductFormValues,
@@ -20,6 +22,7 @@ import {
   translateBusinessBrainSectionDescription,
   translateBusinessBrainSectionTitle,
 } from "@/lib/i18n/business-brain-labels";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { cn } from "@/lib/utils";
@@ -117,13 +120,53 @@ export function ProductsPageClient({
     setMobileShowEditor(true);
   };
 
-  const handleApplyImport = (patch: Partial<BrainProductFormValues>) => {
+  const handleApplyImport = (payload: {
+    patch: Partial<BrainProductFormValues>;
+    importFaqs: boolean;
+    faqImport: { faqs: Array<{ question: string; answer: string; nextStep?: string; triggerPhrases: string[] }> } | null;
+  }) => {
     startApplyImportTransition(async () => {
+      const applyFaqsForProduct = async (productId: string) => {
+        if (!payload.importFaqs || !payload.faqImport?.faqs.length) {
+          return null;
+        }
+
+        const result = await importProductFaqsAction(
+          productId,
+          mapParsedFaqsToApplyItems(payload.faqImport.faqs),
+        );
+
+        if (!result.ok) {
+          window.alert(result.error);
+          return null;
+        }
+
+        return result;
+      };
+
       if (selectedProductId && selectedProduct) {
         if (!window.confirm(bb("productImportApplyConfirm"))) {
           return;
         }
-        applyImportPatch(patch);
+
+        applyImportPatch(payload.patch);
+        const faqResult = await applyFaqsForProduct(selectedProduct.id);
+        if (faqResult?.product) {
+          setSelectedProduct(faqResult.product);
+          refreshListItem(faqResult.product);
+          if (faqResult.result.created > 0) {
+            window.alert(
+              faqResult.result.skippedDuplicates > 0
+                ? formatTranslation(bb("faqImportAppliedWithSkipped"), {
+                    created: String(faqResult.result.created),
+                    skipped: String(faqResult.result.skippedDuplicates),
+                  })
+                : formatTranslation(bb("faqImportApplied"), {
+                    count: String(faqResult.result.created),
+                  }),
+            );
+          }
+        }
         return;
       }
 
@@ -135,7 +178,13 @@ export function ProductsPageClient({
       refreshListItem(result.product);
       setSelectedProductId(result.product.id);
       setSelectedProduct(result.product);
-      applyImportPatch(patch);
+      applyImportPatch(payload.patch);
+
+      const faqResult = await applyFaqsForProduct(result.product.id);
+      if (faqResult?.product) {
+        setSelectedProduct(faqResult.product);
+        refreshListItem(faqResult.product);
+      }
     });
   };
 

@@ -5,6 +5,7 @@ import {
   Archive,
   ArrowLeft,
   Link2,
+  MessageSquareText,
   Plus,
   Save,
   Trash2,
@@ -24,16 +25,19 @@ import {
   createAndLinkProductFaqAction,
   deleteProductDocumentAction,
   getProductDocumentUrlAction,
+  importProductFaqsAction,
   linkProductFaqAction,
   publishBrainProductAction,
   unlinkProductFaqAction,
   updateBrainProductAction,
 } from "@/modules/business-brain/actions/product-actions";
 import { ProductDocumentUploadZone } from "@/modules/business-brain/components/product-document-upload-zone";
+import { FaqImportModal } from "@/modules/business-brain/components/faq-import-modal";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
 import { useProductDocumentUpload } from "@/modules/business-brain/hooks/use-product-document-upload";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import { mergeProductImportPatch } from "@/modules/business-brain/lib/map-product-import-to-form";
+import { mapParsedFaqsToApplyItems } from "@/modules/business-brain/lib/parse-faq-import-text";
 import {
   createEmptyDepartureItem,
   createEmptyPricingItem,
@@ -52,6 +56,7 @@ import {
   type BrainProductFormValues,
   type BrainProductStatus,
 } from "@/modules/business-brain/types/products";
+import type { ParsedFaqImport } from "@/modules/business-brain/types/faq-import";
 
 type FaqOption = {
   id: string;
@@ -194,7 +199,9 @@ export function ProductEditor({
   const [newFaqTitle, setNewFaqTitle] = useState("");
   const [newFaqContent, setNewFaqContent] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [faqImportOpen, setFaqImportOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isApplyingFaqImport, startFaqImportTransition] = useTransition();
 
   const handleDocumentUploadSuccess = (next: BrainProductDetail) => {
     onProductUpdated({
@@ -226,6 +233,7 @@ export function ProductEditor({
 
   const linkedFaqIds = new Set(product.faqLinks.map((link) => link.knowledgeEntryId));
   const availableFaqOptions = faqOptions.filter((option) => !linkedFaqIds.has(option.id));
+  const existingFaqQuestions = product.faqLinks.map((link) => link.knowledgeTitle);
 
   const updateValues = (patch: Partial<BrainProductFormValues>) => {
     setValues((current) => ({ ...current, ...patch }));
@@ -316,6 +324,43 @@ export function ProductEditor({
       setNewFaqTitle("");
       setNewFaqContent("");
       setStatusMessage(bb("faqCreatedAndLinked"));
+    });
+  };
+
+  const handleApplyFaqImport = (parsed: ParsedFaqImport) => {
+    if (!window.confirm(bb("faqImportApplyConfirm"))) {
+      return;
+    }
+
+    startFaqImportTransition(async () => {
+      const result = await importProductFaqsAction(
+        product.id,
+        mapParsedFaqsToApplyItems(parsed.faqs),
+      );
+
+      if (!result.ok || !result.product) {
+        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
+        return;
+      }
+
+      syncProduct(result.product);
+      setFaqImportOpen(false);
+
+      if (result.result.skippedDuplicates > 0) {
+        setStatusMessage(
+          formatTranslation(bb("faqImportAppliedWithSkipped"), {
+            created: String(result.result.created),
+            skipped: String(result.result.skippedDuplicates),
+          }),
+        );
+        return;
+      }
+
+      setStatusMessage(
+        formatTranslation(bb("faqImportApplied"), {
+          count: String(result.result.created),
+        }),
+      );
     });
   };
 
@@ -717,6 +762,19 @@ export function ProductEditor({
 
         <DsCard title={bb("frequentlyAskedQuestions")}>
           <div className="space-y-4">
+            {canEdit ? (
+              <div className="flex justify-end">
+                <DsButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFaqImportOpen(true)}
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  {bb("faqImportFromText")}
+                </DsButton>
+              </div>
+            ) : null}
             <ul className="space-y-2">
               {product.faqLinks.map((link) => (
                 <li
@@ -897,6 +955,14 @@ export function ProductEditor({
           />
         </DsCard>
       </div>
+
+      <FaqImportModal
+        open={faqImportOpen}
+        onClose={() => setFaqImportOpen(false)}
+        onApply={handleApplyFaqImport}
+        existingQuestions={existingFaqQuestions}
+        isApplying={isApplyingFaqImport}
+      />
     </div>
   );
 }

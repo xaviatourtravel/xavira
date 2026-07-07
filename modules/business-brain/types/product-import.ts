@@ -26,12 +26,11 @@ export type ParsedProductImport = {
   salesAngle: string | null;
   cta: string | null;
   internalNotes: string | null;
-  unknownFields: Array<{ key: string; value: string }>;
+  additionalFields: Array<{ key: string; value: string }>;
 };
 
 export type ProductImportWarningKey =
   | "missingProductName"
   | "missingDestination"
   | "missingStartingPrice"
-  | "missingDepartureDate"
-  | "unknownField";
+  | "missingDepartureDate";

@@ -1,40 +1,11 @@
 import { parseCurrency } from "@/modules/business-brain/lib/parse-currency";
 import { parseDepartureDate } from "@/modules/business-brain/lib/parse-departure-date";
+import { splitProductAndFaqImportText } from "@/modules/business-brain/lib/parse-faq-import-text";
+import {
+  resolveCanonicalFieldKey,
+  splitProductImportKeyLine,
+} from "@/modules/business-brain/lib/product-import-field-aliases";
 import type { ParsedProductImport } from "@/modules/business-brain/types/product-import";
-
-const KNOWN_KEYS = new Set([
-  "PRODUCT_ID",
-  "PRODUCT_NAME",
-  "COUNTRY",
-  "DURATION",
-  "DEPARTURE_DATE",
-  "YEAR",
-  "STARTING_PRICE_ADULT",
-  "CHILD_TWIN_PRICE",
-  "CHILD_NO_BED_PRICE",
-  "EARLY_BIRD",
-  "PROMO",
-  "AIRLINE",
-  "FLIGHT_ROUTE",
-  "ROUTE_SHORT",
-  "MAIN_HIGHLIGHTS",
-  "BEST_FOR",
-  "NOT_BEST_FOR",
-  "INCLUDED",
-  "EXCLUDED",
-  "DP_RULE",
-  "MIN_PARTICIPANTS",
-  "MUSLIM_FRIENDLY_NOTES",
-  "SALES_ANGLE",
-  "CTA",
-  "INTERNAL_NOTES",
-]);
-
-const KEY_LINE_PATTERN = /^([A-Za-z][A-Za-z0-9_]*)\s*:\s*(.*)$/;
-
-function normalizeKey(raw: string) {
-  return raw.trim().replace(/\s+/g, "_").toUpperCase();
-}
 
 function parseListValue(value: string | null | undefined): string[] {
   if (!value?.trim()) return [];
@@ -51,18 +22,21 @@ export function parseProductImportPrice(value: string | null | undefined): numbe
 
 function extractFieldBlocks(input: string) {
   const lines = input.replace(/\r\n/g, "\n").split("\n");
-  const blocks: Array<{ key: string; value: string }> = [];
+  const blocks: Array<{ key: string; rawKey: string; value: string }> = [];
 
   let currentKey: string | null = null;
+  let currentRawKey: string | null = null;
   let currentValue: string[] = [];
 
   const flush = () => {
-    if (!currentKey) return;
+    if (!currentKey || !currentRawKey) return;
     blocks.push({
       key: currentKey,
+      rawKey: currentRawKey,
       value: currentValue.join("\n").trim(),
     });
     currentKey = null;
+    currentRawKey = null;
     currentValue = [];
   };
 
@@ -70,11 +44,15 @@ function extractFieldBlocks(input: string) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    const match = trimmed.match(KEY_LINE_PATTERN);
-    if (match) {
+    const parsedLine = splitProductImportKeyLine(trimmed);
+    if (parsedLine) {
       flush();
-      currentKey = normalizeKey(match[1]);
-      currentValue = [match[2].trim()];
+      const canonicalKey = resolveCanonicalFieldKey(parsedLine.rawKey);
+      currentRawKey = parsedLine.rawKey;
+      currentKey = canonicalKey ?? parsedLine.rawKey;
+      if (parsedLine.inlineValue) {
+        currentValue = [parsedLine.inlineValue];
+      }
       continue;
     }
 
@@ -88,6 +66,11 @@ function extractFieldBlocks(input: string) {
 }
 
 export function parseProductImportText(input: string): ParsedProductImport {
+  const { productText } = splitProductAndFaqImportText(input);
+  return parseProductImportTextFromProductSection(productText);
+}
+
+export function parseProductImportTextFromProductSection(input: string): ParsedProductImport {
   const result: ParsedProductImport = {
     productId: null,
     name: null,
@@ -116,18 +99,19 @@ export function parseProductImportText(input: string): ParsedProductImport {
     salesAngle: null,
     cta: null,
     internalNotes: null,
-    unknownFields: [],
+    additionalFields: [],
   };
 
   for (const block of extractFieldBlocks(input)) {
-    const { key, value } = block;
+    const { key, rawKey, value } = block;
+    const canonicalKey = resolveCanonicalFieldKey(rawKey);
 
-    if (!KNOWN_KEYS.has(key)) {
-      result.unknownFields.push({ key, value });
+    if (!canonicalKey) {
+      result.additionalFields.push({ key: rawKey, value });
       continue;
     }
 
-    switch (key) {
+    switch (canonicalKey) {
       case "PRODUCT_ID":
         result.productId = value || null;
         break;
@@ -204,6 +188,7 @@ export function parseProductImportText(input: string): ParsedProductImport {
         result.internalNotes = value || null;
         break;
       default:
+        result.additionalFields.push({ key, value });
         break;
     }
   }

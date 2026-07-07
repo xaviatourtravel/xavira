@@ -170,6 +170,7 @@ export async function loadOmnichannelSuggestReplyContext(
 
 export function buildOmnichannelSuggestReplyPrompt(
   context: OmnichannelSuggestReplyContext,
+  timezone?: string | null,
 ) {
   const basePrompt = buildSalesAssistantPrompt({
     action: "reply",
@@ -191,6 +192,7 @@ ${formatInternalNotesForPrompt(context.internalNotes)}
     activities: context.salesContext.activities,
     followUpTasks: context.salesContext.followUpTasks,
     booking: context.salesContext.booking,
+    timezone,
   });
 
   return `

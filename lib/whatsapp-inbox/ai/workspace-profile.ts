@@ -4,6 +4,7 @@ import type { WhatsappSupabaseClient } from "@/lib/whatsapp-inbox/repository";
 export type AiWorkspaceProfile = {
   id: string;
   name: string;
+  timezone: string;
   companyName: string | null;
   businessName: string | null;
   displayName: string | null;
@@ -34,7 +35,7 @@ function readSettingString(
 function parseWorkspaceProfileFromSettings(
   settings: unknown,
   organizationName: string,
-): Omit<AiWorkspaceProfile, "id" | "name"> {
+): Omit<AiWorkspaceProfile, "id" | "name" | "timezone"> {
   const root = isRecord(settings) ? settings : {};
   const workspace = isRecord(root.workspace) ? root.workspace : {};
   const firstRun = parseFirstRunSettings(root.firstRun);
@@ -96,7 +97,7 @@ export async function loadAiWorkspaceProfile(
 ): Promise<AiWorkspaceProfile | null> {
   const { data, error } = await supabase
     .from("organizations")
-    .select("id, name, settings")
+    .select("id, name, timezone, settings")
     .eq("id", workspaceId)
     .maybeSingle();
 
@@ -110,6 +111,7 @@ export async function loadAiWorkspaceProfile(
     id: data.id,
     name: data.name,
     ...parsed,
+    timezone: data.timezone?.trim() || "Asia/Jakarta",
   };
 }
 

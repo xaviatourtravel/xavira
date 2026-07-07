@@ -1,3 +1,4 @@
+import { injectTemporalBeforeContent } from "@/lib/ai/temporal-context";
 import type { BusinessBrainContext, CompanyDNAContext } from "@/modules/business-brain/types/context";
 import type { RetrievedBusinessBrainContext } from "@/modules/ai/types/context-retrieval";
 import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
@@ -630,7 +631,7 @@ function buildUserPrompt(
   const customerMessage = truncateText(cleanString(params.customerMessage), MAX_MEDIUM_TEXT);
   const memory = params.conversationMemory ?? [];
 
-  return [
+  const businessContextAndConversation = [
     buildRelevantBusinessContextSection(sanitizedContext),
     "",
     formatCustomerMemorySection(memory),
@@ -643,6 +644,10 @@ function buildUserPrompt(
     "Latest Customer Message:",
     customerMessage,
   ].join("\n");
+
+  return injectTemporalBeforeContent(businessContextAndConversation, {
+    timezone: params.timezone,
+  });
 }
 
 export function buildWhatsAppSalesPrompt(

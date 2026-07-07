@@ -19,6 +19,7 @@ export type WhatsAppSalesPromptParams = {
   retrievedContext: RetrievedBusinessBrainContext;
   conversationMemory?: ConversationMemoryPromptItem[];
   leadQualification?: LeadQualificationSnapshot | null;
+  timezone?: string | null;
 };
 
 export type WhatsAppDocumentActionType = "SEND_DOCUMENT";

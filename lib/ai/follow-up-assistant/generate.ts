@@ -32,9 +32,11 @@ export type FollowUpGenerationResult = {
 export async function generateLeadFollowUpSuggestion({
   context,
   tone,
+  timezone,
 }: {
   context: LeadFollowUpContext;
   tone: FollowUpAssistantTone;
+  timezone?: string | null;
 }): Promise<FollowUpGenerationResult> {
   if (!openai) {
     return {
@@ -46,7 +48,7 @@ export async function generateLeadFollowUpSuggestion({
   try {
     const response = await openai.responses.create({
       model: AI_MODEL,
-      input: buildLeadFollowUpPrompt(context, tone),
+      input: buildLeadFollowUpPrompt(context, tone, timezone),
     });
 
     const suggestion = response.output_text?.trim();
@@ -75,9 +77,11 @@ export async function generateLeadFollowUpSuggestion({
 export async function generateBookingPaymentReminder({
   context,
   tone,
+  timezone,
 }: {
   context: BookingPaymentReminderContext;
   tone: FollowUpAssistantTone;
+  timezone?: string | null;
 }): Promise<FollowUpGenerationResult> {
   if (!openai) {
     return {
@@ -100,7 +104,7 @@ export async function generateBookingPaymentReminder({
   try {
     const response = await openai.responses.create({
       model: AI_MODEL,
-      input: buildBookingPaymentReminderPrompt(context, tone),
+      input: buildBookingPaymentReminderPrompt(context, tone, timezone),
     });
 
     const suggestion = response.output_text?.trim();

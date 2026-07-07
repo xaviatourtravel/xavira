@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAiGeneration } from "@/lib/ai/client";
+import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
 import {
   formatBookingReminderTypeLabel,
   generateBookingPaymentReminder,
@@ -77,7 +78,12 @@ export async function generateLeadFollowUpAssistant(
     return { success: false, message: "Lead tidak ditemukan." };
   }
 
-  const result = await generateLeadFollowUpSuggestion({ context, tone });
+  const timezone = await resolveOrganizationTimezone(
+    supabase,
+    profile.organization_id,
+  );
+
+  const result = await generateLeadFollowUpSuggestion({ context, tone, timezone });
 
   if (!result.success || !result.suggestion) {
     return {
@@ -141,7 +147,12 @@ export async function generateBookingPaymentReminderAssistant(
     return { success: false, message: "Booking tidak ditemukan." };
   }
 
-  const result = await generateBookingPaymentReminder({ context, tone });
+  const timezone = await resolveOrganizationTimezone(
+    supabase,
+    profile.organization_id,
+  );
+
+  const result = await generateBookingPaymentReminder({ context, tone, timezone });
 
   if (!result.success || !result.suggestion) {
     return {
@@ -215,7 +226,12 @@ export async function generateInboxFollowUpAssistant(
     };
   }
 
-  const result = await generateLeadFollowUpSuggestion({ context, tone });
+  const timezone = await resolveOrganizationTimezone(
+    supabase,
+    profile.organization_id,
+  );
+
+  const result = await generateLeadFollowUpSuggestion({ context, tone, timezone });
 
   if (!result.success || !result.suggestion) {
     return {

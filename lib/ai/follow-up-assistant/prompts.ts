@@ -3,6 +3,7 @@ import {
   TONE_INSTRUCTIONS,
   type FollowUpAssistantTone,
 } from "./constants";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 import type {
   BookingPaymentReminderContext,
   LeadFollowUpContext,
@@ -30,6 +31,7 @@ function formatOptional(value: string | number | null | undefined) {
 export function buildLeadFollowUpPrompt(
   context: LeadFollowUpContext,
   tone: FollowUpAssistantTone,
+  timezone?: string | null,
 ) {
   const conversationSection = context.lastConversationText
     ? `
@@ -43,7 +45,8 @@ Percakapan terakhir:
 - Tidak ada riwayat percakapan inbox. Gunakan status lead dan catatan saja.
 `;
 
-  return `
+  return withTemporalContext(
+    `
 Kamu membantu sales travel Umroh/Halal Tour menulis draf follow-up untuk lead.
 
 Tujuan: buat pesan follow-up kontekstual yang mengajak pelanggan merespons.
@@ -68,16 +71,20 @@ Instruksi:
 - Referensikan percakapan terakhir jika ada, tanpa mengutip panjang.
 - Jika detail paket belum jelas, ajak konfirmasi jadwal/destinasi/pax — jangan mengarang detail.
 - Panjang ideal 3-6 kalimat, maksimal ~700 karakter.
-`.trim();
+`.trim(),
+    { timezone },
+  );
 }
 
 export function buildBookingPaymentReminderPrompt(
   context: BookingPaymentReminderContext,
   tone: FollowUpAssistantTone,
+  timezone?: string | null,
 ) {
   const reminderLabel = formatBookingReminderTypeLabel(context.reminderType);
 
-  return `
+  return withTemporalContext(
+    `
 Kamu membantu sales travel menulis draf reminder pembayaran booking.
 
 Tujuan: ${reminderLabel}
@@ -107,5 +114,7 @@ Instruksi reminder:
 
 Gunakan angka total/sisa/outstanding di atas jika relevan. Jangan tambah angka lain.
 Panjang ideal 3-5 kalimat.
-`.trim();
+`.trim(),
+    { timezone },
+  );
 }

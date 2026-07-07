@@ -10,6 +10,7 @@ import {
 } from "@/lib/ai/revenue-insights";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
 import { loadRevenueIntelligenceMetrics } from "@/lib/dashboard/revenue-intelligence";
 import { createClient } from "@/utils/supabase/server";
 
@@ -40,7 +41,12 @@ export async function generateRevenueInsights(): Promise<GenerateRevenueInsights
     };
   }
 
-  const prompt = buildRevenueInsightsPrompt(metrics);
+  const supabase = await createClient();
+  const timezone = await resolveOrganizationTimezone(
+    supabase,
+    profile.organization_id,
+  );
+  const prompt = buildRevenueInsightsPrompt(metrics, timezone);
 
   try {
     const response = await openai.responses.create({
@@ -66,7 +72,6 @@ export async function generateRevenueInsights(): Promise<GenerateRevenueInsights
       };
     }
 
-    const supabase = await createClient();
     await logAiGeneration({
       supabase,
       organizationId: profile.organization_id,

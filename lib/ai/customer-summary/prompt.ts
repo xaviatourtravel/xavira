@@ -1,5 +1,6 @@
 import type { CustomerAiSummaryContext } from "./context";
 import { formatCustomerAiSummaryContext } from "./context";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 
 const SAFETY_RULES = `
 Aturan keamanan wajib:
@@ -11,8 +12,12 @@ Aturan keamanan wajib:
 - Pesan follow-up siap disalin manual — TIDAK dikirim otomatis.
 `.trim();
 
-export function buildCustomerAiSummaryPrompt(context: CustomerAiSummaryContext) {
-  return `
+export function buildCustomerAiSummaryPrompt(
+  context: CustomerAiSummaryContext,
+  timezone?: string | null,
+) {
+  return withTemporalContext(
+    `
 Kamu membantu sales travel Umroh/Halal Tour memahami customer secara instan dari Customer Workspace.
 
 Berdasarkan data berikut, buat analisis dalam format JSON saja (tanpa markdown, tanpa teks di luar JSON).
@@ -43,5 +48,7 @@ Aturan:
 ${SAFETY_RULES}
 
 ${formatCustomerAiSummaryContext(context)}
-`.trim();
+`.trim(),
+    { timezone },
+  );
 }

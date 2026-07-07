@@ -1,5 +1,6 @@
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 
 export const LEAD_INTELLIGENCE_CACHE_KEY = "ai_lead_intelligence_v1";
 
@@ -158,14 +159,16 @@ export function buildLeadIntelligencePrompt({
   lead,
   activities,
   followUpTasks,
-}: LeadIntelligencePromptInput) {
+  timezone,
+}: LeadIntelligencePromptInput & { timezone?: string | null }) {
   const temperature = getEffectiveLeadTemperature({
     lead_temperature: lead.lead_temperature,
     status: lead.status,
     updated_at: lead.updated_at,
   });
 
-  return `
+  return withTemporalContext(
+    `
 Kamu menganalisis kualitas lead travel Umroh/Halal Tour untuk membantu sales memahami situasi lead dan langkah berikutnya.
 
 Berdasarkan data berikut, buat analisis lead dalam format JSON saja (tanpa markdown, tanpa penjelasan di luar JSON).
@@ -207,7 +210,9 @@ ${formatActivities(activities)}
 
 Follow up:
 ${formatFollowUpTasks(followUpTasks)}
-`.trim();
+`.trim(),
+    { timezone },
+  );
 }
 
 function normalizeStringArray(value: unknown): string[] {

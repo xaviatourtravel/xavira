@@ -18,6 +18,7 @@ import { findConversationById } from "@/lib/omnichannel-inbox/repository";
 import { findWhatsappConversationById } from "@/lib/whatsapp-inbox/repository";
 import { loadWhatsappLeadExtractionContext } from "@/lib/whatsapp-inbox/ai-context";
 import { requireProfile } from "@/lib/auth/session";
+import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
 import { createClient } from "@/utils/supabase/server";
 
 const openai = process.env.OPENAI_API_KEY
@@ -92,7 +93,12 @@ export async function suggestOmnichannelReply(
       return { success: false, message: "Conversation not found." };
     }
 
-    const prompt = buildOmnichannelSuggestReplyPrompt(context);
+    const timezone = await resolveOrganizationTimezone(
+      supabase,
+      profile.organization_id,
+    );
+
+    const prompt = buildOmnichannelSuggestReplyPrompt(context, timezone);
 
     const response = await openai.responses.create({
       model: AI_MODEL,
@@ -188,7 +194,12 @@ export async function extractOmnichannelLeadInfo(
         return { success: false, message: "Conversation not found." };
       }
 
-      const prompt = buildOmnichannelLeadExtractionPrompt(context);
+      const timezone = await resolveOrganizationTimezone(
+        supabase,
+        profile.organization_id,
+      );
+
+      const prompt = buildOmnichannelLeadExtractionPrompt(context, timezone);
 
       const response = await openai.responses.create({
         model: AI_MODEL,
@@ -267,7 +278,12 @@ export async function extractOmnichannelLeadInfo(
       return { success: false, message: "Conversation not found." };
     }
 
-    const prompt = buildOmnichannelLeadExtractionPrompt(context);
+    const timezone = await resolveOrganizationTimezone(
+      supabase,
+      profile.organization_id,
+    );
+
+    const prompt = buildOmnichannelLeadExtractionPrompt(context, timezone);
 
     const response = await openai.responses.create({
       model: AI_MODEL,

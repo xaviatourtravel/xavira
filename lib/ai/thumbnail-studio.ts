@@ -4,6 +4,7 @@ import {
   isContentStudioAngle,
   isContentStudioPillar,
 } from "@/lib/ai/content-studio";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 
 export const THUMBNAIL_STYLE_PRESETS = [
   "educational",
@@ -227,7 +228,10 @@ export function parseThumbnailCopyResponse(raw: string): {
   };
 }
 
-export function buildThumbnailCopyPrompt(input: ThumbnailStudioInputs) {
+export function buildThumbnailCopyPrompt(
+  input: ThumbnailStudioInputs,
+  timezone?: string | null,
+) {
   const pillarLabel = isContentStudioPillar(input.contentPillar)
     ? getContentStudioPillarLabel(input.contentPillar)
     : input.contentPillar;
@@ -238,7 +242,8 @@ export function buildThumbnailCopyPrompt(input: ThumbnailStudioInputs) {
   const coverLabel = getThumbnailCoverFormatLabel(input.coverFormat);
   const customHeadline = input.customHeadline?.trim();
 
-  return `Kamu adalah creative director thumbnail untuk travel brand Desklabs (Umroh, Halal Tour, Muslim-friendly travel).
+  return withTemporalContext(
+    `Kamu adalah creative director thumbnail untuk travel brand Desklabs (Umroh, Halal Tour, Muslim-friendly travel).
 
 Buat thumbnail copy untuk Reels cover berdasarkan input berikut.
 
@@ -274,7 +279,9 @@ OUTPUT JSON SAJA tanpa markdown:
     "composition": "komposisi frame vertical 9:16",
     "supportingElements": "elemen pendukung"
   }
-}`;
+}`,
+    { timezone },
+  );
 }
 
 export function buildThumbnailImagePrompt({

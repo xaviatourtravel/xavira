@@ -21,6 +21,7 @@ export type CustomerAiSummaryGenerationResult = {
 
 export async function generateCustomerAiSummary(
   context: CustomerAiSummaryContext,
+  timezone?: string | null,
 ): Promise<CustomerAiSummaryGenerationResult> {
   if (!openai) {
     return {
@@ -32,7 +33,7 @@ export async function generateCustomerAiSummary(
   try {
     const response = await openai.responses.create({
       model: AI_MODEL,
-      input: buildCustomerAiSummaryPrompt(context),
+      input: buildCustomerAiSummaryPrompt(context, timezone),
     });
 
     const text = response.output_text?.trim();

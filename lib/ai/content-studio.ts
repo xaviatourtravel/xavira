@@ -3,6 +3,7 @@ import {
   formatPackageContentContextForPrompt,
   type PackageContentContext,
 } from "@/lib/packages/content-context";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 
 export const CONTENT_STUDIO_PILLARS = [
   "soft_sell",
@@ -96,6 +97,7 @@ export type ContentStudioPromptInput = {
   additionalContext?: string;
   packageContext?: PackageContentContext;
   topic?: string;
+  timezone?: string | null;
 };
 
 export function isContentStudioSource(
@@ -354,25 +356,29 @@ ${CONTENT_STUDIO_JSON_SCHEMA}
 }
 
 export function buildContentStudioPrompt(input: ContentStudioPromptInput) {
+  let prompt: string;
+
   if (input.source === "free_topic") {
     if (!input.topic?.trim()) {
       throw new Error("Topik konten wajib diisi untuk mode Free Topic.");
     }
 
-    return buildFreeTopicContentStudioPrompt({
+    prompt = buildFreeTopicContentStudioPrompt({
       ...input,
       topic: input.topic.trim(),
     });
+  } else {
+    if (!input.packageContext) {
+      throw new Error("Konteks paket wajib ada untuk mode Package Based.");
+    }
+
+    prompt = buildPackageBasedContentStudioPrompt({
+      ...input,
+      packageContext: input.packageContext,
+    });
   }
 
-  if (!input.packageContext) {
-    throw new Error("Konteks paket wajib ada untuk mode Package Based.");
-  }
-
-  return buildPackageBasedContentStudioPrompt({
-    ...input,
-    packageContext: input.packageContext,
-  });
+  return withTemporalContext(prompt, { timezone: input.timezone });
 }
 
 export function parseContentStudioResponse(raw: string):

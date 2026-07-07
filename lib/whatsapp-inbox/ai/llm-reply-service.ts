@@ -27,6 +27,7 @@ export type GenerateWhatsAppReplyInput = {
   conversationMemory?: ConversationMemoryMap;
   leadQualification?: LeadQualificationSnapshot | null;
   contextSource?: string;
+  timezone?: string | null;
 };
 
 export type GenerateWhatsAppReplyResult = {
@@ -109,6 +110,7 @@ export const aiLLMReplyService = {
           ? toConversationMemoryPromptItems(input.conversationMemory)
           : undefined,
         leadQualification: input.leadQualification,
+        timezone: input.timezone,
       });
 
       const llmResult = await llm.generateJSON({
@@ -116,6 +118,7 @@ export const aiLLMReplyService = {
         userPrompt: promptBundle.userPrompt,
         temperature: 0.4,
         maxTokens: 900,
+        timezone: input.timezone,
       });
 
       const generationTimeMs = Date.now() - startedAt;

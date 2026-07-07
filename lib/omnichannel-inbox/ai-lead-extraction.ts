@@ -2,6 +2,7 @@ import {
   loadOmnichannelSuggestReplyContext,
   type OmnichannelSuggestReplyContext,
 } from "@/lib/omnichannel-inbox/ai-suggest-reply";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 
 export const EXTRACTION_CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
 
@@ -69,6 +70,7 @@ function formatRecentMessagesForExtraction(
 
 export function buildOmnichannelLeadExtractionPrompt(
   context: OmnichannelSuggestReplyContext,
+  timezone?: string | null,
 ) {
   const leadHints = context.leadId
     ? `
@@ -81,7 +83,8 @@ Data lead CRM yang sudah terhubung (hanya sebagai referensi, prioritaskan pesan 
 `
     : "";
 
-  return `
+  return withTemporalContext(
+    `
 Kamu mengekstrak informasi lead travel dari percakapan ${context.channelLabel} Desklabs/Xavira.
 
 Tugas: baca pesan percakapan dan ekstrak HANYA informasi yang jelas disebutkan pelanggan.
@@ -115,7 +118,9 @@ ${formatRecentMessagesForExtraction(context.recentMessages)}
 
 Output JSON saja tanpa markdown dengan struktur:
 ${EXTRACTION_JSON_SCHEMA}
-`.trim();
+`.trim(),
+    { timezone },
+  );
 }
 
 function normalizeConfidence(value: unknown): ExtractionConfidence {

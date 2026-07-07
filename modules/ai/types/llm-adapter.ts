@@ -3,6 +3,7 @@ export type GenerateJSONParams = {
   userPrompt: string;
   temperature?: number;
   maxTokens?: number;
+  timezone?: string | null;
 };
 
 export type GenerateJSONResult = {

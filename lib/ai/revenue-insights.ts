@@ -3,6 +3,7 @@ import type {
   RevenueFunnel,
   RevenueIntelligenceMetrics,
 } from "@/lib/dashboard/revenue-intelligence";
+import { withTemporalContext } from "@/lib/ai/temporal-context";
 
 export type RevenueInsight = {
   title: string;
@@ -42,10 +43,12 @@ export function buildRevenueInsightsPayload(metrics: RevenueIntelligenceMetrics)
 
 export function buildRevenueInsightsPrompt(
   metrics: RevenueIntelligenceMetrics,
+  timezone?: string | null,
 ): string {
   const payload = buildRevenueInsightsPayload(metrics);
 
-  return [
+  return withTemporalContext(
+    [
     "You are a travel agency business analyst. Analyze the performance metrics below and produce concise, actionable insights for the business owner.",
     "",
     "STRICT RULES:",
@@ -63,7 +66,9 @@ export function buildRevenueInsightsPrompt(
     "Respond with ONLY valid JSON in this exact shape (no markdown, no code fences):",
     '{ "insights": [ { "title": "short headline", "detail": "1-2 sentence explanation with the relevant numbers" } ] }',
     "Provide between 3 and 5 insights.",
-  ].join("\n");
+  ].join("\n"),
+    { timezone },
+  );
 }
 
 function coerceInsight(value: unknown): RevenueInsight | null {

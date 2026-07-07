@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+import { augmentSystemPromptWithTemporalContext } from "@/lib/ai/temporal-context";
 import type {
   GenerateJSONParams,
   GenerateJSONResult,
@@ -115,11 +116,16 @@ class OpenAILLMAdapter implements LLMAdapter {
     });
 
     try {
+      const systemPrompt = augmentSystemPromptWithTemporalContext(
+        params.systemPrompt,
+        { timezone: params.timezone },
+      );
+
       const response = await withTimeout(
         this.client.responses.create({
           model: this.model,
           input: [
-            { role: "system", content: params.systemPrompt },
+            { role: "system", content: systemPrompt },
             { role: "user", content: params.userPrompt },
           ],
           temperature,

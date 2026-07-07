@@ -1,3 +1,4 @@
+import { DEFAULT_AI_TIMEZONE } from "@/lib/ai/temporal-context";
 import { createClient } from "@/utils/supabase/server";
 
 import { classifyIntent } from "@/modules/ai/services/intent-classifier";
@@ -62,11 +63,13 @@ export function isPlaygroundLlmConfigured(): boolean {
   return Boolean(process.env.OPENAI_API_KEY?.trim());
 }
 
-async function resolveWorkspaceName(organizationId: string): Promise<string> {
+async function resolveOrganizationAiSettings(
+  organizationId: string,
+): Promise<{ name: string; timezone: string }> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organizations")
-    .select("name")
+    .select("name, timezone")
     .eq("id", organizationId)
     .maybeSingle();
 
@@ -74,7 +77,10 @@ async function resolveWorkspaceName(organizationId: string): Promise<string> {
     throw new Error(error.message);
   }
 
-  return data?.name?.trim() || "Workspace";
+  return {
+    name: data?.name?.trim() || "Workspace",
+    timezone: data?.timezone?.trim() || DEFAULT_AI_TIMEZONE,
+  };
 }
 
 function mapExtractedMemories(memories: ExtractedMessageMemory[]) {
@@ -156,13 +162,15 @@ export async function runTest(
     (turn) => turn.sender === "ai" || turn.sender === "human",
   );
 
-  const [workspaceName, businessBrainContext] = await Promise.all([
-    resolveWorkspaceName(organizationId),
+  const [organizationSettings, businessBrainContext] = await Promise.all([
+    resolveOrganizationAiSettings(organizationId),
     buildBusinessBrainContextBody(organizationId, {
       includeDraft: true,
       customerMessage: parsed.customerMessage,
     }),
   ]);
+  const workspaceName = organizationSettings.name;
+  const workspaceTimezone = organizationSettings.timezone;
 
   const sessionMemory = memoryStore.get(organizationId) ?? {};
   const initialExtraction = extractMemoryFromMessage({
@@ -265,6 +273,7 @@ export async function runTest(
     conversationMemory,
     leadQualification: refreshedLeadQualification,
     contextSource: "playground_simulator",
+    timezone: workspaceTimezone,
   });
 
   if (!llmResult.success) {

@@ -1,0 +1,218 @@
+# RFC-018 — AI Context Pipeline
+
+Status: Proposed
+
+Owner: Desklabs AI
+
+---
+
+## Problem
+
+Today multiple AI features build their own prompt.
+
+Examples:
+
+- AI Copilot
+- Suggested Reply
+- AI Summary
+- Qualification
+- Playground
+- AI Workflow
+
+Each feature assembles context differently.
+
+This leads to:
+
+- inconsistent answers
+- duplicated code
+- stale data
+- difficult maintenance
+
+---
+
+## Goal
+
+Introduce one shared AI Context Pipeline.
+
+Every AI request should consume the same context builder.
+
+---
+
+## Pipeline
+
+User Prompt
+
+↓
+
+Conversation History
+
+↓
+
+Conversation Summary
+
+↓
+
+Customer Context
+
+↓
+
+CRM Context
+
+↓
+
+Product Context
+
+↓
+
+Workspace Context
+
+↓
+
+Runtime Context
+
+↓
+
+Business Brain
+
+↓
+
+LLM
+
+---
+
+## Context Layers
+
+### Runtime Context
+
+Dynamic information.
+
+Examples:
+
+- current date
+- current time
+- timezone
+- current month
+- current year
+- locale
+
+---
+
+### Workspace Context
+
+Information about current workspace.
+
+Examples:
+
+- workspace name
+- business type
+- language
+- currency
+- timezone
+
+---
+
+### Customer Context
+
+Current customer information.
+
+Examples:
+
+- customer name
+- phone
+- email
+- tags
+- stage
+- lead score
+- assigned sales
+
+---
+
+### CRM Context
+
+Live CRM information.
+
+Examples:
+
+- bookings
+- invoices
+- payments
+- quotations
+- outstanding balance
+
+---
+
+### Product Context
+
+Products currently discussed.
+
+Examples:
+
+- destination
+- departure
+- seats
+- price
+- promo
+- airline
+- itinerary
+
+---
+
+### Conversation Context
+
+Current conversation.
+
+Examples:
+
+- last messages
+- summary
+- extracted facts
+- unresolved questions
+
+---
+
+### Business Brain
+
+Published company knowledge.
+
+Examples:
+
+- identity
+- products
+- FAQ
+- documents
+- behaviors
+
+---
+
+## Design Principles
+
+Business Brain never stores runtime information.
+
+Runtime Context never stores business knowledge.
+
+Each layer has one responsibility.
+
+---
+
+## Future Layers
+
+Future modules may add:
+
+- Inventory Context
+- Finance Context
+- Team Context
+- Marketing Context
+- Analytics Context
+- Calendar Context
+
+without modifying existing builders.
+
+---
+
+## Benefits
+
+- One prompt architecture
+- Consistent AI behavior
+- Easier debugging
+- Lower token duplication
+- Easier feature development

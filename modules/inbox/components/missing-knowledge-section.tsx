@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { InspectorSection } from "@/components/ui/inspector";
-import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";import { buildAiThinking } from "@/modules/inbox/lib/ai-thinking-engine";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+import { buildAiThinking } from "@/modules/inbox/lib/ai-thinking-engine";
 import { buildCopilotMissingKnowledge } from "@/modules/inbox/lib/build-ai-copilot";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";

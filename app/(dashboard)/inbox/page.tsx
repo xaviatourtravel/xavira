@@ -253,7 +253,8 @@ export default async function InboxPage({
   };
 
   return (
-    <CommunicationWorkspaceView
+    <div className="h-full min-h-0">
+      <CommunicationWorkspaceView
       conversations={conversations}
       allConversations={allConversations}
       detail={detail}
@@ -296,5 +297,6 @@ export default async function InboxPage({
       initialError={params.error ?? null}
       initialSuccess={params.success ?? null}
     />
+    </div>
   );
 }

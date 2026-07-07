@@ -86,7 +86,7 @@ function WorkspaceRightSidebarContent({
 
   if (collapsed) {
     return (
-      <div className="flex h-full flex-col items-center border-l border-border/40 bg-background py-3">
+      <div className="flex h-full w-full flex-col items-center border-l border-border/30 bg-background py-3 transition-[width] duration-[180ms] ease-out">
         <button
           type="button"
           onClick={onToggleCollapsed}

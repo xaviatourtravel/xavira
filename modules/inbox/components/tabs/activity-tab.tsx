@@ -38,7 +38,7 @@ function getTimelineGroup(timestamp: string): TimelineGroupKey {
   return "older";
 }
 
-function buildAllTimelineEvents(
+function buildOperationalTimelineEvents(
   conversation: OmnichannelConversationDetail,
   ti: (key: InboxKey) => string,
 ): TimelineItem[] {
@@ -47,15 +47,6 @@ function buildAllTimelineEvents(
     label: ti(event.labelKey),
     detail: event.detail ?? undefined,
     timestamp: event.timestamp,
-  }));
-
-  const messageEvents: TimelineItem[] = conversation.messages.map((message) => ({
-    id: `message-${message.id}`,
-    label: ti(
-      message.direction === "incoming" ? "activityCustomerMessage" : "activityTeamReply",
-    ),
-    detail: message.message_text?.trim() || undefined,
-    timestamp: message.created_at,
   }));
 
   const noteEvents: TimelineItem[] = conversation.notes.map((note) => ({
@@ -93,7 +84,7 @@ function buildAllTimelineEvents(
     })),
   ];
 
-  return [...aiEvents, ...messageEvents, ...noteEvents, ...crmEvents, ...systemEvents].sort(
+  return [...aiEvents, ...noteEvents, ...crmEvents, ...systemEvents].sort(
     (left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp),
   );
 }
@@ -108,7 +99,7 @@ export function ActivityTab({ conversation }: ActivityTabProps) {
   const { ti } = useInboxTranslation();
 
   const groupedEvents = useMemo(() => {
-    const allEvents = buildAllTimelineEvents(conversation, ti);
+    const allEvents = buildOperationalTimelineEvents(conversation, ti);
     const groups: Record<TimelineGroupKey, TimelineItem[]> = {
       today: [],
       yesterday: [],
@@ -133,17 +124,19 @@ export function ActivityTab({ conversation }: ActivityTabProps) {
             title={ti(group.labelKey)}
             hideDivider={index === groupedEvents.length - 1}
           >
-            <ol className="space-y-3">
+            <ol className="relative ml-1 space-y-4 border-l border-border/40 pl-4">
               {group.items.map((event) => (
-                <li key={event.id} className="space-y-0.5">
+                <li key={event.id} className="relative space-y-0.5">
+                  <span
+                    aria-hidden
+                    className="absolute -left-[calc(0.25rem+1px)] top-1.5 h-2 w-2 rounded-full bg-border"
+                  />
                   <time className="text-[10px] tabular-nums text-muted-foreground">
                     {formatInboxMessageTime(event.timestamp)}
                   </time>
                   <p className="text-[13px] text-foreground">{event.label}</p>
                   {event.detail ? (
-                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                      {event.detail}
-                    </p>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">{event.detail}</p>
                   ) : null}
                 </li>
               ))}

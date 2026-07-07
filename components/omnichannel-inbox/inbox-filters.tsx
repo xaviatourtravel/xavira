@@ -33,6 +33,12 @@ const SECONDARY_FILTERS: FilterItem[] = [
 
 const ALL_FILTERS: FilterItem[] = [...PRIMARY_FILTERS, ...SECONDARY_FILTERS];
 
+const COUNTED_FILTERS = new Set<OmnichannelInboxFilter>(["unread", "ready_for_human"]);
+
+function shouldShowFilterCount(filter: OmnichannelInboxFilter) {
+  return COUNTED_FILTERS.has(filter);
+}
+
 function buildInboxHref(filter: OmnichannelInboxFilter, conversationId?: string | null) {
   const params = new URLSearchParams();
   if (filter !== "all") {
@@ -55,12 +61,14 @@ function FilterChip({
   count,
   href,
   onNavigate,
+  showCount = false,
 }: {
   filter: FilterItem;
   isActive: boolean;
   count: number;
   href: string;
   onNavigate?: () => void;
+  showCount?: boolean;
 }) {
   const { ti } = useInboxTranslation();
 
@@ -78,7 +86,9 @@ function FilterChip({
       )}
     >
       <span>{ti(filter.labelKey)}</span>
-      <span className="tabular-nums text-muted-foreground/80">{count}</span>
+      {showCount && count > 0 ? (
+        <span className="tabular-nums text-muted-foreground/80">{count}</span>
+      ) : null}
     </Link>
   );
 }
@@ -167,9 +177,11 @@ function MoreFiltersDropdown({
                 )}
               >
                 <span>{ti(filter.labelKey)}</span>
-                <span className="tabular-nums text-muted-foreground/80">
-                  {filterCounts[filter.value]}
-                </span>
+                {shouldShowFilterCount(filter.value) && filterCounts[filter.value] > 0 ? (
+                  <span className="tabular-nums text-muted-foreground/80">
+                    {filterCounts[filter.value]}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -209,6 +221,7 @@ export function OmnichannelInboxFilters({
             isActive={visibleActiveFilter === filter.value}
             count={filterCounts[filter.value]}
             href={buildInboxHref(filter.value, currentConversationId)}
+            showCount={shouldShowFilterCount(filter.value)}
           />
         ))}
       </div>

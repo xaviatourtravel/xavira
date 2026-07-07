@@ -23,6 +23,7 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
 import {
+  WORKSPACE_SIDEBAR_COLLAPSED_WIDTH,
   WORKSPACE_SIDEBAR_WIDTH,
 } from "@/lib/communication-workspace/types";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
@@ -109,17 +110,16 @@ export function CommunicationWorkspaceView({
   initialSuccess = null,
 }: CommunicationWorkspaceViewProps) {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
-  // Panel detail diciutkan secara default agar area chat lebih lebar.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { ti } = useInboxTranslation();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    if (stored === "false") {
-      setSidebarCollapsed(false);
-    } else if (stored === "true") {
+    if (stored === "true") {
       setSidebarCollapsed(true);
+    } else if (stored === "false") {
+      setSidebarCollapsed(false);
     }
   }, []);
 
@@ -248,17 +248,17 @@ export function CommunicationWorkspaceView({
 
       <InboxComposerProvider>
       <div
-        className="grid min-h-0 flex-1 overflow-hidden bg-background lg:grid-cols-[320px_minmax(0,1fr)_var(--workspace-sidebar-width)]"
+        className="grid min-h-0 flex-1 overflow-hidden bg-background transition-[grid-template-columns] duration-[180ms] ease-out lg:grid-cols-[320px_minmax(0,1fr)_var(--workspace-sidebar-width)]"
         style={{
           ["--workspace-sidebar-width" as string]: sidebarCollapsed
-            ? "48px"
+            ? WORKSPACE_SIDEBAR_COLLAPSED_WIDTH
             : WORKSPACE_SIDEBAR_WIDTH,
         }}
       >
         {/* Left — conversation list */}
         <section
           className={cn(
-            "flex min-h-0 w-[320px] min-w-[320px] max-w-[320px] shrink-0 flex-col border-r border-border/40 bg-background",
+            "flex min-h-0 w-[320px] min-w-[320px] max-w-[320px] shrink-0 flex-col border-r border-border/30 bg-background",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
@@ -341,8 +341,13 @@ export function CommunicationWorkspaceView({
           )}
         </section>
 
-        {/* Right — customer intelligence (always visible on desktop) */}
-        <section className="hidden h-full min-h-0 min-w-0 shrink-0 overflow-hidden border-l border-border/40 lg:block">
+        {/* Right — inspector (desktop) */}
+        <section
+          className={cn(
+            "hidden h-full min-h-0 min-w-0 shrink-0 overflow-hidden border-l border-border/30 transition-[width] duration-[180ms] ease-out lg:block",
+            sidebarCollapsed ? "w-12" : "w-[400px]",
+          )}
+        >
           <WorkspaceRightSidebar
             conversation={liveDetail}
             organizationId={organizationId}

@@ -13,10 +13,9 @@ import {
   InspectorRoot,
   InspectorSection,
 } from "@/components/ui/inspector";
-import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
-import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import {
+  buildCopilotMissingKnowledge,
   getQualificationFieldLabelKey,
   getQualificationFieldRows,
 } from "@/modules/inbox/lib/build-ai-copilot";
@@ -39,11 +38,15 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
   const lead = conversation.leadContext;
   const qualification = conversation.leadQualification;
   const memory = conversation.conversationMemory;
-  const displayName = conversation.customerName || ti("notSet");
 
   const qualificationRows = useMemo(
     () => getQualificationFieldRows(qualification),
     [qualification],
+  );
+
+  const missingRows = useMemo(
+    () => buildCopilotMissingKnowledge(conversation),
+    [conversation],
   );
 
   const memoryRows = useMemo(() => {
@@ -76,42 +79,6 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
 
   return (
     <InspectorRoot className="pb-6">
-      <div className="px-4 py-3">
-        <div className="flex items-start gap-3">
-          <CustomerAvatar
-            displayName={displayName}
-            avatarUrl={conversation.customerAvatar}
-            size="sm"
-            channel={
-              conversation.channel === "whatsapp"
-                ? "whatsapp"
-                : conversation.channel === "instagram"
-                  ? "instagram"
-                  : conversation.channel === "facebook"
-                    ? "facebook"
-                    : "default"
-            }
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-sm font-medium text-foreground">{displayName}</h2>
-              <OmnichannelChannelBadge channel={conversation.channel} />
-            </div>
-            <div className="mt-2 space-y-0.5">
-              <InspectorRow
-                label={ti("whatsappNumber")}
-                value={conversation.externalUserId || ti("notSet")}
-              />
-              <InspectorRow label={ti("leadStatus")} value={conversation.statusLabel} />
-              <InspectorRow
-                label={ti("assignedSales")}
-                value={conversation.assignedUserName || ti("unassigned")}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <InspectorSection title={ti("customer360LookingFor")}>
         {qualificationRows.length > 0 ? (
           <div className="space-y-0.5">
@@ -128,6 +95,20 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
         )}
       </InspectorSection>
 
+      <InspectorSection title={ti("customer360StillMissing")}>
+        {missingRows.length > 0 ? (
+          <ul className="space-y-1.5">
+            {missingRows.map((item) => (
+              <li key={item.labelKey} className="text-[13px] text-foreground">
+                {ti(item.labelKey)}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">{ti("customer360AllCaptured")}</p>
+        )}
+      </InspectorSection>
+
       {memoryRows.length > 0 ? (
         <InspectorSection title={ti("customer360WhatAiKnows")}>
           <div className="space-y-0.5">
@@ -138,13 +119,18 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
         </InspectorSection>
       ) : null}
 
-      <InspectorSection title={ti("customer360CrmSummary")} hideDivider={!lead && quickActions.length === 0}>
+      <InspectorSection title={ti("customer360CrmSummary")} hideDivider={quickActions.length === 0}>
         {lead ? (
           <div className="space-y-0.5">
             <InspectorRow label={ti("customer360HealthScore")} value={`${lead.healthScore}%`} />
             <InspectorRow label={ti("customer360Source")} value={lead.sourceLabel} />
             <InspectorRow label={ti("customer360Email")} value={lead.email || ti("notSet")} />
             <InspectorRow label={ti("customer360Phone")} value={lead.phone || ti("notSet")} />
+            <InspectorRow
+              label={ti("assignedSales")}
+              value={conversation.assignedUserName || ti("unassigned")}
+            />
+            <InspectorRow label={ti("leadStatus")} value={conversation.statusLabel} />
             {lead.nextFollowUp ? (
               <InspectorRow
                 label={ti("customer360NextFollowUp")}

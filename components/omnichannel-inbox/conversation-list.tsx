@@ -119,7 +119,7 @@ export function OmnichannelConversationList({
   }
 
   return (
-    <div className="flex flex-col py-1">
+    <div className="flex flex-col py-0.5">
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedConversationId;
         const isUnread = conversation.unreadCount > 0;
@@ -128,16 +128,21 @@ export function OmnichannelConversationList({
         const isReadyForHuman =
           conversation.channel === "whatsapp" &&
           resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN";
+        const statusLabel = isUnread
+          ? null
+          : isReadyForHuman && activeFilter === "all"
+            ? ti("filterReadyForHuman")
+            : null;
 
         return (
           <Link
             key={conversation.id}
             href={buildConversationHref(conversation.id, activeFilter)}
             className={cn(
-              "relative mx-1.5 block rounded-lg px-3 py-3 transition-colors",
+              "relative mx-1 block rounded-lg px-3 py-2.5 transition-colors",
               isSelected
-                ? "bg-muted/70 dark:bg-muted/40"
-                : "hover:bg-muted/35 dark:hover:bg-muted/20",
+                ? "bg-muted/60 dark:bg-muted/35"
+                : "hover:bg-muted/30 dark:hover:bg-muted/15",
             )}
           >
             <div className="flex items-start gap-2.5">
@@ -157,62 +162,53 @@ export function OmnichannelConversationList({
                 className="mt-0.5 shrink-0"
               />
 
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="flex min-w-0 items-baseline justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <p
-                      className={cn(
-                        "min-w-0 truncate text-[13px] leading-tight text-foreground",
-                        isUnread ? "font-medium" : "font-normal",
-                      )}
-                      title={displayName}
-                    >
-                      {displayName}
-                    </p>
-                    {showChannelBadge ? (
-                      <OmnichannelChannelBadge
-                        channel={conversation.channel}
-                        className="shrink-0 px-1 py-0 text-[9px] leading-4 opacity-80"
-                      />
-                    ) : null}
-                  </div>
-                  <ClientOnlyRelativeTime
-                    date={conversation.lastMessageAt}
-                    className={cn(
-                      "shrink-0 text-[10px] tabular-nums leading-none",
-                      isUnread ? "font-medium text-foreground" : "text-muted-foreground",
-                    )}
-                  />
-                </div>
-
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex min-w-0 items-center justify-between gap-2">
                   <p
                     className={cn(
-                      "min-w-0 truncate text-xs leading-snug",
-                      isUnread ? "text-foreground/85" : "text-muted-foreground",
+                      "min-w-0 truncate text-[13px] leading-tight text-foreground",
+                      isUnread ? "font-medium" : "font-normal",
                     )}
-                    title={conversation.lastMessagePreview ?? undefined}
+                    title={displayName}
                   >
-                    {conversation.lastMessagePreview ?? ti("noMessageYet")}
+                    {displayName}
                   </p>
-                  <span
-                    className={cn(
-                      "inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[9px] font-medium leading-none",
-                      isUnread
-                        ? "bg-primary text-primary-foreground"
-                        : "invisible",
-                    )}
-                    aria-hidden={!isUnread}
-                  >
-                    {isUnread ? formatUnreadCount(conversation.unreadCount) : "0"}
-                  </span>
+                  <ClientOnlyRelativeTime
+                    date={conversation.lastMessageAt}
+                    className="shrink-0 text-[10px] tabular-nums leading-none text-muted-foreground"
+                  />
                 </div>
 
-                {isReadyForHuman && activeFilter === "all" ? (
-                  <p className="truncate text-[10px] text-amber-700/90 dark:text-amber-300/90">
-                    {ti("filterReadyForHuman")}
-                  </p>
-                ) : null}
+                <p
+                  className={cn(
+                    "min-w-0 truncate text-xs leading-snug",
+                    isUnread ? "text-foreground/80" : "text-muted-foreground",
+                  )}
+                  title={conversation.lastMessagePreview ?? undefined}
+                >
+                  {conversation.lastMessagePreview ?? ti("noMessageYet")}
+                </p>
+
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {showChannelBadge ? (
+                      <OmnichannelChannelBadge
+                        channel={conversation.channel}
+                        className="shrink-0 px-1 py-0 text-[9px] leading-4 opacity-75"
+                      />
+                    ) : null}
+                    {statusLabel ? (
+                      <span className="truncate text-[10px] text-amber-700/90 dark:text-amber-300/90">
+                        {statusLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                  {isUnread ? (
+                    <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-medium leading-none text-primary-foreground">
+                      {formatUnreadCount(conversation.unreadCount)}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           </Link>

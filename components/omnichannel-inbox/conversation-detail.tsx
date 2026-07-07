@@ -40,9 +40,7 @@ import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rul
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { WhatsappAiStateControl } from "@/components/omnichannel-inbox/whatsapp-ai-state-control";
-import { WhatsappQualificationHandoffPanel } from "@/components/omnichannel-inbox/whatsapp-qualification-handoff-panel";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
-import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
 import {
   formatInboxMessageTime,
   getConversationDisplayName,
@@ -50,6 +48,8 @@ import {
 import { formatTranslation } from "@/lib/i18n/dictionary";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+import { isQualificationHandoffReason } from "@/modules/ai/types/lead-qualification";
+import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
 import { WhatsappMessageBubble } from "@/components/omnichannel-inbox/whatsapp-message-bubble";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -176,14 +176,12 @@ export function OmnichannelConversationDetailPanel({
   const [newMessageCount, setNewMessageCount] = useState(0);
 
   const displayName = getConversationDisplayName(conversation);
-  const phoneLabel =
-    conversation.channel === "whatsapp"
-      ? conversation.customerUsername?.trim() ||
-        conversation.externalUserId?.trim() ||
-        null
-      : conversation.customerUsername?.trim()
-        ? `@${conversation.customerUsername.trim().replace(/^@/, "")}`
-        : null;
+  const isWhatsappChannel = (channel ?? conversation.channel) === "whatsapp";
+  const showQualificationHandoffStatus =
+    isWhatsappChannel &&
+    resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN" &&
+    isQualificationHandoffReason(conversation.aiHandoffReason) &&
+    Boolean(conversation.leadQualification);
 
   const displayMessages: MessageRow[] = useMemo(() => {
     if (isWhatsapp) {
@@ -446,14 +444,14 @@ export function OmnichannelConversationDetailPanel({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur sm:px-4">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/30 bg-background px-3 sm:px-4">
         {showBackButton ? (
           <Link
             href={backHref}
             aria-label={ti("backToConversations")}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-11 w-11 shrink-0 rounded-full p-0 lg:hidden",
+              "h-9 w-9 shrink-0 rounded-full p-0 lg:hidden",
             )}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -475,29 +473,26 @@ export function OmnichannelConversationDetailPanel({
           }
         />
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2
-              className="truncate text-sm font-medium text-foreground"
-              title={displayName}
-            >
-              {displayName}
-            </h2>
-            <OmnichannelChannelBadge channel={conversation.channel} />
-            {isWhatsapp ? (
-              <WhatsappAiStateControl
-                conversationId={conversation.id}
-                aiState={conversation.aiState}
-                aiHandoffReason={conversation.aiHandoffReason}
-                canManage={canManageAi}
-                compact
-              />
-            ) : null}
-          </div>
-          <p className="truncate text-[11px] text-muted-foreground">
-            {phoneLabel ? `${phoneLabel} · ` : ""}
-            <ClientOnlyActiveLabel date={conversation.lastMessageAt} />
-          </p>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <h2
+            className="min-w-0 truncate text-sm font-medium text-foreground"
+            title={displayName}
+          >
+            {displayName}
+          </h2>
+          <OmnichannelChannelBadge
+            channel={conversation.channel}
+            className="hidden shrink-0 px-1.5 py-0 text-[9px] sm:inline-flex"
+          />
+          {isWhatsapp ? (
+            <WhatsappAiStateControl
+              conversationId={conversation.id}
+              aiState={conversation.aiState}
+              aiHandoffReason={conversation.aiHandoffReason}
+              canManage={canManageAi}
+              compact
+            />
+          ) : null}
         </div>
 
         <button
@@ -509,11 +504,11 @@ export function OmnichannelConversationDetailPanel({
           aria-label={ti("searchInConversation")}
           title={ti("searchInConversation")}
           className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
             searchOpen && "bg-muted text-foreground",
           )}
         >
-          <Search className="h-[18px] w-[18px]" />
+          <Search className="h-4 w-4" />
         </button>
 
         <div ref={menuRef} className="relative shrink-0">
@@ -524,11 +519,11 @@ export function OmnichannelConversationDetailPanel({
             title={ti("conversationMenu")}
             aria-expanded={menuOpen}
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+              "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground",
               menuOpen && "bg-muted text-foreground",
             )}
           >
-            <MoreVertical className="h-[18px] w-[18px]" />
+            <MoreVertical className="h-4 w-4" />
           </button>
           {menuOpen ? (
             <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-lg border border-border/40 bg-background py-1 shadow-md">
@@ -591,14 +586,10 @@ export function OmnichannelConversationDetailPanel({
 
       </header>
 
-      {isWhatsapp ? (
-        <WhatsappQualificationHandoffPanel
-          conversationId={conversation.id}
-          aiState={conversation.aiState}
-          aiHandoffReason={conversation.aiHandoffReason}
-          qualification={conversation.leadQualification}
-          canManage={canManageAi}
-        />
+      {showQualificationHandoffStatus ? (
+        <p className="shrink-0 border-b border-border/20 px-4 py-1 text-[11px] text-muted-foreground">
+          {ti("chatHandoffStatusLine")}
+        </p>
       ) : null}
 
       {searchOpen ? (
@@ -643,13 +634,9 @@ export function OmnichannelConversationDetailPanel({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-y-auto bg-muted/10 dark:bg-muted/5"
+        className="min-h-0 flex-1 overflow-y-auto bg-background"
       >
-        <div
-          className={cn(
-            "mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-4",
-          )}
-        >
+        <div className="mx-auto flex w-full max-w-none flex-col gap-3 px-4 py-4 xl:max-w-5xl xl:px-6">
           {displayMessages.length === 0 ? (
             <InboxEmptyState
               icon={MessageSquareText}
@@ -758,7 +745,7 @@ export function OmnichannelConversationDetailPanel({
       ) : null}
 
       {showComposer ? (
-        <div className="sticky bottom-0 z-10 shrink-0 bg-background">
+        <div className="shrink-0 border-t border-border/30 bg-background">
           <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}
@@ -786,7 +773,7 @@ export function OmnichannelConversationEmptyState() {
       icon={MessageSquareText}
       title={ti("selectConversationEmpty")}
       description={ti("selectConversationEmptyDesc")}
-      className="h-full bg-muted/10 dark:bg-muted/5"
+      className="h-full bg-background"
     />
   );
 }

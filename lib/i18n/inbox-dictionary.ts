@@ -509,6 +509,10 @@ export const inboxEn = {
 
   // AI Copilot
   aiRecommendationHero: "AI Recommendation",
+  copilotHandoffHeroDesc: "Qualification is complete. Take over to continue with the customer.",
+  chatHandoffStatusLine: "Ready for human · open AI Copilot for handoff details",
+  nbaSecondaryEmptyTitle: "No other actions",
+  nbaSecondaryEmptyDesc: "The primary recommendation covers the next step for now.",
 
   // Customer 360
   customer360LookingFor: "Looking For",
@@ -1038,6 +1042,10 @@ export const inboxId: InboxDictionary = {
   composerBack: "Kembali",
 
   aiRecommendationHero: "Rekomendasi AI",
+  copilotHandoffHeroDesc: "Kualifikasi sudah lengkap. Ambil alih untuk lanjut dengan customer.",
+  chatHandoffStatusLine: "Siap untuk human · buka AI Copilot untuk detail handoff",
+  nbaSecondaryEmptyTitle: "Tidak ada aksi lain",
+  nbaSecondaryEmptyDesc: "Rekomendasi utama sudah mencakup langkah berikutnya.",
 
   customer360LookingFor: "Yang Dicari",
   customer360StillMissing: "Yang Belum Lengkap",

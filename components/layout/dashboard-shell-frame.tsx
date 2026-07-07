@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Suspense } from "react";
+import { usePathname } from "next/navigation";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -14,6 +15,11 @@ import type { NavAttentionBadges } from "@/config/navigation";
 import { getProfilePermissions } from "@/lib/auth/permissions";
 import type { WorkspaceSwitcherContext } from "@/lib/workspace/types";
 import type { Profile } from "@/types/app-types";
+import { cn } from "@/lib/utils";
+
+function isInboxWorkspacePath(pathname: string | null) {
+  return pathname === "/inbox" || pathname?.startsWith("/inbox/") === true;
+}
 
 function SidebarFallback() {
   return <aside className="hidden w-[17.5rem] shrink-0 border-r lg:block" />;
@@ -33,6 +39,8 @@ export function DashboardShellFrame({
   workspaceContext: WorkspaceSwitcherContext;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const isInboxWorkspace = isInboxWorkspacePath(pathname);
   const permissions = getProfilePermissions(profile);
 
   return (
@@ -57,8 +65,15 @@ export function DashboardShellFrame({
             workspaceContext={workspaceContext}
             onMenuClick={() => setSidebarOpen(true)}
           />
-          {/* Only this panel scrolls; the app shell itself stays viewport-locked. */}
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-muted/20 p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6 lg:pb-6">
+          {/* Inbox uses a full-bleed workspace surface; other routes scroll inside main. */}
+          <main
+            className={cn(
+              "min-h-0 flex-1 overflow-x-hidden",
+              isInboxWorkspace
+                ? "overflow-hidden bg-background p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0"
+                : "overflow-y-auto bg-muted/20 p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6 lg:pb-6",
+            )}
+          >
             {children}
           </main>
         </div>

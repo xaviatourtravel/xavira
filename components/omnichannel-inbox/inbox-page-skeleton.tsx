@@ -12,7 +12,7 @@ export function InboxPageSkeleton() {
 
   return (
     <div
-      className="grid h-full min-h-[480px] overflow-hidden bg-background lg:grid-cols-[320px_minmax(0,1fr)_420px]"
+      className="grid h-full min-h-0 overflow-hidden bg-background transition-[grid-template-columns] duration-[180ms] ease-out lg:grid-cols-[320px_minmax(0,1fr)_400px]"
       aria-busy="true"
       aria-label={ti("inboxLoading")}
     >
@@ -43,12 +43,9 @@ export function InboxPageSkeleton() {
       </section>
 
       <section className="hidden min-h-0 flex-col lg:flex">
-        <div className="flex items-center gap-2 border-b border-border/40 px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-border/30 px-4 py-2.5">
           <Block className="h-8 w-8 rounded-full" />
-          <div className="flex-1 space-y-2">
-            <Block className="h-3.5 w-32" />
-            <Block className="h-3 w-24" />
-          </div>
+          <Block className="h-3.5 w-40" />
         </div>
         <div className="flex-1 space-y-4 px-6 py-6">
           <div className="flex justify-start">

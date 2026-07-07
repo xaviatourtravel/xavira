@@ -6,8 +6,9 @@ import { InspectorRoot, InspectorSection } from "@/components/ui/inspector";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { AiSuggestedReplyCard } from "@/modules/inbox/components/ai-suggested-reply-card";
+import { CopilotHeroRecommendation } from "@/modules/inbox/components/copilot-hero-recommendation";
 import { MissingKnowledgeSection } from "@/modules/inbox/components/missing-knowledge-section";
-import { NextBestActionCard } from "@/modules/inbox/components/next-best-action-card";
+import { NextBestActionSecondaryList } from "@/modules/inbox/components/next-best-action-secondary-list";
 import { useAiCommandCenterRealtime } from "@/modules/inbox/hooks/use-ai-command-center-realtime";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 
@@ -43,16 +44,22 @@ export function AiCopilotTab({
         />
       ) : (
         <>
-          <InspectorSection title={ti("nextBestAction")}>
-            <NextBestActionCard
+          <InspectorSection title={ti("aiRecommendationHero")}>
+            <CopilotHeroRecommendation
               conversation={conversation}
               canManageAi={canManageAi}
-              flat
             />
           </InspectorSection>
 
           <InspectorSection title={ti("suggestedReply")}>
             <AiSuggestedReplyCard conversation={conversation} hideHeader />
+          </InspectorSection>
+
+          <InspectorSection title={ti("nextBestAction")}>
+            <NextBestActionSecondaryList
+              conversation={conversation}
+              canManageAi={canManageAi}
+            />
           </InspectorSection>
 
           <MissingKnowledgeSection conversation={conversation} hideDivider />

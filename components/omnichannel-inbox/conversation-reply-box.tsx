@@ -28,10 +28,10 @@ import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnich
 import { DsToast } from "@/components/design-system/toast";
 import { QUICK_REPLY_TEMPLATES } from "@/lib/communication/assist";
 import {
-  getComposerPlaceholder,
   isPersistedFailureCode,
   resolveSendErrorToast,
 } from "@/lib/communication/composer";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { useConversationDraft } from "@/lib/communication/drafts";
 import { useInboxComposer } from "@/modules/inbox/context/inbox-composer-context";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
@@ -52,14 +52,14 @@ const EMOJIS = [
   "📎",
 ];
 
-const COMPOSER_MIN_HEIGHT_PX = 44;
+const COMPOSER_MIN_HEIGHT_PX = 36;
 const COMPOSER_MAX_HEIGHT_PX = 140;
 const COMPOSER_INPUT_PADDING_Y_PX = 14;
 const COMPOSER_MAX_TEXTAREA_HEIGHT_PX =
   COMPOSER_MAX_HEIGHT_PX - COMPOSER_INPUT_PADDING_Y_PX * 2;
 
 const GHOST_ICON_BUTTON =
-  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:opacity-40";
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:opacity-40";
 
 type ComposerToast = {
   variant: "success" | "error" | "info";
@@ -138,13 +138,21 @@ function MenuItem({
   );
 }
 
-function SubmenuHeader({ title, onBack }: { title: string; onBack: () => void }) {
+function SubmenuHeader({
+  title,
+  onBack,
+  backLabel,
+}: {
+  title: string;
+  onBack: () => void;
+  backLabel: string;
+}) {
   return (
     <div className="flex items-center gap-1 border-b px-2 py-1.5">
       <button
         type="button"
         onClick={onBack}
-        aria-label="Kembali"
+        aria-label={backLabel}
         className="rounded-md p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -167,6 +175,7 @@ export function OmnichannelConversationReplyBox({
   onRemoveOptimistic,
 }: OmnichannelConversationReplyBoxProps) {
   const router = useRouter();
+  const { ti } = useInboxTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -207,14 +216,14 @@ export function OmnichannelConversationReplyBox({
   const sendTitle = !canReply
     ? isUnassignedForAgent
       ? isWhatsapp
-        ? "Assign percakapan ini ke Anda sebelum membalas."
-        : "Assign this conversation to yourself before sending a reply."
+        ? ti("composerAssignFirstWhatsapp")
+        : ti("composerAssignFirst")
       : isWhatsapp
-        ? "Anda tidak memiliki izin untuk membalas."
-        : "You do not have permission to reply."
+        ? ti("composerNoPermissionWhatsapp")
+        : ti("composerNoPermission")
     : isWhatsapp
-      ? "Kirim balasan WhatsApp."
-      : "Manual reply via connected Meta account.";
+      ? ti("composerSendWhatsappHint")
+      : ti("composerSendMetaHint");
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -367,8 +376,8 @@ export function OmnichannelConversationReplyBox({
       setMessageText(trimmed);
       setToast({
         variant: "error",
-        title: "Gagal mengirim balasan",
-        description: result.message ?? "Silakan coba lagi.",
+        title: ti("composerSendFailed"),
+        description: result.message ?? ti("composerTryAgain"),
       });
     });
   }
@@ -395,7 +404,7 @@ export function OmnichannelConversationReplyBox({
 
   return (
     <div
-      className="relative border-t border-soft/80 bg-background px-3 py-3 sm:px-4"
+      className="relative border-t border-border/40 bg-background px-3 py-2.5 sm:px-4"
       onDragEnter={(event) => {
         event.preventDefault();
         dragDepthRef.current += 1;
@@ -422,10 +431,8 @@ export function OmnichannelConversationReplyBox({
       }}
     >
       {isDragging ? (
-        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[22px] border-2 border-dashed border-[#2563EB]/35 bg-background/95">
-          <p className="text-sm text-muted-foreground">
-            Lepas file di sini untuk melampirkan
-          </p>
+        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary/25 bg-background/95">
+          <p className="text-sm text-muted-foreground">{ti("composerDropFile")}</p>
         </div>
       ) : null}
 
@@ -451,7 +458,7 @@ export function OmnichannelConversationReplyBox({
             <button
               type="button"
               onClick={() => setAttachmentName(null)}
-              aria-label="Hapus lampiran"
+              aria-label={ti("composerRemoveAttachment")}
               className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
@@ -468,7 +475,10 @@ export function OmnichannelConversationReplyBox({
         onChange={handleFileInputChange}
       />
 
-      <div ref={rowRef} className="flex items-end gap-1.5">
+      <div
+        ref={rowRef}
+        className="mx-auto flex w-full max-w-3xl items-end gap-1 rounded-xl border border-border/40 bg-background px-2 py-1.5 shadow-sm transition-shadow focus-within:border-border/70 focus-within:ring-2 focus-within:ring-ring/20 dark:border-border/30 dark:bg-muted/10"
+      >
         <div className="relative shrink-0">
           <button
             type="button"
@@ -476,8 +486,8 @@ export function OmnichannelConversationReplyBox({
               setOpenMenu((value) => (value === "plus" ? null : "plus"))
             }
             disabled={isDisabled}
-            title="Lampiran"
-            aria-label="Lampiran"
+            title={ti("composerAttachment")}
+            aria-label={ti("composerAttachment")}
             aria-expanded={openMenu === "plus"}
             className={cn(
               GHOST_ICON_BUTTON,
@@ -492,7 +502,7 @@ export function OmnichannelConversationReplyBox({
                 <>
                   <MenuItem
                     icon={<FileText className="h-4 w-4" />}
-                    label="Dokumen"
+                    label={ti("composerDocuments")}
                     onClick={() =>
                       openFilePicker(
                         ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv",
@@ -501,25 +511,26 @@ export function OmnichannelConversationReplyBox({
                   />
                   <MenuItem
                     icon={<ImageIcon className="h-4 w-4" />}
-                    label="Gambar"
+                    label={ti("composerImages")}
                     onClick={() => openFilePicker("image/*")}
                   />
                   <MenuItem
                     icon={<Film className="h-4 w-4" />}
-                    label="Video"
+                    label={ti("composerVideo")}
                     onClick={() => openFilePicker("video/*")}
                   />
                   <MenuItem
                     icon={<Type className="h-4 w-4" />}
-                    label="Template"
+                    label={ti("composerTemplates")}
                     onClick={() => setPlusView("template")}
                   />
                 </>
               ) : (
                 <>
                   <SubmenuHeader
-                    title="Template cepat"
+                    title={ti("composerQuickTemplates")}
                     onBack={() => setPlusView("root")}
+                    backLabel={ti("composerBack")}
                   />
                   {QUICK_REPLY_TEMPLATES.map((template) => (
                     <button
@@ -538,7 +549,7 @@ export function OmnichannelConversationReplyBox({
         </div>
 
         <div
-          className="flex min-h-[44px] max-h-[140px] min-w-0 flex-1 items-center rounded-[22px] bg-muted/35 px-4 py-[14px]"
+          className="flex min-h-[36px] max-h-[140px] min-w-0 flex-1 items-center px-2 py-1.5"
           style={{ minHeight: COMPOSER_MIN_HEIGHT_PX, maxHeight: COMPOSER_MAX_HEIGHT_PX }}
         >
           <textarea
@@ -546,7 +557,7 @@ export function OmnichannelConversationReplyBox({
             value={messageText}
             onChange={(event) => setMessageText(event.target.value)}
             rows={1}
-            placeholder={getComposerPlaceholder(channel)}
+            placeholder={ti("composerPlaceholder")}
             disabled={isDisabled}
             title={sendTitle}
             className="max-h-[112px] w-full resize-none border-0 bg-transparent text-sm leading-[22px] outline-none placeholder:text-muted-foreground disabled:opacity-60"
@@ -561,8 +572,8 @@ export function OmnichannelConversationReplyBox({
               setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
             }
             disabled={isDisabled}
-            title="Emoji"
-            aria-label="Emoji"
+            title={ti("composerEmoji")}
+            aria-label={ti("composerEmoji")}
             aria-expanded={openMenu === "emoji"}
             className={cn(
               GHOST_ICON_BUTTON,
@@ -593,8 +604,8 @@ export function OmnichannelConversationReplyBox({
         <button
           type="button"
           disabled={isDisabled}
-          title="AI Draft (segera hadir)"
-          aria-label="AI Draft"
+          title={ti("composerAiDraft")}
+          aria-label={ti("composerAiDraft")}
           className={GHOST_ICON_BUTTON}
         >
           <Sparkles className="h-5 w-5" />
@@ -606,12 +617,12 @@ export function OmnichannelConversationReplyBox({
           onClick={handleSend}
           title={sendTitle}
           className={cn(
-            "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-[#2563EB] px-4 text-sm font-medium text-white transition-colors hover:bg-[#1d4ed8] disabled:pointer-events-none disabled:opacity-40",
+            "inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40",
           )}
-          aria-label={isPending ? "Mengirim pesan" : "Kirim pesan"}
+          aria-label={isPending ? ti("composerSendingLabel") : ti("composerSendLabel")}
         >
           <Send className="h-4 w-4" />
-          <span>{isPending ? "Mengirim..." : "Kirim"}</span>
+          <span>{isPending ? ti("composerSending") : ti("composerSend")}</span>
         </button>
       </div>
     </div>

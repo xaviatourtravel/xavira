@@ -12,7 +12,7 @@ export function IntelligencePanel({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col bg-app",
+        "flex h-full min-h-0 min-w-0 flex-col bg-background",
         className,
       )}
     >

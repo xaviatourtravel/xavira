@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Paperclip, Sparkles, UserRound } from "lucide-react";
+import { FolderOpen, History, Sparkles, UserRound } from "lucide-react";
 
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
@@ -14,7 +14,7 @@ const TAB_ITEMS: Array<{
 }> = [
   { id: "copilot", labelKey: "workspaceTabCopilot", icon: Sparkles },
   { id: "customer360", labelKey: "workspaceTabCustomer360", icon: UserRound },
-  { id: "files", labelKey: "workspaceTabFiles", icon: Paperclip },
+  { id: "files", labelKey: "workspaceTabFiles", icon: FolderOpen },
   { id: "activity", labelKey: "workspaceTabActivity", icon: History },
 ];
 

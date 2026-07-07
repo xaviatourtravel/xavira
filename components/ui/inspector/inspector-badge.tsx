@@ -60,7 +60,8 @@ export function InspectorBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full font-medium ring-1 ring-inset",
+        "inline-flex items-center gap-1 rounded-full font-medium",
+        size === "xs" ? "ring-0" : "ring-1 ring-inset",
         STATE_STYLES[resolvedState],
         SIZE_STYLES[size],
         className,

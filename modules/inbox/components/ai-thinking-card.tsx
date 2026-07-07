@@ -20,6 +20,7 @@ import {
 type AiThinkingCardProps = {
   conversation: OmnichannelConversationDetail;
   showMissingContext?: boolean;
+  compact?: boolean;
 };
 
 const CONFIDENCE_TONES = {
@@ -36,6 +37,7 @@ function formatSourceLabel(source: ThinkingKnowledgeSource, typeLabel: string) {
 export function AiThinkingCard({
   conversation,
   showMissingContext = true,
+  compact = false,
 }: AiThinkingCardProps) {
   const { ti, locale } = useInboxTranslation();
 
@@ -56,55 +58,60 @@ export function AiThinkingCard({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end">
-        <InspectorBadge tone={CONFIDENCE_TONES[thinking.confidenceLevel]}>
-          {thinking.confidence}% · {ti(thinking.confidenceLabelKey)}
-        </InspectorBadge>
-      </div>
+      {!compact ? (
+        <div className="flex items-center justify-end">
+          <InspectorBadge tone={CONFIDENCE_TONES[thinking.confidenceLevel]}>
+            {thinking.confidence}% · {ti(thinking.confidenceLabelKey)}
+          </InspectorBadge>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
-        <InspectorRow label={ti("detectedIntent")} value={ti(thinking.intentKey)} />
+        {!compact ? (
+          <InspectorRow label={ti("detectedIntent")} value={ti(thinking.intentKey)} />
+        ) : null}
 
-        <div>
-          <p className="text-[13px] text-muted-foreground">{ti("whyThisSuggestion")}</p>
-          <ul className="mt-1 space-y-1 text-sm font-medium text-foreground">
-            {thinking.whyBullets.map((key) => (
-              <li key={key}>{ti(key)}</li>
-            ))}
-          </ul>
-        </div>
+        <ul className="space-y-1 text-sm leading-relaxed text-foreground">
+          {thinking.whyBullets.map((key) => (
+            <li key={key}>{ti(key)}</li>
+          ))}
+        </ul>
 
-        <div>
-          <p className="text-[13px] text-muted-foreground">{ti("knowledgeUsed")}</p>
-          {thinking.knowledgeSources.length > 0 ? (
-            <div className="mt-1 flex flex-wrap gap-2">
-              {thinking.knowledgeSources.map((source) => (
-                <SourceLink key={`${source.type}-${source.name}`} source={source} ti={ti} />
-              ))}
+        {!compact ? (
+          <>
+            <div>
+              <p className="text-[13px] text-muted-foreground">{ti("knowledgeUsed")}</p>
+              {thinking.knowledgeSources.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {thinking.knowledgeSources.map((source) => (
+                    <SourceLink key={`${source.type}-${source.name}`} source={source} ti={ti} />
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-sm font-medium text-muted-foreground">
+                  {ti("noKnowledgeUsed")}
+                </p>
+              )}
             </div>
-          ) : (
-            <p className="mt-1 text-sm font-medium text-muted-foreground">
-              {ti("noKnowledgeUsed")}
-            </p>
-          )}
-        </div>
 
-        <div>
-          <p className="text-[13px] text-muted-foreground">{ti("rulesApplied")}</p>
-          {thinking.rulesApplied.length > 0 ? (
-            <ul className="mt-1 space-y-1 text-sm font-medium text-foreground">
-              {thinking.rulesApplied.map((rule, index) => (
-                <li key={rule.rawLabel ?? rule.labelKey ?? index}>
-                  {rule.rawLabel ?? (rule.labelKey ? ti(rule.labelKey) : "")}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-1 text-sm font-medium text-muted-foreground">
-              {ti("noRulesApplied")}
-            </p>
-          )}
-        </div>
+            <div>
+              <p className="text-[13px] text-muted-foreground">{ti("rulesApplied")}</p>
+              {thinking.rulesApplied.length > 0 ? (
+                <ul className="mt-1 space-y-1 text-sm font-medium text-foreground">
+                  {thinking.rulesApplied.map((rule, index) => (
+                    <li key={rule.rawLabel ?? rule.labelKey ?? index}>
+                      {rule.rawLabel ?? (rule.labelKey ? ti(rule.labelKey) : "")}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-sm font-medium text-muted-foreground">
+                  {ti("noRulesApplied")}
+                </p>
+              )}
+            </div>
+          </>
+        ) : null}
       </div>
 
       {showMissingContext && thinking.missingContext.length > 0 ? (

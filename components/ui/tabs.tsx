@@ -69,7 +69,7 @@ export function TabsList({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "grid shrink-0 grid-cols-4 gap-1 border-b border-border/60 bg-background px-3 py-2",
+        "flex w-full shrink-0 gap-1 border-b border-border/40 bg-background px-2 py-1.5",
         className,
       )}
     >
@@ -149,10 +149,10 @@ export function TabsTrigger({
       onClick={() => onValueChange(value)}
       onKeyDown={handleKeyDown}
       className={cn(
-        "inline-flex flex-col items-center justify-center gap-1 rounded-md px-1.5 py-2 text-[11px] font-medium leading-tight transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "inline-flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1 text-[10px] font-medium leading-tight transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
-          ? "bg-muted/70 text-foreground"
-          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+          ? "bg-muted/60 text-foreground"
+          : "text-muted-foreground hover:bg-muted/30 hover:text-foreground",
         className,
       )}
     >

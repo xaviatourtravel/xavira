@@ -72,6 +72,6 @@ export type WorkspaceIntelligencePlaceholder = {
   suggestedReply: string | null;
 };
 
-export const WORKSPACE_SIDEBAR_WIDTH = "360px";
+export const WORKSPACE_SIDEBAR_WIDTH = "420px";
 
-export const WORKSPACE_LIST_WIDTH = "300px";
+export const WORKSPACE_LIST_WIDTH = "320px";

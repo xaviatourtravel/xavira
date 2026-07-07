@@ -26,15 +26,15 @@ export function InspectorHeader({
   className?: string;
 }) {
   return (
-    <header className={cn(INSPECTOR_PADDING, "pb-6 pt-6", className)}>
+    <header className={cn(INSPECTOR_PADDING, "pb-4 pt-5", className)}>
       <div className={cn("flex items-start", INSPECTOR_HEADER_GAP)}>
         {Icon ? <Icon className={cn(INSPECTOR_ICON_CLASS, "mt-0.5")} aria-hidden /> : null}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+              <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
               {description ? (
-                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   {description}
                 </p>
               ) : null}
@@ -47,7 +47,7 @@ export function InspectorHeader({
           {segmentedControl ? <div className="mt-4">{segmentedControl}</div> : null}
         </div>
       </div>
-      {!hideDivider ? <InspectorDivider className="mt-6" /> : null}
+      {!hideDivider ? <InspectorDivider className="mt-4" /> : null}
     </header>
   );
 }

@@ -81,11 +81,11 @@ export function InspectorSection({
         )}
       >
         <div className="overflow-hidden">
-          <div className={cn(INSPECTOR_ROW_GAP, "pt-4")}>{children}</div>
+          <div className={cn(INSPECTOR_ROW_GAP, Icon ? "pt-2" : "pt-1.5")}>{children}</div>
         </div>
       </div>
 
-      {!hideDivider ? <InspectorDivider className="mt-6" /> : null}
+      {!hideDivider ? <InspectorDivider className="mt-3" /> : null}
     </section>
   );
 }
@@ -99,9 +99,11 @@ function InspectorSectionHeading({
 }) {
   return (
     <>
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        {title}
+      </h3>
       {description ? (
-        <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground/90">{description}</p>
       ) : null}
     </>
   );

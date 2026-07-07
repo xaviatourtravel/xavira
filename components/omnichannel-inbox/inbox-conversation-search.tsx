@@ -2,6 +2,8 @@
 
 import { Search } from "lucide-react";
 
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+
 type InboxConversationSearchProps = {
   value: string;
   onChange: (value: string) => void;
@@ -11,6 +13,8 @@ export function InboxConversationSearch({
   value,
   onChange,
 }: InboxConversationSearchProps) {
+  const { ti } = useInboxTranslation();
+
   return (
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -18,8 +22,8 @@ export function InboxConversationSearch({
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Cari nama, nomor, atau pesan"
-        className="h-9 w-full rounded-full border border-border/60 bg-muted/25 pl-9 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
+        placeholder={ti("conversationSearchPlaceholder")}
+        className="h-8 w-full rounded-lg border-0 bg-muted/25 pl-9 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:bg-muted/35 focus-visible:ring-2 focus-visible:ring-ring/20 dark:bg-muted/15"
       />
     </div>
   );

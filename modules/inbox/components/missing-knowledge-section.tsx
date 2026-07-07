@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { AlertTriangle } from "lucide-react";
 
 import {
-  InspectorEmpty,
-  InspectorNotice,
   InspectorSection,
 } from "@/components/ui/inspector";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -43,28 +40,26 @@ export function MissingKnowledgeSection({ conversation }: MissingKnowledgeSectio
   }, [conversation, locale]);
 
   return (
-    <InspectorSection icon={AlertTriangle} title={ti("missingKnowledge")} collapsible>
+    <InspectorSection title={ti("missingKnowledge")}>
       {items.length > 0 ? (
-        <InspectorNotice tone="warning">
-          <ul className="space-y-2">
-            {items.map((item) => (
-              <li
-                key={item.labelKey}
-                className="flex items-center justify-between gap-2 text-[13px]"
+        <ul className="divide-y divide-border/40">
+          {items.map((item) => (
+            <li
+              key={item.labelKey}
+              className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+            >
+              <span className="text-[13px] text-foreground">{ti(item.labelKey)}</span>
+              <Link
+                href={item.href}
+                className="shrink-0 text-xs text-primary hover:underline"
               >
-                <span>{ti(item.labelKey)}</span>
-                <Link
-                  href={item.href}
-                  className="shrink-0 text-xs font-medium text-primary hover:underline"
-                >
-                  {ti("createKnowledge")}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </InspectorNotice>
+                {ti("createKnowledge")}
+              </Link>
+            </li>
+          ))}
+        </ul>
       ) : (
-        <InspectorEmpty title={ti("nothingMissing")} description={ti("nothingMissing")} />
+        <p className="text-xs text-muted-foreground">{ti("nothingMissing")}</p>
       )}
     </InspectorSection>
   );

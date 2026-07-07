@@ -51,6 +51,9 @@ import {
   formatInboxMessageTime,
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
+import { formatTranslation } from "@/lib/i18n/dictionary";
+import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { WhatsappMessageBubble } from "@/components/omnichannel-inbox/whatsapp-message-bubble";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -78,7 +81,10 @@ type OmnichannelConversationDetailPanelProps = {
 
 const NEAR_BOTTOM_THRESHOLD_PX = 140;
 
-function getAttachmentLabel(message: MessageRow) {
+function getAttachmentLabel(
+  message: MessageRow,
+  ti: (key: InboxKey) => string,
+) {
   const attachments = Array.isArray(message.attachments_json)
     ? message.attachments_json
     : [];
@@ -87,7 +93,11 @@ function getAttachmentLabel(message: MessageRow) {
     return null;
   }
 
-  return attachments.length === 1 ? "1 lampiran" : `${attachments.length} lampiran`;
+  return attachments.length === 1
+    ? ti("attachmentCountOne")
+    : formatTranslation(ti("attachmentCountMany"), {
+        count: String(attachments.length),
+      });
 }
 
 function ConversationMenuItem({
@@ -141,6 +151,7 @@ export function OmnichannelConversationDetailPanel({
   backHref = "/inbox",
   showBackButton = false,
 }: OmnichannelConversationDetailPanelProps) {
+  const { ti } = useInboxTranslation();
   const isWhatsapp = (channel ?? conversation.channel) === "whatsapp";
   const showComposer = !readOnly || isWhatsapp;
 
@@ -317,8 +328,8 @@ export function OmnichannelConversationDetailPanel({
         : await convertOmnichannelConversationToLead(formData);
       setNotice(
         result.success
-          ? "Percakapan dikonversi menjadi lead."
-          : result.message ?? "Gagal mengonversi ke lead.",
+          ? ti("convertToLeadSuccess")
+          : result.message ?? ti("convertToLeadFailed"),
       );
       if (result.success) {
         router.refresh();
@@ -329,7 +340,7 @@ export function OmnichannelConversationDetailPanel({
   function handleExportChat() {
     setMenuOpen(false);
     const lines = displayMessages.map((message) => {
-      const who = message.direction === "incoming" ? displayName : "Agen";
+      const who = message.direction === "incoming" ? displayName : ti("agentLabel");
       const time = formatInboxMessageTime(message.created_at);
       return `[${time}] ${who}: ${message.message_text ?? ""}`;
     });
@@ -342,12 +353,12 @@ export function OmnichannelConversationDetailPanel({
     anchor.download = `chat-${displayName}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setNotice("Chat diekspor.");
+    setNotice(ti("exportChatSuccess"));
   }
 
   function handleMarkUnread() {
     setMenuOpen(false);
-    setNotice("Tandai belum dibaca akan segera tersedia.");
+    setNotice(ti("markUnreadSoon"));
   }
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
@@ -433,12 +444,12 @@ export function OmnichannelConversationDetailPanel({
   }, [conversation.channel, conversation.id, conversation.unreadCount, readOnly]);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-background">
-      <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b bg-background/95 px-3 py-1.5 backdrop-blur sm:px-4">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
+      <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur sm:px-4">
         {showBackButton ? (
           <Link
             href={backHref}
-            aria-label="Kembali ke percakapan"
+            aria-label={ti("backToConversations")}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-11 w-11 shrink-0 rounded-full p-0 lg:hidden",
@@ -466,7 +477,7 @@ export function OmnichannelConversationDetailPanel({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2
-              className="truncate text-sm font-semibold text-foreground"
+              className="truncate text-sm font-medium text-foreground"
               title={displayName}
             >
               {displayName}
@@ -496,8 +507,8 @@ export function OmnichannelConversationDetailPanel({
             setSearchOpen((value) => !value);
             setMenuOpen(false);
           }}
-          aria-label="Cari di percakapan"
-          title="Cari di percakapan"
+          aria-label={ti("searchInConversation")}
+          title={ti("searchInConversation")}
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
             searchOpen && "bg-muted text-foreground",
@@ -510,8 +521,8 @@ export function OmnichannelConversationDetailPanel({
           <button
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
-            aria-label="Menu percakapan"
-            title="Menu"
+            aria-label={ti("conversationMenu")}
+            title={ti("conversationMenu")}
             aria-expanded={menuOpen}
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
@@ -521,10 +532,10 @@ export function OmnichannelConversationDetailPanel({
             <MoreVertical className="h-[18px] w-[18px]" />
           </button>
           {menuOpen ? (
-            <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
+            <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-lg border border-border/40 bg-background py-1 shadow-md">
               <ConversationMenuItem
                 icon={<RefreshCw className="h-4 w-4" />}
-                label="Muat ulang"
+                label={ti("reloadConversation")}
                 onClick={() => {
                   setMenuOpen(false);
                   router.refresh();
@@ -532,7 +543,7 @@ export function OmnichannelConversationDetailPanel({
               />
               <ConversationMenuItem
                 icon={<Search className="h-4 w-4" />}
-                label="Cari di percakapan"
+                label={ti("searchInConversation")}
                 onClick={() => {
                   setMenuOpen(false);
                   setSearchOpen(true);
@@ -540,40 +551,40 @@ export function OmnichannelConversationDetailPanel({
               />
               <ConversationMenuItem
                 icon={<MailOpen className="h-4 w-4" />}
-                label="Tandai belum dibaca"
+                label={ti("markUnread")}
                 onClick={handleMarkUnread}
               />
               <ConversationMenuItem
                 icon={<Pin className="h-4 w-4" />}
-                label="Sematkan percakapan"
+                label={ti("pinConversation")}
                 onClick={() => {
                   setMenuOpen(false);
-                  setNotice("Sematkan percakapan akan segera tersedia.");
+                  setNotice(ti("pinConversationSoon"));
                 }}
               />
               <ConversationMenuItem
                 icon={<VolumeX className="h-4 w-4" />}
-                label="Bisukan"
+                label={ti("muteConversation")}
                 onClick={() => {
                   setMenuOpen(false);
-                  setNotice("Bisukan akan segera tersedia.");
+                  setNotice(ti("muteConversationSoon"));
                 }}
               />
               <ConversationMenuItem
                 icon={<Download className="h-4 w-4" />}
-                label="Ekspor chat"
+                label={ti("exportChat")}
                 onClick={handleExportChat}
               />
               <div className="my-1 h-px bg-border/60" />
               <ConversationMenuItem
                 icon={<UserRoundPlus className="h-4 w-4" />}
-                label="Konversi jadi lead"
+                label={ti("convertToLead")}
                 onClick={handleConvertToLead}
                 disabled={isActionPending}
               />
               <ConversationMenuItem
                 icon={<CalendarPlus className="h-4 w-4" />}
-                label="Buat booking"
+                label={ti("createBooking")}
                 onClick={() => {
                   setMenuOpen(false);
                   router.push("/bookings/new");
@@ -581,17 +592,17 @@ export function OmnichannelConversationDetailPanel({
               />
               <ConversationMenuItem
                 icon={<UserCog className="h-4 w-4" />}
-                label="Assign percakapan"
+                label={ti("assignConversation")}
                 onClick={() => {
                   setMenuOpen(false);
                   onToggleMobilePanel?.();
-                  setNotice("Atur penugasan di panel Detail > Alur Kerja.");
+                  setNotice(ti("assignConversationHint"));
                 }}
               />
               {onToggleMobilePanel ? (
                 <ConversationMenuItem
                   icon={<Info className="h-4 w-4" />}
-                  label="Lihat detail"
+                  label={ti("viewDetails")}
                   className="lg:hidden"
                   onClick={() => {
                     setMenuOpen(false);
@@ -602,11 +613,11 @@ export function OmnichannelConversationDetailPanel({
               <div className="my-1 h-px bg-border/60" />
               <ConversationMenuItem
                 icon={<Trash2 className="h-4 w-4" />}
-                label="Hapus percakapan"
+                label={ti("deleteConversation")}
                 destructive
                 onClick={() => {
                   setMenuOpen(false);
-                  setNotice("Hapus percakapan akan segera tersedia.");
+                  setNotice(ti("deleteConversationSoon"));
                 }}
               />
             </div>
@@ -626,18 +637,20 @@ export function OmnichannelConversationDetailPanel({
       ) : null}
 
       {searchOpen ? (
-        <div className="flex shrink-0 items-center gap-2 border-b bg-background px-3 py-2 sm:px-4">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border/40 bg-background px-3 py-2 sm:px-4">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             autoFocus
             value={messageSearch}
             onChange={(event) => setMessageSearch(event.target.value)}
-            placeholder="Cari di percakapan ini..."
+            placeholder={ti("searchInConversationPlaceholder")}
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {normalizedSearch ? (
             <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-              {visibleMessages.length} hasil
+              {formatTranslation(ti("searchResultsCount"), {
+                count: String(visibleMessages.length),
+              })}
             </span>
           ) : null}
           <button
@@ -646,7 +659,7 @@ export function OmnichannelConversationDetailPanel({
               setSearchOpen(false);
               setMessageSearch("");
             }}
-            aria-label="Tutup pencarian"
+            aria-label={ti("closeSearch")}
             className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           >
             <X className="h-4 w-4" />
@@ -665,34 +678,31 @@ export function OmnichannelConversationDetailPanel({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 dark:bg-muted/15"
+        className="min-h-0 flex-1 overflow-y-auto bg-muted/10 dark:bg-muted/5"
       >
         <div
           className={cn(
-            "flex w-full flex-col px-3 py-3 sm:px-4",
-            isWhatsapp ? "gap-3" : "gap-1 py-2",
+            "mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-4",
           )}
         >
           {displayMessages.length === 0 ? (
-            <div className="flex flex-col items-center py-10 text-center">
+            <div className="flex flex-col items-center py-12 text-center">
               <MessageSquareText className="h-6 w-6 text-muted-foreground/50" />
               <p className="mt-2 text-sm font-medium text-foreground">
-                Belum ada pesan
+                {ti("noMessagesYet")}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {isWhatsapp
-                  ? "Pesan WhatsApp akan muncul di sini."
-                  : "Pesan pelanggan akan muncul di sini."}
+                {isWhatsapp ? ti("noMessagesWhatsappDesc") : ti("noMessagesChannelDesc")}
               </p>
             </div>
           ) : searchOpen && normalizedSearch && visibleMessages.length === 0 ? (
-            <div className="flex flex-col items-center py-10 text-center">
+            <div className="flex flex-col items-center py-12 text-center">
               <Search className="h-6 w-6 text-muted-foreground/50" />
               <p className="mt-2 text-sm font-medium text-foreground">
-                Tidak ada hasil
+                {ti("noSearchResults")}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Coba kata kunci lain.
+                {ti("noSearchResultsDesc")}
               </p>
             </div>
           ) : isWhatsapp ? (
@@ -716,7 +726,7 @@ export function OmnichannelConversationDetailPanel({
             visibleMessages.map((message) => {
               const isIncoming = message.direction === "incoming";
               const isOptimistic = message.id === "optimistic-outgoing";
-              const attachmentLabel = getAttachmentLabel(message);
+              const attachmentLabel = getAttachmentLabel(message, ti);
 
               return (
                 <div
@@ -728,23 +738,23 @@ export function OmnichannelConversationDetailPanel({
                 >
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                      "max-w-[68%] px-3 py-2",
                       isIncoming
-                        ? "rounded-tl-md bg-white text-foreground ring-1 ring-black/5 dark:bg-card"
-                        : "rounded-tr-md bg-[#005c4b] text-white dark:bg-primary",
+                        ? "rounded-2xl rounded-tl-sm bg-muted/35 text-foreground dark:bg-muted/25"
+                        : "rounded-2xl rounded-tr-sm bg-foreground/90 text-background dark:bg-foreground/85",
                       isOptimistic && "opacity-75",
                     )}
                   >
                     {message.message_text ? (
-                      <p className="whitespace-pre-wrap leading-relaxed">
+                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed">
                         {message.message_text}
                       </p>
                     ) : null}
                     {attachmentLabel ? (
                       <p
                         className={cn(
-                          "mt-1 text-xs",
-                          isIncoming ? "text-muted-foreground" : "text-white/80",
+                          "mt-1 text-[11px]",
+                          isIncoming ? "text-muted-foreground" : "text-background/70",
                         )}
                       >
                         {attachmentLabel}
@@ -752,12 +762,12 @@ export function OmnichannelConversationDetailPanel({
                     ) : null}
                     <p
                       className={cn(
-                        "mt-1 text-right text-[10px]",
-                        isIncoming ? "text-muted-foreground" : "text-white/70",
+                        "mt-1 text-right text-[10px] tabular-nums",
+                        isIncoming ? "text-muted-foreground/80" : "text-background/60",
                       )}
                     >
                       {isOptimistic
-                        ? "Mengirim..."
+                        ? ti("sendingMessage")
                         : formatInboxMessageTime(message.created_at)}
                     </p>
                   </div>
@@ -778,14 +788,16 @@ export function OmnichannelConversationDetailPanel({
           >
             <ArrowDown className="h-3.5 w-3.5" />
             {newMessageCount === 1
-              ? "1 pesan baru"
-              : `${newMessageCount} pesan baru`}
+              ? ti("newMessageOne")
+              : formatTranslation(ti("newMessagesMany"), {
+                  count: String(newMessageCount),
+                })}
           </button>
         </div>
       ) : null}
 
       {showComposer ? (
-        <div className="sticky bottom-0 z-10 shrink-0 border-t bg-background">
+        <div className="sticky bottom-0 z-10 shrink-0 border-t border-border/40 bg-background">
           <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}
@@ -806,14 +818,16 @@ export function OmnichannelConversationDetailPanel({
 }
 
 export function OmnichannelConversationEmptyState() {
+  const { ti } = useInboxTranslation();
+
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-[#f4f6f8] px-8 text-center dark:bg-muted/10">
+    <div className="flex h-full flex-col items-center justify-center bg-muted/10 px-8 text-center dark:bg-muted/5">
       <MessageSquareText className="h-10 w-10 text-muted-foreground/40" />
       <p className="mt-4 text-base font-semibold text-foreground">
-        Pilih percakapan
+        {ti("selectConversationEmpty")}
       </p>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Pilih sebuah percakapan untuk mulai mengirim pesan.
+        {ti("selectConversationEmptyDesc")}
       </p>
     </div>
   );

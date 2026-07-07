@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy, ExternalLink, Sparkles } from "lucide-react";
 
 import {
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 type AiSuggestedReplyCardProps = {
   conversation: OmnichannelConversationDetail;
+  hideHeader?: boolean;
 };
 
 const CONFIDENCE_TONES = {
@@ -30,7 +31,10 @@ const CONFIDENCE_TONES = {
   low: "neutral",
 } as const;
 
-export function AiSuggestedReplyCard({ conversation }: AiSuggestedReplyCardProps) {
+export function AiSuggestedReplyCard({
+  conversation,
+  hideHeader = false,
+}: AiSuggestedReplyCardProps) {
   const { ti, locale } = useInboxTranslation();
   const { insertText } = useInboxComposer();
 
@@ -130,15 +134,22 @@ export function AiSuggestedReplyCard({ conversation }: AiSuggestedReplyCardProps
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">{ti("suggestedReply")}</p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{ti("suggestedReplySubtitle")}</p>
+      {!hideHeader ? (
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {ti("suggestedReply")}
+          </p>
+          <InspectorBadge tone={CONFIDENCE_TONES[result.confidenceLevel]} size="xs">
+            {result.confidence}% · {ti(result.confidenceLabelKey)}
+          </InspectorBadge>
         </div>
-        <InspectorBadge tone={CONFIDENCE_TONES[result.confidenceLevel]}>
-          {result.confidence}% · {ti(result.confidenceLabelKey)}
-        </InspectorBadge>
-      </div>
+      ) : (
+        <div className="flex justify-end">
+          <InspectorBadge tone={CONFIDENCE_TONES[result.confidenceLevel]} size="xs">
+            {result.confidence}% · {ti(result.confidenceLabelKey)}
+          </InspectorBadge>
+        </div>
+      )}
 
       <textarea
         value={draftText}
@@ -147,46 +158,46 @@ export function AiSuggestedReplyCard({ conversation }: AiSuggestedReplyCardProps
           setDraftText(event.target.value);
         }}
         rows={5}
-        className="w-full resize-y rounded-md border border-border/70 bg-background px-3 py-2 text-sm leading-relaxed text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+        className="w-full resize-y rounded-lg bg-muted/20 px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-muted/15"
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         <InspectorAction variant="primary" onClick={handleInsert} disabled={!draftText.trim()}>
           {ti("insertToComposer")}
         </InspectorAction>
-        <InspectorAction onClick={() => void handleCopy()} disabled={!draftText.trim()}>
-          <Copy className="h-3.5 w-3.5" />
+        <InspectorAction variant="ghost" onClick={() => void handleCopy()} disabled={!draftText.trim()}>
+          <Copy className="h-3 w-3" />
           {ti("copy")}
         </InspectorAction>
-        <InspectorAction onClick={handleRegenerate}>{ti("regenerate")}</InspectorAction>
-        <InspectorAction onClick={() => handleVariant("short")}>{ti("shorter")}</InspectorAction>
-        <InspectorAction onClick={() => handleVariant("persuasive")}>
+        <InspectorAction variant="ghost" onClick={handleRegenerate}>{ti("regenerate")}</InspectorAction>
+        <InspectorAction variant="ghost" onClick={() => handleVariant("short")}>{ti("shorter")}</InspectorAction>
+        <InspectorAction variant="ghost" onClick={() => handleVariant("persuasive")}>
           {ti("morePersuasive")}
         </InspectorAction>
-        <InspectorAction onClick={() => handleVariant("friendly")}>{ti("moreFriendly")}</InspectorAction>
-        <InspectorAction onClick={() => handleVariant("professional")}>
+        <InspectorAction variant="ghost" onClick={() => handleVariant("friendly")}>{ti("moreFriendly")}</InspectorAction>
+        <InspectorAction variant="ghost" onClick={() => handleVariant("professional")}>
           {ti("moreProfessional")}
         </InspectorAction>
-        <InspectorAction disabled title={ti("comingSoon")}>
+        <InspectorAction variant="ghost" disabled title={ti("comingSoon")}>
           {ti("translate")}
         </InspectorAction>
       </div>
 
       <div>
-        <p className="mb-2 text-xs text-muted-foreground">{ti("generatedFrom")}</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">{ti("generatedFrom")}</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           {result.sources.map((source) => (
             <Link
               key={source.key}
               href={source.href}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:bg-muted/50",
+                "inline-flex items-center gap-1 text-xs transition-colors hover:text-foreground",
                 source.active
-                  ? "text-emerald-700 dark:text-emerald-300"
+                  ? "text-foreground"
                   : "text-muted-foreground",
               )}
             >
-              {source.active ? <Check className="h-3 w-3" /> : null}
+              {source.active ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : null}
               {ti(source.labelKey)}
             </Link>
           ))}
@@ -194,14 +205,11 @@ export function AiSuggestedReplyCard({ conversation }: AiSuggestedReplyCardProps
       </div>
 
       {result.confidence < 70 && result.missingContext.length > 0 ? (
-        <div className="rounded-md bg-amber-500/10 px-3 py-2 text-[13px] text-amber-950 dark:text-amber-100">
-          <p className="font-medium">{ti("incompleteReplyWarning")}</p>
-          <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
-            {ti("missingLabel")}
-          </p>
+        <div className="text-xs text-muted-foreground">
+          <p>{ti("incompleteReplyWarning")}</p>
           <ul className="mt-1 space-y-0.5">
             {result.missingContext.map((item) => (
-              <li key={item}>{ti(result.missingContextLabelKeys[item])}</li>
+              <li key={item}>· {ti(result.missingContextLabelKeys[item])}</li>
             ))}
           </ul>
         </div>

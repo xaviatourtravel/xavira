@@ -7,11 +7,15 @@ import {
   formatInboxMessageTime,
   formatOutgoingBubbleMetadataLine,
 } from "@/components/omnichannel-inbox/inbox-display";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
-import { designSystemPanelClass } from "@/lib/design-system/tokens";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 
-function getAttachmentLabel(message: MessageRow) {
+function getAttachmentLabel(
+  message: MessageRow,
+  ti: (key: "attachmentCountOne" | "attachmentCountMany") => string,
+) {
   const attachments = Array.isArray(message.attachments_json)
     ? message.attachments_json
     : [];
@@ -20,7 +24,9 @@ function getAttachmentLabel(message: MessageRow) {
     return null;
   }
 
-  return attachments.length === 1 ? "1 lampiran" : `${attachments.length} lampiran`;
+  return attachments.length === 1
+    ? ti("attachmentCountOne")
+    : formatTranslation(ti("attachmentCountMany"), { count: String(attachments.length) });
 }
 
 function getBubbleMetadataLine(message: MessageRow, isIncoming: boolean) {
@@ -38,50 +44,46 @@ function getBubbleMetadataLine(message: MessageRow, isIncoming: boolean) {
 type WhatsappMessageBubbleProps = {
   message: MessageRow;
   onRetry?: () => Promise<void>;
-  /** Reserved for future group-chat sender label / avatar. */
   isGroupChat?: boolean;
 };
 
 export function WhatsappMessageBubble({
   message,
   onRetry,
-  isGroupChat: _isGroupChat = false,
 }: WhatsappMessageBubbleProps) {
+  const { ti } = useInboxTranslation();
   const [isRetrying, startRetry] = useTransition();
   const isIncoming = message.direction === "incoming";
-  const attachmentLabel = getAttachmentLabel(message);
+  const attachmentLabel = getAttachmentLabel(message, ti);
   const isFailed = message.deliveryStatus === "failed";
   const metadataLine = getBubbleMetadataLine(message, isIncoming);
 
   return (
     <div
       className={cn(
-        "flex w-full animate-in fade-in slide-in-from-bottom-1 duration-200",
-        isIncoming ? "justify-start pr-6 sm:pr-10" : "justify-end pl-6 sm:pl-10",
+        "flex w-full",
+        isIncoming ? "justify-start" : "justify-end",
       )}
     >
       <div
         className={cn(
-          "max-w-[min(100%,28rem)] px-4 py-3",
+          "max-w-[68%] px-3 py-2",
           isIncoming
-            ? cn(
-                designSystemPanelClass,
-                "rounded-2xl rounded-tl-md text-card-foreground",
-              )
-            : "rounded-2xl rounded-tr-md bg-slate-900 text-white shadow-sm dark:bg-emerald-800 dark:text-emerald-50",
-          isFailed && "ring-2 ring-red-400/60",
+            ? "rounded-2xl rounded-tl-sm bg-muted/35 text-foreground dark:bg-muted/25"
+            : "rounded-2xl rounded-tr-sm bg-foreground/90 text-background dark:bg-foreground/85",
+          isFailed && "ring-1 ring-red-400/40",
         )}
       >
         {message.message_text ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed">
             {message.message_text}
           </p>
         ) : null}
         {attachmentLabel ? (
           <p
             className={cn(
-              "mt-1.5 text-xs",
-              isIncoming ? "text-muted-foreground" : "text-white/80",
+              "mt-1 text-[11px]",
+              isIncoming ? "text-muted-foreground" : "text-background/70",
             )}
           >
             {attachmentLabel}
@@ -90,8 +92,8 @@ export function WhatsappMessageBubble({
         {metadataLine ? (
           <div
             className={cn(
-              "mt-2 flex items-center justify-end gap-2 text-[11px] tabular-nums",
-              isIncoming ? "text-muted-foreground" : "text-white/70",
+              "mt-1 flex items-center justify-end gap-2 text-[10px] tabular-nums",
+              isIncoming ? "text-muted-foreground/80" : "text-background/60",
             )}
           >
             <span>{metadataLine}</span>
@@ -100,27 +102,27 @@ export function WhatsappMessageBubble({
                 type="button"
                 disabled={isRetrying}
                 onClick={() => startRetry(onRetry)}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-red-100 hover:bg-white/10"
+                className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium hover:bg-background/10"
               >
                 <RotateCcw
                   className={cn("h-3 w-3", isRetrying && "animate-spin")}
                 />
-                {isRetrying ? "Mengirim..." : "Coba Lagi"}
+                {isRetrying ? ti("retrySending") : ti("retrySend")}
               </button>
             ) : null}
           </div>
         ) : onRetry ? (
-          <div className="mt-2 flex justify-end">
+          <div className="mt-1 flex justify-end">
             <button
               type="button"
               disabled={isRetrying}
               onClick={() => startRetry(onRetry)}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-red-100 hover:bg-white/10"
+              className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium hover:bg-background/10"
             >
               <RotateCcw
                 className={cn("h-3 w-3", isRetrying && "animate-spin")}
               />
-              {isRetrying ? "Mengirim..." : "Coba Lagi"}
+              {isRetrying ? ti("retrySending") : ti("retrySend")}
             </button>
           </div>
         ) : null}

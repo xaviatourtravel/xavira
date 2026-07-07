@@ -3,13 +3,8 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import {
-  BookOpen,
   CalendarPlus,
-  Check,
   ExternalLink,
-  MapPin,
-  UserRound,
-  X,
 } from "lucide-react";
 
 import { formatTranslation } from "@/lib/i18n/dictionary";
@@ -19,12 +14,12 @@ import { MEMORY_KEY_LABELS } from "@/modules/ai/types/memory";
 import {
   InspectorEmpty,
   InspectorFooter,
-  InspectorHeader,
-  InspectorProgress,
-  InspectorRoot,
   InspectorRow,
+  InspectorRoot,
   InspectorSection,
 } from "@/components/ui/inspector";
+import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
+import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import {
   buildCopilotSummaryFacts,
@@ -32,7 +27,6 @@ import {
   getQualificationFieldRows,
   type CopilotSummaryFact,
 } from "@/modules/inbox/lib/build-ai-copilot";
-import { cn } from "@/lib/utils";
 
 type Customer360TabProps = {
   conversation: OmnichannelConversationDetail;
@@ -65,7 +59,7 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
   const lead = conversation.leadContext;
   const qualification = conversation.leadQualification;
   const memory = conversation.conversationMemory;
-  const completionScore = qualification?.completionScore ?? 0;
+  const displayName = conversation.customerName || ti("notSet");
 
   const qualificationRows = useMemo(
     () => getQualificationFieldRows(qualification),
@@ -74,6 +68,10 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
   const summaryFacts = useMemo(
     () => buildCopilotSummaryFacts(conversation),
     [conversation],
+  );
+  const missingFields = useMemo(
+    () => qualificationRows.filter((field) => !field.completed),
+    [qualificationRows],
   );
 
   const memoryRows = useMemo(() => {
@@ -110,62 +108,44 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
   }, [lead]);
 
   return (
-    <InspectorRoot>
-      <InspectorHeader
-        icon={UserRound}
-        title={ti("workspacePanelCustomer360Title")}
-        description={ti("workspacePanelCustomer360Desc")}
-      />
-
-      <InspectorSection icon={UserRound} title={ti("customer360Profile")}>
-        <div className="space-y-0.5">
-          <InspectorRow label={ti("name")} value={conversation.customerName || ti("notSet")} />
-          <InspectorRow
-            label={ti("whatsappNumber")}
-            value={conversation.externalUserId || ti("notSet")}
+    <InspectorRoot className="pb-8">
+      <section className="border-b border-border/40 px-4 py-4">
+        <div className="flex items-start gap-3">
+          <CustomerAvatar
+            displayName={displayName}
+            avatarUrl={conversation.customerAvatar}
+            size="sm"
+            channel={
+              conversation.channel === "whatsapp"
+                ? "whatsapp"
+                : conversation.channel === "instagram"
+                  ? "instagram"
+                  : conversation.channel === "facebook"
+                    ? "facebook"
+                    : "default"
+            }
           />
-          <InspectorRow label={ti("channel")} value={conversation.channelLabel} />
-          <InspectorRow label={ti("leadStatus")} value={conversation.statusLabel} />
-          <InspectorRow
-            label={ti("assignedSales")}
-            value={conversation.assignedUserName || ti("unassigned")}
-          />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-sm font-medium text-foreground">{displayName}</h2>
+              <OmnichannelChannelBadge channel={conversation.channel} />
+            </div>
+            <div className="mt-2 space-y-0.5">
+              <InspectorRow
+                label={ti("whatsappNumber")}
+                value={conversation.externalUserId || ti("notSet")}
+              />
+              <InspectorRow label={ti("leadStatus")} value={conversation.statusLabel} />
+              <InspectorRow
+                label={ti("assignedSales")}
+                value={conversation.assignedUserName || ti("unassigned")}
+              />
+            </div>
+          </div>
         </div>
-      </InspectorSection>
+      </section>
 
-      <InspectorSection
-        icon={Check}
-        title={ti("leadQualification")}
-        action={
-          <span className="text-xs font-semibold tabular-nums text-foreground">
-            {completionScore}%
-          </span>
-        }
-      >
-        <InspectorProgress value={completionScore} />
-        <ul className="space-y-1 pt-1">
-          {qualificationRows.map((field) => (
-            <li
-              key={field.key}
-              className="flex items-center gap-2 rounded-md px-1 py-1.5 text-sm transition-colors hover:bg-muted/40"
-            >
-              {field.completed ? (
-                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <X className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-              )}
-              <span className={cn("font-medium", !field.completed && "text-muted-foreground")}>
-                {ti(getQualificationFieldLabelKey(field.key))}
-              </span>
-              {field.value ? (
-                <span className="ml-auto truncate text-xs text-muted-foreground">{field.value}</span>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </InspectorSection>
-
-      <InspectorSection icon={MapPin} title={ti("customer360TravelInterests")}>
+      <InspectorSection title={ti("customer360LookingFor")}>
         {summaryFacts.length > 0 ? (
           <div className="space-y-0.5">
             {summaryFacts.map((fact) => (
@@ -194,7 +174,23 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
         )}
       </InspectorSection>
 
-      <InspectorSection icon={BookOpen} title={ti("customer360Memory")}>
+      <InspectorSection title={ti("customer360StillMissing")}>
+        {missingFields.length > 0 ? (
+          <div className="space-y-0.5">
+            {missingFields.map((field) => (
+              <InspectorRow
+                key={field.key}
+                label={ti(getQualificationFieldLabelKey(field.key))}
+                value={field.value || ti("notSet")}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{ti("customer360AllCaptured")}</p>
+        )}
+      </InspectorSection>
+
+      <InspectorSection title={ti("customer360WhatAiKnows")}>
         {memoryRows.length > 0 ? (
           <div className="space-y-0.5">
             {memoryRows.map((row) => (
@@ -252,42 +248,25 @@ export function Customer360Tab({ conversation }: Customer360TabProps) {
         )}
       </InspectorSection>
 
-      <InspectorSection title={ti("customer360Bookings")}>
-        <InspectorEmpty
-          title={ti("customer360NoBookings")}
-          description={ti("customer360NoBookings")}
-        />
-      </InspectorSection>
-
-      <InspectorSection title={ti("customer360Payments")}>
-        <InspectorEmpty
-          title={ti("customer360NoPayments")}
-          description={ti("customer360NoPayments")}
-        />
-      </InspectorSection>
-
       <InspectorFooter label={ti("customer360QuickActions")}>
         {quickActions.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-1">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <Link
                   key={action.labelKey}
                   href={action.href}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border/70 bg-transparent px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none"
+                  className="inline-flex items-center gap-1.5 py-1.5 text-[13px] text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <Icon className="h-4 w-4 stroke-[1.75] text-muted-foreground" aria-hidden />
+                  <Icon className="h-3.5 w-3.5 stroke-[1.75]" aria-hidden />
                   {ti(action.labelKey)}
                 </Link>
               );
             })}
           </div>
         ) : (
-          <InspectorEmpty
-            title={ti("customer360NoQuickActions")}
-            description={ti("customer360NoLead")}
-          />
+          <p className="text-xs text-muted-foreground">{ti("customer360NoQuickActions")}</p>
         )}
       </InspectorFooter>
     </InspectorRoot>

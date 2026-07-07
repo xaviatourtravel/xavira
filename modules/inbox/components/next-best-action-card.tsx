@@ -4,11 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  FileText,
-  HandHelping,
   Lightbulb,
-  MessageSquarePlus,
-  Sparkles,
 } from "lucide-react";
 
 import {
@@ -36,6 +32,7 @@ import { cn } from "@/lib/utils";
 type NextBestActionCardProps = {
   conversation: OmnichannelConversationDetail;
   canManageAi?: boolean;
+  flat?: boolean;
 };
 
 const PRIORITY_TONES: Record<
@@ -51,6 +48,7 @@ const PRIORITY_TONES: Record<
 export function NextBestActionCard({
   conversation,
   canManageAi = false,
+  flat = false,
 }: NextBestActionCardProps) {
   const router = useRouter();
   const { ti, locale } = useInboxTranslation();
@@ -135,19 +133,23 @@ export function NextBestActionCard({
         recommendation={result.primary}
         ti={ti}
         primary
+        flat={flat}
         disabled={isPending}
         canManageAi={canManageAi}
         onAction={() => handleAction(result.primary!)}
       />
 
       {result.others.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">{ti("nbaOtherSuggestions")}</p>
+        <div className="space-y-1 border-t border-border/40 pt-2">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            {ti("nbaOtherSuggestions")}
+          </p>
           {result.others.map((recommendation) => (
             <RecommendationBlock
               key={recommendation.id}
               recommendation={recommendation}
               ti={ti}
+              flat={flat}
               disabled={isPending}
               canManageAi={canManageAi}
               onAction={() => handleAction(recommendation)}
@@ -173,6 +175,7 @@ function RecommendationBlock({
   recommendation,
   ti,
   primary = false,
+  flat = false,
   disabled,
   canManageAi = false,
   onAction,
@@ -180,6 +183,7 @@ function RecommendationBlock({
   recommendation: NextBestActionRecommendation;
   ti: (key: InboxKey) => string;
   primary?: boolean;
+  flat?: boolean;
   disabled?: boolean;
   canManageAi?: boolean;
   onAction: () => void;
@@ -191,74 +195,45 @@ function RecommendationBlock({
   const ctaTitle = !recommendation.ctaEnabled ? ti("comingSoon") : undefined;
 
   return (
-    <div
-      className={cn(
-        "rounded-md px-1 py-2 transition-colors",
-        primary && "bg-muted/30 px-3 dark:bg-muted/20",
-      )}
-    >
-      {primary ? (
-        <p className="mb-2 text-xs font-medium text-muted-foreground">
+    <div className={cn("py-1.5", primary && !flat && "rounded-md bg-muted/20 px-2 dark:bg-muted/10")}>
+      {primary && !flat ? (
+        <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
           {ti("nbaPrimaryRecommendation")}
         </p>
       ) : null}
 
       <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2">
-          <ActionIcon actionType={recommendation.actionType} />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">
-              {ti(recommendation.titleKey)}
-            </p>
-            <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
-              {ti(recommendation.descriptionKey)}
-            </p>
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-foreground">
+            {ti(recommendation.titleKey)}
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            {ti(recommendation.descriptionKey)}
+          </p>
         </div>
-        <InspectorBadge tone={PRIORITY_TONES[recommendation.priority]}>
-          {ti(recommendation.priorityLabelKey)}
-        </InspectorBadge>
+        {!flat ? (
+          <InspectorBadge tone={PRIORITY_TONES[recommendation.priority]} size="xs">
+            {ti(recommendation.priorityLabelKey)}
+          </InspectorBadge>
+        ) : null}
       </div>
 
-      <div className="mt-3 space-y-1">
-        <InspectorRow label={ti("nbaReasonLabel")} value={ti(recommendation.reasonKey)} />
-        <InspectorRow
-          label={ti("nbaExpectedImpactLabel")}
-          value={ti(recommendation.expectedImpactKey)}
-        />
-      </div>
+      {!flat ? (
+        <div className="mt-2 space-y-0.5">
+          <InspectorRow label={ti("nbaReasonLabel")} value={ti(recommendation.reasonKey)} />
+        </div>
+      ) : null}
 
       <InspectorAction
-        variant={primary ? "primary" : "secondary"}
+        variant={primary ? "primary" : "ghost"}
         disabled={ctaDisabled}
         title={ctaTitle}
         onClick={onAction}
-        className="mt-3 w-full"
+        className={cn("mt-2", primary ? "w-full" : "px-0")}
       >
         {ti(recommendation.ctaKey)}
         <ArrowRight className="h-3.5 w-3.5" />
       </InspectorAction>
     </div>
   );
-}
-
-function ActionIcon({
-  actionType,
-}: {
-  actionType: NextBestActionRecommendation["actionType"];
-}) {
-  const className = "mt-0.5 h-4 w-4 shrink-0 stroke-[1.75] text-muted-foreground";
-
-  switch (actionType) {
-    case "take_over":
-      return <HandHelping className={className} />;
-    case "send_document":
-      return <FileText className={className} />;
-    case "mark_qualified":
-      return <Sparkles className={className} />;
-    case "create_note":
-      return <MessageSquarePlus className={className} />;
-    default:
-      return <Lightbulb className={className} />;
-  }
 }

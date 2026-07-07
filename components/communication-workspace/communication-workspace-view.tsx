@@ -20,7 +20,6 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
 import {
-  WORKSPACE_LIST_WIDTH,
   WORKSPACE_SIDEBAR_WIDTH,
 } from "@/lib/communication-workspace/types";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
@@ -34,6 +33,7 @@ import {
   patchConversationDetailAvatar,
 } from "@/lib/whatsapp-inbox/use-whatsapp-profile-picture-sync";
 import { cn } from "@/lib/utils";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 
 type CommunicationWorkspaceViewProps = {
   conversations: OmnichannelConversationListItem[];
@@ -70,14 +70,13 @@ function sortByLastMessageAtDesc(
 }
 
 function ConversationNotFoundState() {
+  const { ti } = useInboxTranslation();
+
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-app px-8 text-center">
-      <p className="text-sm font-medium text-foreground">
-        Percakapan tidak ditemukan
-      </p>
+    <div className="flex h-full flex-col items-center justify-center bg-background px-8 text-center">
+      <p className="text-sm font-medium text-foreground">{ti("conversationNotFound")}</p>
       <p className="mt-2 max-w-sm text-xs text-muted-foreground">
-        Percakapan ini mungkin telah dihapus atau tidak tersedia untuk akun
-        Anda.
+        {ti("conversationNotFoundDesc")}
       </p>
     </div>
   );
@@ -109,6 +108,7 @@ export function CommunicationWorkspaceView({
   // Panel detail diciutkan secara default agar area chat lebih lebar.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { ti } = useInboxTranslation();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
@@ -220,24 +220,23 @@ export function CommunicationWorkspaceView({
   const showMobileThread = Boolean(selectedConversationId);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col">
       {initialError ? (
-        <div className="shrink-0 rounded-lg border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <div className="shrink-0 rounded-lg border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
           {decodeURIComponent(initialError)}
         </div>
       ) : null}
 
       {initialSuccess ? (
-        <div className="shrink-0 rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <div className="shrink-0 rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
           {decodeURIComponent(initialSuccess)}
         </div>
       ) : null}
 
       <InboxComposerProvider>
       <div
-        className="grid min-h-0 flex-1 overflow-hidden rounded-2xl border border-soft bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[grid-template-columns] duration-200 ease-out lg:grid-cols-[var(--workspace-list-width)_minmax(0,1fr)_var(--workspace-sidebar-width)]"
+        className="grid min-h-0 flex-1 overflow-hidden bg-background lg:grid-cols-[320px_minmax(0,1fr)_var(--workspace-sidebar-width)]"
         style={{
-          ["--workspace-list-width" as string]: WORKSPACE_LIST_WIDTH,
           ["--workspace-sidebar-width" as string]: sidebarCollapsed
             ? "48px"
             : WORKSPACE_SIDEBAR_WIDTH,
@@ -246,29 +245,24 @@ export function CommunicationWorkspaceView({
         {/* Left — conversation list */}
         <section
           className={cn(
-            "flex min-h-0 flex-col border-r border-soft bg-sidebar",
+            "flex min-h-0 w-[320px] min-w-[320px] max-w-[320px] shrink-0 flex-col border-r border-border/40 bg-background",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="flex items-center justify-between px-4 py-4">
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-foreground">
-                Percakapan
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Semua kanal · satu workspace
-              </p>
-            </div>
-            <span className="rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-medium tracking-tight text-foreground">
+              {ti("conversationListTitle")}
+            </p>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
               {filteredConversations.length}
             </span>
           </div>
 
-          <div className="px-4">
+          <div className="px-4 pb-2">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
           </div>
 
-          <div className="mt-3 px-4">
+          <div className="px-4 pb-2.5">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}
@@ -276,7 +270,7 @@ export function CommunicationWorkspaceView({
             />
           </div>
 
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto border-t border-soft">
+          <div className="min-h-0 flex-1 overflow-y-auto border-t border-border/40">
             <OmnichannelConversationList
               conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
@@ -289,7 +283,7 @@ export function CommunicationWorkspaceView({
         {/* Center — active thread */}
         <section
           className={cn(
-            "relative min-h-0 bg-app",
+            "relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-background",
             showMobileThread ? "flex flex-col" : "hidden lg:flex lg:flex-col",
           )}
         >
@@ -312,11 +306,11 @@ export function CommunicationWorkspaceView({
                 <>
                   <button
                     type="button"
-                    aria-label="Close customer intelligence"
+                    aria-label={ti("closeCustomerIntelligence")}
                     className="fixed inset-0 z-30 bg-black/30 backdrop-blur-[1px] lg:hidden"
                     onClick={() => setMobilePanelOpen(false)}
                   />
-                  <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-soft bg-card shadow-2xl lg:hidden">
+                  <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-border/40 bg-background shadow-lg lg:hidden">
                     <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
                     <div className="min-h-0 flex-1 overflow-y-auto">
                       <WorkspaceRightSidebar
@@ -344,7 +338,7 @@ export function CommunicationWorkspaceView({
         </section>
 
         {/* Right — customer intelligence (always visible on desktop) */}
-        <section className="hidden min-h-0 border-l border-soft lg:block">
+        <section className="hidden h-full min-h-0 min-w-0 shrink-0 overflow-hidden border-l border-border/40 lg:block">
           <WorkspaceRightSidebar
             conversation={liveDetail}
             organizationId={organizationId}

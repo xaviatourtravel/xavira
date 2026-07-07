@@ -1,8 +1,8 @@
 /** Desklabs Inspector Design System v1 — shared tokens */
 
-export const INSPECTOR_PADDING = "p-6"; // 24px
-export const INSPECTOR_SECTION_GAP = "py-6"; // 24px between sections
-export const INSPECTOR_ROW_GAP = "space-y-2"; // 8px between rows
+export const INSPECTOR_PADDING = "px-4 py-3";
+export const INSPECTOR_SECTION_GAP = "py-3";
+export const INSPECTOR_ROW_GAP = "space-y-0.5";
 export const INSPECTOR_HEADER_GAP = "gap-4"; // 16px header internal
 
 export const INSPECTOR_ICON_CLASS =

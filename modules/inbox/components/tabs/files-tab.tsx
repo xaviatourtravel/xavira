@@ -2,15 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Clock,
-  ExternalLink,
-  FileText,
-  Image,
-  Paperclip,
-  Send,
-  Zap,
-} from "lucide-react";
+import { ExternalLink, FileText, Send } from "lucide-react";
 
 import { sendWhatsappDocumentAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { refreshBrainDocumentPreviewAction } from "@/modules/business-brain/actions/document-actions";
@@ -18,8 +10,6 @@ import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/quer
 import {
   InspectorAction,
   InspectorEmpty,
-  InspectorFooter,
-  InspectorHeader,
   InspectorListItem,
   InspectorRoot,
   InspectorSection,
@@ -51,7 +41,7 @@ export function FilesTab({ conversation, canManageAi = false }: FilesTabProps) {
     () => extractConversationUploadedFiles(conversation.messages),
     [conversation.messages],
   );
-  const { media, documents: fileDocuments, recent } = useMemo(
+  const { media, documents: fileDocuments } = useMemo(
     () => partitionConversationFiles(uploadedFiles),
     [uploadedFiles],
   );
@@ -95,14 +85,8 @@ export function FilesTab({ conversation, canManageAi = false }: FilesTabProps) {
   }
 
   return (
-    <InspectorRoot>
-      <InspectorHeader
-        icon={Paperclip}
-        title={ti("workspacePanelFilesTitle")}
-        description={ti("workspacePanelFilesDesc")}
-      />
-
-      <InspectorSection icon={FileText} title={ti("suggestedDocuments")}>
+    <InspectorRoot className="pb-8">
+      <InspectorSection title={ti("resourcesRecommended")}>
         {documents.length > 0 ? (
           <ul className="space-y-0.5">
             {documents.map((document) => (
@@ -136,70 +120,27 @@ export function FilesTab({ conversation, canManageAi = false }: FilesTabProps) {
             ))}
           </ul>
         ) : (
-          <InspectorEmpty
-            title={ti("noDocumentsSuggested")}
-            description={ti("filesQuickSendEmpty")}
-          />
+          <p className="py-2 text-xs leading-relaxed text-muted-foreground">
+            {ti("resourcesEmptyDesc")}
+          </p>
         )}
       </InspectorSection>
 
-      <InspectorSection title={ti("filesUploadedFiles")}>
-        <UploadedFileList files={fileDocuments} ti={ti} />
+      <InspectorSection title={ti("resourcesDocuments")}>
+        <UploadedFileList files={fileDocuments} ti={ti} emptyTitle={ti("filesNoUploads")} />
       </InspectorSection>
 
-      <InspectorSection icon={Image} title={ti("filesMedia")}>
+      <InspectorSection title={ti("resourcesMedia")} hideDivider>
         {media.length > 0 ? (
-          <UploadedFileList files={media} ti={ti} />
+          <UploadedFileList files={media} ti={ti} emptyTitle={ti("filesNoMedia")} />
         ) : (
-          <InspectorEmpty
-            title={ti("filesNoMedia")}
-            description={ti("filesNoMedia")}
-            icon={Image}
-          />
+          <p className="text-xs text-muted-foreground">{ti("filesNoMedia")}</p>
         )}
       </InspectorSection>
 
-      <InspectorSection icon={Clock} title={ti("filesRecentFiles")} hideDivider>
-        {recent.length > 0 ? (
-          <UploadedFileList files={recent} ti={ti} />
-        ) : (
-          <InspectorEmpty
-            title={ti("filesNoRecentFiles")}
-            description={ti("filesNoUploads")}
-          />
-        )}
-      </InspectorSection>
-
-      <InspectorFooter label={ti("filesQuickSend")}>
-        {documents.length > 0 && canManageAi ? (
-          <div className="space-y-2">
-            <p className="text-[13px] text-muted-foreground">{ti("filesQuickSendHint")}</p>
-            <div className="flex flex-wrap gap-2">
-              {documents.slice(0, 4).map((document) => (
-                <InspectorAction
-                  key={document.id}
-                  variant="secondary"
-                  disabled={isPending || sendingDocId === document.id}
-                  onClick={() => handleSendDocument(document)}
-                  className="flex-1 sm:flex-none"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                  {document.name}
-                </InspectorAction>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <InspectorEmpty
-            title={ti("filesQuickSendEmpty")}
-            description={ti("noDocumentsSuggested")}
-            icon={Zap}
-          />
-        )}
-      </InspectorFooter>
 
       {notice ? (
-        <p className="px-6 pb-4 text-xs text-muted-foreground">{notice}</p>
+        <p className="px-5 pb-4 text-xs text-muted-foreground">{notice}</p>
       ) : null}
     </InspectorRoot>
   );
@@ -208,14 +149,16 @@ export function FilesTab({ conversation, canManageAi = false }: FilesTabProps) {
 function UploadedFileList({
   files,
   ti,
+  emptyTitle,
 }: {
   files: ConversationUploadedFile[];
   ti: (key: InboxKey) => string;
+  emptyTitle: string;
 }) {
   if (files.length === 0) {
     return (
       <InspectorEmpty
-        title={ti("filesNoUploads")}
+        title={emptyTitle}
         description={ti("filesNoRecentFiles")}
       />
     );

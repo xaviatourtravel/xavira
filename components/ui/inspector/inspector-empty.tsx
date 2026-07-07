@@ -21,15 +21,17 @@ export function InspectorEmpty({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-6 text-center",
+        "flex flex-col items-center justify-center py-5 text-center",
         className,
       )}
     >
       {Icon ? <Icon className={cn(INSPECTOR_ICON_CLASS, "mb-3")} aria-hidden /> : null}
-      <p className="text-sm font-semibold text-foreground">{title}</p>
-      <p className="mt-1 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">
-        {description}
-      </p>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {description !== title ? (
+        <p className="mt-1 max-w-[240px] text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      ) : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );

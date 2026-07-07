@@ -39,15 +39,10 @@ function WorkspaceChromeHeader({
   const { ti } = useInboxTranslation();
 
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-6 py-4">
-      <div className="min-w-0">
-        <p className="text-lg font-semibold tracking-tight text-foreground">
-          {ti("workspaceTitle")}
-        </p>
-        <p className="truncate text-[13px] text-muted-foreground">
-          {ti("workspaceSubtitle")}
-        </p>
-      </div>
+    <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-2.5">
+      <p className="text-sm font-medium tracking-tight text-foreground">
+        {ti("workspaceTitle")}
+      </p>
       <button
         type="button"
         onClick={onToggleCollapsed}
@@ -93,7 +88,7 @@ function WorkspaceRightSidebarContent({
 
   if (collapsed) {
     return (
-      <div className="flex h-full flex-col items-center border-l border-soft bg-sidebar py-3">
+      <div className="flex h-full flex-col items-center border-l border-border/40 bg-background py-3">
         <button
           type="button"
           onClick={onToggleCollapsed}

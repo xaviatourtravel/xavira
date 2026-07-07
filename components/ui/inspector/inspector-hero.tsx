@@ -17,11 +17,11 @@ export function InspectorHero({
   flush?: boolean;
 }) {
   return (
-    <div className={cn(!flush && "px-6", "pb-6", className)}>
+    <div className={cn(!flush && "px-5", "pb-4", className)}>
       <div
         className={cn(
-          "rounded-lg border border-border/60 bg-card p-4 shadow-sm",
-          "dark:border-border/50 dark:bg-card/80",
+          "rounded-lg border border-border/50 bg-muted/20 p-4",
+          "dark:border-border/40 dark:bg-muted/10",
         )}
       >
         {children}

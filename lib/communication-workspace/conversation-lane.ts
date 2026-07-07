@@ -23,6 +23,6 @@ export function getBubbleMaxWidthClassName(inspectorOpen: boolean) {
     WORKSPACE_CONTENT_TRANSITION_CLASS,
     inspectorOpen
       ? "max-w-[min(540px,78%)]"
-      : "max-w-[min(540px,78%)] lg:max-w-[min(540px,82%)]",
+      : "max-w-[min(540px,78%)] lg:max-w-[min(540px,80%)]",
   );
 }

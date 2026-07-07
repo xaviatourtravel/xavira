@@ -550,6 +550,16 @@ export const inboxEn = {
   aiActionHumanAssistedDesc: "AI can suggest, but will not auto-reply.",
   whatsappOnlyTitle: "WhatsApp only",
   whatsappOnlyDesc: "AI Copilot is available for WhatsApp conversations.",
+
+  // AI mode toggle (chat header)
+  aiModeToggleAiActive: "AI Active",
+  aiModeToggleManual: "Manual",
+
+  // Global auto-reply (workspace)
+  globalAutoReplyLabel: "AI Auto Reply",
+  globalAutoReplyOnDesc: "AI can auto-reply to all incoming conversations.",
+  globalAutoReplyOffDesc:
+    "AI only auto-replies to conversations set to AI Active.",
 } as const;
 
 export type InboxKey = keyof typeof inboxEn;
@@ -1080,4 +1090,12 @@ export const inboxId: InboxDictionary = {
   aiActionHumanAssistedDesc: "AI bisa menyarankan, tetapi tidak membalas otomatis.",
   whatsappOnlyTitle: "Hanya WhatsApp",
   whatsappOnlyDesc: "AI Copilot tersedia untuk percakapan WhatsApp.",
+
+  aiModeToggleAiActive: "AI Aktif",
+  aiModeToggleManual: "Manual",
+
+  globalAutoReplyLabel: "Balasan Otomatis AI",
+  globalAutoReplyOnDesc: "AI dapat membalas otomatis semua percakapan masuk.",
+  globalAutoReplyOffDesc:
+    "AI hanya membalas otomatis percakapan yang AI Aktif.",
 };

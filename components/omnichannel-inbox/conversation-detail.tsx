@@ -37,6 +37,7 @@ import {
   retryWhatsappConversationReplyAction,
 } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rule-based-intelligence";
+import { ConversationAiModeToggle } from "@/components/omnichannel-inbox/conversation-ai-mode-toggle";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
@@ -145,7 +146,7 @@ export function OmnichannelConversationDetailPanel({
   conversation,
   canReply,
   canSuggestReply = false,
-  canManageAi: _canManageAi = false,
+  canManageAi: canManageAi = false,
   isUnassignedForAgent = false,
   onToggleMobilePanel,
   readOnly = false,
@@ -496,7 +497,15 @@ export function OmnichannelConversationDetailPanel({
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex shrink-0 items-center gap-1.5">
+        {isWhatsappChannel ? (
+          <ConversationAiModeToggle
+            conversationId={conversation.id}
+            aiState={conversation.aiState}
+            canManage={canManageAi}
+          />
+        ) : null}
+
         <button
           type="button"
           onClick={() => {

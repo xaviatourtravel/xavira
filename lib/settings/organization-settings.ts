@@ -193,3 +193,12 @@ export function mergeOrganizationWorkspaceSettings(
     },
   } satisfies OrganizationWorkspaceSettings;
 }
+
+export function isWorkspaceGlobalAutoReplyEnabled(settings: unknown) {
+  return parseOrganizationWorkspaceSettings(settings).ai.autoReplyEnabled;
+}
+
+/** @deprecated Use isWorkspaceGlobalAutoReplyEnabled */
+export function isWorkspaceAiChatEnabled(settings: unknown) {
+  return isWorkspaceGlobalAutoReplyEnabled(settings);
+}

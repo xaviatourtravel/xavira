@@ -84,7 +84,7 @@ export const WORKSPACE_CONTENT_TRANSITION_CLASS =
   "transition-[max-width] duration-200 ease-in-out";
 
 export const WORKSPACE_BUBBLE_MAX_PERCENT_OPEN = "78%";
-export const WORKSPACE_BUBBLE_MAX_PERCENT_CLOSED = "82%";
+export const WORKSPACE_BUBBLE_MAX_PERCENT_CLOSED = "80%";
 
 export const WORKSPACE_LANE_MAX_CLASS_OPEN = "xl:max-w-5xl";
 export const WORKSPACE_LANE_MAX_CLASS_CLOSED = "xl:max-w-[1120px]";

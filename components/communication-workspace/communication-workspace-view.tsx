@@ -9,7 +9,7 @@ import {
   type ConversationListPatch,
 } from "@/lib/communication/realtime";
 import { WorkspaceRightSidebar } from "@/components/communication-workspace/workspace-right-sidebar";
-import { InboxComposerProvider } from "@/modules/inbox/context/inbox-composer-context";
+import { InboxGlobalAiChatToggle } from "@/components/omnichannel-inbox/inbox-global-ai-chat-toggle";
 import {
   OmnichannelConversationDetailPanel,
   OmnichannelConversationEmptyState,
@@ -26,6 +26,8 @@ import {
   WORKSPACE_LAYOUT_TRANSITION_CLASS,
   WORKSPACE_SIDEBAR_WIDTH,
 } from "@/lib/communication-workspace/types";
+import { InboxAiWorkspaceProvider } from "@/modules/inbox/context/inbox-ai-workspace-context";
+import { InboxComposerProvider } from "@/modules/inbox/context/inbox-composer-context";
 import { InboxWorkspaceLayoutProvider } from "@/modules/inbox/context/inbox-workspace-layout-context";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import type {
@@ -62,6 +64,8 @@ type CommunicationWorkspaceViewProps = {
   isUnassignedForAgent?: boolean;
   initialError?: string | null;
   initialSuccess?: string | null;
+  aiChatEnabled?: boolean;
+  canManageGlobalAi?: boolean;
 };
 
 const SIDEBAR_COLLAPSED_KEY = "desklabs:workspace:detail-collapsed";
@@ -109,6 +113,8 @@ export function CommunicationWorkspaceView({
   isUnassignedForAgent = false,
   initialError = null,
   initialSuccess = null,
+  aiChatEnabled = true,
+  canManageGlobalAi = false,
 }: CommunicationWorkspaceViewProps) {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -248,6 +254,10 @@ export function CommunicationWorkspaceView({
         </div>
       ) : null}
 
+      <InboxAiWorkspaceProvider
+        aiChatEnabled={aiChatEnabled}
+        canManageGlobalAi={canManageGlobalAi}
+      >
       <InboxComposerProvider>
       <InboxWorkspaceLayoutProvider inspectorOpen={inspectorOpen}>
       <div
@@ -269,7 +279,8 @@ export function CommunicationWorkspaceView({
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="px-4 pb-3 pt-4">
+          <div className="space-y-3 px-4 pb-3 pt-4">
+            <InboxGlobalAiChatToggle />
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
           </div>
 
@@ -378,6 +389,7 @@ export function CommunicationWorkspaceView({
       </div>
       </InboxWorkspaceLayoutProvider>
       </InboxComposerProvider>
+      </InboxAiWorkspaceProvider>
     </div>
   );
 }

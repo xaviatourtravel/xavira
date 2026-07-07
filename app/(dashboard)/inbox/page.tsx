@@ -14,8 +14,11 @@ import {
   parseOmnichannelInboxFilter,
   type OmnichannelConversationListItem,
 } from "@/lib/omnichannel-inbox/queries";
-import { isAdminOrOwner } from "@/lib/auth/permissions";
+import { isAdminOrOwner, hasPermission } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
+import {
+  parseOrganizationWorkspaceSettings,
+} from "@/lib/settings/organization-settings";
 import {
   loadWhatsappConversationDetail,
   loadWhatsappConversationList,
@@ -217,7 +220,7 @@ export default async function InboxPage({
   );
   const selectedConversationId = params.c?.trim() || null;
 
-  const [listData, detail, orgProfilesResult] = await Promise.all([
+  const [listData, detail, orgProfilesResult, organizationResult] = await Promise.all([
     loadMergedConversationLists(
       supabase,
       profile.organization_id,
@@ -236,6 +239,11 @@ export default async function InboxPage({
       .select("id, full_name")
       .eq("organization_id", profile.organization_id)
       .order("full_name"),
+    supabase
+      .from("organizations")
+      .select("settings")
+      .eq("id", profile.organization_id)
+      .maybeSingle(),
   ]);
 
   const { conversations, allConversations } = listData;
@@ -243,6 +251,12 @@ export default async function InboxPage({
     id: member.id,
     full_name: member.full_name?.trim() || "Team member",
   }));
+  const workspaceSettings = parseOrganizationWorkspaceSettings(
+    organizationResult.data?.settings,
+  );
+  const aiChatEnabled = workspaceSettings.ai.autoReplyEnabled;
+  const canManageGlobalAi =
+    isAdminOrOwner(profile) || hasPermission(profile, "ai_settings.manage");
 
   const permissionsSource = detail ?? conversations.find(
     (item) => item.id === selectedConversationId,
@@ -296,6 +310,8 @@ export default async function InboxPage({
       }
       initialError={params.error ?? null}
       initialSuccess={params.success ?? null}
+      aiChatEnabled={aiChatEnabled}
+      canManageGlobalAi={canManageGlobalAi}
     />
     </div>
   );

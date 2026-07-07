@@ -1,5 +1,7 @@
 import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
 import { insertAiEvent } from "@/lib/whatsapp-inbox/ai/event-log";
+import { shouldAllowWhatsappAutoReply } from "@/lib/whatsapp-inbox/ai/auto-reply-policy";
+import { isWorkspaceGlobalAutoReplyEnabled } from "@/lib/settings/organization-settings";
 import type {
   AiStateUpdateOptions,
   ShouldAutoReplyResult,
@@ -101,14 +103,24 @@ export const aiOwnershipService = {
   },
 
   /**
-   * Auto-reply is allowed only when conversation.ai_state === "AI_ACTIVE".
-   * Workspace settings, cooldowns, and recent human replies do not override this.
+   * Auto-reply follows workspace global policy and per-conversation mode.
+   * Copilot suggestions are unaffected by this gate.
    */
   async shouldAutoReply(
     supabase: WhatsappSupabaseClient,
     workspaceId: string,
     conversationId: string,
   ): Promise<ShouldAutoReplyResult> {
+    const { data: organization } = await supabase
+      .from("organizations")
+      .select("settings")
+      .eq("id", workspaceId)
+      .maybeSingle();
+
+    const globalAutoReplyEnabled = isWorkspaceGlobalAutoReplyEnabled(
+      organization?.settings,
+    );
+
     const conversation = await findWhatsappConversationById(
       supabase,
       workspaceId,
@@ -125,7 +137,7 @@ export const aiOwnershipService = {
 
     const state = resolveAiState(conversation);
 
-    if (state !== "AI_ACTIVE") {
+    if (!shouldAllowWhatsappAutoReply(globalAutoReplyEnabled, state)) {
       return {
         allowed: false,
         reason: "AI auto-reply is not enabled for this conversation",

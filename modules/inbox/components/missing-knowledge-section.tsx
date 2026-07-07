@@ -17,7 +17,8 @@ type MissingKnowledgeSectionProps = {
 export function MissingKnowledgeSection({
   conversation,
   hideDivider = false,
-}: MissingKnowledgeSectionProps & { hideDivider?: boolean }) {
+  hideTitle = false,
+}: MissingKnowledgeSectionProps & { hideDivider?: boolean; hideTitle?: boolean }) {
   const { ti, locale } = useInboxTranslation();
 
   const items = useMemo(() => {
@@ -39,6 +40,33 @@ export function MissingKnowledgeSection({
 
     return [...merged.values()];
   }, [conversation, locale]);
+
+  if (hideTitle) {
+    return (
+      <>
+        {items.length > 0 ? (
+          <ul className="space-y-2">
+            {items.map((item) => (
+              <li
+                key={item.labelKey}
+                className="flex items-center justify-between gap-3 py-1"
+              >
+                <span className="text-sm text-foreground">{ti(item.labelKey)}</span>
+                <Link
+                  href={item.href}
+                  className="shrink-0 text-xs text-primary transition-colors duration-150 hover:underline"
+                >
+                  {ti("createKnowledge")}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">{ti("nothingMissingDesc")}</p>
+        )}
+      </>
+    );
+  }
 
   return (
     <InspectorSection title={ti("missingKnowledge")} hideDivider={hideDivider}>

@@ -38,8 +38,7 @@ import {
 } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rule-based-intelligence";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
-import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
-import { WhatsappAiStateControl } from "@/components/omnichannel-inbox/whatsapp-ai-state-control";
+import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
 import {
   formatInboxMessageTime,
@@ -61,6 +60,11 @@ import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/quer
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
+import {
+  getBubbleMaxWidthClassName,
+  getConversationLaneClassName,
+} from "@/lib/communication-workspace/conversation-lane";
+import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
 import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 
 type OmnichannelConversationDetailPanelProps = {
@@ -141,7 +145,7 @@ export function OmnichannelConversationDetailPanel({
   conversation,
   canReply,
   canSuggestReply = false,
-  canManageAi = false,
+  canManageAi: _canManageAi = false,
   isUnassignedForAgent = false,
   onToggleMobilePanel,
   readOnly = false,
@@ -150,6 +154,7 @@ export function OmnichannelConversationDetailPanel({
   showBackButton = false,
 }: OmnichannelConversationDetailPanelProps) {
   const { ti } = useInboxTranslation();
+  const { inspectorOpen } = useInboxWorkspaceLayout();
   const isWhatsapp = (channel ?? conversation.channel) === "whatsapp";
   const showComposer = !readOnly || isWhatsapp;
 
@@ -444,7 +449,8 @@ export function OmnichannelConversationDetailPanel({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/30 bg-background px-3 sm:px-4">
+      <header className="shrink-0 py-3">
+        <div className={getConversationLaneClassName(inspectorOpen, "flex items-center gap-3")}>
         {showBackButton ? (
           <Link
             href={backHref}
@@ -473,28 +479,24 @@ export function OmnichannelConversationDetailPanel({
           }
         />
 
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <div className="min-w-0 flex-1">
           <h2
-            className="min-w-0 truncate text-sm font-medium text-foreground"
+            className="truncate text-sm font-medium text-foreground"
             title={displayName}
           >
             {displayName}
           </h2>
-          <OmnichannelChannelBadge
-            channel={conversation.channel}
-            className="hidden shrink-0 px-1.5 py-0 text-[9px] sm:inline-flex"
-          />
-          {isWhatsapp ? (
-            <WhatsappAiStateControl
-              conversationId={conversation.id}
-              aiState={conversation.aiState}
-              aiHandoffReason={conversation.aiHandoffReason}
-              canManage={canManageAi}
-              compact
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {conversation.channelLabel}
+            <span aria-hidden> · </span>
+            <ClientOnlyActiveLabel
+              date={conversation.lastMessageAt}
+              className="min-w-0"
             />
-          ) : null}
+          </p>
         </div>
 
+        <div className="flex shrink-0 items-center gap-0.5">
         <button
           type="button"
           onClick={() => {
@@ -583,17 +585,18 @@ export function OmnichannelConversationDetailPanel({
             </div>
           ) : null}
         </div>
-
+        </div>
+        </div>
       </header>
 
       {showQualificationHandoffStatus ? (
-        <p className="shrink-0 border-b border-border/20 px-4 py-1 text-[11px] text-muted-foreground">
+        <p className={getConversationLaneClassName(inspectorOpen, "shrink-0 pb-2 text-[11px] text-muted-foreground")}>
           {ti("chatHandoffStatusLine")}
         </p>
       ) : null}
 
       {searchOpen ? (
-        <div className="flex shrink-0 items-center gap-2 border-b border-border/40 bg-background px-3 py-2 sm:px-4">
+        <div className={getConversationLaneClassName(inspectorOpen, "flex shrink-0 items-center gap-2 border-b border-border/40 bg-background py-2")}>
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             autoFocus
@@ -636,7 +639,7 @@ export function OmnichannelConversationDetailPanel({
         onScroll={handleScroll}
         className="min-h-0 flex-1 overflow-y-auto bg-background"
       >
-        <div className="mx-auto flex w-full max-w-none flex-col gap-3 px-4 py-4 xl:max-w-5xl xl:px-6">
+        <div className={getConversationLaneClassName(inspectorOpen, "flex flex-col gap-2.5 py-5")}>
           {displayMessages.length === 0 ? (
             <InboxEmptyState
               icon={MessageSquareText}
@@ -681,20 +684,21 @@ export function OmnichannelConversationDetailPanel({
                   key={message.id}
                   className={cn(
                     "flex w-full",
-                    isIncoming ? "justify-start pr-4 sm:pr-6" : "justify-end pl-4 sm:pl-6",
+                    isIncoming ? "justify-start" : "justify-end",
                   )}
                 >
                   <div
                     className={cn(
-                      "max-w-[68%] px-3 py-2",
+                      "px-3.5 py-2.5",
+                      getBubbleMaxWidthClassName(inspectorOpen),
                       isIncoming
-                        ? "rounded-2xl rounded-tl-sm bg-muted/35 text-foreground dark:bg-muted/25"
-                        : "rounded-2xl rounded-tr-sm bg-foreground/90 text-background dark:bg-foreground/85",
+                        ? "rounded-2xl rounded-tl-md bg-muted/30 text-foreground dark:bg-muted/20"
+                        : "rounded-2xl rounded-tr-md bg-primary text-primary-foreground",
                       isOptimistic && "opacity-75",
                     )}
                   >
                     {message.message_text ? (
-                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
                         {message.message_text}
                       </p>
                     ) : null}
@@ -702,7 +706,7 @@ export function OmnichannelConversationDetailPanel({
                       <p
                         className={cn(
                           "mt-1 text-[11px]",
-                          isIncoming ? "text-muted-foreground" : "text-background/70",
+                          isIncoming ? "text-muted-foreground" : "text-primary-foreground/75",
                         )}
                       >
                         {attachmentLabel}
@@ -711,7 +715,7 @@ export function OmnichannelConversationDetailPanel({
                     <p
                       className={cn(
                         "mt-1 text-right text-[10px] tabular-nums",
-                        isIncoming ? "text-muted-foreground/80" : "text-background/60",
+                        isIncoming ? "text-muted-foreground/80" : "text-primary-foreground/60",
                       )}
                     >
                       {isOptimistic
@@ -745,7 +749,7 @@ export function OmnichannelConversationDetailPanel({
       ) : null}
 
       {showComposer ? (
-        <div className="shrink-0 border-t border-border/30 bg-background">
+        <div className="shrink-0 bg-background">
           <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}

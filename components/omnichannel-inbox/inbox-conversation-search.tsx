@@ -23,7 +23,7 @@ export function InboxConversationSearch({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={ti("conversationSearchPlaceholder")}
-        className="h-8 w-full rounded-lg border-0 bg-muted/25 pl-9 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:bg-muted/35 focus-visible:ring-2 focus-visible:ring-ring/20 dark:bg-muted/15"
+        className="h-9 w-full rounded-xl border-0 bg-muted/20 pl-9 pr-3 text-sm outline-none ring-offset-background transition-colors duration-150 placeholder:text-muted-foreground focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/15 dark:bg-muted/10"
       />
     </div>
   );

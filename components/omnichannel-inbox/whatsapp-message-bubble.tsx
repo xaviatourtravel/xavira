@@ -10,6 +10,8 @@ import {
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { formatTranslation } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
+import { getBubbleMaxWidthClassName } from "@/lib/communication-workspace/conversation-lane";
+import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 
 function getAttachmentLabel(
@@ -52,6 +54,7 @@ export function WhatsappMessageBubble({
   onRetry,
 }: WhatsappMessageBubbleProps) {
   const { ti } = useInboxTranslation();
+  const { inspectorOpen } = useInboxWorkspaceLayout();
   const [isRetrying, startRetry] = useTransition();
   const isIncoming = message.direction === "incoming";
   const attachmentLabel = getAttachmentLabel(message, ti);
@@ -67,15 +70,16 @@ export function WhatsappMessageBubble({
     >
       <div
         className={cn(
-          "max-w-[68%] px-3 py-2",
+          "px-3.5 py-2.5",
+          getBubbleMaxWidthClassName(inspectorOpen),
           isIncoming
-            ? "rounded-2xl rounded-tl-sm bg-muted/35 text-foreground dark:bg-muted/25"
-            : "rounded-2xl rounded-tr-sm bg-foreground/90 text-background dark:bg-foreground/85",
+            ? "rounded-2xl rounded-tl-md bg-muted/30 text-foreground dark:bg-muted/20"
+            : "rounded-2xl rounded-tr-md bg-primary text-primary-foreground",
           isFailed && "ring-1 ring-red-400/40",
         )}
       >
         {message.message_text ? (
-          <p className="whitespace-pre-wrap text-[13px] leading-relaxed">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {message.message_text}
           </p>
         ) : null}
@@ -83,7 +87,7 @@ export function WhatsappMessageBubble({
           <p
             className={cn(
               "mt-1 text-[11px]",
-              isIncoming ? "text-muted-foreground" : "text-background/70",
+              isIncoming ? "text-muted-foreground" : "text-primary-foreground/75",
             )}
           >
             {attachmentLabel}
@@ -93,7 +97,7 @@ export function WhatsappMessageBubble({
           <div
             className={cn(
               "mt-1 flex items-center justify-end gap-2 text-[10px] tabular-nums",
-              isIncoming ? "text-muted-foreground/80" : "text-background/60",
+              isIncoming ? "text-muted-foreground/80" : "text-primary-foreground/65",
             )}
           >
             <span>{metadataLine}</span>

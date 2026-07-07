@@ -38,6 +38,8 @@ import {
 } from "@/modules/inbox/lib/resolve-inbox-error";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
+import { getConversationLaneClassName } from "@/lib/communication-workspace/conversation-lane";
+import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
 
 const EMOJIS = [
   "😊",
@@ -54,14 +56,14 @@ const EMOJIS = [
   "📎",
 ];
 
-const COMPOSER_MIN_HEIGHT_PX = 36;
-const COMPOSER_MAX_HEIGHT_PX = 140;
+const COMPOSER_MIN_HEIGHT_PX = 44;
+const COMPOSER_MAX_HEIGHT_PX = 160;
 const COMPOSER_INPUT_PADDING_Y_PX = 14;
 const COMPOSER_MAX_TEXTAREA_HEIGHT_PX =
   COMPOSER_MAX_HEIGHT_PX - COMPOSER_INPUT_PADDING_Y_PX * 2;
 
 const GHOST_ICON_BUTTON =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:opacity-40";
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/80 transition-colors duration-150 hover:bg-muted/40 hover:text-foreground disabled:opacity-40";
 
 type ComposerToast = {
   variant: "success" | "error" | "info";
@@ -178,6 +180,7 @@ export function OmnichannelConversationReplyBox({
 }: OmnichannelConversationReplyBoxProps) {
   const router = useRouter();
   const { ti } = useInboxTranslation();
+  const { inspectorOpen } = useInboxWorkspaceLayout();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -409,7 +412,7 @@ export function OmnichannelConversationReplyBox({
 
   return (
     <div
-      className="relative bg-background px-3 py-2.5 sm:px-4"
+      className="relative bg-background py-4"
       onDragEnter={(event) => {
         event.preventDefault();
         dragDepthRef.current += 1;
@@ -453,6 +456,7 @@ export function OmnichannelConversationReplyBox({
         </div>
       ) : null}
 
+      <div className={getConversationLaneClassName(inspectorOpen)}>
       {attachmentName ? (
         <div className="mb-2.5 flex flex-wrap gap-1.5">
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/45 px-2.5 py-1 text-xs text-foreground">
@@ -482,7 +486,7 @@ export function OmnichannelConversationReplyBox({
 
       <div
         ref={rowRef}
-        className="mx-auto flex w-full max-w-3xl items-end gap-1 rounded-xl bg-muted/20 px-2 py-1.5 transition-colors focus-within:bg-muted/30 focus-within:ring-2 focus-within:ring-ring/20 dark:bg-muted/10"
+        className="flex w-full items-end gap-1 rounded-2xl bg-muted/15 px-2.5 py-2 transition-[background-color,box-shadow] duration-200 ease-in-out focus-within:bg-muted/20 focus-within:ring-2 focus-within:ring-ring/15 dark:bg-muted/10"
       >
         <div className="relative shrink-0">
           <button
@@ -554,7 +558,7 @@ export function OmnichannelConversationReplyBox({
         </div>
 
         <div
-          className="flex min-h-[36px] max-h-[140px] min-w-0 flex-1 items-center px-2 py-1.5"
+          className="flex min-h-[44px] max-h-[160px] min-w-0 flex-1 items-center px-1 py-1"
           style={{ minHeight: COMPOSER_MIN_HEIGHT_PX, maxHeight: COMPOSER_MAX_HEIGHT_PX }}
         >
           <textarea
@@ -565,7 +569,7 @@ export function OmnichannelConversationReplyBox({
             placeholder={ti("composerPlaceholder")}
             disabled={isDisabled}
             title={sendTitle}
-            className="max-h-[112px] w-full resize-none border-0 bg-transparent text-sm leading-[22px] outline-none placeholder:text-muted-foreground disabled:opacity-60"
+            className="max-h-[132px] w-full resize-none border-0 bg-transparent text-[15px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-60"
             onKeyDown={handleComposerKeyDown}
           />
         </div>
@@ -612,13 +616,14 @@ export function OmnichannelConversationReplyBox({
           onClick={handleSend}
           title={sendTitle}
           className={cn(
-            "inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40",
+            "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-150 hover:bg-primary/90 hover:shadow disabled:pointer-events-none disabled:opacity-40",
           )}
           aria-label={isPending ? ti("composerSendingLabel") : ti("composerSendLabel")}
         >
           <Send className="h-4 w-4" />
-          <span>{isPending ? ti("composerSending") : ti("composerSend")}</span>
+          <span className="hidden sm:inline">{isPending ? ti("composerSending") : ti("composerSend")}</span>
         </button>
+      </div>
       </div>
     </div>
   );

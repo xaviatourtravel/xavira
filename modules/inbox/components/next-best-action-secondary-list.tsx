@@ -92,7 +92,7 @@ export function NextBestActionSecondaryList({
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-4">
       {result.others.map((recommendation) => (
         <SecondaryRow
           key={recommendation.id}
@@ -126,18 +126,20 @@ function SecondaryRow({
     disabled || !recommendation.ctaEnabled || (needsPermission && !canManageAi);
 
   return (
-    <li className="space-y-1">
-      <p className="text-[13px] text-foreground">{ti(recommendation.titleKey)}</p>
-      <p className="text-xs text-muted-foreground">{ti(recommendation.descriptionKey)}</p>
-      <InspectorAction
-        variant="ghost"
+    <li className="space-y-1.5">
+      <p className="text-sm text-foreground">{ti(recommendation.titleKey)}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        {ti(recommendation.reasonKey)}
+      </p>
+      <button
+        type="button"
         disabled={ctaDisabled}
         title={!recommendation.ctaEnabled ? ti("comingSoon") : undefined}
         onClick={onAction}
-        className="px-0"
+        className="text-xs text-primary transition-colors duration-150 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
       >
         {ti(recommendation.ctaKey)}
-      </InspectorAction>
+      </button>
     </li>
   );
 }

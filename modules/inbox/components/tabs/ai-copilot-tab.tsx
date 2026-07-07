@@ -2,11 +2,11 @@
 
 import { MessageCircleWarning } from "lucide-react";
 
-import { InspectorRoot, InspectorSection } from "@/components/ui/inspector";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { AiSuggestedReplyCard } from "@/modules/inbox/components/ai-suggested-reply-card";
 import { CopilotHeroRecommendation } from "@/modules/inbox/components/copilot-hero-recommendation";
+import { CopilotPanelSection } from "@/modules/inbox/components/copilot-panel-section";
 import { MissingKnowledgeSection } from "@/modules/inbox/components/missing-knowledge-section";
 import { NextBestActionSecondaryList } from "@/modules/inbox/components/next-best-action-secondary-list";
 import { useAiCommandCenterRealtime } from "@/modules/inbox/hooks/use-ai-command-center-realtime";
@@ -32,39 +32,41 @@ export function AiCopilotTab({
     enabled: isWhatsapp,
   });
 
+  if (!isWhatsapp) {
+    return (
+      <InboxEmptyState
+        icon={MessageCircleWarning}
+        title={ti("whatsappOnlyTitle")}
+        description={ti("whatsappOnlyDesc")}
+        className="px-4 py-6"
+        size="compact"
+      />
+    );
+  }
+
   return (
-    <InspectorRoot>
-      {!isWhatsapp ? (
-        <InboxEmptyState
-          icon={MessageCircleWarning}
-          title={ti("whatsappOnlyTitle")}
-          description={ti("whatsappOnlyDesc")}
-          className="px-4"
-          size="compact"
+    <div className="pb-2">
+      <CopilotPanelSection>
+        <CopilotHeroRecommendation
+          conversation={conversation}
+          canManageAi={canManageAi}
         />
-      ) : (
-        <>
-          <InspectorSection title={ti("aiRecommendationHero")}>
-            <CopilotHeroRecommendation
-              conversation={conversation}
-              canManageAi={canManageAi}
-            />
-          </InspectorSection>
+      </CopilotPanelSection>
 
-          <InspectorSection title={ti("suggestedReply")}>
-            <AiSuggestedReplyCard conversation={conversation} hideHeader />
-          </InspectorSection>
+      <CopilotPanelSection label={ti("suggestedReply")}>
+        <AiSuggestedReplyCard conversation={conversation} hideHeader />
+      </CopilotPanelSection>
 
-          <InspectorSection title={ti("nextBestAction")}>
-            <NextBestActionSecondaryList
-              conversation={conversation}
-              canManageAi={canManageAi}
-            />
-          </InspectorSection>
+      <CopilotPanelSection label={ti("nextBestAction")}>
+        <NextBestActionSecondaryList
+          conversation={conversation}
+          canManageAi={canManageAi}
+        />
+      </CopilotPanelSection>
 
-          <MissingKnowledgeSection conversation={conversation} hideDivider />
-        </>
-      )}
-    </InspectorRoot>
+      <CopilotPanelSection label={ti("missingKnowledge")} hideDivider>
+        <MissingKnowledgeSection conversation={conversation} hideDivider hideTitle />
+      </CopilotPanelSection>
+    </div>
   );
 }

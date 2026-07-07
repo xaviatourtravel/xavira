@@ -5,9 +5,11 @@ import { Filter, Inbox, SearchX } from "lucide-react";
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
-import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
-import { getConversationDisplayName } from "@/components/omnichannel-inbox/inbox-display";
+import {
+  getConversationDisplayName,
+  getInboxChannelShortLabel,
+} from "@/components/omnichannel-inbox/inbox-display";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
@@ -44,14 +46,6 @@ function buildConversationHref(
   }
   params.set("c", conversationId);
   return `/inbox?${params.toString()}`;
-}
-
-function formatUnreadCount(count: number) {
-  if (count > 99) {
-    return "99+";
-  }
-
-  return String(count);
 }
 
 function ConversationListEmptyState({
@@ -119,18 +113,17 @@ export function OmnichannelConversationList({
   }
 
   return (
-    <div className="flex flex-col py-0.5">
+    <div className="flex flex-col gap-0.5 py-1">
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedConversationId;
         const isUnread = conversation.unreadCount > 0;
         const displayName = getConversationDisplayName(conversation);
-        const showChannelBadge = activeFilter === "all";
         const isReadyForHuman =
           conversation.channel === "whatsapp" &&
           resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN";
-        const statusLabel = isUnread
-          ? null
-          : isReadyForHuman && activeFilter === "all"
+        const channelLabel = getInboxChannelShortLabel(conversation.channel);
+        const statusHint =
+          !isUnread && isReadyForHuman && activeFilter === "all"
             ? ti("filterReadyForHuman")
             : null;
 
@@ -139,13 +132,13 @@ export function OmnichannelConversationList({
             key={conversation.id}
             href={buildConversationHref(conversation.id, activeFilter)}
             className={cn(
-              "relative mx-1 block rounded-lg px-3 py-2.5 transition-colors",
+              "group relative mx-2 block rounded-lg px-3 py-3 transition-colors duration-150",
               isSelected
-                ? "bg-muted/60 dark:bg-muted/35"
-                : "hover:bg-muted/30 dark:hover:bg-muted/15",
+                ? "border-l-2 border-l-primary/80 bg-muted/45 pl-[calc(0.75rem-2px)] dark:bg-muted/25"
+                : "border-l-2 border-l-transparent hover:bg-muted/25 dark:hover:bg-muted/15",
             )}
           >
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-start gap-3">
               <CustomerAvatar
                 displayName={displayName}
                 avatarUrl={conversation.customerAvatar}
@@ -162,53 +155,48 @@ export function OmnichannelConversationList({
                 className="mt-0.5 shrink-0"
               />
 
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div className="flex min-w-0 items-center justify-between gap-2">
-                  <p
-                    className={cn(
-                      "min-w-0 truncate text-[13px] leading-tight text-foreground",
-                      isUnread ? "font-medium" : "font-normal",
-                    )}
-                    title={displayName}
-                  >
-                    {displayName}
-                  </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-baseline justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {isUnread ? (
+                      <span
+                        aria-hidden
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                      />
+                    ) : null}
+                    <p
+                      className={cn(
+                        "min-w-0 truncate text-sm leading-tight text-foreground",
+                        isUnread ? "font-medium" : "font-normal",
+                      )}
+                      title={displayName}
+                    >
+                      {displayName}
+                    </p>
+                  </div>
                   <ClientOnlyRelativeTime
                     date={conversation.lastMessageAt}
-                    className="shrink-0 text-[10px] tabular-nums leading-none text-muted-foreground"
+                    className={cn(
+                      "shrink-0 text-[11px] leading-none text-muted-foreground",
+                      isUnread && "text-foreground/70",
+                    )}
                   />
                 </div>
 
                 <p
                   className={cn(
-                    "min-w-0 truncate text-xs leading-snug",
-                    isUnread ? "text-foreground/80" : "text-muted-foreground",
+                    "mt-1 min-w-0 truncate text-[13px] leading-snug",
+                    isUnread ? "text-foreground/85" : "text-muted-foreground",
                   )}
                   title={conversation.lastMessagePreview ?? undefined}
                 >
                   {conversation.lastMessagePreview ?? ti("noMessageYet")}
                 </p>
 
-                <div className="flex min-w-0 items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    {showChannelBadge ? (
-                      <OmnichannelChannelBadge
-                        channel={conversation.channel}
-                        className="shrink-0 px-1 py-0 text-[9px] leading-4 opacity-75"
-                      />
-                    ) : null}
-                    {statusLabel ? (
-                      <span className="truncate text-[10px] text-amber-700/90 dark:text-amber-300/90">
-                        {statusLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                  {isUnread ? (
-                    <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-medium leading-none text-primary-foreground">
-                      {formatUnreadCount(conversation.unreadCount)}
-                    </span>
-                  ) : null}
-                </div>
+                <p className="mt-1 truncate text-[11px] text-muted-foreground/80">
+                  {channelLabel}
+                  {statusHint ? ` · ${statusHint}` : null}
+                </p>
               </div>
             </div>
           </Link>

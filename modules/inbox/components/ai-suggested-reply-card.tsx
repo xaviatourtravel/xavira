@@ -7,7 +7,6 @@ import { ExternalLink, Sparkles } from "lucide-react";
 import {
   InspectorAction,
   InspectorEmpty,
-  InspectorBadge,
 } from "@/components/ui/inspector";
 import { DsToast } from "@/components/design-system/toast";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
@@ -23,12 +22,6 @@ type AiSuggestedReplyCardProps = {
   conversation: OmnichannelConversationDetail;
   hideHeader?: boolean;
 };
-
-const CONFIDENCE_TONES = {
-  high: "success",
-  medium: "warning",
-  low: "neutral",
-} as const;
 
 export function AiSuggestedReplyCard({
   conversation,
@@ -121,7 +114,7 @@ export function AiSuggestedReplyCard({
         action={
           <Link
             href="/business-brain"
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {ti("openBusinessBrain")}
             <ExternalLink className="h-3.5 w-3.5" />
@@ -134,21 +127,8 @@ export function AiSuggestedReplyCard({
   return (
     <div className="space-y-3">
       {!hideHeader ? (
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {ti("suggestedReply")}
-          </p>
-          <InspectorBadge tone={CONFIDENCE_TONES[result.confidenceLevel]} size="xs">
-            {result.confidence}% · {ti(result.confidenceLabelKey)}
-          </InspectorBadge>
-        </div>
-      ) : (
-        <div className="flex justify-end">
-          <InspectorBadge tone={CONFIDENCE_TONES[result.confidenceLevel]} size="xs">
-            {result.confidence}% · {ti(result.confidenceLabelKey)}
-          </InspectorBadge>
-        </div>
-      )}
+        <p className="text-xs text-muted-foreground">{ti("suggestedReply")}</p>
+      ) : null}
 
       <textarea
         value={draftText}
@@ -157,34 +137,48 @@ export function AiSuggestedReplyCard({
           setDraftText(event.target.value);
         }}
         rows={5}
-        className="w-full resize-y rounded-lg bg-muted/20 px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-muted/15"
+        className="w-full resize-y rounded-xl bg-muted/15 px-0 py-1 text-sm leading-relaxed text-foreground outline-none transition-colors focus-visible:ring-0 dark:bg-transparent"
       />
 
-      <div className="flex flex-wrap gap-1.5">
-        <InspectorAction variant="primary" onClick={handleInsert} disabled={!draftText.trim()}>
-          {ti("insertToComposer")}
-        </InspectorAction>
-        <InspectorAction variant="ghost" onClick={() => void handleCopy()} disabled={!draftText.trim()}>
-          {ti("copy")}
-        </InspectorAction>
-        <InspectorAction variant="ghost" onClick={handleRegenerate}>{ti("regenerate")}</InspectorAction>
-        <InspectorAction variant="ghost" onClick={() => handleVariant("short")}>{ti("shorter")}</InspectorAction>
-      </div>
+      <p className="text-[11px] text-muted-foreground">
+        {result.confidence}% · {ti(result.confidenceLabelKey)}
+      </p>
 
-      <details className="group">
-        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-          {ti("moreDetails")}
-        </summary>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <InspectorAction variant="ghost" onClick={() => handleVariant("persuasive")}>
-            {ti("morePersuasive")}
-          </InspectorAction>
-          <InspectorAction variant="ghost" onClick={() => handleVariant("friendly")}>{ti("moreFriendly")}</InspectorAction>
-          <InspectorAction variant="ghost" onClick={() => handleVariant("professional")}>
-            {ti("moreProfessional")}
-          </InspectorAction>
-        </div>
-      </details>
+      <InspectorAction variant="primary" onClick={handleInsert} disabled={!draftText.trim()} className="w-full">
+        {ti("insertToComposer")}
+      </InspectorAction>
+
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        <button
+          type="button"
+          onClick={() => void handleCopy()}
+          disabled={!draftText.trim()}
+          className="text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground disabled:opacity-40"
+        >
+          {ti("copy")}
+        </button>
+        <button
+          type="button"
+          onClick={handleRegenerate}
+          className="text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        >
+          {ti("regenerate")}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleVariant("short")}
+          className="text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        >
+          {ti("shorter")}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleVariant("friendly")}
+          className="text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        >
+          {ti("moreFriendly")}
+        </button>
+      </div>
 
       {result.sources.some((source) => source.active) ? (
         <p className="text-[11px] text-muted-foreground">

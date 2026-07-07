@@ -2,7 +2,7 @@
 
 import { useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Sparkles } from "lucide-react";
 
 import { takeOverWhatsappConversationAction, sendWhatsappDocumentAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { InspectorAction, InspectorEmpty } from "@/components/ui/inspector";
@@ -119,23 +119,23 @@ export function CopilotHeroRecommendation({
 
   if (isQualificationHandoff) {
     return (
-      <div className="space-y-2">
-        <p className="text-[13px] font-medium text-foreground">
+      <div className="space-y-3">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {ti("copilotAiRecommends")}
+        </p>
+        <p className="text-sm leading-relaxed text-foreground">
           {ti("filterReadyForHuman")} · {QUALIFICATION_HANDOFF_REASON}
         </p>
-        {capturedFields ? (
-          <p className="text-xs leading-relaxed text-muted-foreground">{capturedFields}</p>
-        ) : (
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {ti("copilotHandoffHeroDesc")}
-          </p>
-        )}
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {capturedFields ?? ti("copilotHandoffHeroDesc")}
+        </p>
         {canManageAi ? (
           <InspectorAction
             variant="primary"
             disabled={isPending}
             onClick={handleHandoffTakeOver}
-            className="mt-1 w-full"
+            className="w-full"
           >
             {isPending ? ti("working") : ti("nbaCtaTakeOver")}
           </InspectorAction>
@@ -161,17 +161,21 @@ export function CopilotHeroRecommendation({
     isPending || !primary.ctaEnabled || (needsPermission && !canManageAi);
 
   return (
-    <div className="space-y-2">
-      <p className="text-[13px] font-medium text-foreground">{ti(primary.titleKey)}</p>
+    <div className="space-y-3">
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        {ti("copilotAiRecommends")}
+      </p>
+      <p className="text-sm leading-relaxed text-foreground">{ti(primary.titleKey)}</p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        {ti(primary.descriptionKey)}
+        {ti(primary.reasonKey)}
       </p>
       <InspectorAction
         variant="primary"
         disabled={ctaDisabled}
         title={!primary.ctaEnabled ? ti("comingSoon") : undefined}
         onClick={() => runRecommendation(primary)}
-        className="mt-1 w-full"
+        className="w-full"
       >
         {ti(primary.ctaKey)}
       </InspectorAction>

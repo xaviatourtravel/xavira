@@ -85,7 +85,7 @@ export function InspectorSection({
         </div>
       </div>
 
-      {!hideDivider ? <InspectorDivider className="mt-2 opacity-60" /> : null}
+      {!hideDivider ? <InspectorDivider className="mt-3 opacity-40" /> : null}
     </section>
   );
 }
@@ -99,9 +99,7 @@ function InspectorSectionHeading({
 }) {
   return (
     <>
-      <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
+      <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
       {description ? (
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground/90">{description}</p>
       ) : null}

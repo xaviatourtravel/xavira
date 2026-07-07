@@ -8,10 +8,10 @@ import { INSPECTOR_HOVER_CLASS } from "./constants";
 export type InspectorActionVariant = "primary" | "secondary" | "ghost";
 
 const VARIANT_STYLES: Record<InspectorActionVariant, string> = {
-  primary: "bg-foreground text-background hover:opacity-90",
+  primary: "bg-primary text-primary-foreground hover:bg-primary/90",
   secondary:
-    "border border-border/70 bg-transparent text-foreground hover:bg-muted/50",
-  ghost: "text-foreground hover:bg-muted/50",
+    "border border-border/50 bg-transparent text-foreground hover:bg-muted/40",
+  ghost: "text-foreground hover:bg-muted/40",
 };
 
 export function InspectorAction({

@@ -34,6 +34,18 @@ export function buildOmnichannelFilterCounts(
   };
 }
 
+const CHANNEL_SHORT_LABELS: Record<OmnichannelConversationListItem["channel"], string> = {
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  facebook: "Facebook",
+};
+
+export function getInboxChannelShortLabel(
+  channel: OmnichannelConversationListItem["channel"],
+) {
+  return CHANNEL_SHORT_LABELS[channel] ?? channel;
+}
+
 export function getConversationDisplayName(conversation: {
   customerName: string;
   customerUsername: string | null;

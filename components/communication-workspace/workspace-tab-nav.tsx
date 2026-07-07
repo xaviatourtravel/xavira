@@ -19,7 +19,7 @@ export function WorkspaceTabNav() {
   const { ti } = useInboxTranslation();
 
   return (
-    <TabsList aria-label={ti("workspaceNavLabel")}>
+    <TabsList aria-label={ti("workspaceNavLabel")} className="border-b border-border/20 px-3 py-2">
       {TAB_ITEMS.map((tab) => (
         <TabsTrigger key={tab.id} value={tab.id}>
           {ti(tab.labelKey)}

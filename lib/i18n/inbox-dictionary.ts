@@ -509,6 +509,7 @@ export const inboxEn = {
 
   // AI Copilot
   aiRecommendationHero: "AI Recommendation",
+  copilotAiRecommends: "AI recommends",
   copilotHandoffHeroDesc: "Qualification is complete. Take over to continue with the customer.",
   chatHandoffStatusLine: "Ready for human · open AI Copilot for handoff details",
   nbaSecondaryEmptyTitle: "No other actions",
@@ -1042,6 +1043,7 @@ export const inboxId: InboxDictionary = {
   composerBack: "Kembali",
 
   aiRecommendationHero: "Rekomendasi AI",
+  copilotAiRecommends: "AI merekomendasikan",
   copilotHandoffHeroDesc: "Kualifikasi sudah lengkap. Ambil alih untuk lanjut dengan customer.",
   chatHandoffStatusLine: "Siap untuk human · buka AI Copilot untuk detail handoff",
   nbaSecondaryEmptyTitle: "Tidak ada aksi lain",

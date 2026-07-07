@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, PanelRightOpen } from "lucide-react";
 
 import {
   useWhatsappConversationListRealtime,
@@ -23,9 +23,10 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
 import {
-  WORKSPACE_SIDEBAR_COLLAPSED_WIDTH,
+  WORKSPACE_LAYOUT_TRANSITION_CLASS,
   WORKSPACE_SIDEBAR_WIDTH,
 } from "@/lib/communication-workspace/types";
+import { InboxWorkspaceLayoutProvider } from "@/modules/inbox/context/inbox-workspace-layout-context";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import type {
   OmnichannelConversationListItem,
@@ -222,6 +223,7 @@ export function CommunicationWorkspaceView({
   }, [activeFilter]);
 
   const showMobileThread = Boolean(selectedConversationId);
+  const inspectorOpen = !sidebarCollapsed;
 
   if (initialError) {
     logInboxError("initialError", decodeURIComponent(initialError));
@@ -247,12 +249,17 @@ export function CommunicationWorkspaceView({
       ) : null}
 
       <InboxComposerProvider>
+      <InboxWorkspaceLayoutProvider inspectorOpen={inspectorOpen}>
       <div
-        className="grid min-h-0 flex-1 overflow-hidden bg-background transition-[grid-template-columns] duration-[180ms] ease-out lg:grid-cols-[320px_minmax(0,1fr)_var(--workspace-sidebar-width)]"
+        className={cn(
+          "grid min-h-0 flex-1 overflow-hidden bg-background",
+          WORKSPACE_LAYOUT_TRANSITION_CLASS,
+          inspectorOpen
+            ? "lg:grid-cols-[320px_minmax(0,1fr)_var(--workspace-inspector-width)]"
+            : "lg:grid-cols-[320px_minmax(0,1fr)]",
+        )}
         style={{
-          ["--workspace-sidebar-width" as string]: sidebarCollapsed
-            ? WORKSPACE_SIDEBAR_COLLAPSED_WIDTH
-            : WORKSPACE_SIDEBAR_WIDTH,
+          ["--workspace-inspector-width" as string]: WORKSPACE_SIDEBAR_WIDTH,
         }}
       >
         {/* Left — conversation list */}
@@ -262,11 +269,11 @@ export function CommunicationWorkspaceView({
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="px-4 pb-2 pt-3">
+          <div className="px-4 pb-3 pt-4">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
           </div>
 
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-3">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}
@@ -287,10 +294,21 @@ export function CommunicationWorkspaceView({
         {/* Center — active thread */}
         <section
           className={cn(
-            "relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-background",
+            "relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-background transition-[width] duration-200 ease-in-out",
             showMobileThread ? "flex flex-col" : "hidden lg:flex lg:flex-col",
           )}
         >
+          {inspectorOpen ? null : (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="absolute right-4 top-3 z-10 hidden h-9 w-9 items-center justify-center rounded-full border border-border/25 bg-background text-muted-foreground shadow-sm transition-colors duration-200 ease-in-out hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+              title={ti("expandPanel")}
+              aria-label={ti("expandPanel")}
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </button>
+          )}
           {liveDetail ? (
             <>
               <OmnichannelConversationDetailPanel
@@ -341,27 +359,24 @@ export function CommunicationWorkspaceView({
           )}
         </section>
 
-        {/* Right — inspector (desktop) */}
-        <section
-          className={cn(
-            "hidden h-full min-h-0 min-w-0 shrink-0 overflow-hidden border-l border-border/30 transition-[width] duration-[180ms] ease-out lg:block",
-            sidebarCollapsed ? "w-12" : "w-[400px]",
-          )}
-        >
-          <WorkspaceRightSidebar
-            conversation={liveDetail}
-            organizationId={organizationId}
-            orgProfiles={orgProfiles}
-            canReassign={canReassign}
-            canUpdateStatus={canUpdateStatus}
-            canAddNote={canAddNote}
-            canConvert={canConvert}
-            canCreateFollowUp={canCreateFollowUp}
-            collapsed={sidebarCollapsed}
-            onToggleCollapsed={toggleSidebar}
-          />
-        </section>
+        {inspectorOpen ? (
+          <section className="hidden h-full min-h-0 min-w-0 shrink-0 overflow-hidden border-l border-border/30 lg:block">
+            <WorkspaceRightSidebar
+              conversation={liveDetail}
+              organizationId={organizationId}
+              orgProfiles={orgProfiles}
+              canReassign={canReassign}
+              canUpdateStatus={canUpdateStatus}
+              canAddNote={canAddNote}
+              canConvert={canConvert}
+              canCreateFollowUp={canCreateFollowUp}
+              collapsed={false}
+              onToggleCollapsed={toggleSidebar}
+            />
+          </section>
+        ) : null}
       </div>
+      </InboxWorkspaceLayoutProvider>
       </InboxComposerProvider>
     </div>
   );

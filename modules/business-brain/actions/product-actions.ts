@@ -6,6 +6,13 @@ import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { createBrainProductFileSignedUrl, removeBrainProductFile, uploadBrainProductFile } from "@/modules/business-brain/lib/product-storage";
 import {
+  beginProductUploadDebug,
+  endProductUploadDebug,
+  logProductUploadError,
+  logProductUploadStep,
+  resolveProductUploadMimeType,
+} from "@/modules/business-brain/lib/product-upload-debug";
+import {
   createProductFaqSchema,
   brainProductFormSchema,
 } from "@/modules/business-brain/schemas/products";
@@ -255,73 +262,130 @@ export async function createAndLinkProductFaqAction(
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 export async function uploadProductDocumentAction(formData: FormData) {
-  const { profile } = await requireProfile();
-  if (!isAdminOrOwner(profile)) {
-    return { ok: false as const, error: "Permission denied." };
-  }
-
-  const productId = String(formData.get("productId") ?? "");
-  const documentType = String(formData.get("documentType") ?? "");
-  const fileUrl = String(formData.get("fileUrl") ?? "").trim();
-  const file = formData.get("file");
-
-  if (!productId) {
-    return { ok: false as const, error: "Product is required." };
-  }
-
-  if (
-    documentType !== "itinerary" &&
-    documentType !== "brochure" &&
-    documentType !== "gallery" &&
-    documentType !== "video"
-  ) {
-    return { ok: false as const, error: "Invalid document type." };
-  }
+  beginProductUploadDebug();
 
   try {
+    const { profile } = await requireProfile();
+    if (!isAdminOrOwner(profile)) {
+      logProductUploadStep("Returned JSON", { ok: false, error: "Permission denied." });
+      return { ok: false as const, error: "Permission denied." };
+    }
+
+    const productId = String(formData.get("productId") ?? "");
+    const documentType = String(formData.get("documentType") ?? "");
+    const fileUrl = String(formData.get("fileUrl") ?? "").trim();
+    const file = formData.get("file");
+
+    logProductUploadStep("Request payload", {
+      productId,
+      documentType,
+      fileUrl: fileUrl || null,
+      file:
+        file instanceof File
+          ? {
+              name: file.name,
+              size: file.size,
+              type: file.type || "(empty)",
+            }
+          : null,
+    });
+
+    if (!productId) {
+      logProductUploadStep("Returned JSON", { ok: false, error: "Product is required." });
+      return { ok: false as const, error: "Product is required." };
+    }
+
+    if (
+      documentType !== "itinerary" &&
+      documentType !== "brochure" &&
+      documentType !== "gallery" &&
+      documentType !== "video"
+    ) {
+      logProductUploadStep("Returned JSON", { ok: false, error: "Invalid document type." });
+      return { ok: false as const, error: "Invalid document type." };
+    }
+
     const organizationId = requireOrgId(profile);
     await getProduct(organizationId, productId);
 
     if (documentType === "video" && fileUrl) {
-      await insertProductDocument({
+      const document = await insertProductDocument({
         productId,
         documentType: "video",
         fileUrl,
         fileName: "Video link",
       });
-    } else if (file instanceof File && file.size > 0) {
+      logProductUploadStep("Upload result", { mode: "video-url", documentId: document.id });
+
+      const product = await getProduct(organizationId, productId);
+      revalidateProducts();
+      logProductUploadStep("Returned JSON", { ok: true, productId: product?.id, documentCount: product?.documents.length });
+      return { ok: true as const, product };
+    }
+
+    if (file instanceof File && file.size > 0) {
       if (file.size > MAX_FILE_BYTES) {
+        logProductUploadStep("Returned JSON", { ok: false, error: "File exceeds 50MB limit." });
         return { ok: false as const, error: "File exceeds 50MB limit." };
       }
 
+      const mimeType = resolveProductUploadMimeType(file);
+      logProductUploadStep("Selected file", {
+        name: file.name,
+        size: file.size,
+        browserType: file.type || "(empty)",
+        resolvedMimeType: mimeType,
+      });
+
       const buffer = Buffer.from(await file.arrayBuffer());
+      logProductUploadStep("Upload result", {
+        bufferByteLength: buffer.byteLength,
+        bucket: "brain-product-files",
+      });
+
       const uploaded = await uploadBrainProductFile({
         organizationId,
         productId,
         buffer,
         fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
+        mimeType,
       });
 
-      await insertProductDocument({
+      const document = await insertProductDocument({
         productId,
         documentType: documentType as "itinerary" | "brochure" | "gallery" | "video",
         fileName: file.name,
         filePath: uploaded.filePath,
-        mimeType: file.type || null,
+        mimeType,
       });
-    } else {
-      return { ok: false as const, error: "File or video URL is required." };
+
+      logProductUploadStep("Upload result", {
+        filePath: uploaded.filePath,
+        documentId: document.id,
+      });
+
+      const product = await getProduct(organizationId, productId);
+      revalidateProducts();
+      logProductUploadStep("Returned JSON", {
+        ok: true,
+        productId: product?.id,
+        documentCount: product?.documents.length,
+      });
+      return { ok: true as const, product };
     }
 
-    const product = await getProduct(organizationId, productId);
-    revalidateProducts();
-    return { ok: true as const, product };
+    logProductUploadStep("Returned JSON", { ok: false, error: "File or video URL is required." });
+    return { ok: false as const, error: "File or video URL is required." };
   } catch (error) {
+    logProductUploadError(error);
+    const message = error instanceof Error ? error.message : "Failed to upload document.";
+    logProductUploadStep("Returned JSON", { ok: false, error: message });
     return {
       ok: false as const,
-      error: error instanceof Error ? error.message : "Failed to upload document.",
+      error: message,
     };
+  } finally {
+    endProductUploadDebug();
   }
 }
 

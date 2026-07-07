@@ -2,6 +2,11 @@ import { randomUUID } from "crypto";
 
 import { createAdminClient } from "@/utils/supabase/admin";
 
+import {
+  logProductUploadError,
+  logProductUploadStep,
+} from "@/modules/business-brain/lib/product-upload-debug";
+
 export const BRAIN_PRODUCT_BUCKET = "brain-product-files";
 
 function sanitizeFileName(fileName: string): string {
@@ -29,15 +34,35 @@ export async function uploadBrainProductFile({
   const admin = createAdminClient();
   const filePath = `${organizationId}/${productId}/${randomUUID()}-${sanitizeFileName(fileName)}`;
 
-  const { error } = await admin.storage
+  logProductUploadStep("Supabase upload request", {
+    bucket: BRAIN_PRODUCT_BUCKET,
+    filePath,
+    mimeType,
+    byteLength: buffer.byteLength,
+  });
+
+  const { data, error } = await admin.storage
     .from(BRAIN_PRODUCT_BUCKET)
     .upload(filePath, buffer, {
       contentType: mimeType,
       upsert: false,
     });
 
+  logProductUploadStep("Supabase response", {
+    bucket: BRAIN_PRODUCT_BUCKET,
+    filePath,
+    data,
+    error: error
+      ? {
+          message: error.message,
+          name: error.name,
+        }
+      : null,
+  });
+
   if (error) {
-    throw new Error(error.message);
+    logProductUploadError(error);
+    throw error;
   }
 
   return { filePath };

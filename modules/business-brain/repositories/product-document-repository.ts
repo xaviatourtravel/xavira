@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 
+import { logProductUploadError, logProductUploadStep } from "@/modules/business-brain/lib/product-upload-debug";
 import type {
   ProductDocumentRecord,
   ProductDocumentType,
@@ -56,21 +57,38 @@ export async function insertProductDocument(input: {
   mimeType?: string | null;
 }): Promise<ProductDocumentRecord> {
   const supabase = await createClient();
+  const row = {
+    product_id: input.productId,
+    document_type: input.documentType,
+    file_name: input.fileName ?? null,
+    file_path: input.filePath ?? null,
+    file_url: input.fileUrl ?? null,
+    mime_type: input.mimeType ?? null,
+  };
+
+  logProductUploadStep("Database insert request", row);
+
   const { data, error } = await supabase
     .from("product_documents")
-    .insert({
-      product_id: input.productId,
-      document_type: input.documentType,
-      file_name: input.fileName ?? null,
-      file_path: input.filePath ?? null,
-      file_url: input.fileUrl ?? null,
-      mime_type: input.mimeType ?? null,
-    })
+    .insert(row)
     .select("*")
     .single();
 
+  logProductUploadStep("Database response", {
+    data,
+    error: error
+      ? {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        }
+      : null,
+  });
+
   if (error) {
-    throw new Error(error.message);
+    logProductUploadError(error);
+    throw error;
   }
 
   return mapDocumentRow(data);

@@ -36,6 +36,15 @@ import {
   createEmptyPricingItem,
 } from "@/modules/business-brain/lib/product-knowledge-score";
 import { mergeProductImportPatch } from "@/modules/business-brain/lib/map-product-import-to-form";
+import {
+  beginProductUploadDebug,
+  describeSelectedFile,
+  describeUnexpectedUploadError,
+  describeUploadPayload,
+  endProductUploadDebug,
+  logProductUploadError,
+  logProductUploadStep,
+} from "@/modules/business-brain/lib/product-upload-debug";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
@@ -301,26 +310,58 @@ export function ProductEditor({
     documentType: ProductDocumentType,
     file?: File | null,
   ) => {
-    const formData = new FormData();
-    formData.set("productId", product.id);
-    formData.set("documentType", documentType);
-    if (file) {
-      formData.set("file", file);
-    }
-    if (documentType === "video" && videoUrl.trim()) {
-      formData.set("fileUrl", videoUrl.trim());
-    }
+    beginProductUploadDebug();
 
-    startTransition(async () => {
-      const result = await uploadProductDocumentAction(formData);
-      if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
-        return;
+    try {
+      if (file) {
+        logProductUploadStep("Selected file", describeSelectedFile(file));
       }
-      syncProduct(result.product);
-      setVideoUrl("");
-      setStatusMessage(bb("documentAttached"));
-    });
+
+      const formData = new FormData();
+      formData.set("productId", product.id);
+      formData.set("documentType", documentType);
+      if (file) {
+        formData.set("file", file);
+      }
+      if (documentType === "video" && videoUrl.trim()) {
+        formData.set("fileUrl", videoUrl.trim());
+      }
+
+      logProductUploadStep(
+        "Request payload",
+        describeUploadPayload({
+          productId: product.id,
+          documentType,
+          file,
+          fileUrl: documentType === "video" ? videoUrl.trim() : undefined,
+        }),
+      );
+
+      startTransition(async () => {
+        try {
+          const result = await uploadProductDocumentAction(formData);
+          logProductUploadStep("Returned JSON", result);
+
+          if (!result.ok || !result.product) {
+            setErrorMessage(result.ok ? bb("productNotFound") : result.error);
+            return;
+          }
+
+          syncProduct(result.product);
+          setVideoUrl("");
+          setStatusMessage(bb("documentAttached"));
+        } catch (error) {
+          logProductUploadError(error);
+          setErrorMessage(describeUnexpectedUploadError(error));
+        } finally {
+          endProductUploadDebug();
+        }
+      });
+    } catch (error) {
+      logProductUploadError(error);
+      setErrorMessage(describeUnexpectedUploadError(error));
+      endProductUploadDebug();
+    }
   };
 
   const handleDeleteDocument = (documentId: string) => {

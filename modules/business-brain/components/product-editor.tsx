@@ -8,7 +8,6 @@ import {
   Plus,
   Save,
   Trash2,
-  Upload,
 } from "lucide-react";
 
 import { DsButton } from "@/components/design-system/button";
@@ -19,6 +18,7 @@ import {
   DsTextInput,
   DsTextarea,
 } from "@/components/design-system/form-controls";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import {
   archiveBrainProductAction,
   createAndLinkProductFaqAction,
@@ -28,25 +28,16 @@ import {
   publishBrainProductAction,
   unlinkProductFaqAction,
   updateBrainProductAction,
-  uploadProductDocumentAction,
 } from "@/modules/business-brain/actions/product-actions";
-import { formatTranslation } from "@/lib/i18n/dictionary";
+import { ProductDocumentUploadZone } from "@/modules/business-brain/components/product-document-upload-zone";
+import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
+import { useProductDocumentUpload } from "@/modules/business-brain/hooks/use-product-document-upload";
+import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import { mergeProductImportPatch } from "@/modules/business-brain/lib/map-product-import-to-form";
 import {
   createEmptyDepartureItem,
   createEmptyPricingItem,
 } from "@/modules/business-brain/lib/product-knowledge-score";
-import { mergeProductImportPatch } from "@/modules/business-brain/lib/map-product-import-to-form";
-import {
-  beginProductUploadDebug,
-  describeSelectedFile,
-  describeUnexpectedUploadError,
-  describeUploadPayload,
-  endProductUploadDebug,
-  logProductUploadError,
-  logProductUploadStep,
-} from "@/modules/business-brain/lib/product-upload-debug";
-import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
-import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
   bbDepartureStatusLabel,
   bbDisplayArticleTitle,
@@ -60,7 +51,6 @@ import {
   type BrainProductDetail,
   type BrainProductFormValues,
   type BrainProductStatus,
-  type ProductDocumentType,
 } from "@/modules/business-brain/types/products";
 
 type FaqOption = {
@@ -206,6 +196,29 @@ export function ProductEditor({
   const [videoUrl, setVideoUrl] = useState("");
   const [isPending, startTransition] = useTransition();
 
+  const handleDocumentUploadSuccess = (next: BrainProductDetail) => {
+    onProductUpdated({
+      ...product,
+      documents: next.documents,
+      knowledgeScore: next.knowledgeScore,
+    });
+    setVideoUrl("");
+    setStatusMessage(bb("productUploadSuccess"));
+    setErrorMessage(null);
+  };
+
+  const {
+    getSlotState,
+    uploadFile,
+    uploadVideoUrl,
+    isSlotBusy,
+  } = useProductDocumentUpload({
+    productId: product.id,
+    onSuccess: handleDocumentUploadSuccess,
+  });
+
+  const videoUploadState = getSlotState("video");
+
   const isDirty = useMemo(
     () => JSON.stringify(values) !== JSON.stringify(savedValues),
     [savedValues, values],
@@ -304,64 +317,6 @@ export function ProductEditor({
       setNewFaqContent("");
       setStatusMessage(bb("faqCreatedAndLinked"));
     });
-  };
-
-  const handleUploadDocument = async (
-    documentType: ProductDocumentType,
-    file?: File | null,
-  ) => {
-    beginProductUploadDebug();
-
-    try {
-      if (file) {
-        logProductUploadStep("Selected file", describeSelectedFile(file));
-      }
-
-      const formData = new FormData();
-      formData.set("productId", product.id);
-      formData.set("documentType", documentType);
-      if (file) {
-        formData.set("file", file);
-      }
-      if (documentType === "video" && videoUrl.trim()) {
-        formData.set("fileUrl", videoUrl.trim());
-      }
-
-      logProductUploadStep(
-        "Request payload",
-        describeUploadPayload({
-          productId: product.id,
-          documentType,
-          file,
-          fileUrl: documentType === "video" ? videoUrl.trim() : undefined,
-        }),
-      );
-
-      startTransition(async () => {
-        try {
-          const result = await uploadProductDocumentAction(formData);
-          logProductUploadStep("Returned JSON", result);
-
-          if (!result.ok || !result.product) {
-            setErrorMessage(result.ok ? bb("productNotFound") : result.error);
-            return;
-          }
-
-          syncProduct(result.product);
-          setVideoUrl("");
-          setStatusMessage(bb("documentAttached"));
-        } catch (error) {
-          logProductUploadError(error);
-          setErrorMessage(describeUnexpectedUploadError(error));
-        } finally {
-          endProductUploadDebug();
-        }
-      });
-    } catch (error) {
-      logProductUploadError(error);
-      setErrorMessage(describeUnexpectedUploadError(error));
-      endProductUploadDebug();
-    }
   };
 
   const handleDeleteDocument = (documentId: string) => {
@@ -881,71 +836,51 @@ export function ProductEditor({
             {canEdit ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {(["itinerary", "brochure", "gallery"] as const).map((documentType) => (
-                  <label
+                  <ProductDocumentUploadZone
                     key={documentType}
-                    className="flex cursor-pointer flex-col gap-2 rounded-xl border border-dashed border-border p-4 hover:border-primary/30"
-                  >
-                    <span className="text-sm font-medium text-foreground">
-                      {bbProductDocumentTypeLabel(bb, documentType)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {bb("uploadPdfOrImage")}
-                    </span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept={
-                        documentType === "gallery"
-                          ? "image/*"
-                          : "application/pdf,image/*"
-                      }
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) void handleUploadDocument(documentType, file);
-                        event.target.value = "";
-                      }}
-                    />
-                    <span className="inline-flex items-center gap-2 text-sm text-primary">
-                      <Upload className="h-4 w-4" />
-                      {bb("chooseFile")}
-                    </span>
-                  </label>
+                    documentType={documentType}
+                    title={bbProductDocumentTypeLabel(bb, documentType)}
+                    hint={bb("uploadPdfOrImage")}
+                    accept={
+                      documentType === "gallery"
+                        ? "image/*"
+                        : "application/pdf,image/*,.pdf"
+                    }
+                    uploadState={getSlotState(documentType)}
+                    disabled={!canEdit}
+                    onFileSelected={(file) => {
+                      void uploadFile(documentType, file);
+                    }}
+                  />
                 ))}
-                <div className="rounded-xl border border-dashed border-border p-4">
-                  <p className="text-sm font-medium text-foreground">{bb("video")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {bb("pasteVideoUrl")}
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <DsTextInput
-                      value={videoUrl}
-                      onChange={(event) => setVideoUrl(event.target.value)}
-                      placeholder={bb("urlPlaceholder")}
-                    />
-                    <DsButton
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleUploadDocument("video")}
-                      disabled={!videoUrl.trim()}
-                    >
-                      {bb("attachVideoUrl")}
-                    </DsButton>
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-primary">
-                      <Upload className="h-4 w-4" />
-                      {bb("uploadMp4")}
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="video/mp4,video/quicktime"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) void handleUploadDocument("video", file);
-                          event.target.value = "";
-                        }}
-                      />
-                    </label>
-                  </div>
+                <div className="space-y-3">
+                  <ProductDocumentUploadZone
+                    documentType="video"
+                    title={bb("video")}
+                    hint={bb("uploadMp4")}
+                    accept="video/mp4,video/quicktime,.mp4,.mov"
+                    uploadState={videoUploadState}
+                    disabled={!canEdit}
+                    onFileSelected={(file) => {
+                      void uploadFile("video", file);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">{bb("pasteVideoUrl")}</p>
+                  <DsTextInput
+                    value={videoUrl}
+                    onChange={(event) => setVideoUrl(event.target.value)}
+                    placeholder={bb("urlPlaceholder")}
+                    disabled={isSlotBusy("video")}
+                  />
+                  <DsButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void uploadVideoUrl(videoUrl)}
+                    disabled={!videoUrl.trim() || isSlotBusy("video")}
+                  >
+                    {bb("attachVideoUrl")}
+                  </DsButton>
                 </div>
               </div>
             ) : null}

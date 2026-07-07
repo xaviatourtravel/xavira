@@ -1,4 +1,4 @@
-const GROUP_LABEL = "Product Upload";
+const GROUP_LABEL = "Product Document Upload";
 
 export function beginProductUploadDebug() {
   console.group(GROUP_LABEL);

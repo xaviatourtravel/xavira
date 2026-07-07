@@ -1,7 +1,10 @@
+"use client";
+
+import { DEFAULT_LEAD_SOURCE, LEAD_SOURCES } from "@/constants/lead-sources";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import {
-  DEFAULT_LEAD_SOURCE,
   formatLeadSourceLabel,
-  LEAD_SOURCE_OPTIONS,
+  getLeadSourceOptions,
 } from "@/lib/leads/source-tracking";
 
 type LeadSourceSelectProps = {
@@ -17,9 +20,9 @@ export function LeadSourceSelect({
   className,
   id,
 }: LeadSourceSelectProps) {
-  const resolvedValue = LEAD_SOURCE_OPTIONS.some(
-    (option) => option.value === defaultValue,
-  )
+  const { locale } = useTranslation();
+  const options = getLeadSourceOptions(locale);
+  const resolvedValue = LEAD_SOURCES.some((option) => option.value === defaultValue)
     ? defaultValue
     : DEFAULT_LEAD_SOURCE;
 
@@ -30,17 +33,16 @@ export function LeadSourceSelect({
       defaultValue={resolvedValue}
       className={className}
     >
-      {LEAD_SOURCE_OPTIONS.map((option) => (
+      {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
       ))}
-      {!LEAD_SOURCE_OPTIONS.some((option) => option.value === defaultValue) &&
-        defaultValue && (
-          <option value={defaultValue}>
-            {formatLeadSourceLabel(defaultValue)} (Legacy)
-          </option>
-        )}
+      {!LEAD_SOURCES.some((option) => option.value === defaultValue) && defaultValue ? (
+        <option value={defaultValue}>
+          {formatLeadSourceLabel(defaultValue, locale)} (Legacy)
+        </option>
+      ) : null}
     </select>
   );
 }

@@ -34,9 +34,10 @@ import { parseLeadHealthFilter } from "@/lib/leads/health-score";
 import { formatLeadDate } from "@/lib/leads/lead-date";
 import { loadLeadFormOptions } from "@/lib/leads/load-lead-form-options";
 import { canEditLead } from "@/lib/leads/permissions";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import {
   formatLeadSourceLabel,
-  LEAD_SOURCE_OPTIONS,
+  getLeadSourceOptions,
   resolveLeadSourceFilterValues,
 } from "@/lib/leads/source-tracking";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
@@ -461,7 +462,7 @@ function LeadsPageContent({
           className="min-h-[44px] w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">All Sources</option>
-          {LEAD_SOURCE_OPTIONS.map((option) => (
+          {getLeadSourceOptions(DEFAULT_LOCALE).map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

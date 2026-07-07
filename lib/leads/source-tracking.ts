@@ -1,42 +1,26 @@
+import {
+  DEFAULT_LEAD_SOURCE,
+  LEAD_SOURCES,
+  LEGACY_LEAD_SOURCES,
+  type LeadSourceValue,
+} from "@/constants/lead-sources";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { dictionaries } from "@/lib/i18n/dictionary";
+import type { LeadsUiKey } from "@/lib/i18n/leads-dictionary";
 import type { Database } from "@/types/database";
 
-export const LEAD_SOURCE_OPTIONS = [
-  { value: "meta_ads", label: "Meta Ads" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "website", label: "Website" },
-  { value: "whatsapp", label: "WhatsApp" },
-  { value: "referral", label: "Referral" },
-  { value: "repeat_customer", label: "Repeat Customer" },
-  { value: "walk_in", label: "Walk In" },
-  { value: "other", label: "Other" },
-] as const;
-
-export type LeadSourceV1 = (typeof LEAD_SOURCE_OPTIONS)[number]["value"];
+export type LeadSourceV1 = LeadSourceValue;
 
 export type LeadSource = Database["public"]["Enums"]["lead_source"];
 
-export const DEFAULT_LEAD_SOURCE: LeadSourceV1 = "other";
+export { DEFAULT_LEAD_SOURCE, LEAD_SOURCES, LEGACY_LEAD_SOURCES };
 
-/** Legacy enum values still stored on older leads; shown in edit UI only. */
-const LEGACY_LEAD_SOURCES = ["instagram", "facebook"] as const;
-
-const LEAD_SOURCE_LABELS: Record<string, string> = {
-  meta_ads: "Meta Ads",
-  tiktok: "TikTok",
-  website: "Website",
-  whatsapp: "WhatsApp",
-  referral: "Referral",
-  repeat_customer: "Repeat Customer",
-  walk_in: "Walk In",
-  other: "Other",
-  instagram: "Meta Ads",
-  facebook: "Meta Ads",
+export type LeadSourceOption = {
+  value: LeadSourceValue;
+  labelKey: LeadsUiKey;
+  label: string;
+  icon?: string;
 };
-
-const SAVEABLE_LEAD_SOURCES = new Set<string>([
-  ...LEAD_SOURCE_OPTIONS.map((option) => option.value),
-  ...LEGACY_LEAD_SOURCES,
-]);
 
 export type LeadSourceStatsRow = {
   source: LeadSourceV1;
@@ -46,8 +30,57 @@ export type LeadSourceStatsRow = {
   conversionRate: number;
 };
 
+const SAVEABLE_LEAD_SOURCES = new Set<string>([
+  ...LEAD_SOURCES.map((option) => option.value),
+  ...LEGACY_LEAD_SOURCES,
+]);
+
+const ANALYTICS_LEGACY_BUCKETS: Partial<Record<string, LeadSourceV1>> = {
+  facebook: "meta_ads",
+};
+
+function getLeadsUi(locale: Locale = DEFAULT_LOCALE) {
+  return dictionaries[locale].leadsUi;
+}
+
+export function getLeadSourceOptions(locale: Locale = DEFAULT_LOCALE): LeadSourceOption[] {
+  const leadsUi = getLeadsUi(locale);
+
+  return LEAD_SOURCES.map((source) => ({
+    value: source.value,
+    labelKey: source.labelKey,
+    label: leadsUi[source.labelKey],
+    icon: source.icon,
+  }));
+}
+
+/** @deprecated Use getLeadSourceOptions() for locale-aware labels. */
+export const LEAD_SOURCE_OPTIONS = getLeadSourceOptions("en");
+
+export function getLeadSourceLabel(
+  source: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const leadsUi = getLeadsUi(locale);
+  const option = LEAD_SOURCES.find((item) => item.value === source);
+
+  if (option) {
+    return leadsUi[option.labelKey];
+  }
+
+  if (source === "facebook") {
+    return `${leadsUi.leadSourceMetaAds} (${leadsUi.leadSourceLegacySuffix})`;
+  }
+
+  return leadsUi.leadSourceOther;
+}
+
+export function formatLeadSourceLabel(source: string, locale: Locale = DEFAULT_LOCALE) {
+  return getLeadSourceLabel(source, locale);
+}
+
 export function isLeadSourceV1(value: string): value is LeadSourceV1 {
-  return LEAD_SOURCE_OPTIONS.some((option) => option.value === value);
+  return LEAD_SOURCES.some((option) => option.value === value);
 }
 
 export function parseLeadSource(value: string): LeadSourceV1 {
@@ -68,10 +101,6 @@ export function parseLeadSourceForSave(value: string): LeadSource {
   return DEFAULT_LEAD_SOURCE;
 }
 
-export function formatLeadSourceLabel(source: string) {
-  return LEAD_SOURCE_LABELS[source] ?? "Other";
-}
-
 export function resolveLeadSourceFilterValues(source: string): LeadSource[] | null {
   if (!source) {
     return null;
@@ -84,10 +113,9 @@ export function resolveLeadSourceFilterValues(source: string): LeadSource[] | nu
   return null;
 }
 
-export function getLeadSourceFilterLabel(source: string) {
+export function getLeadSourceFilterLabel(source: string, locale: Locale = DEFAULT_LOCALE) {
   if (isLeadSourceV1(source)) {
-    const option = LEAD_SOURCE_OPTIONS.find((item) => item.value === source);
-    return option?.label ?? "Source";
+    return getLeadSourceLabel(source, locale);
   }
 
   return "Source";
@@ -98,20 +126,16 @@ export function getLeadSourceAnalyticsBucket(source: string): LeadSourceV1 {
     return source;
   }
 
-  return "other";
+  return ANALYTICS_LEGACY_BUCKETS[source] ?? "other";
 }
 
 export function buildLeadSourceStats(
   leads: ReadonlyArray<{ source: string; status: string }>,
+  locale: Locale = DEFAULT_LOCALE,
 ): LeadSourceStatsRow[] {
-  const buckets = new Map<
-    LeadSourceV1,
-    { leadCount: number; wonCount: number }
-  >(
-    LEAD_SOURCE_OPTIONS.map((option) => [
-      option.value,
-      { leadCount: 0, wonCount: 0 },
-    ]),
+  const options = getLeadSourceOptions(locale);
+  const buckets = new Map<LeadSourceV1, { leadCount: number; wonCount: number }>(
+    options.map((option) => [option.value, { leadCount: 0, wonCount: 0 }]),
   );
 
   for (const lead of leads) {
@@ -129,18 +153,20 @@ export function buildLeadSourceStats(
     }
   }
 
-  return LEAD_SOURCE_OPTIONS.map((option) => {
-    const stats = buckets.get(option.value)!;
+  return options
+    .map((option) => {
+      const stats = buckets.get(option.value)!;
 
-    return {
-      source: option.value,
-      label: option.label,
-      leadCount: stats.leadCount,
-      wonCount: stats.wonCount,
-      conversionRate:
-        stats.leadCount > 0
-          ? Math.round((stats.wonCount / stats.leadCount) * 100)
-          : 0,
-    };
-  }).sort((a, b) => b.leadCount - a.leadCount);
+      return {
+        source: option.value,
+        label: option.label,
+        leadCount: stats.leadCount,
+        wonCount: stats.wonCount,
+        conversionRate:
+          stats.leadCount > 0
+            ? Math.round((stats.wonCount / stats.leadCount) * 100)
+            : 0,
+      };
+    })
+    .sort((a, b) => b.leadCount - a.leadCount);
 }

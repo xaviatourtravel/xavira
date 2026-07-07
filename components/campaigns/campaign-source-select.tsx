@@ -1,6 +1,7 @@
 "use client";
 
-import { LEAD_SOURCE_OPTIONS } from "@/lib/leads/source-tracking";
+import { useTranslation } from "@/lib/i18n/use-translation";
+import { getLeadSourceOptions } from "@/lib/leads/source-tracking";
 
 type CampaignSourceSelectProps = {
   name?: string;
@@ -15,6 +16,9 @@ export function CampaignSourceSelect({
   className,
   required = false,
 }: CampaignSourceSelectProps) {
+  const { locale } = useTranslation();
+  const options = getLeadSourceOptions(locale);
+
   return (
     <select
       name={name}
@@ -22,7 +26,7 @@ export function CampaignSourceSelect({
       required={required}
       className={className}
     >
-      {LEAD_SOURCE_OPTIONS.map((option) => (
+      {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>

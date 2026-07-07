@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { AI_MODEL } from "@/lib/ai/client";
 
 import type { CustomerAiSummaryContext } from "./context";
+import type { BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 import { buildCustomerAiSummaryPrompt } from "./prompt";
 import { parseCustomerAiSummaryResponse } from "./parse";
 import type { CustomerAiSummary } from "./types";
@@ -21,7 +22,7 @@ export type CustomerAiSummaryGenerationResult = {
 
 export async function generateCustomerAiSummary(
   context: CustomerAiSummaryContext,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ): Promise<CustomerAiSummaryGenerationResult> {
   if (!openai) {
     return {
@@ -33,7 +34,7 @@ export async function generateCustomerAiSummary(
   try {
     const response = await openai.responses.create({
       model: AI_MODEL,
-      input: buildCustomerAiSummaryPrompt(context, timezone),
+      input: buildCustomerAiSummaryPrompt(context, runtimeContext),
     });
 
     const text = response.output_text?.trim();

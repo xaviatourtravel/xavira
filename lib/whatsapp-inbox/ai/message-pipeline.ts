@@ -513,7 +513,16 @@ export async function processWhatsappAiMessagePipeline(
     conversationMemory,
     leadQualification,
     contextSource: businessBrainMeta.source,
-    timezone: workspaceProfile?.timezone,
+    runtimeContext: {
+      timezone: workspaceProfile?.timezone,
+      workspaceId,
+      workspaceName: companyName,
+      businessName:
+        workspaceProfile?.companyName ??
+        workspaceProfile?.businessName ??
+        companyName,
+      currentUser: "AI Assistant",
+    },
   });
 
   logPipeline("llm reply generated", {

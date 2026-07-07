@@ -13,6 +13,7 @@ export type WhatsAppConversationTurn = {
 };
 
 export type WhatsAppSalesPromptParams = {
+  workspaceId?: string | null;
   workspaceName: string;
   customerMessage: string;
   conversationHistory: WhatsAppConversationTurn[];
@@ -20,6 +21,10 @@ export type WhatsAppSalesPromptParams = {
   conversationMemory?: ConversationMemoryPromptItem[];
   leadQualification?: LeadQualificationSnapshot | null;
   timezone?: string | null;
+  locale?: "id" | "en" | null;
+  currentUser?: string | null;
+  businessName?: string | null;
+  environment?: string | null;
 };
 
 export type WhatsAppDocumentActionType = "SEND_DOCUMENT";

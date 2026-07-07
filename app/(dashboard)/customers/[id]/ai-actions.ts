@@ -12,7 +12,7 @@ import {
 } from "@/lib/ai/customer-summary";
 import { auditFromProfile } from "@/lib/audit";
 import { requireProfile } from "@/lib/auth/session";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import { createClient } from "@/utils/supabase/server";
 
 export type CustomerAiSummaryActionResult = {
@@ -98,12 +98,12 @@ export async function generateCustomerAiSummaryAction(
     }
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
-  const result = await generateCustomerAiSummary(context, timezone);
+  const result = await generateCustomerAiSummary(context, runtimeContext);
 
   if (!result.success || !result.data) {
     return {

@@ -3,7 +3,7 @@ import type {
   RevenueFunnel,
   RevenueIntelligenceMetrics,
 } from "@/lib/dashboard/revenue-intelligence";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 export type RevenueInsight = {
   title: string;
@@ -43,11 +43,12 @@ export function buildRevenueInsightsPayload(metrics: RevenueIntelligenceMetrics)
 
 export function buildRevenueInsightsPrompt(
   metrics: RevenueIntelligenceMetrics,
+  runtimeContext?: BuildRuntimeContextInput,
   timezone?: string | null,
 ): string {
   const payload = buildRevenueInsightsPayload(metrics);
 
-  return withTemporalContext(
+  return withRuntimeContext(
     [
     "You are a travel agency business analyst. Analyze the performance metrics below and produce concise, actionable insights for the business owner.",
     "",
@@ -67,7 +68,7 @@ export function buildRevenueInsightsPrompt(
     '{ "insights": [ { "title": "short headline", "detail": "1-2 sentence explanation with the relevant numbers" } ] }',
     "Provide between 3 and 5 insights.",
   ].join("\n"),
-    { timezone },
+    runtimeContext ?? { timezone },
   );
 }
 

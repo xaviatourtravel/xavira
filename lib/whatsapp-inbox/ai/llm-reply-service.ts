@@ -1,3 +1,5 @@
+import { buildRuntimeContext } from "@/modules/ai/runtime/build-runtime-context";
+import type { BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 import { createLLMAdapter } from "@/modules/ai/services/llm-adapter";
 import type { RetrievedBusinessBrainContext } from "@/modules/ai/types/context-retrieval";
 import { toPromptBusinessBrainContext } from "@/modules/ai/types/context-retrieval";
@@ -27,6 +29,8 @@ export type GenerateWhatsAppReplyInput = {
   conversationMemory?: ConversationMemoryMap;
   leadQualification?: LeadQualificationSnapshot | null;
   contextSource?: string;
+  runtimeContext?: BuildRuntimeContextInput;
+  /** @deprecated Use runtimeContext.timezone */
   timezone?: string | null;
 };
 
@@ -101,7 +105,17 @@ export const aiLLMReplyService = {
     }
 
     try {
+      const runtimeContextInput: BuildRuntimeContextInput =
+        input.runtimeContext ?? {
+          timezone: input.timezone,
+          workspaceId: input.workspaceId,
+          workspaceName: input.workspaceName,
+          businessName: input.retrievedContext.companyDNA?.companyName ?? undefined,
+        };
+      const runtimeContext = buildRuntimeContext(runtimeContextInput);
+
       const promptBundle = buildWhatsAppSalesPrompt({
+        workspaceId: input.workspaceId,
         workspaceName: input.workspaceName,
         customerMessage: input.customerMessage,
         conversationHistory: input.conversationHistory,
@@ -110,7 +124,11 @@ export const aiLLMReplyService = {
           ? toConversationMemoryPromptItems(input.conversationMemory)
           : undefined,
         leadQualification: input.leadQualification,
-        timezone: input.timezone,
+        timezone: runtimeContext.timezone,
+        locale: runtimeContext.locale,
+        currentUser: runtimeContext.currentUser,
+        businessName: runtimeContext.businessName,
+        environment: runtimeContext.environment,
       });
 
       const llmResult = await llm.generateJSON({
@@ -118,7 +136,8 @@ export const aiLLMReplyService = {
         userPrompt: promptBundle.userPrompt,
         temperature: 0.4,
         maxTokens: 900,
-        timezone: input.timezone,
+        runtimeContext: runtimeContextInput,
+        runtimeInjection: "user",
       });
 
       const generationTimeMs = Date.now() - startedAt;

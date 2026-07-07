@@ -17,7 +17,7 @@ import type { ContentGenerationListItem } from "@/lib/content/generations";
 import { parseContentPlatform } from "@/lib/content/constants";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import { loadKnowledgeContextForAi } from "@/lib/knowledge/retrieval";
 import {
   buildPackageContentContext,
@@ -133,10 +133,10 @@ export async function generateContentStudio(formData: FormData): Promise<{
     .join("\n\n");
 
   let prompt: string;
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
   try {
     prompt = buildContentStudioPrompt({
@@ -148,7 +148,7 @@ export async function generateContentStudio(formData: FormData): Promise<{
       additionalContext: mergedAdditionalContext || undefined,
       packageContext,
       topic: topic || undefined,
-      timezone,
+      runtimeContext,
     });
   } catch (error) {
     return {

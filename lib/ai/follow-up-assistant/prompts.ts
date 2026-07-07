@@ -3,7 +3,7 @@ import {
   TONE_INSTRUCTIONS,
   type FollowUpAssistantTone,
 } from "./constants";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 import type {
   BookingPaymentReminderContext,
   LeadFollowUpContext,
@@ -31,7 +31,7 @@ function formatOptional(value: string | number | null | undefined) {
 export function buildLeadFollowUpPrompt(
   context: LeadFollowUpContext,
   tone: FollowUpAssistantTone,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ) {
   const conversationSection = context.lastConversationText
     ? `
@@ -45,7 +45,7 @@ Percakapan terakhir:
 - Tidak ada riwayat percakapan inbox. Gunakan status lead dan catatan saja.
 `;
 
-  return withTemporalContext(
+  return withRuntimeContext(
     `
 Kamu membantu sales travel Umroh/Halal Tour menulis draf follow-up untuk lead.
 
@@ -72,18 +72,18 @@ Instruksi:
 - Jika detail paket belum jelas, ajak konfirmasi jadwal/destinasi/pax — jangan mengarang detail.
 - Panjang ideal 3-6 kalimat, maksimal ~700 karakter.
 `.trim(),
-    { timezone },
+    runtimeContext,
   );
 }
 
 export function buildBookingPaymentReminderPrompt(
   context: BookingPaymentReminderContext,
   tone: FollowUpAssistantTone,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ) {
   const reminderLabel = formatBookingReminderTypeLabel(context.reminderType);
 
-  return withTemporalContext(
+  return withRuntimeContext(
     `
 Kamu membantu sales travel menulis draf reminder pembayaran booking.
 
@@ -115,6 +115,6 @@ Instruksi reminder:
 Gunakan angka total/sisa/outstanding di atas jika relevan. Jangan tambah angka lain.
 Panjang ideal 3-5 kalimat.
 `.trim(),
-    { timezone },
+    runtimeContext,
   );
 }

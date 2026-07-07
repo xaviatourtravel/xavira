@@ -8,7 +8,7 @@ import {
   loadInboxChatAssistantContext,
 } from "@/lib/ai/sales-assistant-context";
 import { buildSalesAssistantPrompt } from "@/lib/ai/sales-assistant";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
@@ -66,10 +66,10 @@ export async function generateInboxChatReply(formData: FormData): Promise<{
     };
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
   const prompt = buildSalesAssistantPrompt({
     action: "reply",
@@ -82,7 +82,7 @@ export async function generateInboxChatReply(formData: FormData): Promise<{
     activities: context.activities,
     followUpTasks: context.followUpTasks,
     booking: context.booking,
-    timezone,
+    runtimeContext,
   });
 
   try {

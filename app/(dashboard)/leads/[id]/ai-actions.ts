@@ -21,8 +21,8 @@ import {
 } from "@/lib/ai/lead-intelligence";
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 import { loadKnowledgeContextForAi } from "@/lib/knowledge/retrieval";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import { requireProfile } from "@/lib/auth/session";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
 import { createClient } from "@/utils/supabase/server";
 
 const openai = new OpenAI({
@@ -80,10 +80,10 @@ export async function generateAiSalesAssistant(formData: FormData) {
     .filter((part) => part.trim().length > 0)
     .join("\n\n");
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
   const prompt = buildSalesAssistantPrompt({
     action,
@@ -93,7 +93,7 @@ export async function generateAiSalesAssistant(formData: FormData) {
     activities: context.activities,
     followUpTasks: context.followUpTasks,
     booking: context.booking,
-    timezone,
+    runtimeContext,
   });
 
   try {
@@ -280,16 +280,16 @@ export async function generateAiLeadIntelligence(
     }
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
   const prompt = buildLeadIntelligencePrompt({
     lead: context.lead,
     activities: context.activities,
     followUpTasks: context.followUpTasks,
-    timezone,
+    runtimeContext,
   });
 
   try {

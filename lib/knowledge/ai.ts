@@ -1,6 +1,6 @@
 import type { KnowledgeCategory } from "@/lib/knowledge/constants";
 import { formatKnowledgeCategoryLabel } from "@/lib/knowledge/constants";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 export type KnowledgeFaqItem = {
   question: string;
@@ -28,10 +28,11 @@ export function buildKnowledgeProcessingPrompt(input: {
   category: KnowledgeCategory;
   content: string;
   timezone?: string | null;
+  runtimeContext?: BuildRuntimeContextInput;
 }): string {
   const categoryLabel = formatKnowledgeCategoryLabel(input.category);
 
-  return withTemporalContext(
+  return withRuntimeContext(
     [
     "Kamu adalah analis knowledge base untuk travel agency Desklabs (Umroh & Halal Tour).",
     "Tugasmu mengubah dokumen perusahaan menjadi konteks yang mudah dipakai ulang oleh AI.",
@@ -57,7 +58,7 @@ export function buildKnowledgeProcessingPrompt(input: {
     "Balas HANYA dengan JSON valid (tanpa markdown, tanpa code fence) dengan bentuk persis:",
     '{ "summary": "...", "keyPoints": ["..."], "faq": [ { "question": "...", "answer": "..." } ] }',
   ].join("\n"),
-    { timezone: input.timezone },
+    input.runtimeContext ?? { timezone: input.timezone },
   );
 }
 

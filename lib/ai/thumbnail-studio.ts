@@ -4,7 +4,7 @@ import {
   isContentStudioAngle,
   isContentStudioPillar,
 } from "@/lib/ai/content-studio";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 export const THUMBNAIL_STYLE_PRESETS = [
   "educational",
@@ -230,7 +230,7 @@ export function parseThumbnailCopyResponse(raw: string): {
 
 export function buildThumbnailCopyPrompt(
   input: ThumbnailStudioInputs,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ) {
   const pillarLabel = isContentStudioPillar(input.contentPillar)
     ? getContentStudioPillarLabel(input.contentPillar)
@@ -242,7 +242,7 @@ export function buildThumbnailCopyPrompt(
   const coverLabel = getThumbnailCoverFormatLabel(input.coverFormat);
   const customHeadline = input.customHeadline?.trim();
 
-  return withTemporalContext(
+  return withRuntimeContext(
     `Kamu adalah creative director thumbnail untuk travel brand Desklabs (Umroh, Halal Tour, Muslim-friendly travel).
 
 Buat thumbnail copy untuk Reels cover berdasarkan input berikut.
@@ -280,7 +280,7 @@ OUTPUT JSON SAJA tanpa markdown:
     "supportingElements": "elemen pendukung"
   }
 }`,
-    { timezone },
+    runtimeContext,
   );
 }
 

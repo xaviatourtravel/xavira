@@ -1,4 +1,4 @@
-import { DEFAULT_AI_TIMEZONE } from "@/lib/ai/temporal-context";
+import { DEFAULT_AI_TIMEZONE } from "@/modules/ai/runtime";
 import { createClient } from "@/utils/supabase/server";
 
 import { classifyIntent } from "@/modules/ai/services/intent-classifier";
@@ -273,7 +273,16 @@ export async function runTest(
     conversationMemory,
     leadQualification: refreshedLeadQualification,
     contextSource: "playground_simulator",
-    timezone: workspaceTimezone,
+    runtimeContext: {
+      timezone: workspaceTimezone,
+      workspaceId: organizationId,
+      workspaceName,
+      businessName:
+        businessBrainContext.companyDNA?.companyName ??
+        businessBrainContext.companyDNA?.industry ??
+        workspaceName,
+      currentUser: "Playground User",
+    },
   });
 
   if (!llmResult.success) {

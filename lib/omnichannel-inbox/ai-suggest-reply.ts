@@ -13,6 +13,7 @@ import {
   buildSalesAssistantPrompt,
   type SalesAssistantLead,
 } from "@/lib/ai/sales-assistant";
+import type { BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 import { getCustomerDisplayName } from "@/lib/omnichannel-inbox/customer-display";
 
 const RECENT_MESSAGE_LIMIT = 14;
@@ -170,7 +171,7 @@ export async function loadOmnichannelSuggestReplyContext(
 
 export function buildOmnichannelSuggestReplyPrompt(
   context: OmnichannelSuggestReplyContext,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ) {
   const basePrompt = buildSalesAssistantPrompt({
     action: "reply",
@@ -192,7 +193,7 @@ ${formatInternalNotesForPrompt(context.internalNotes)}
     activities: context.salesContext.activities,
     followUpTasks: context.salesContext.followUpTasks,
     booking: context.salesContext.booking,
-    timezone,
+    runtimeContext,
   });
 
   return `

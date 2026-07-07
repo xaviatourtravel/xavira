@@ -1,6 +1,9 @@
 import OpenAI from "openai";
 
-import { augmentSystemPromptWithTemporalContext } from "@/lib/ai/temporal-context";
+import {
+  buildRuntimeContext,
+  buildRuntimePrompt,
+} from "@/modules/ai/runtime/build-runtime-context";
 import type {
   GenerateJSONParams,
   GenerateJSONResult,
@@ -116,10 +119,19 @@ class OpenAILLMAdapter implements LLMAdapter {
     });
 
     try {
-      const systemPrompt = augmentSystemPromptWithTemporalContext(
-        params.systemPrompt,
-        { timezone: params.timezone },
-      );
+      const runtimeInjection = params.runtimeInjection ?? "system";
+      const runtimeInput =
+        params.runtimeContext ??
+        (params.timezone ? { timezone: params.timezone } : undefined);
+
+      const systemPrompt =
+        runtimeInjection === "system" && runtimeInput
+          ? [
+              buildRuntimePrompt(buildRuntimeContext(runtimeInput)),
+              "",
+              params.systemPrompt,
+            ].join("\n")
+          : params.systemPrompt;
 
       const response = await withTimeout(
         this.client.responses.create({

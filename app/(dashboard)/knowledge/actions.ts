@@ -8,7 +8,7 @@ import OpenAI from "openai";
 import { AI_MODEL, logAiGeneration } from "@/lib/ai/client";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import {
   buildKnowledgeProcessingPrompt,
   parseKnowledgeProcessingResponse,
@@ -59,16 +59,16 @@ async function runKnowledgeAiProcessing(
     return;
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
   const prompt = buildKnowledgeProcessingPrompt({
     title: entry.title,
     category: entry.category,
     content: entry.content,
-    timezone,
+    runtimeContext,
   });
 
   try {

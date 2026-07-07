@@ -3,7 +3,7 @@ import {
   formatPackageContentContextForPrompt,
   type PackageContentContext,
 } from "@/lib/packages/content-context";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 export const CONTENT_STUDIO_PILLARS = [
   "soft_sell",
@@ -97,6 +97,8 @@ export type ContentStudioPromptInput = {
   additionalContext?: string;
   packageContext?: PackageContentContext;
   topic?: string;
+  runtimeContext?: BuildRuntimeContextInput;
+  /** @deprecated Use runtimeContext.timezone */
   timezone?: string | null;
 };
 
@@ -378,7 +380,7 @@ export function buildContentStudioPrompt(input: ContentStudioPromptInput) {
     });
   }
 
-  return withTemporalContext(prompt, { timezone: input.timezone });
+  return withRuntimeContext(prompt, input.runtimeContext ?? { timezone: input.timezone });
 }
 
 export function parseContentStudioResponse(raw: string):

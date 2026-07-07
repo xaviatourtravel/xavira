@@ -1,4 +1,9 @@
-import { injectTemporalBeforeContent } from "@/lib/ai/temporal-context";
+import {
+  buildRuntimePrompt,
+  buildRuntimeContext,
+  resolveLocaleFromCommunicationLanguage,
+  type BuildRuntimeContextInput,
+} from "@/modules/ai/runtime/build-runtime-context";
 import type { BusinessBrainContext, CompanyDNAContext } from "@/modules/business-brain/types/context";
 import type { RetrievedBusinessBrainContext } from "@/modules/ai/types/context-retrieval";
 import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
@@ -623,6 +628,46 @@ function buildSystemPrompt(workspaceName: string, usedSourceCatalog: string[]): 
   ].join("\n");
 }
 
+function formatConversationSummarySection(
+  qualification: LeadQualificationSnapshot | null | undefined,
+  retrievalSummary: RetrievedBusinessBrainContext["retrievalSummary"],
+): string {
+  const qualificationSection = formatLeadQualificationSection(qualification);
+
+  return [
+    "Conversation Summary:",
+    `Intent: ${retrievalSummary.intent}`,
+    retrievalSummary.matchedKeywords.length
+      ? `Matched keywords: ${retrievalSummary.matchedKeywords.join(", ")}`
+      : "Matched keywords: (none)",
+    "",
+    qualificationSection,
+  ].join("\n");
+}
+
+function buildRuntimeContextInputFromPromptParams(
+  params: WhatsAppSalesPromptParams,
+  sanitizedContext: RetrievedBusinessBrainContext,
+): BuildRuntimeContextInput {
+  return {
+    timezone: params.timezone,
+    locale:
+      params.locale ??
+      resolveLocaleFromCommunicationLanguage(
+        sanitizedContext.companyDNA?.communicationStyle.language,
+      ),
+    workspaceId: params.workspaceId,
+    workspaceName: params.workspaceName,
+    currentUser: params.currentUser,
+    businessName:
+      params.businessName ??
+      sanitizedContext.companyDNA?.companyName ??
+      sanitizedContext.companyDNA?.industry ??
+      undefined,
+    environment: params.environment,
+  };
+}
+
 function buildUserPrompt(
   params: WhatsAppSalesPromptParams,
   sanitizedContext: RetrievedBusinessBrainContext,
@@ -630,13 +675,18 @@ function buildUserPrompt(
   const history = formatConversationHistory(params.conversationHistory);
   const customerMessage = truncateText(cleanString(params.customerMessage), MAX_MEDIUM_TEXT);
   const memory = params.conversationMemory ?? [];
+  const runtimePrompt = buildRuntimePrompt(
+    buildRuntimeContext(buildRuntimeContextInputFromPromptParams(params, sanitizedContext)),
+  );
 
-  const businessContextAndConversation = [
+  return [
+    runtimePrompt,
+    "",
     buildRelevantBusinessContextSection(sanitizedContext),
     "",
-    formatCustomerMemorySection(memory),
+    formatConversationSummarySection(params.leadQualification, sanitizedContext.retrievalSummary),
     "",
-    formatLeadQualificationSection(params.leadQualification),
+    formatCustomerMemorySection(memory),
     "",
     "Conversation History (last 10 messages, oldest first):",
     history,
@@ -644,10 +694,6 @@ function buildUserPrompt(
     "Latest Customer Message:",
     customerMessage,
   ].join("\n");
-
-  return injectTemporalBeforeContent(businessContextAndConversation, {
-    timezone: params.timezone,
-  });
 }
 
 export function buildWhatsAppSalesPrompt(

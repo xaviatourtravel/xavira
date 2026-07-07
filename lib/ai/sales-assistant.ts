@@ -1,8 +1,8 @@
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 import {
-  withTemporalContext,
-  type BuildTemporalContextOptions,
-} from "@/lib/ai/temporal-context";
+  withRuntimeContext,
+  type BuildRuntimeContextInput,
+} from "@/modules/ai/runtime/build-runtime-context";
 
 export const SALES_ASSISTANT_ACTIONS = [
   "follow_up",
@@ -107,6 +107,8 @@ export type SalesAssistantPromptInput = {
   activities: SalesAssistantActivity[];
   followUpTasks: SalesAssistantFollowUpTask[];
   booking: SalesAssistantBooking | null;
+  runtimeContext?: BuildRuntimeContextInput;
+  /** @deprecated Use runtimeContext.timezone */
   timezone?: string | null;
 };
 
@@ -152,6 +154,7 @@ export function buildSalesAssistantPrompt({
   activities,
   followUpTasks,
   booking,
+  runtimeContext,
   timezone,
 }: SalesAssistantPromptInput) {
   const temperature = getEffectiveLeadTemperature({
@@ -197,7 +200,7 @@ ${customerContext.trim()}
 `
     : "";
 
-  return withTemporalContext(
+  return withRuntimeContext(
     `
 Kamu membantu sales travel Umroh dan Halal Tour menulis draf pesan WhatsApp.
 
@@ -234,6 +237,6 @@ Follow up terjadwal:
 ${formatFollowUpTasks(followUpTasks)}
 ${customerContextSection}
 `.trim(),
-    { timezone } satisfies BuildTemporalContextOptions,
+    runtimeContext ?? { timezone },
   );
 }

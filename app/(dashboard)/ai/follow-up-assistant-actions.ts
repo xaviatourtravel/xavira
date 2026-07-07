@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAiGeneration } from "@/lib/ai/client";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import {
   formatBookingReminderTypeLabel,
   generateBookingPaymentReminder,
@@ -78,12 +78,12 @@ export async function generateLeadFollowUpAssistant(
     return { success: false, message: "Lead tidak ditemukan." };
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
-  const result = await generateLeadFollowUpSuggestion({ context, tone, timezone });
+  const result = await generateLeadFollowUpSuggestion({ context, tone, runtimeContext });
 
   if (!result.success || !result.suggestion) {
     return {
@@ -147,12 +147,12 @@ export async function generateBookingPaymentReminderAssistant(
     return { success: false, message: "Booking tidak ditemukan." };
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
-  const result = await generateBookingPaymentReminder({ context, tone, timezone });
+  const result = await generateBookingPaymentReminder({ context, tone, runtimeContext });
 
   if (!result.success || !result.suggestion) {
     return {
@@ -226,12 +226,12 @@ export async function generateInboxFollowUpAssistant(
     };
   }
 
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
 
-  const result = await generateLeadFollowUpSuggestion({ context, tone, timezone });
+  const result = await generateLeadFollowUpSuggestion({ context, tone, runtimeContext });
 
   if (!result.success || !result.suggestion) {
     return {

@@ -1,6 +1,6 @@
 import type { CustomerAiSummaryContext } from "./context";
 import { formatCustomerAiSummaryContext } from "./context";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 const SAFETY_RULES = `
 Aturan keamanan wajib:
@@ -14,9 +14,9 @@ Aturan keamanan wajib:
 
 export function buildCustomerAiSummaryPrompt(
   context: CustomerAiSummaryContext,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ) {
-  return withTemporalContext(
+  return withRuntimeContext(
     `
 Kamu membantu sales travel Umroh/Halal Tour memahami customer secara instan dari Customer Workspace.
 
@@ -49,6 +49,6 @@ ${SAFETY_RULES}
 
 ${formatCustomerAiSummaryContext(context)}
 `.trim(),
-    { timezone },
+    runtimeContext,
   );
 }

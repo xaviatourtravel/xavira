@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --import tsx --test modules/business-brain/lib/parse-currency.test.ts modules/business-brain/lib/parse-departure-date.test.ts modules/business-brain/lib/validate-product-document-file.test.ts lib/leads/source-tracking.test.ts lib/ai/temporal-context.test.ts",
+    "test": "node --import tsx --test modules/business-brain/lib/parse-currency.test.ts modules/business-brain/lib/parse-departure-date.test.ts modules/business-brain/lib/validate-product-document-file.test.ts lib/leads/source-tracking.test.ts lib/ai/temporal-context.test.ts modules/ai/runtime/build-runtime-context.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

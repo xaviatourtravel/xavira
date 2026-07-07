@@ -23,7 +23,7 @@ import {
   type ThumbnailGenerationListItem,
 } from "@/lib/content/thumbnail-queries";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
-import { resolveOrganizationTimezone } from "@/lib/ai/resolve-organization-timezone";
+import { resolveRuntimeContextInput } from "@/modules/ai/runtime";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
 
@@ -96,11 +96,11 @@ export async function generateThumbnailStudioCopy(formData: FormData): Promise<{
   }
 
   const supabase = await createClient();
-  const timezone = await resolveOrganizationTimezone(
-    supabase,
-    profile.organization_id,
-  );
-  const prompt = buildThumbnailCopyPrompt(parsedInputs.inputs, timezone);
+  const runtimeContext = await resolveRuntimeContextInput(supabase, {
+    organizationId: profile.organization_id,
+    currentUser: profile.full_name,
+  });
+  const prompt = buildThumbnailCopyPrompt(parsedInputs.inputs, runtimeContext);
 
   try {
     const response = await openai.responses.create({

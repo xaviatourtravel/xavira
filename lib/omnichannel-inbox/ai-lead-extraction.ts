@@ -2,7 +2,7 @@ import {
   loadOmnichannelSuggestReplyContext,
   type OmnichannelSuggestReplyContext,
 } from "@/lib/omnichannel-inbox/ai-suggest-reply";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 export const EXTRACTION_CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
 
@@ -70,7 +70,7 @@ function formatRecentMessagesForExtraction(
 
 export function buildOmnichannelLeadExtractionPrompt(
   context: OmnichannelSuggestReplyContext,
-  timezone?: string | null,
+  runtimeContext?: BuildRuntimeContextInput,
 ) {
   const leadHints = context.leadId
     ? `
@@ -83,7 +83,7 @@ Data lead CRM yang sudah terhubung (hanya sebagai referensi, prioritaskan pesan 
 `
     : "";
 
-  return withTemporalContext(
+  return withRuntimeContext(
     `
 Kamu mengekstrak informasi lead travel dari percakapan ${context.channelLabel} Desklabs/Xavira.
 
@@ -119,7 +119,7 @@ ${formatRecentMessagesForExtraction(context.recentMessages)}
 Output JSON saja tanpa markdown dengan struktur:
 ${EXTRACTION_JSON_SCHEMA}
 `.trim(),
-    { timezone },
+    runtimeContext,
   );
 }
 

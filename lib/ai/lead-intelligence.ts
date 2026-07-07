@@ -1,6 +1,6 @@
 import { getEffectiveLeadTemperature } from "@/lib/leads/lead-temperature";
 import { formatLeadSourceLabel } from "@/lib/leads/source-tracking";
-import { withTemporalContext } from "@/lib/ai/temporal-context";
+import { withRuntimeContext, type BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 export const LEAD_INTELLIGENCE_CACHE_KEY = "ai_lead_intelligence_v1";
 
@@ -159,15 +159,19 @@ export function buildLeadIntelligencePrompt({
   lead,
   activities,
   followUpTasks,
+  runtimeContext,
   timezone,
-}: LeadIntelligencePromptInput & { timezone?: string | null }) {
+}: LeadIntelligencePromptInput & {
+  runtimeContext?: BuildRuntimeContextInput;
+  timezone?: string | null;
+}) {
   const temperature = getEffectiveLeadTemperature({
     lead_temperature: lead.lead_temperature,
     status: lead.status,
     updated_at: lead.updated_at,
   });
 
-  return withTemporalContext(
+  return withRuntimeContext(
     `
 Kamu menganalisis kualitas lead travel Umroh/Halal Tour untuk membantu sales memahami situasi lead dan langkah berikutnya.
 
@@ -211,7 +215,7 @@ ${formatActivities(activities)}
 Follow up:
 ${formatFollowUpTasks(followUpTasks)}
 `.trim(),
-    { timezone },
+    runtimeContext ?? { timezone },
   );
 }
 

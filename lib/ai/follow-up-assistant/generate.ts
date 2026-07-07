@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
 import { AI_MODEL } from "@/lib/ai/client";
+import type { BuildRuntimeContextInput } from "@/modules/ai/runtime/build-runtime-context";
 
 import {
   buildBookingPaymentReminderPrompt,
@@ -32,10 +33,13 @@ export type FollowUpGenerationResult = {
 export async function generateLeadFollowUpSuggestion({
   context,
   tone,
+  runtimeContext,
   timezone,
 }: {
   context: LeadFollowUpContext;
   tone: FollowUpAssistantTone;
+  runtimeContext?: BuildRuntimeContextInput;
+  /** @deprecated Use runtimeContext.timezone */
   timezone?: string | null;
 }): Promise<FollowUpGenerationResult> {
   if (!openai) {
@@ -48,7 +52,7 @@ export async function generateLeadFollowUpSuggestion({
   try {
     const response = await openai.responses.create({
       model: AI_MODEL,
-      input: buildLeadFollowUpPrompt(context, tone, timezone),
+      input: buildLeadFollowUpPrompt(context, tone, runtimeContext ?? { timezone }),
     });
 
     const suggestion = response.output_text?.trim();
@@ -77,10 +81,13 @@ export async function generateLeadFollowUpSuggestion({
 export async function generateBookingPaymentReminder({
   context,
   tone,
+  runtimeContext,
   timezone,
 }: {
   context: BookingPaymentReminderContext;
   tone: FollowUpAssistantTone;
+  runtimeContext?: BuildRuntimeContextInput;
+  /** @deprecated Use runtimeContext.timezone */
   timezone?: string | null;
 }): Promise<FollowUpGenerationResult> {
   if (!openai) {
@@ -104,7 +111,7 @@ export async function generateBookingPaymentReminder({
   try {
     const response = await openai.responses.create({
       model: AI_MODEL,
-      input: buildBookingPaymentReminderPrompt(context, tone, timezone),
+      input: buildBookingPaymentReminderPrompt(context, tone, runtimeContext ?? { timezone }),
     });
 
     const suggestion = response.output_text?.trim();

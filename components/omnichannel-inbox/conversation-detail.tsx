@@ -20,13 +20,10 @@ import {
   MailOpen,
   MessageSquareText,
   MoreVertical,
-  Pin,
   RefreshCw,
   Search,
-  Trash2,
   UserCog,
   UserRoundPlus,
-  VolumeX,
   X,
 } from "lucide-react";
 
@@ -43,7 +40,6 @@ import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rul
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { WhatsappAiStateControl } from "@/components/omnichannel-inbox/whatsapp-ai-state-control";
-import { WhatsappLeadProgressBadge } from "@/components/omnichannel-inbox/whatsapp-lead-progress-badge";
 import { WhatsappQualificationHandoffPanel } from "@/components/omnichannel-inbox/whatsapp-qualification-handoff-panel";
 import { OmnichannelConversationReplyBox } from "@/components/omnichannel-inbox/conversation-reply-box";
 import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
@@ -55,6 +51,7 @@ import { formatTranslation } from "@/lib/i18n/dictionary";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { WhatsappMessageBubble } from "@/components/omnichannel-inbox/whatsapp-message-bubble";
+import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import {
   isOptimisticId,
@@ -64,6 +61,7 @@ import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/quer
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
+import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 
 type OmnichannelConversationDetailPanelProps = {
   conversation: OmnichannelConversationDetail;
@@ -329,8 +327,11 @@ export function OmnichannelConversationDetailPanel({
       setNotice(
         result.success
           ? ti("convertToLeadSuccess")
-          : result.message ?? ti("convertToLeadFailed"),
+          : ti("convertToLeadFailed"),
       );
+      if (!result.success) {
+        logInboxError("convertToLead", result.message);
+      }
       if (result.success) {
         router.refresh();
       }
@@ -489,10 +490,8 @@ export function OmnichannelConversationDetailPanel({
                 aiState={conversation.aiState}
                 aiHandoffReason={conversation.aiHandoffReason}
                 canManage={canManageAi}
+                compact
               />
-            ) : null}
-            {isWhatsapp ? (
-              <WhatsappLeadProgressBadge qualification={conversation.leadQualification} />
             ) : null}
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
@@ -542,40 +541,16 @@ export function OmnichannelConversationDetailPanel({
                 }}
               />
               <ConversationMenuItem
-                icon={<Search className="h-4 w-4" />}
-                label={ti("searchInConversation")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  setSearchOpen(true);
-                }}
-              />
-              <ConversationMenuItem
                 icon={<MailOpen className="h-4 w-4" />}
                 label={ti("markUnread")}
                 onClick={handleMarkUnread}
-              />
-              <ConversationMenuItem
-                icon={<Pin className="h-4 w-4" />}
-                label={ti("pinConversation")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  setNotice(ti("pinConversationSoon"));
-                }}
-              />
-              <ConversationMenuItem
-                icon={<VolumeX className="h-4 w-4" />}
-                label={ti("muteConversation")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  setNotice(ti("muteConversationSoon"));
-                }}
               />
               <ConversationMenuItem
                 icon={<Download className="h-4 w-4" />}
                 label={ti("exportChat")}
                 onClick={handleExportChat}
               />
-              <div className="my-1 h-px bg-border/60" />
+              <div className="my-1 h-px bg-border/40" />
               <ConversationMenuItem
                 icon={<UserRoundPlus className="h-4 w-4" />}
                 label={ti("convertToLead")}
@@ -610,16 +585,6 @@ export function OmnichannelConversationDetailPanel({
                   }}
                 />
               ) : null}
-              <div className="my-1 h-px bg-border/60" />
-              <ConversationMenuItem
-                icon={<Trash2 className="h-4 w-4" />}
-                label={ti("deleteConversation")}
-                destructive
-                onClick={() => {
-                  setMenuOpen(false);
-                  setNotice(ti("deleteConversationSoon"));
-                }}
-              />
             </div>
           ) : null}
         </div>
@@ -686,25 +651,21 @@ export function OmnichannelConversationDetailPanel({
           )}
         >
           {displayMessages.length === 0 ? (
-            <div className="flex flex-col items-center py-12 text-center">
-              <MessageSquareText className="h-6 w-6 text-muted-foreground/50" />
-              <p className="mt-2 text-sm font-medium text-foreground">
-                {ti("noMessagesYet")}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {isWhatsapp ? ti("noMessagesWhatsappDesc") : ti("noMessagesChannelDesc")}
-              </p>
-            </div>
+            <InboxEmptyState
+              icon={MessageSquareText}
+              title={ti("noMessagesYet")}
+              description={
+                isWhatsapp ? ti("noMessagesWhatsappDesc") : ti("noMessagesChannelDesc")
+              }
+              size="compact"
+            />
           ) : searchOpen && normalizedSearch && visibleMessages.length === 0 ? (
-            <div className="flex flex-col items-center py-12 text-center">
-              <Search className="h-6 w-6 text-muted-foreground/50" />
-              <p className="mt-2 text-sm font-medium text-foreground">
-                {ti("noSearchResults")}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {ti("noSearchResultsDesc")}
-              </p>
-            </div>
+            <InboxEmptyState
+              icon={Search}
+              title={ti("noSearchResults")}
+              description={ti("noSearchResultsDesc")}
+              size="compact"
+            />
           ) : isWhatsapp ? (
             visibleMessages.map((message) => (
               <WhatsappMessageBubble
@@ -797,7 +758,7 @@ export function OmnichannelConversationDetailPanel({
       ) : null}
 
       {showComposer ? (
-        <div className="sticky bottom-0 z-10 shrink-0 border-t border-border/40 bg-background">
+        <div className="sticky bottom-0 z-10 shrink-0 bg-background">
           <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}
@@ -821,14 +782,11 @@ export function OmnichannelConversationEmptyState() {
   const { ti } = useInboxTranslation();
 
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-muted/10 px-8 text-center dark:bg-muted/5">
-      <MessageSquareText className="h-10 w-10 text-muted-foreground/40" />
-      <p className="mt-4 text-base font-semibold text-foreground">
-        {ti("selectConversationEmpty")}
-      </p>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        {ti("selectConversationEmptyDesc")}
-      </p>
-    </div>
+    <InboxEmptyState
+      icon={MessageSquareText}
+      title={ti("selectConversationEmpty")}
+      description={ti("selectConversationEmptyDesc")}
+      className="h-full bg-muted/10 dark:bg-muted/5"
+    />
   );
 }

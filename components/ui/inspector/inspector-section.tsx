@@ -85,7 +85,7 @@ export function InspectorSection({
         </div>
       </div>
 
-      {!hideDivider ? <InspectorDivider className="mt-3" /> : null}
+      {!hideDivider ? <InspectorDivider className="mt-2 opacity-60" /> : null}
     </section>
   );
 }

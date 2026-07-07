@@ -31,6 +31,7 @@ import type {
 
 export type OmnichannelInboxFilter =
   | "all"
+  | "unread"
   | "instagram"
   | "facebook"
   | "whatsapp"
@@ -130,6 +131,7 @@ export function parseOmnichannelInboxFilter(
   value: string | undefined,
 ): OmnichannelInboxFilter {
   switch (value) {
+    case "unread":
     case "instagram":
     case "facebook":
     case "whatsapp":

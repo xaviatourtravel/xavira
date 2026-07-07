@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, Sparkles } from "lucide-react";
+import { ExternalLink, Sparkles } from "lucide-react";
 
 import {
   InspectorAction,
@@ -18,7 +18,6 @@ import {
   getSuggestedReplyRefreshKey,
   type ReplyVariant,
 } from "@/modules/inbox/lib/suggested-reply-engine";
-import { cn } from "@/lib/utils";
 
 type AiSuggestedReplyCardProps = {
   conversation: OmnichannelConversationDetail;
@@ -166,53 +165,35 @@ export function AiSuggestedReplyCard({
           {ti("insertToComposer")}
         </InspectorAction>
         <InspectorAction variant="ghost" onClick={() => void handleCopy()} disabled={!draftText.trim()}>
-          <Copy className="h-3 w-3" />
           {ti("copy")}
         </InspectorAction>
         <InspectorAction variant="ghost" onClick={handleRegenerate}>{ti("regenerate")}</InspectorAction>
         <InspectorAction variant="ghost" onClick={() => handleVariant("short")}>{ti("shorter")}</InspectorAction>
-        <InspectorAction variant="ghost" onClick={() => handleVariant("persuasive")}>
-          {ti("morePersuasive")}
-        </InspectorAction>
-        <InspectorAction variant="ghost" onClick={() => handleVariant("friendly")}>{ti("moreFriendly")}</InspectorAction>
-        <InspectorAction variant="ghost" onClick={() => handleVariant("professional")}>
-          {ti("moreProfessional")}
-        </InspectorAction>
-        <InspectorAction variant="ghost" disabled title={ti("comingSoon")}>
-          {ti("translate")}
-        </InspectorAction>
       </div>
 
-      <div>
-        <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">{ti("generatedFrom")}</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          {result.sources.map((source) => (
-            <Link
-              key={source.key}
-              href={source.href}
-              className={cn(
-                "inline-flex items-center gap-1 text-xs transition-colors hover:text-foreground",
-                source.active
-                  ? "text-foreground"
-                  : "text-muted-foreground",
-              )}
-            >
-              {source.active ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : null}
-              {ti(source.labelKey)}
-            </Link>
-          ))}
+      <details className="group">
+        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+          {ti("moreDetails")}
+        </summary>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <InspectorAction variant="ghost" onClick={() => handleVariant("persuasive")}>
+            {ti("morePersuasive")}
+          </InspectorAction>
+          <InspectorAction variant="ghost" onClick={() => handleVariant("friendly")}>{ti("moreFriendly")}</InspectorAction>
+          <InspectorAction variant="ghost" onClick={() => handleVariant("professional")}>
+            {ti("moreProfessional")}
+          </InspectorAction>
         </div>
-      </div>
+      </details>
 
-      {result.confidence < 70 && result.missingContext.length > 0 ? (
-        <div className="text-xs text-muted-foreground">
-          <p>{ti("incompleteReplyWarning")}</p>
-          <ul className="mt-1 space-y-0.5">
-            {result.missingContext.map((item) => (
-              <li key={item}>· {ti(result.missingContextLabelKeys[item])}</li>
-            ))}
-          </ul>
-        </div>
+      {result.sources.some((source) => source.active) ? (
+        <p className="text-[11px] text-muted-foreground">
+          {ti("generatedFrom")}{" "}
+          {result.sources
+            .filter((source) => source.active)
+            .map((source) => ti(source.labelKey))
+            .join(" · ")}
+        </p>
       ) : null}
 
       {toast ? (

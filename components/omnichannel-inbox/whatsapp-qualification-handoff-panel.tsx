@@ -2,7 +2,6 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { HandHelping } from "lucide-react";
 
 import { takeOverWhatsappConversationAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import {
@@ -11,6 +10,7 @@ import {
   type LeadQualificationSnapshot,
 } from "@/modules/ai/types/lead-qualification";
 import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { cn } from "@/lib/utils";
 
 type WhatsappQualificationHandoffPanelProps = {
@@ -31,6 +31,7 @@ export function WhatsappQualificationHandoffPanel({
   className,
 }: WhatsappQualificationHandoffPanelProps) {
   const router = useRouter();
+  const { ti } = useInboxTranslation();
   const [isPending, startTransition] = useTransition();
 
   const state = resolveWhatsappAiState(aiState);
@@ -40,6 +41,11 @@ export function WhatsappQualificationHandoffPanel({
   if (!isQualificationHandoff || !qualification) {
     return null;
   }
+
+  const capturedFields = qualification.fieldProgress
+    .filter((field) => field.value?.trim())
+    .map((field) => `${field.label}: ${field.value?.trim()}`)
+    .join(" · ");
 
   function handleTakeOver() {
     startTransition(async () => {
@@ -57,34 +63,20 @@ export function WhatsappQualificationHandoffPanel({
   return (
     <section
       className={cn(
-        "shrink-0 border-b border-amber-200/80 bg-amber-50/70 px-3 py-3 sm:px-4",
+        "shrink-0 bg-amber-500/5 px-4 py-2.5 dark:bg-amber-500/10",
         className,
       )}
-      aria-label="Qualification handoff"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 ring-1 ring-inset ring-amber-200/80">
-              Ready for Human
-            </span>
-            <span className="text-[11px] font-medium text-amber-900">
-              {QUALIFICATION_HANDOFF_REASON}
-            </span>
-          </div>
-
-          <dl className="grid gap-1.5 sm:grid-cols-2">
-            {qualification.fieldProgress.map((field) => (
-              <div key={field.key} className="min-w-0">
-                <dt className="text-[10px] font-medium uppercase tracking-wide text-amber-800/80">
-                  {field.label}
-                </dt>
-                <dd className="truncate text-[12px] text-amber-950">
-                  {field.value?.trim() || "—"}
-                </dd>
-              </div>
-            ))}
-          </dl>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
+            {ti("filterReadyForHuman")} · {QUALIFICATION_HANDOFF_REASON}
+          </p>
+          {capturedFields ? (
+            <p className="truncate text-[11px] text-amber-900/80 dark:text-amber-200/80">
+              {capturedFields}
+            </p>
+          ) : null}
         </div>
 
         {canManage ? (
@@ -92,10 +84,9 @@ export function WhatsappQualificationHandoffPanel({
             type="button"
             disabled={isPending}
             onClick={handleTakeOver}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-700 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-amber-800 disabled:opacity-60"
+            className="inline-flex shrink-0 items-center rounded-md bg-amber-800 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-amber-900 disabled:opacity-60 dark:bg-amber-700 dark:hover:bg-amber-600"
           >
-            <HandHelping className="h-3.5 w-3.5" />
-            {isPending ? "Taking over..." : "Take Over"}
+            {isPending ? ti("working") : ti("nbaCtaTakeOver")}
           </button>
         ) : null}
       </div>

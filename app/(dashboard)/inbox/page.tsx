@@ -117,7 +117,7 @@ async function loadMergedConversationLists(
         "all",
         currentUserId,
       ),
-      activeFilter === "all"
+      activeFilter === "all" || activeFilter === "unread"
         ? Promise.resolve([])
         : loadOmnichannelConversationList(
             supabase,
@@ -136,9 +136,12 @@ async function loadMergedConversationLists(
     ...omnichannelWithoutWhatsapp,
   ]);
 
-  if (activeFilter === "all") {
+  if (activeFilter === "all" || activeFilter === "unread") {
     return {
-      conversations: mergedAll,
+      conversations:
+        activeFilter === "unread"
+          ? mergedAll.filter((conversation) => conversation.unreadCount > 0)
+          : mergedAll,
       allConversations: mergedAll,
     };
   }

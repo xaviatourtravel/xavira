@@ -1,5 +1,5 @@
-import { DesklabsWorkspaceSkeleton } from "@/components/ui/desklabs-loading";
+import { InboxPageSkeleton } from "@/components/omnichannel-inbox/inbox-page-skeleton";
 
 export default function InboxLoading() {
-  return <DesklabsWorkspaceSkeleton message="Mengambil percakapan terbaru..." />;
+  return <InboxPageSkeleton />;
 }

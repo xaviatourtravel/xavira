@@ -3,11 +3,8 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import {
-  InspectorSection,
-} from "@/components/ui/inspector";
-import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
-import { buildAiThinking } from "@/modules/inbox/lib/ai-thinking-engine";
+import { InspectorSection } from "@/components/ui/inspector";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";import { buildAiThinking } from "@/modules/inbox/lib/ai-thinking-engine";
 import { buildCopilotMissingKnowledge } from "@/modules/inbox/lib/build-ai-copilot";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
@@ -16,7 +13,10 @@ type MissingKnowledgeSectionProps = {
   conversation: OmnichannelConversationDetail;
 };
 
-export function MissingKnowledgeSection({ conversation }: MissingKnowledgeSectionProps) {
+export function MissingKnowledgeSection({
+  conversation,
+  hideDivider = false,
+}: MissingKnowledgeSectionProps & { hideDivider?: boolean }) {
   const { ti, locale } = useInboxTranslation();
 
   const items = useMemo(() => {
@@ -40,9 +40,9 @@ export function MissingKnowledgeSection({ conversation }: MissingKnowledgeSectio
   }, [conversation, locale]);
 
   return (
-    <InspectorSection title={ti("missingKnowledge")}>
+    <InspectorSection title={ti("missingKnowledge")} hideDivider={hideDivider}>
       {items.length > 0 ? (
-        <ul className="divide-y divide-border/40">
+        <ul className="space-y-2">
           {items.map((item) => (
             <li
               key={item.labelKey}
@@ -59,7 +59,7 @@ export function MissingKnowledgeSection({ conversation }: MissingKnowledgeSectio
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-muted-foreground">{ti("nothingMissing")}</p>
+        <p className="text-xs text-muted-foreground">{ti("nothingMissingDesc")}</p>
       )}
     </InspectorSection>
   );

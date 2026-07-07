@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Filter, Inbox, SearchX } from "lucide-react";
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
+import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { OmnichannelChannelBadge } from "@/components/omnichannel-inbox/channel-badge";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
 import { getConversationDisplayName } from "@/components/omnichannel-inbox/inbox-display";
@@ -19,6 +21,10 @@ const EMPTY_STATE_KEYS: Partial<
     { titleKey: InboxKey; descriptionKey?: InboxKey }
   >
 > = {
+  unread: {
+    titleKey: "emptyFilterUnread",
+    descriptionKey: "emptyFilterUnreadDesc",
+  },
   ready_for_human: { titleKey: "emptyFilterReadyForHuman" },
   ai_active: {
     titleKey: "emptyFilterAiActive",
@@ -59,12 +65,11 @@ function ConversationListEmptyState({
 
   if (searchQuery.trim()) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-        <p className="text-sm font-medium text-foreground">{ti("emptySearchNoMatch")}</p>
-        <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
-          {ti("emptySearchNoMatchDesc")}
-        </p>
-      </div>
+      <InboxEmptyState
+        icon={SearchX}
+        title={ti("emptySearchNoMatch")}
+        description={ti("emptySearchNoMatchDesc")}
+      />
     );
   }
 
@@ -72,24 +77,22 @@ function ConversationListEmptyState({
 
   if (filterCopy) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-        <p className="text-sm font-medium text-foreground">{ti(filterCopy.titleKey)}</p>
-        {filterCopy.descriptionKey ? (
-          <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
-            {ti(filterCopy.descriptionKey)}
-          </p>
-        ) : null}
-      </div>
+      <InboxEmptyState
+        icon={Filter}
+        title={ti(filterCopy.titleKey)}
+        description={
+          filterCopy.descriptionKey ? ti(filterCopy.descriptionKey) : ti("emptySearchNoMatchDesc")
+        }
+      />
     );
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-      <p className="text-sm font-medium text-foreground">{ti("emptyNoConversations")}</p>
-      <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
-        {ti("emptyNoConversationsDesc")}
-      </p>
-    </div>
+    <InboxEmptyState
+      icon={Inbox}
+      title={ti("emptyNoConversations")}
+      description={ti("emptyNoConversationsDesc")}
+    />
   );
 }
 
@@ -205,7 +208,7 @@ export function OmnichannelConversationList({
                   </span>
                 </div>
 
-                {isReadyForHuman ? (
+                {isReadyForHuman && activeFilter === "all" ? (
                   <p className="truncate text-[10px] text-amber-700/90 dark:text-amber-300/90">
                     {ti("filterReadyForHuman")}
                   </p>

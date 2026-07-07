@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, FileText, Send } from "lucide-react";
+import { ExternalLink, FileText, ImageIcon, Send } from "lucide-react";
 
 import { sendWhatsappDocumentAction } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { refreshBrainDocumentPreviewAction } from "@/modules/business-brain/actions/document-actions";
@@ -23,6 +23,7 @@ import {
 } from "@/modules/inbox/lib/conversation-uploaded-files";
 import type { RecommendedDocumentItem } from "@/modules/inbox/lib/build-ai-command-center";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
+import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 
 type FilesTabProps = {
   conversation: OmnichannelConversationDetail;
@@ -75,7 +76,8 @@ export function FilesTab({ conversation, canManageAi = false }: FilesTabProps) {
       setSendingDocId(null);
 
       if (!result.success) {
-        setNotice(result.message ?? ti("failedSendDocument"));
+        logInboxError("sendDocument", result.message);
+        setNotice(ti("failedSendDocument"));
         return;
       }
 
@@ -120,27 +122,37 @@ export function FilesTab({ conversation, canManageAi = false }: FilesTabProps) {
             ))}
           </ul>
         ) : (
-          <p className="py-2 text-xs leading-relaxed text-muted-foreground">
-            {ti("resourcesEmptyDesc")}
-          </p>
+          <InspectorEmpty
+            title={ti("resourcesEmptyTitle")}
+            description={ti("resourcesEmptyDesc")}
+          />
         )}
       </InspectorSection>
 
       <InspectorSection title={ti("resourcesDocuments")}>
-        <UploadedFileList files={fileDocuments} ti={ti} emptyTitle={ti("filesNoUploads")} />
+        <UploadedFileList
+          files={fileDocuments}
+          ti={ti}
+          emptyTitle={ti("filesNoUploads")}
+          emptyDesc={ti("filesNoUploadsDesc")}
+          emptyIcon={FileText}
+        />
       </InspectorSection>
 
       <InspectorSection title={ti("resourcesMedia")} hideDivider>
         {media.length > 0 ? (
-          <UploadedFileList files={media} ti={ti} emptyTitle={ti("filesNoMedia")} />
+          <UploadedFileList files={media} ti={ti} emptyTitle={ti("filesNoMedia")} emptyDesc={ti("filesNoMediaDesc")} emptyIcon={ImageIcon} />
         ) : (
-          <p className="text-xs text-muted-foreground">{ti("filesNoMedia")}</p>
+          <InspectorEmpty
+            title={ti("filesNoMedia")}
+            description={ti("filesNoMediaDesc")}
+          />
         )}
       </InspectorSection>
 
 
       {notice ? (
-        <p className="px-5 pb-4 text-xs text-muted-foreground">{notice}</p>
+        <p className="px-4 pb-4 text-xs text-muted-foreground">{notice}</p>
       ) : null}
     </InspectorRoot>
   );
@@ -150,16 +162,21 @@ function UploadedFileList({
   files,
   ti,
   emptyTitle,
+  emptyDesc,
+  emptyIcon: EmptyIcon = FileText,
 }: {
   files: ConversationUploadedFile[];
   ti: (key: InboxKey) => string;
   emptyTitle: string;
+  emptyDesc: string;
+  emptyIcon?: typeof FileText;
 }) {
   if (files.length === 0) {
     return (
       <InspectorEmpty
+        icon={EmptyIcon}
         title={emptyTitle}
-        description={ti("filesNoRecentFiles")}
+        description={emptyDesc}
       />
     );
   }

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { ChevronRight, PanelRightOpen } from "lucide-react";
 
 import { IntelligencePanel } from "@/components/communication-workspace/primitives";
+import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import {
   useWorkspaceScrollPersistence,
   WorkspaceLazyPanels,
@@ -39,10 +40,7 @@ function WorkspaceChromeHeader({
   const { ti } = useInboxTranslation();
 
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-2.5">
-      <p className="text-sm font-medium tracking-tight text-foreground">
-        {ti("workspaceTitle")}
-      </p>
+    <div className="flex shrink-0 items-center justify-end px-3 py-2">
       <button
         type="button"
         onClick={onToggleCollapsed}
@@ -109,9 +107,13 @@ function WorkspaceRightSidebarContent({
     return (
       <IntelligencePanel>
         <WorkspaceChromeHeader onToggleCollapsed={onToggleCollapsed} />
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          {ti("selectConversation")}
-        </div>
+        <InboxEmptyState
+          icon={PanelRightOpen}
+          title={ti("selectConversationWorkspaceTitle")}
+          description={ti("selectConversationWorkspaceDesc")}
+          className="flex-1"
+          size="compact"
+        />
       </IntelligencePanel>
     );
   }

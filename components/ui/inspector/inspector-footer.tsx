@@ -16,10 +16,10 @@ export function InspectorFooter({
   return (
     <footer
       className={cn(
-        "sticky bottom-0 z-10 border-t border-border/60 bg-background/95 backdrop-blur",
+        "sticky bottom-0 z-10 border-t border-border/40 bg-background/95 backdrop-blur",
         "supports-[backdrop-filter]:bg-background/80",
         INSPECTOR_PADDING,
-        "py-4",
+        "py-3",
         className,
       )}
       aria-label={label}

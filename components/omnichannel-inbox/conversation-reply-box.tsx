@@ -19,7 +19,6 @@ import {
   Plus,
   Send,
   Smile,
-  Sparkles,
   Type,
   X,
 } from "lucide-react";
@@ -29,11 +28,14 @@ import { DsToast } from "@/components/design-system/toast";
 import { QUICK_REPLY_TEMPLATES } from "@/lib/communication/assist";
 import {
   isPersistedFailureCode,
-  resolveSendErrorToast,
 } from "@/lib/communication/composer";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { useConversationDraft } from "@/lib/communication/drafts";
 import { useInboxComposer } from "@/modules/inbox/context/inbox-composer-context";
+import {
+  logInboxError,
+  resolveComposerSendError,
+} from "@/modules/inbox/lib/resolve-inbox-error";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
 
@@ -325,6 +327,7 @@ export function OmnichannelConversationReplyBox({
           }
 
           const code = payload.code ?? "unknown";
+          logInboxError("sendMessage", payload.message ?? code);
 
           if (isPersistedFailureCode(code)) {
             // Tersimpan sebagai "failed"; realtime akan menandainya.
@@ -333,22 +336,22 @@ export function OmnichannelConversationReplyBox({
             setMessageText(trimmed);
           }
 
-          const copy = resolveSendErrorToast(code, payload.message);
+          const errorCopy = resolveComposerSendError(code);
           setToast({
             variant: "error",
-            title: copy.title,
-            description: copy.description,
+            title: ti(errorCopy.titleKey),
+            description: ti(errorCopy.descriptionKey),
           });
-        } catch {
+        } catch (error) {
+          logInboxError("sendMessageNetwork", error);
           if (tempId) {
             onRemoveOptimistic?.(tempId);
           }
           setMessageText(trimmed);
           setToast({
             variant: "error",
-            title: "Koneksi terputus",
-            description:
-              "Tidak dapat menghubungi server. Periksa koneksi lalu coba lagi.",
+            title: ti("errorConnectionLostTitle"),
+            description: ti("errorConnectionLostDesc"),
           });
         }
       });
@@ -370,14 +373,16 @@ export function OmnichannelConversationReplyBox({
 
       if (result.success) {
         router.refresh();
+        setToast({ variant: "success", title: ti("composerSendSuccess") });
         return;
       }
 
+      logInboxError("sendOmnichannelReply", result.message);
       setMessageText(trimmed);
       setToast({
         variant: "error",
         title: ti("composerSendFailed"),
-        description: result.message ?? ti("composerTryAgain"),
+        description: ti("composerTryAgain"),
       });
     });
   }
@@ -404,7 +409,7 @@ export function OmnichannelConversationReplyBox({
 
   return (
     <div
-      className="relative border-t border-border/40 bg-background px-3 py-2.5 sm:px-4"
+      className="relative bg-background px-3 py-2.5 sm:px-4"
       onDragEnter={(event) => {
         event.preventDefault();
         dragDepthRef.current += 1;
@@ -477,7 +482,7 @@ export function OmnichannelConversationReplyBox({
 
       <div
         ref={rowRef}
-        className="mx-auto flex w-full max-w-3xl items-end gap-1 rounded-xl border border-border/40 bg-background px-2 py-1.5 shadow-sm transition-shadow focus-within:border-border/70 focus-within:ring-2 focus-within:ring-ring/20 dark:border-border/30 dark:bg-muted/10"
+        className="mx-auto flex w-full max-w-3xl items-end gap-1 rounded-xl bg-muted/20 px-2 py-1.5 transition-colors focus-within:bg-muted/30 focus-within:ring-2 focus-within:ring-ring/20 dark:bg-muted/10"
       >
         <div className="relative shrink-0">
           <button
@@ -600,16 +605,6 @@ export function OmnichannelConversationReplyBox({
             </div>
           ) : null}
         </div>
-
-        <button
-          type="button"
-          disabled={isDisabled}
-          title={ti("composerAiDraft")}
-          aria-label={ti("composerAiDraft")}
-          className={GHOST_ICON_BUTTON}
-        >
-          <Sparkles className="h-5 w-5" />
-        </button>
 
         <button
           type="button"

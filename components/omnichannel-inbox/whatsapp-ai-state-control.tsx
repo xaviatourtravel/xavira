@@ -10,41 +10,44 @@ import {
   getWhatsappAiStateDescription,
   resolveWhatsappAiState,
 } from "@/lib/whatsapp-inbox/ai/constants";
+import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
+import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 import type { WhatsappAiState } from "@/types/whatsapp-inbox";
 import { cn } from "@/lib/utils";
 
 const STATE_STYLES: Record<WhatsappAiState, string> = {
-  AI_ACTIVE: "bg-sky-50 text-sky-700 ring-sky-200/80",
-  READY_FOR_HUMAN: "bg-amber-50 text-amber-700 ring-amber-200/80",
-  HUMAN_ASSISTED: "bg-violet-50 text-violet-700 ring-violet-200/80",
-  HUMAN_ONLY: "bg-slate-100 text-slate-700 ring-slate-200/80",
+  AI_ACTIVE: "bg-sky-500/10 text-sky-700 ring-sky-500/20 dark:text-sky-300 dark:ring-sky-500/30",
+  READY_FOR_HUMAN: "bg-amber-500/10 text-amber-800 ring-amber-500/20 dark:text-amber-300 dark:ring-amber-500/30",
+  HUMAN_ASSISTED: "bg-violet-500/10 text-violet-700 ring-violet-500/20 dark:text-violet-300 dark:ring-violet-500/30",
+  HUMAN_ONLY: "bg-muted/60 text-foreground ring-border/40 dark:bg-muted/40",
 };
 
 type ManualAiAction = {
   id: "turn_on" | "turn_off" | "human_assisted";
-  label: string;
+  labelKey: InboxKey;
   nextState: WhatsappAiState;
-  description: string;
+  descriptionKey: InboxKey;
 };
 
 const MANUAL_AI_ACTIONS: ManualAiAction[] = [
   {
     id: "turn_on",
-    label: "Turn on AI",
+    labelKey: "aiActionTurnOn",
     nextState: "AI_ACTIVE",
-    description: "AI will auto-reply in this chat.",
+    descriptionKey: "aiActionTurnOnDesc",
   },
   {
     id: "turn_off",
-    label: "Turn off AI",
+    labelKey: "aiActionTurnOff",
     nextState: "HUMAN_ONLY",
-    description: "AI will not reply automatically.",
+    descriptionKey: "aiActionTurnOffDesc",
   },
   {
     id: "human_assisted",
-    label: "Mark Human Assisted",
+    labelKey: "aiActionHumanAssisted",
     nextState: "HUMAN_ASSISTED",
-    description: "AI can suggest, but will not auto-reply.",
+    descriptionKey: "aiActionHumanAssistedDesc",
   },
 ];
 
@@ -53,6 +56,7 @@ type WhatsappAiStateControlProps = {
   aiState: string | null | undefined;
   aiHandoffReason?: string | null;
   canManage?: boolean;
+  compact?: boolean;
 };
 
 export function WhatsappAiStateControl({
@@ -60,8 +64,10 @@ export function WhatsappAiStateControl({
   aiState,
   aiHandoffReason,
   canManage = false,
+  compact = false,
 }: WhatsappAiStateControlProps) {
   const router = useRouter();
+  const { ti } = useInboxTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
@@ -115,26 +121,27 @@ export function WhatsappAiStateControl({
       const result = await updateWhatsappConversationAiStateAction(formData);
 
       if (!result.success) {
-        setNotice(result.message ?? "Gagal memperbarui status AI.");
+        logInboxError("updateAiState", result.message);
+        setNotice(ti("failedUpdateAiState"));
         return;
       }
 
-      setNotice(result.message ?? "Status AI diperbarui.");
+      setNotice(ti("aiModeUpdatedSuccess"));
       router.refresh();
     });
   }
 
   return (
-    <div ref={menuRef} className="relative flex min-w-0 flex-col items-start gap-1">
+    <div ref={menuRef} className="relative flex min-w-0 items-center">
       <div className="flex flex-wrap items-center gap-1.5">
         <span
           className={cn(
-            "inline-flex max-w-[11rem] shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset",
+            "inline-flex max-w-[11rem] shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset",
             style,
           )}
           title={description}
         >
-          {isAiActive ? <Bot className="h-3 w-3 shrink-0" /> : null}
+          {isAiActive && !compact ? <Bot className="h-3 w-3 shrink-0" /> : null}
           <span className="truncate">{label}</span>
         </span>
 
@@ -144,11 +151,11 @@ export function WhatsappAiStateControl({
               type="button"
               disabled={isPending}
               onClick={() => setMenuOpen((open) => !open)}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:opacity-60 dark:hover:bg-muted/40"
               aria-expanded={menuOpen}
               aria-haspopup="menu"
             >
-              {isPending ? "Saving..." : "Manage"}
+              {isPending ? ti("aiSavingLabel") : ti("aiManageLabel")}
               <ChevronDown className="h-3 w-3" />
             </button>
 
@@ -166,11 +173,11 @@ export function WhatsappAiStateControl({
                     onClick={() => runAiStateUpdate(action.nextState)}
                     className="flex w-full flex-col items-start rounded-md px-2.5 py-2 text-left hover:bg-muted/60 disabled:opacity-60"
                   >
-                    <span className="text-[11px] font-semibold text-foreground">
-                      {action.label}
+                    <span className="text-[11px] font-medium text-foreground">
+                      {ti(action.labelKey)}
                     </span>
                     <span className="mt-0.5 text-[10px] text-muted-foreground">
-                      {action.description}
+                      {ti(action.descriptionKey)}
                     </span>
                   </button>
                 ))}
@@ -180,18 +187,8 @@ export function WhatsappAiStateControl({
         ) : null}
       </div>
 
-      <p
-        className={cn(
-          "max-w-[16rem] text-[10px] leading-snug",
-          state === "READY_FOR_HUMAN" ? "text-amber-700" : "text-muted-foreground",
-        )}
-        title={description}
-      >
-        {description}
-      </p>
-
-      {notice ? (
-        <p className="max-w-[16rem] text-[10px] text-muted-foreground">{notice}</p>
+      {!compact && notice ? (
+        <p className="mt-1 max-w-[16rem] text-[10px] text-muted-foreground">{notice}</p>
       ) : null}
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AlertCircle } from "lucide-react";
+
 import {
   useWhatsappConversationListRealtime,
   type ConversationListPatch,
@@ -13,6 +15,7 @@ import {
   OmnichannelConversationEmptyState,
 } from "@/components/omnichannel-inbox/conversation-detail";
 import { OmnichannelConversationList } from "@/components/omnichannel-inbox/conversation-list";
+import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { InboxConversationSearch } from "@/components/omnichannel-inbox/inbox-conversation-search";
 import {
   buildOmnichannelFilterCounts,
@@ -34,6 +37,7 @@ import {
 } from "@/lib/whatsapp-inbox/use-whatsapp-profile-picture-sync";
 import { cn } from "@/lib/utils";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 
 type CommunicationWorkspaceViewProps = {
   conversations: OmnichannelConversationListItem[];
@@ -73,12 +77,12 @@ function ConversationNotFoundState() {
   const { ti } = useInboxTranslation();
 
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-background px-8 text-center">
-      <p className="text-sm font-medium text-foreground">{ti("conversationNotFound")}</p>
-      <p className="mt-2 max-w-sm text-xs text-muted-foreground">
-        {ti("conversationNotFoundDesc")}
-      </p>
-    </div>
+    <InboxEmptyState
+      icon={AlertCircle}
+      title={ti("conversationNotFound")}
+      description={ti("conversationNotFoundDesc")}
+      className="h-full bg-background"
+    />
   );
 }
 
@@ -219,11 +223,20 @@ export function CommunicationWorkspaceView({
 
   const showMobileThread = Boolean(selectedConversationId);
 
+  if (initialError) {
+    logInboxError("initialError", decodeURIComponent(initialError));
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {initialError ? (
-        <div className="shrink-0 rounded-lg border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
-          {decodeURIComponent(initialError)}
+        <div className="shrink-0 border-b border-red-200/60 bg-red-50 px-4 py-2.5 dark:border-red-900/40 dark:bg-red-950/30">
+          <p className="text-sm font-medium text-red-700 dark:text-red-300">
+            {ti("errorGenericTitle")}
+          </p>
+          <p className="mt-0.5 text-xs text-red-600/90 dark:text-red-300/80">
+            {ti("errorGenericDesc")}
+          </p>
         </div>
       ) : null}
 
@@ -249,20 +262,11 @@ export function CommunicationWorkspaceView({
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="flex items-center justify-between px-4 py-3">
-            <p className="text-sm font-medium tracking-tight text-foreground">
-              {ti("conversationListTitle")}
-            </p>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
-              {filteredConversations.length}
-            </span>
-          </div>
-
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-2 pt-3">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
           </div>
 
-          <div className="px-4 pb-2.5">
+          <div className="px-4 pb-2">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}
@@ -270,7 +274,7 @@ export function CommunicationWorkspaceView({
             />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto border-t border-border/40">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <OmnichannelConversationList
               conversations={filteredConversations}
               selectedConversationId={selectedConversationId}

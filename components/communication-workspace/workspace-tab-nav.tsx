@@ -1,7 +1,5 @@
 "use client";
 
-import { FolderOpen, History, Sparkles, UserRound } from "lucide-react";
-
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -10,12 +8,11 @@ import type { WorkspaceTabId } from "@/modules/inbox/context/workspace-tab-conte
 const TAB_ITEMS: Array<{
   id: WorkspaceTabId;
   labelKey: InboxKey;
-  icon: typeof Sparkles;
 }> = [
-  { id: "copilot", labelKey: "workspaceTabCopilot", icon: Sparkles },
-  { id: "customer360", labelKey: "workspaceTabCustomer360", icon: UserRound },
-  { id: "files", labelKey: "workspaceTabFiles", icon: FolderOpen },
-  { id: "activity", labelKey: "workspaceTabActivity", icon: History },
+  { id: "copilot", labelKey: "workspaceTabCopilot" },
+  { id: "customer360", labelKey: "workspaceTabCustomer360" },
+  { id: "files", labelKey: "workspaceTabFiles" },
+  { id: "activity", labelKey: "workspaceTabActivity" },
 ];
 
 export function WorkspaceTabNav() {
@@ -23,14 +20,11 @@ export function WorkspaceTabNav() {
 
   return (
     <TabsList aria-label={ti("workspaceNavLabel")}>
-      {TAB_ITEMS.map((tab) => {
-        const Icon = tab.icon;
-        return (
-          <TabsTrigger key={tab.id} value={tab.id} icon={<Icon aria-hidden />}>
-            {ti(tab.labelKey)}
-          </TabsTrigger>
-        );
-      })}
+      {TAB_ITEMS.map((tab) => (
+        <TabsTrigger key={tab.id} value={tab.id}>
+          {ti(tab.labelKey)}
+        </TabsTrigger>
+      ))}
     </TabsList>
   );
 }

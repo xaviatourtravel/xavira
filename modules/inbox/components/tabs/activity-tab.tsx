@@ -12,7 +12,6 @@ import {
 import { formatInboxMessageTime } from "@/components/omnichannel-inbox/inbox-display";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { buildCopilotTimeline } from "@/modules/inbox/lib/build-ai-copilot";
-import { cn } from "@/lib/utils";
 
 type ActivityTabProps = {
   conversation: OmnichannelConversationDetail;
@@ -134,20 +133,13 @@ export function ActivityTab({ conversation }: ActivityTabProps) {
             title={ti(group.labelKey)}
             hideDivider={index === groupedEvents.length - 1}
           >
-            <ol className="relative space-y-0 border-l border-border/40 pl-4">
-              {group.items.map((event, index) => (
-                <li
-                  key={event.id}
-                  className={cn("relative pb-4 last:pb-0", index === 0 && "-mt-0.5")}
-                >
-                  <span
-                    className="absolute -left-[calc(1rem+3px)] top-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/40"
-                    aria-hidden
-                  />
+            <ol className="space-y-3">
+              {group.items.map((event) => (
+                <li key={event.id} className="space-y-0.5">
                   <time className="text-[10px] tabular-nums text-muted-foreground">
                     {formatInboxMessageTime(event.timestamp)}
                   </time>
-                  <p className="mt-0.5 text-[13px] text-foreground">{event.label}</p>
+                  <p className="text-[13px] text-foreground">{event.label}</p>
                   {event.detail ? (
                     <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                       {event.detail}
@@ -159,8 +151,11 @@ export function ActivityTab({ conversation }: ActivityTabProps) {
           </InspectorSection>
         ))
       ) : (
-        <div className="px-5 py-8">
-          <InspectorEmpty title={ti("historyEmpty")} description={ti("historyEmpty")} />
+        <div className="px-4 py-6">
+          <InspectorEmpty
+            title={ti("historyEmpty")}
+            description={ti("historyEmptyDesc")}
+          />
         </div>
       )}
     </InspectorRoot>

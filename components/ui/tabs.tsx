@@ -149,7 +149,7 @@ export function TabsTrigger({
       onClick={() => onValueChange(value)}
       onKeyDown={handleKeyDown}
       className={cn(
-        "inline-flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1 text-[10px] font-medium leading-tight transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "inline-flex min-w-0 flex-1 items-center justify-center rounded-md px-1 py-1.5 text-[11px] font-medium leading-tight transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "bg-muted/60 text-foreground"
           : "text-muted-foreground hover:bg-muted/30 hover:text-foreground",

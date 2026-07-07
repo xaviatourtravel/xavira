@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   Lightbulb,
 } from "lucide-react";
 
@@ -22,6 +21,7 @@ import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { useInboxComposer } from "@/modules/inbox/context/inbox-composer-context";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
+import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 import {
   buildNextBestActions,
   type NextBestActionPriority,
@@ -92,6 +92,7 @@ export function NextBestActionCard({
           formData.set("document_id", recommendation.documentId!);
           const sendResult = await sendWhatsappDocumentAction(formData);
           if (!sendResult.success) {
+            logInboxError("nbaSendDocument", sendResult.message);
             setToast({ title: ti("failedSendDocument") });
             return;
           }
@@ -106,6 +107,7 @@ export function NextBestActionCard({
           formData.set("conversation_id", conversation.id);
           const takeOverResult = await takeOverWhatsappConversationAction(formData);
           if (!takeOverResult.success) {
+            logInboxError("nbaTakeOver", takeOverResult.message);
             setToast({ title: ti("failedTakeOver") });
             return;
           }
@@ -140,10 +142,7 @@ export function NextBestActionCard({
       />
 
       {result.others.length > 0 ? (
-        <div className="space-y-1 border-t border-border/40 pt-2">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            {ti("nbaOtherSuggestions")}
-          </p>
+        <div className="space-y-1 pt-1">
           {result.others.map((recommendation) => (
             <RecommendationBlock
               key={recommendation.id}
@@ -232,7 +231,6 @@ function RecommendationBlock({
         className={cn("mt-2", primary ? "w-full" : "px-0")}
       >
         {ti(recommendation.ctaKey)}
-        <ArrowRight className="h-3.5 w-3.5" />
       </InspectorAction>
     </div>
   );

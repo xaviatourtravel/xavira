@@ -1,9 +1,13 @@
 import {
   extractFaqHeaderId,
+  isFaqBlockBoundaryLine,
+  isFaqFieldKeyLine,
   isFaqHeaderLine,
   isFaqSectionSeparatorLine,
-  resolveFaqFieldKey,
-  splitFaqFieldLine,
+  isFaqSectionStartLine,
+  parseFaqFieldLine,
+  parseFaqMetadataLine,
+  type FaqImportFieldKey,
 } from "@/modules/business-brain/lib/faq-import-field-aliases";
 import type {
   FaqImportApplyItem,
@@ -13,11 +17,30 @@ import type {
 
 type FaqBlockDraft = {
   id?: string;
-  rawText: string;
-  fields: Partial<
-    Record<"QUESTION" | "TRIGGER_PHRASES" | "ANSWER" | "NEXT_STEP", string>
-  >;
+  importedFaqId?: string;
+  productId?: string;
+  rawLines: string[];
+  fields: Partial<Record<FaqImportFieldKey, string>>;
 };
+
+export type ParseFaqImportOptions = {
+  currentProductId?: string | null;
+};
+
+function createDraft(): FaqBlockDraft {
+  return {
+    rawLines: [],
+    fields: {},
+  };
+}
+
+function draftRawText(draft: FaqBlockDraft): string {
+  return draft.rawLines.join("\n").trim();
+}
+
+function draftHasQuestionAndAnswer(draft: FaqBlockDraft): boolean {
+  return Boolean(draft.fields.QUESTION?.trim() && draft.fields.ANSWER?.trim());
+}
 
 function parseTriggerPhrases(value: string | undefined): string[] {
   if (!value?.trim()) return [];
@@ -27,25 +50,65 @@ function parseTriggerPhrases(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function extractFieldBlocks(blockText: string) {
-  const lines = blockText.replace(/\r\n/g, "\n").split("\n");
-  const fields: FaqBlockDraft["fields"] = {};
+function finalizeFaqBlock(
+  draft: FaqBlockDraft,
+  options?: ParseFaqImportOptions,
+): { item: ParsedFaqImportItem | null; warnings: string[] } {
+  const warnings: string[] = [];
+  const question = draft.fields.QUESTION?.trim() ?? "";
+  const answer = draft.fields.ANSWER?.trim() ?? "";
 
-  let currentKey: keyof FaqBlockDraft["fields"] | null = null;
+  if (!question || !answer) {
+    return { item: null, warnings };
+  }
+
+  const nextStep = draft.fields.NEXT_STEP?.trim();
+
+  if (
+    options?.currentProductId?.trim() &&
+    draft.productId?.trim() &&
+    draft.productId.trim() !== options.currentProductId.trim()
+  ) {
+    warnings.push(`product_id_mismatch:${draft.productId.trim()}`);
+  }
+
+  return {
+    item: {
+      id: draft.id,
+      importedFaqId: draft.importedFaqId,
+      productId: draft.productId,
+      question,
+      triggerPhrases: parseTriggerPhrases(draft.fields.TRIGGER_PHRASES),
+      answer,
+      nextStep: nextStep || undefined,
+      rawText: draftRawText(draft),
+    },
+    warnings,
+  };
+}
+
+function parseDraftLines(draft: FaqBlockDraft) {
+  draft.fields = {};
+  draft.id = undefined;
+  draft.importedFaqId = undefined;
+  draft.productId = undefined;
+
+  let currentKey: FaqImportFieldKey | null = null;
   let currentValue: string[] = [];
 
-  const flush = () => {
+  const flushField = () => {
     if (!currentKey) return;
-    fields[currentKey] = currentValue.join("\n").trim();
+    draft.fields[currentKey] = currentValue.join("\n").trim();
     currentKey = null;
     currentValue = [];
   };
 
-  for (const line of lines) {
+  for (const line of draft.rawLines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
     if (isFaqHeaderLine(trimmed)) {
+      draft.id = extractFaqHeaderId(trimmed) ?? draft.id;
       continue;
     }
 
@@ -53,17 +116,26 @@ function extractFieldBlocks(blockText: string) {
       continue;
     }
 
-    const parsedLine = splitFaqFieldLine(trimmed);
-    if (parsedLine) {
-      const canonicalKey = resolveFaqFieldKey(parsedLine.rawKey);
-      if (canonicalKey) {
-        flush();
-        currentKey = canonicalKey;
-        if (parsedLine.inlineValue) {
-          currentValue = [parsedLine.inlineValue];
-        }
-        continue;
+    const metadata = parseFaqMetadataLine(trimmed);
+    if (metadata) {
+      flushField();
+      if (metadata.key === "FAQ_ID") {
+        draft.importedFaqId = metadata.value || draft.importedFaqId;
       }
+      if (metadata.key === "PRODUCT_ID") {
+        draft.productId = metadata.value || draft.productId;
+      }
+      continue;
+    }
+
+    const field = parseFaqFieldLine(trimmed);
+    if (field) {
+      flushField();
+      currentKey = field.key;
+      if (field.inlineValue) {
+        currentValue = [field.inlineValue];
+      }
+      continue;
     }
 
     if (currentKey) {
@@ -71,94 +143,56 @@ function extractFieldBlocks(blockText: string) {
     }
   }
 
-  flush();
-  return fields;
+  flushField();
 }
 
-function splitIntoFaqBlocks(input: string): FaqBlockDraft[] {
-  const normalized = input.replace(/\r\n/g, "\n").trim();
-  if (!normalized) return [];
+function parseFaqBlocks(input: string): FaqBlockDraft[] {
+  const lines = input.replace(/\r\n/g, "\n").split("\n");
+  const drafts: FaqBlockDraft[] = [];
+  let draft: FaqBlockDraft | null = null;
 
-  const lines = normalized.split("\n");
-  const blocks: FaqBlockDraft[] = [];
-  let currentLines: string[] = [];
-  let currentId: string | undefined;
-
-  const pushBlock = () => {
-    const rawText = currentLines.join("\n").trim();
-    if (!rawText) {
-      currentLines = [];
-      currentId = undefined;
-      return;
-    }
-
-    const headerLine = currentLines.find((line) => isFaqHeaderLine(line));
-    const id = headerLine ? extractFaqHeaderId(headerLine) : currentId;
-    blocks.push({
-      id,
-      rawText,
-      fields: extractFieldBlocks(rawText),
-    });
-    currentLines = [];
-    currentId = undefined;
+  const finalizeCurrent = () => {
+    if (!draft) return;
+    parseDraftLines(draft);
+    drafts.push(draft);
+    draft = null;
   };
 
   for (const line of lines) {
     const trimmed = line.trim();
-
-    if (isFaqHeaderLine(trimmed)) {
-      if (currentLines.length > 0) {
-        pushBlock();
-      }
-      currentId = extractFaqHeaderId(trimmed);
-      currentLines.push(trimmed);
-      continue;
-    }
+    if (!trimmed) continue;
 
     if (isFaqSectionSeparatorLine(trimmed)) {
-      if (currentLines.length > 0) {
-        pushBlock();
+      finalizeCurrent();
+      continue;
+    }
+
+    if (!draft) {
+      if (isFaqSectionStartLine(trimmed) || isFaqFieldKeyLine(trimmed)) {
+        draft = createDraft();
+        draft.rawLines.push(line);
       }
       continue;
     }
 
-    currentLines.push(line);
+    parseDraftLines(draft);
+    if (isFaqBlockBoundaryLine(trimmed, draftHasQuestionAndAnswer(draft))) {
+      finalizeCurrent();
+      draft = createDraft();
+      draft.rawLines.push(line);
+      continue;
+    }
+
+    draft.rawLines.push(line);
   }
 
-  pushBlock();
-
-  if (blocks.length === 0) {
-    return [
-      {
-        rawText: normalized,
-        fields: extractFieldBlocks(normalized),
-      },
-    ];
-  }
-
-  return blocks;
+  finalizeCurrent();
+  return drafts;
 }
 
-function finalizeFaqBlock(block: FaqBlockDraft): ParsedFaqImportItem | null {
-  const question = block.fields.QUESTION?.trim() ?? "";
-  const answer = block.fields.ANSWER?.trim() ?? "";
-  if (!question || !answer) {
-    return null;
-  }
-
-  const nextStep = block.fields.NEXT_STEP?.trim();
-
-  return {
-    id: block.id,
-    question,
-    triggerPhrases: parseTriggerPhrases(block.fields.TRIGGER_PHRASES),
-    answer,
-    nextStep: nextStep || undefined,
-    rawText: block.rawText,
-  };
-}
-
-export function buildFaqImportContent(item: Pick<ParsedFaqImportItem, "answer" | "nextStep" | "triggerPhrases">): string {
+export function buildFaqImportContent(
+  item: Pick<ParsedFaqImportItem, "answer" | "nextStep" | "triggerPhrases">,
+): string {
   const parts: string[] = [];
 
   if (item.triggerPhrases.length > 0) {
@@ -181,21 +215,27 @@ export function normalizeFaqQuestion(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export function parseFaqImportText(input: string): ParsedFaqImport {
+export function parseFaqImportText(
+  input: string,
+  options?: ParseFaqImportOptions,
+): ParsedFaqImport {
   const warnings: string[] = [];
   const ignoredSections: string[] = [];
   const faqs: ParsedFaqImportItem[] = [];
 
-  const blocks = splitIntoFaqBlocks(input);
+  for (const block of parseFaqBlocks(input)) {
+    const { item, warnings: blockWarnings } = finalizeFaqBlock(block, options);
+    warnings.push(...blockWarnings);
 
-  for (const block of blocks) {
-    const parsed = finalizeFaqBlock(block);
-    if (parsed) {
-      faqs.push(parsed);
+    if (item) {
+      faqs.push(item);
       continue;
     }
 
-    ignoredSections.push(block.rawText.slice(0, 120));
+    const rawText = draftRawText(block);
+    if (rawText) {
+      ignoredSections.push(rawText.slice(0, 120));
+    }
   }
 
   return { faqs, warnings, ignoredSections };
@@ -209,7 +249,7 @@ export function splitProductAndFaqImportText(input: string): {
   let faqStartIndex = -1;
 
   for (let index = 0; index < lines.length; index += 1) {
-    if (isFaqHeaderLine(lines[index] ?? "")) {
+    if (isFaqSectionStartLine(lines[index] ?? "")) {
       faqStartIndex = index;
       break;
     }
@@ -225,13 +265,18 @@ export function splitProductAndFaqImportText(input: string): {
   };
 }
 
-export function parseCombinedProductImportInput(input: string): {
+export function parseCombinedProductImportInput(
+  input: string,
+  options?: ParseFaqImportOptions,
+): {
   productText: string;
   faqText: string;
   faqImport: ParsedFaqImport;
 } {
   const { productText, faqText } = splitProductAndFaqImportText(input);
-  const faqImport = faqText ? parseFaqImportText(faqText) : { faqs: [], warnings: [], ignoredSections: [] };
+  const faqImport = faqText
+    ? parseFaqImportText(faqText, options)
+    : { faqs: [], warnings: [], ignoredSections: [] };
 
   return { productText, faqText, faqImport };
 }
@@ -243,7 +288,7 @@ export function mapParsedFaqsToApplyItems(
     nextStep?: string;
     triggerPhrases: string[];
   }>,
-) {
+): FaqImportApplyItem[] {
   return faqs.map((faq) => ({
     question: faq.question,
     content: buildFaqImportContent(faq),
@@ -253,14 +298,20 @@ export function mapParsedFaqsToApplyItems(
 export function summarizeFaqImport(parsed: ParsedFaqImport): {
   total: number;
   missingTriggerPhrases: number;
+  productIdMismatches: number;
 } {
   const missingTriggerPhrases = parsed.faqs.filter(
     (faq) => faq.triggerPhrases.length === 0,
   ).length;
 
+  const productIdMismatches = parsed.warnings.filter((warning) =>
+    warning.startsWith("product_id_mismatch:"),
+  ).length;
+
   return {
     total: parsed.faqs.length,
     missingTriggerPhrases,
+    productIdMismatches,
   };
 }
 

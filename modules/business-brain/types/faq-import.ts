@@ -1,5 +1,7 @@
 export type ParsedFaqImportItem = {
   id?: string;
+  importedFaqId?: string;
+  productId?: string;
   question: string;
   triggerPhrases: string[];
   answer: string;

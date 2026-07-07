@@ -92,6 +92,11 @@ function valuesFromProduct(product: BrainProductDetail): BrainProductFormValues 
   };
 }
 
+function extractImportedProductCode(aiNotes: string): string | null {
+  const match = aiNotes.match(/^Product ID:\s*(.+)$/im);
+  return match?.[1]?.trim() || null;
+}
+
 function DynamicTextList({
   label,
   values,
@@ -234,6 +239,10 @@ export function ProductEditor({
   const linkedFaqIds = new Set(product.faqLinks.map((link) => link.knowledgeEntryId));
   const availableFaqOptions = faqOptions.filter((option) => !linkedFaqIds.has(option.id));
   const existingFaqQuestions = product.faqLinks.map((link) => link.knowledgeTitle);
+  const importedProductCode = useMemo(
+    () => extractImportedProductCode(values.aiNotes),
+    [values.aiNotes],
+  );
 
   const updateValues = (patch: Partial<BrainProductFormValues>) => {
     setValues((current) => ({ ...current, ...patch }));
@@ -961,6 +970,7 @@ export function ProductEditor({
         onClose={() => setFaqImportOpen(false)}
         onApply={handleApplyFaqImport}
         existingQuestions={existingFaqQuestions}
+        currentProductId={importedProductCode}
         isApplying={isApplyingFaqImport}
       />
     </div>

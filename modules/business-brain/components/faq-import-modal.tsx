@@ -19,6 +19,7 @@ type FaqImportModalProps = {
   onClose: () => void;
   onApply: (parsed: ParsedFaqImport) => void;
   existingQuestions?: string[];
+  currentProductId?: string | null;
   isApplying?: boolean;
 };
 
@@ -27,6 +28,7 @@ export function FaqImportModal({
   onClose,
   onApply,
   existingQuestions = [],
+  currentProductId = null,
   isApplying = false,
 }: FaqImportModalProps) {
   const { bb } = useBbTranslation();
@@ -53,7 +55,7 @@ export function FaqImportModal({
   if (!open) return null;
 
   function handleParse() {
-    setParsed(parseFaqImportText(text));
+    setParsed(parseFaqImportText(text, { currentProductId }));
   }
 
   function handleApply() {
@@ -143,6 +145,13 @@ export function FaqImportModal({
                     ) : (
                       <p className="text-muted-foreground">{bb("faqImportSummaryNoDuplicates")}</p>
                     )}
+                    {summary && summary.productIdMismatches > 0 ? (
+                      <p className="text-amber-800 dark:text-amber-200">
+                        {formatTranslation(bb("faqImportSummaryProductIdMismatch"), {
+                          count: String(summary.productIdMismatches),
+                        })}
+                      </p>
+                    ) : null}
                     {parsed.warnings.length > 0 ? (
                       <p className="text-muted-foreground">
                         {formatTranslation(bb("faqImportSummaryWarnings"), {

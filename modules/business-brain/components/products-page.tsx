@@ -7,10 +7,12 @@ import {
   loadBrainProductAction,
 } from "@/modules/business-brain/actions/product-actions";
 import { ProductEditor } from "@/modules/business-brain/components/product-editor";
+import { ProductImportModal } from "@/modules/business-brain/components/product-import-modal";
 import { ProductListPanel } from "@/modules/business-brain/components/product-list-panel";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainProductDetail,
+  BrainProductFormValues,
   BrainProductListItem,
   BrainProductStatus,
 } from "@/modules/business-brain/types/products";
@@ -49,8 +51,12 @@ export function ProductsPageClient({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<BrainProductStatus | "all">("all");
   const [mobileShowEditor, setMobileShowEditor] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importPatch, setImportPatch] = useState<Partial<BrainProductFormValues> | null>(null);
+  const [importRequestId, setImportRequestId] = useState(0);
   const [isCreating, startCreateTransition] = useTransition();
   const [isLoadingProduct, startLoadTransition] = useTransition();
+  const [isApplyingImport, startApplyImportTransition] = useTransition();
 
   const refreshListItem = useCallback((product: BrainProductDetail) => {
     setProducts((current) => {
@@ -104,6 +110,35 @@ export function ProductsPageClient({
     });
   };
 
+  const applyImportPatch = (patch: Partial<BrainProductFormValues>) => {
+    setImportPatch(patch);
+    setImportRequestId((current) => current + 1);
+    setImportOpen(false);
+    setMobileShowEditor(true);
+  };
+
+  const handleApplyImport = (patch: Partial<BrainProductFormValues>) => {
+    startApplyImportTransition(async () => {
+      if (selectedProductId && selectedProduct) {
+        if (!window.confirm(bb("productImportApplyConfirm"))) {
+          return;
+        }
+        applyImportPatch(patch);
+        return;
+      }
+
+      const result = await createBrainProductAction();
+      if (!result.ok || !result.product) {
+        return;
+      }
+
+      refreshListItem(result.product);
+      setSelectedProductId(result.product.id);
+      setSelectedProduct(result.product);
+      applyImportPatch(patch);
+    });
+  };
+
   const handleProductUpdated = (product: BrainProductDetail) => {
     setSelectedProduct(product);
     refreshListItem(product);
@@ -148,6 +183,7 @@ export function ProductsPageClient({
             onStatusFilterChange={setStatusFilter}
             onSelectProduct={handleSelectProduct}
             onCreateProduct={handleCreateProduct}
+            onImportFromText={canEdit ? () => setImportOpen(true) : undefined}
           />
         </div>
 
@@ -161,6 +197,9 @@ export function ProductsPageClient({
               onBack={() => setMobileShowEditor(false)}
               onProductUpdated={handleProductUpdated}
               onProductArchived={handleProductArchived}
+              importPatch={importPatch}
+              importRequestId={importRequestId}
+              onImportApplied={() => setImportPatch(null)}
             />
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
@@ -184,6 +223,13 @@ export function ProductsPageClient({
           )}
         </div>
       </div>
+
+      <ProductImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onApply={handleApplyImport}
+        isApplying={isApplyingImport}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   Archive,
   ArrowLeft,
@@ -35,6 +35,7 @@ import {
   createEmptyDepartureItem,
   createEmptyPricingItem,
 } from "@/modules/business-brain/lib/product-knowledge-score";
+import { mergeProductImportPatch } from "@/modules/business-brain/lib/map-product-import-to-form";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
@@ -66,6 +67,9 @@ type ProductEditorProps = {
   onBack?: () => void;
   onProductUpdated: (product: BrainProductDetail) => void;
   onProductArchived: (productId: string) => void;
+  importPatch?: Partial<BrainProductFormValues> | null;
+  importRequestId?: number;
+  onImportApplied?: () => void;
 };
 
 function valuesFromProduct(product: BrainProductDetail): BrainProductFormValues {
@@ -178,6 +182,9 @@ export function ProductEditor({
   onBack,
   onProductUpdated,
   onProductArchived,
+  importPatch,
+  importRequestId = 0,
+  onImportApplied,
 }: ProductEditorProps) {
   const { bb } = useBbTranslation();
   const [savedValues, setSavedValues] = useState(() => valuesFromProduct(product));
@@ -203,6 +210,14 @@ export function ProductEditor({
     setStatusMessage(null);
     setErrorMessage(null);
   };
+
+  useEffect(() => {
+    if (!importPatch || importRequestId === 0) return;
+    setValues((current) => mergeProductImportPatch(current, importPatch));
+    setStatusMessage(bb("productImportApplied"));
+    setErrorMessage(null);
+    onImportApplied?.();
+  }, [bb, importPatch, importRequestId, onImportApplied]);
 
   const syncProduct = (next: BrainProductDetail) => {
     const nextValues = valuesFromProduct(next);

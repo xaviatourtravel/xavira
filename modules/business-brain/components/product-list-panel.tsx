@@ -37,6 +37,7 @@ type ProductListPanelProps = {
   onStatusFilterChange: (value: BrainProductStatus | "all") => void;
   onSelectProduct: (productId: string) => void;
   onCreateProduct: () => void;
+  onImportFromText?: () => void;
 };
 
 function statusBadgeClass(status: BrainProductStatus) {
@@ -60,6 +61,7 @@ export function ProductListPanel({
   onStatusFilterChange,
   onSelectProduct,
   onCreateProduct,
+  onImportFromText,
 }: ProductListPanelProps) {
   const { bb } = useBbTranslation();
   const normalizedSearch = search.trim().toLowerCase();
@@ -82,15 +84,23 @@ export function ProductListPanel({
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-foreground">{bb("productList")}</h2>
           {canEdit ? (
-            <DsButton
-              type="button"
-              size="sm"
-              onClick={onCreateProduct}
-              loading={isCreating}
-            >
-              <Plus className="h-4 w-4" />
-              {bb("newProduct")}
-            </DsButton>
+            <div className="flex items-center gap-1.5">
+              {onImportFromText ? (
+                <DsButton type="button" size="sm" variant="outline" onClick={onImportFromText}>
+                  <FileText className="h-4 w-4" />
+                  {bb("importFromText")}
+                </DsButton>
+              ) : null}
+              <DsButton
+                type="button"
+                size="sm"
+                onClick={onCreateProduct}
+                loading={isCreating}
+              >
+                <Plus className="h-4 w-4" />
+                {bb("newProduct")}
+              </DsButton>
+            </div>
           ) : null}
         </div>
         <DsSearchInput

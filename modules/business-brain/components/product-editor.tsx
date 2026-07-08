@@ -31,6 +31,7 @@ import {
   updateBrainProductAction,
 } from "@/modules/business-brain/actions/product-actions";
 import { ProductDocumentUploadZone } from "@/modules/business-brain/components/product-document-upload-zone";
+import { ExpandableList } from "@/modules/business-brain/components/expandable-list";
 import { FaqImportModal } from "@/modules/business-brain/components/faq-import-modal";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
 import { useProductDocumentUpload } from "@/modules/business-brain/hooks/use-product-document-upload";
@@ -187,12 +188,15 @@ function DynamicTextList({
         </DsButton>
       </div>
       {values.length > 0 ? (
-        <ul className="flex flex-wrap gap-1.5">
-          {values.map((item) => (
-            <li
-              key={item}
-              className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/20 px-2 py-1 text-xs text-foreground"
-            >
+        <ExpandableList
+          as="ul"
+          itemAs="li"
+          items={values}
+          itemsClassName="flex flex-wrap gap-1.5"
+          itemClassName="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/20 px-2 py-1 text-xs text-foreground"
+          getItemKey={(item) => item}
+          renderItem={(item) => (
+            <>
               <span className="truncate">{item}</span>
               {!disabled ? (
                 <button
@@ -204,9 +208,9 @@ function DynamicTextList({
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               ) : null}
-            </li>
-          ))}
-        </ul>
+            </>
+          )}
+        />
       ) : null}
     </div>
   );
@@ -551,377 +555,16 @@ export function ProductEditor({
           />
         </DsCard>
 
-        <DsCard size="sm" title={bb("highlights")} className={compactCardClassName()}>
-          <DynamicTextList
-            label={bb("packageHighlights")}
-            values={values.highlights}
-            onChange={(highlights) => updateValues({ highlights })}
-            placeholder={bb("addHighlight")}
-            suggestions={HIGHLIGHT_SUGGESTIONS}
-            disabled={!canEdit}
-          />
-        </DsCard>
-
-        <DsCard size="sm" title={bb("included")} className={compactCardClassName()}>
-          <DynamicTextList
-            label={bb("whatsIncluded")}
-            values={values.included}
-            onChange={(included) => updateValues({ included })}
-            placeholder={bb("highlightPlaceholder")}
-            disabled={!canEdit}
-          />
-        </DsCard>
-
-        <DsCard size="sm" title={bb("excluded")} className={compactCardClassName()}>
-          <DynamicTextList
-            label={bb("whatsExcluded")}
-            values={values.excluded}
-            onChange={(excluded) => updateValues({ excluded })}
-            placeholder={bb("excludedPlaceholder")}
-            disabled={!canEdit}
-          />
-        </DsCard>
-        </div>
-
-        <div className="space-y-3">
-        <DsCard size="sm" title={bb("pricing")} className={compactCardClassName()}>
-          <div className="space-y-2">
-            {values.pricing.map((item, index) => (
-              <div
-                key={item.id}
-                className="rounded-lg border border-border/70 p-2.5"
-              >
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  <CompactField label={bb("packageName")}>
-                    <DsTextInput
-                      value={item.packageName}
-                      onChange={(event) => {
-                        const pricing = [...values.pricing];
-                        pricing[index] = { ...item, packageName: event.target.value };
-                        updateValues({ pricing });
-                      }}
-                      disabled={!canEdit}
-                      className={compactInputClass}
-                    />
-                  </CompactField>
-                  <CompactField label={bb("price")}>
-                    <DsTextInput
-                      type="number"
-                      value={item.price}
-                      onChange={(event) => {
-                        const pricing = [...values.pricing];
-                        pricing[index] = {
-                          ...item,
-                          price: Number(event.target.value) || 0,
-                        };
-                        updateValues({ pricing });
-                      }}
-                      disabled={!canEdit}
-                      className={compactInputClass}
-                    />
-                  </CompactField>
-                  <CompactField label={bb("currency")}>
-                    <DsSelect
-                      value={item.currency}
-                      onChange={(event) => {
-                        const pricing = [...values.pricing];
-                        pricing[index] = {
-                          ...item,
-                          currency: event.target.value as typeof item.currency,
-                        };
-                        updateValues({ pricing });
-                      }}
-                      disabled={!canEdit}
-                      className={compactInputClass}
-                    >
-                      {PRODUCT_CURRENCIES.map((currency) => (
-                        <option key={currency} value={currency}>
-                          {currency}
-                        </option>
-                      ))}
-                    </DsSelect>
-                  </CompactField>
-                  <CompactField label={bb("validUntil")}>
-                    <DsTextInput
-                      type="date"
-                      value={item.validUntil}
-                      onChange={(event) => {
-                        const pricing = [...values.pricing];
-                        pricing[index] = { ...item, validUntil: event.target.value };
-                        updateValues({ pricing });
-                      }}
-                      disabled={!canEdit}
-                      className={compactInputClass}
-                    />
-                  </CompactField>
-                  <CompactField label={bb("earlyBird")}>
-                    <DsTextInput
-                      value={item.earlyBird ?? ""}
-                      onChange={(event) => {
-                        const pricing = [...values.pricing];
-                        pricing[index] = { ...item, earlyBird: event.target.value };
-                        updateValues({ pricing });
-                      }}
-                      disabled={!canEdit}
-                      className={compactInputClass}
-                    />
-                  </CompactField>
-                  <CompactField label={bb("promo")}>
-                    <DsTextInput
-                      value={item.promo ?? ""}
-                      onChange={(event) => {
-                        const pricing = [...values.pricing];
-                        pricing[index] = { ...item, promo: event.target.value };
-                        updateValues({ pricing });
-                      }}
-                      disabled={!canEdit}
-                      className={compactInputClass}
-                    />
-                  </CompactField>
-                </div>
-                {canEdit ? (
-                  <div className="mt-1.5 flex justify-end">
-                    <DsButton
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        updateValues({
-                          pricing: values.pricing.filter((row) => row.id !== item.id),
-                        })
-                      }
-                    >
-                      {bb("removePackage")}
-                    </DsButton>
-                  </div>
-                ) : null}
-              </div>
-            ))}
-            {canEdit ? (
-              <DsButton
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  updateValues({ pricing: [...values.pricing, createEmptyPricingItem()] })
-                }
-              >
-                <Plus className="h-4 w-4" />
-                {bb("addPricing")}
-              </DsButton>
-            ) : null}
-          </div>
-        </DsCard>
-
-        <DsCard size="sm" title={bb("departureSchedule")} className={compactCardClassName()}>
-          <div className="space-y-1.5">
-            {values.departures.length > 0 ? (
-              <div className="hidden gap-2 px-1 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto]">
-                <span>{bb("departureDate")}</span>
-                <span>{bb("availableSeats")}</span>
-                <span>{bb("status")}</span>
-                <span className="sr-only">{bb("removeItem")}</span>
-              </div>
-            ) : null}
-            {values.departures.map((item, index) => (
-              <div
-                key={item.id}
-                className="grid gap-2 rounded-lg border border-border/70 px-2 py-1.5 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto] sm:items-center"
-              >
-                <DsTextInput
-                  type="date"
-                  value={item.departureDate}
-                  onChange={(event) => {
-                    const departures = [...values.departures];
-                    departures[index] = {
-                      ...item,
-                      departureDate: event.target.value,
-                    };
-                    updateValues({ departures });
-                  }}
-                  disabled={!canEdit}
-                  className={compactInputClass}
-                />
-                <DsTextInput
-                  type="number"
-                  value={item.availableSeats}
-                  onChange={(event) => {
-                    const departures = [...values.departures];
-                    departures[index] = {
-                      ...item,
-                      availableSeats: Number(event.target.value) || 0,
-                    };
-                    updateValues({ departures });
-                  }}
-                  disabled={!canEdit}
-                  className={compactInputClass}
-                />
-                <DsSelect
-                  value={item.status}
-                  onChange={(event) => {
-                    const departures = [...values.departures];
-                    departures[index] = {
-                      ...item,
-                      status: event.target.value as typeof item.status,
-                    };
-                    updateValues({ departures });
-                  }}
-                  disabled={!canEdit}
-                  className={compactInputClass}
-                >
-                  {(["open", "full", "waiting_list"] as const).map((status) => (
-                    <option key={status} value={status}>
-                      {bbDepartureStatusLabel(bb, status)}
-                    </option>
-                  ))}
-                </DsSelect>
-                {canEdit ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateValues({
-                        departures: values.departures.filter((row) => row.id !== item.id),
-                      })
-                    }
-                    className="justify-self-end text-muted-foreground hover:text-destructive"
-                    aria-label={bb("removeItem")}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <span />
-                )}
-              </div>
-            ))}
-          </div>
-          {canEdit ? (
-            <DsButton
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() =>
-                updateValues({
-                  departures: [...values.departures, createEmptyDepartureItem()],
-                })
-              }
-            >
-              <Plus className="h-4 w-4" />
-              {bb("addDeparture")}
-            </DsButton>
-          ) : null}
-        </DsCard>
-
-        <DsCard
-          size="sm"
-          title={bb("frequentlyAskedQuestions")}
-          className={compactCardClassName()}
-        >
-          <div className="space-y-2.5">
-            {canEdit ? (
-              <div className="flex justify-end">
-                <DsButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFaqImportOpen(true)}
-                >
-                  <MessageSquareText className="h-4 w-4" />
-                  {bb("faqImportFromText")}
-                </DsButton>
-              </div>
-            ) : null}
-            <ul className="space-y-1.5">
-              {product.faqLinks.map((link) => (
-                <li
-                  key={link.id}
-                  className="flex items-center justify-between rounded-lg border border-border/70 px-2.5 py-1.5 text-sm"
-                >
-                  <div className="min-w-0 pr-2">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {bbDisplayArticleTitle(bb, link.knowledgeTitle)}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{link.knowledgeCategory}</p>
-                  </div>
-                  {canEdit ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        startTransition(async () => {
-                          const result = await unlinkProductFaqAction(product.id, link.id);
-                          if (result.ok && result.product) syncProduct(result.product);
-                        })
-                      }
-                      className="shrink-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-
-            {canEdit ? (
-              <>
-                <div className="flex flex-wrap gap-1.5">
-                  <DsSelect
-                    value={selectedFaqId}
-                    onChange={(event) => setSelectedFaqId(event.target.value)}
-                    className={cn("min-w-[180px] flex-1", compactInputClass)}
-                  >
-                    <option value="">{bb("selectExistingFaq")}</option>
-                    {availableFaqOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {bbDisplayArticleTitle(bb, option.title)}
-                      </option>
-                    ))}
-                  </DsSelect>
-                  <DsButton
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLinkFaq}
-                    disabled={!selectedFaqId}
-                  >
-                    <Link2 className="h-4 w-4" />
-                    {bb("linkFaq")}
-                  </DsButton>
-                </div>
-
-                <div className="rounded-lg border border-dashed border-border/70 p-2.5">
-                  <p className="mb-2 text-xs font-medium text-foreground">{bb("createNewFaq")}</p>
-                  <div className="space-y-2">
-                    <DsTextInput
-                      value={newFaqTitle}
-                      onChange={(event) => setNewFaqTitle(event.target.value)}
-                      placeholder={bb("faqTitle")}
-                      className={compactInputClass}
-                    />
-                    <DsTextarea
-                      value={newFaqContent}
-                      onChange={(event) => setNewFaqContent(event.target.value)}
-                      placeholder={bb("faqAnswerContent")}
-                      rows={3}
-                      className="min-h-0 py-1.5 text-sm"
-                    />
-                    <DsButton type="button" variant="outline" size="sm" onClick={handleCreateFaq}>
-                      {bb("createAndLinkFaq")}
-                    </DsButton>
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </DsCard>
-
         <DsCard size="sm" title={bb("documents")} className={compactCardClassName()}>
           <div className="space-y-2.5">
-            <ul className="space-y-1.5">
-              {product.documents.map((document) => (
-                <li
-                  key={document.id}
-                  className="flex items-center justify-between rounded-lg border border-border/70 px-2.5 py-1.5 text-sm"
-                >
+            <ExpandableList
+              as="ul"
+              itemAs="li"
+              items={product.documents}
+              itemsClassName="space-y-1.5"
+              getItemKey={(document) => document.id}
+              renderItem={(document) => (
+                <>
                   <div className="min-w-0 pr-2">
                     <p className="truncate text-sm font-medium text-foreground">
                       {bbProductDocumentTypeLabel(bb, document.documentType)}
@@ -951,9 +594,10 @@ export function ProductEditor({
                       </button>
                     ) : null}
                   </div>
-                </li>
-              ))}
-            </ul>
+                </>
+              )}
+              itemClassName="flex items-center justify-between rounded-lg border border-border/70 px-2.5 py-1.5 text-sm"
+            />
 
             {canEdit ? (
               <div className="grid gap-2 sm:grid-cols-2">
@@ -1023,6 +667,376 @@ export function ProductEditor({
             disabled={!canEdit}
             className="min-h-0 py-1.5 text-sm"
           />
+        </DsCard>
+
+        <DsCard size="sm" title={bb("highlights")} className={compactCardClassName()}>
+          <DynamicTextList
+            label={bb("packageHighlights")}
+            values={values.highlights}
+            onChange={(highlights) => updateValues({ highlights })}
+            placeholder={bb("addHighlight")}
+            suggestions={HIGHLIGHT_SUGGESTIONS}
+            disabled={!canEdit}
+          />
+        </DsCard>
+
+        <DsCard size="sm" title={bb("included")} className={compactCardClassName()}>
+          <DynamicTextList
+            label={bb("whatsIncluded")}
+            values={values.included}
+            onChange={(included) => updateValues({ included })}
+            placeholder={bb("highlightPlaceholder")}
+            disabled={!canEdit}
+          />
+        </DsCard>
+
+        <DsCard size="sm" title={bb("excluded")} className={compactCardClassName()}>
+          <DynamicTextList
+            label={bb("whatsExcluded")}
+            values={values.excluded}
+            onChange={(excluded) => updateValues({ excluded })}
+            placeholder={bb("excludedPlaceholder")}
+            disabled={!canEdit}
+          />
+        </DsCard>
+        </div>
+
+        <div className="space-y-3">
+        <DsCard size="sm" title={bb("pricing")} className={compactCardClassName()}>
+          <div className="space-y-2">
+            <ExpandableList
+              items={values.pricing}
+              itemsClassName="space-y-2"
+              getItemKey={(item) => item.id}
+              renderItem={(item, index) => (
+                <div className="rounded-lg border border-border/70 p-2.5">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <CompactField label={bb("packageName")}>
+                      <DsTextInput
+                        value={item.packageName}
+                        onChange={(event) => {
+                          const pricing = [...values.pricing];
+                          pricing[index] = { ...item, packageName: event.target.value };
+                          updateValues({ pricing });
+                        }}
+                        disabled={!canEdit}
+                        className={compactInputClass}
+                      />
+                    </CompactField>
+                    <CompactField label={bb("price")}>
+                      <DsTextInput
+                        type="number"
+                        value={item.price}
+                        onChange={(event) => {
+                          const pricing = [...values.pricing];
+                          pricing[index] = {
+                            ...item,
+                            price: Number(event.target.value) || 0,
+                          };
+                          updateValues({ pricing });
+                        }}
+                        disabled={!canEdit}
+                        className={compactInputClass}
+                      />
+                    </CompactField>
+                    <CompactField label={bb("currency")}>
+                      <DsSelect
+                        value={item.currency}
+                        onChange={(event) => {
+                          const pricing = [...values.pricing];
+                          pricing[index] = {
+                            ...item,
+                            currency: event.target.value as typeof item.currency,
+                          };
+                          updateValues({ pricing });
+                        }}
+                        disabled={!canEdit}
+                        className={compactInputClass}
+                      >
+                        {PRODUCT_CURRENCIES.map((currency) => (
+                          <option key={currency} value={currency}>
+                            {currency}
+                          </option>
+                        ))}
+                      </DsSelect>
+                    </CompactField>
+                    <CompactField label={bb("validUntil")}>
+                      <DsTextInput
+                        type="date"
+                        value={item.validUntil}
+                        onChange={(event) => {
+                          const pricing = [...values.pricing];
+                          pricing[index] = { ...item, validUntil: event.target.value };
+                          updateValues({ pricing });
+                        }}
+                        disabled={!canEdit}
+                        className={compactInputClass}
+                      />
+                    </CompactField>
+                    <CompactField label={bb("earlyBird")}>
+                      <DsTextInput
+                        value={item.earlyBird ?? ""}
+                        onChange={(event) => {
+                          const pricing = [...values.pricing];
+                          pricing[index] = { ...item, earlyBird: event.target.value };
+                          updateValues({ pricing });
+                        }}
+                        disabled={!canEdit}
+                        className={compactInputClass}
+                      />
+                    </CompactField>
+                    <CompactField label={bb("promo")}>
+                      <DsTextInput
+                        value={item.promo ?? ""}
+                        onChange={(event) => {
+                          const pricing = [...values.pricing];
+                          pricing[index] = { ...item, promo: event.target.value };
+                          updateValues({ pricing });
+                        }}
+                        disabled={!canEdit}
+                        className={compactInputClass}
+                      />
+                    </CompactField>
+                  </div>
+                  {canEdit ? (
+                    <div className="mt-1.5 flex justify-end">
+                      <DsButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          updateValues({
+                            pricing: values.pricing.filter((row) => row.id !== item.id),
+                          })
+                        }
+                      >
+                        {bb("removePackage")}
+                      </DsButton>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            />
+            {canEdit ? (
+              <DsButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  updateValues({ pricing: [...values.pricing, createEmptyPricingItem()] })
+                }
+              >
+                <Plus className="h-4 w-4" />
+                {bb("addPricing")}
+              </DsButton>
+            ) : null}
+          </div>
+        </DsCard>
+
+        <DsCard size="sm" title={bb("departureSchedule")} className={compactCardClassName()}>
+          <div className="space-y-1.5">
+            {values.departures.length > 0 ? (
+              <div className="hidden gap-2 px-1 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto]">
+                <span>{bb("departureDate")}</span>
+                <span>{bb("availableSeats")}</span>
+                <span>{bb("status")}</span>
+                <span className="sr-only">{bb("removeItem")}</span>
+              </div>
+            ) : null}
+            <ExpandableList
+              items={values.departures}
+              itemsClassName="space-y-1.5"
+              getItemKey={(item) => item.id}
+              renderItem={(item, index) => (
+                <div className="grid gap-2 rounded-lg border border-border/70 px-2 py-1.5 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto] sm:items-center">
+                  <DsTextInput
+                    type="date"
+                    value={item.departureDate}
+                    onChange={(event) => {
+                      const departures = [...values.departures];
+                      departures[index] = {
+                        ...item,
+                        departureDate: event.target.value,
+                      };
+                      updateValues({ departures });
+                    }}
+                    disabled={!canEdit}
+                    className={compactInputClass}
+                  />
+                  <DsTextInput
+                    type="number"
+                    value={item.availableSeats}
+                    onChange={(event) => {
+                      const departures = [...values.departures];
+                      departures[index] = {
+                        ...item,
+                        availableSeats: Number(event.target.value) || 0,
+                      };
+                      updateValues({ departures });
+                    }}
+                    disabled={!canEdit}
+                    className={compactInputClass}
+                  />
+                  <DsSelect
+                    value={item.status}
+                    onChange={(event) => {
+                      const departures = [...values.departures];
+                      departures[index] = {
+                        ...item,
+                        status: event.target.value as typeof item.status,
+                      };
+                      updateValues({ departures });
+                    }}
+                    disabled={!canEdit}
+                    className={compactInputClass}
+                  >
+                    {(["open", "full", "waiting_list"] as const).map((status) => (
+                      <option key={status} value={status}>
+                        {bbDepartureStatusLabel(bb, status)}
+                      </option>
+                    ))}
+                  </DsSelect>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateValues({
+                          departures: values.departures.filter((row) => row.id !== item.id),
+                        })
+                      }
+                      className="justify-self-end text-muted-foreground hover:text-destructive"
+                      aria-label={bb("removeItem")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                </div>
+              )}
+            />
+          </div>
+          {canEdit ? (
+            <DsButton
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() =>
+                updateValues({
+                  departures: [...values.departures, createEmptyDepartureItem()],
+                })
+              }
+            >
+              <Plus className="h-4 w-4" />
+              {bb("addDeparture")}
+            </DsButton>
+          ) : null}
+        </DsCard>
+
+        <DsCard
+          size="sm"
+          title={bb("frequentlyAskedQuestions")}
+          className={compactCardClassName()}
+        >
+          <div className="space-y-2.5">
+            {canEdit ? (
+              <div className="flex justify-end">
+                <DsButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFaqImportOpen(true)}
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  {bb("faqImportFromText")}
+                </DsButton>
+              </div>
+            ) : null}
+            <ExpandableList
+              as="ul"
+              itemAs="li"
+              items={product.faqLinks}
+              itemsClassName="space-y-1.5"
+              itemClassName="flex items-center justify-between rounded-lg border border-border/70 px-2.5 py-1.5 text-sm"
+              getItemKey={(link) => link.id}
+              renderItem={(link) => (
+                <>
+                  <div className="min-w-0 pr-2">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {bbDisplayArticleTitle(bb, link.knowledgeTitle)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{link.knowledgeCategory}</p>
+                  </div>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        startTransition(async () => {
+                          const result = await unlinkProductFaqAction(product.id, link.id);
+                          if (result.ok && result.product) syncProduct(result.product);
+                        })
+                      }
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </>
+              )}
+            />
+
+            {canEdit ? (
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  <DsSelect
+                    value={selectedFaqId}
+                    onChange={(event) => setSelectedFaqId(event.target.value)}
+                    className={cn("min-w-[180px] flex-1", compactInputClass)}
+                  >
+                    <option value="">{bb("selectExistingFaq")}</option>
+                    {availableFaqOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {bbDisplayArticleTitle(bb, option.title)}
+                      </option>
+                    ))}
+                  </DsSelect>
+                  <DsButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLinkFaq}
+                    disabled={!selectedFaqId}
+                  >
+                    <Link2 className="h-4 w-4" />
+                    {bb("linkFaq")}
+                  </DsButton>
+                </div>
+
+                <div className="rounded-lg border border-dashed border-border/70 p-2.5">
+                  <p className="mb-2 text-xs font-medium text-foreground">{bb("createNewFaq")}</p>
+                  <div className="space-y-2">
+                    <DsTextInput
+                      value={newFaqTitle}
+                      onChange={(event) => setNewFaqTitle(event.target.value)}
+                      placeholder={bb("faqTitle")}
+                      className={compactInputClass}
+                    />
+                    <DsTextarea
+                      value={newFaqContent}
+                      onChange={(event) => setNewFaqContent(event.target.value)}
+                      placeholder={bb("faqAnswerContent")}
+                      rows={3}
+                      className="min-h-0 py-1.5 text-sm"
+                    />
+                    <DsButton type="button" variant="outline" size="sm" onClick={handleCreateFaq}>
+                      {bb("createAndLinkFaq")}
+                    </DsButton>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
         </DsCard>
         </div>
       </div>

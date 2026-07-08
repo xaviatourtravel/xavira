@@ -1,6 +1,8 @@
 export const bbUiEn = {
   // Common / buttons
   add: "Add",
+  showMore: "Show {count} more",
+  showLess: "Show less",
   back: "Back",
   browseFiles: "Browse files",
   cancel: "Cancel",
@@ -574,6 +576,8 @@ export type BusinessBrainUiDictionary = Record<BbUiKey, string>;
 export const bbUiId: BusinessBrainUiDictionary = {
   // Common / buttons
   add: "Tambah",
+  showMore: "Tampilkan {count} lagi",
+  showLess: "Tampilkan lebih sedikit",
   back: "Kembali",
   browseFiles: "Pilih file",
   cancel: "Batal",

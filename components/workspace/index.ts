@@ -1,5 +1,23 @@
+// Aurora Workspace Shell (PR-001)
+export { WorkspaceShell } from "./WorkspaceShell";
+export type { WorkspaceShellProps } from "./WorkspaceShell";
+export { WorkspaceHeader } from "./WorkspaceHeader";
+export type { WorkspaceHeaderProps } from "./WorkspaceHeader";
+export { WorkspaceContent } from "./WorkspaceContent";
+export type { WorkspaceContentProps } from "./WorkspaceContent";
+export { ContextSheet } from "./ContextSheet";
+export type { ContextSheetProps } from "./ContextSheet";
+export { OverlayLayer } from "./OverlayLayer";
+export type { OverlayLayerProps } from "./OverlayLayer";
+export * from "./aurora-tokens";
+
+// Entity detail workspace (legacy pattern)
+export {
+  WorkspaceHeader as EntityWorkspaceHeader,
+  WorkspaceHeaderSection as EntityWorkspaceHeaderSection,
+} from "./entity-workspace-header";
+
 export { WorkspaceLayout } from "./workspace-layout";
-export { WorkspaceHeader, WorkspaceHeaderSection } from "./workspace-header";
 export { WorkspaceTabs, buildDefaultWorkspaceTabs } from "./workspace-tabs";
 export { WorkspaceMainPanel } from "./workspace-main-panel";
 export { WorkspaceSidebar, WorkspaceSidebarSection } from "./workspace-sidebar";

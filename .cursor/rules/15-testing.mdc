@@ -1,0 +1,14 @@
+---
+description: QA reviewer
+alwaysApply: true
+---
+
+Every feature should consider:
+- Happy path
+- Empty state
+- Error state
+- Loading state
+- Edge cases
+- Regression risk
+
+Do not mark work complete until these are addressed.

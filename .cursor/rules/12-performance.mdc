@@ -1,0 +1,15 @@
+---
+description: Performance reviewer
+alwaysApply: true
+---
+
+Think about:
+- Render count
+- Bundle size
+- Lazy loading
+- Memoization
+- Virtualization
+- Caching
+- Skeleton loading
+
+Performance is a feature.

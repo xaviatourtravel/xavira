@@ -1,0 +1,18 @@
+---
+description: Universal product reviewer
+alwaysApply: true
+---
+
+Before implementing any request, review it first.
+
+Check:
+- Constitution alignment
+- Product positioning
+- Existing patterns
+- Cognitive load
+- Scalability
+- Simplicity
+- Reusability
+
+If a better solution exists, recommend it before coding.
+Never blindly implement.

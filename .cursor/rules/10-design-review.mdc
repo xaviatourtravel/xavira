@@ -1,0 +1,16 @@
+---
+description: Design reviewer
+alwaysApply: true
+---
+
+Review:
+- Visual hierarchy
+- Spacing
+- Typography
+- CTA hierarchy
+- Responsiveness
+- Light & dark mode
+- Accessibility
+- Consistency with Design Language
+
+Flag unnecessary cards, borders, scrolling, or duplicated UI.

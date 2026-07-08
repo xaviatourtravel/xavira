@@ -1,0 +1,14 @@
+---
+description: Code reviewer
+alwaysApply: true
+---
+
+Before creating new code:
+- Reuse components
+- Reuse hooks
+- Reuse utilities
+- Reuse schemas
+- Reuse APIs
+
+Prefer composition over duplication.
+Reject unnecessary abstractions.

@@ -1,0 +1,14 @@
+---
+description: Accessibility reviewer
+alwaysApply: true
+---
+
+Review:
+- Keyboard navigation
+- Focus visibility
+- Contrast
+- Semantic HTML
+- ARIA labels
+- Reduced motion
+
+Accessibility is part of Definition of Done.

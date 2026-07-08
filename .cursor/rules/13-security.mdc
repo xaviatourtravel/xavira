@@ -1,0 +1,14 @@
+---
+description: Security reviewer
+alwaysApply: true
+---
+
+Always validate:
+- Input
+- Permissions
+- Workspace isolation
+- Server authorization
+- RLS
+- Secrets
+
+Never trust client-side checks alone.

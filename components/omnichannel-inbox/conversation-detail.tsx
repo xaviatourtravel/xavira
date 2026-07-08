@@ -46,25 +46,18 @@ import {
   getConversationDisplayName,
 } from "@/components/omnichannel-inbox/inbox-display";
 import { formatTranslation } from "@/lib/i18n/dictionary";
-import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { isQualificationHandoffReason } from "@/modules/ai/types/lead-qualification";
 import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
-import { WhatsappMessageBubble } from "@/components/omnichannel-inbox/whatsapp-message-bubble";
+import { ConversationMessageThread } from "@/components/omnichannel-inbox/conversation-message-thread";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  isOptimisticId,
-  useWhatsappConversationMessages,
-} from "@/lib/communication/realtime";
+import { useWhatsappConversationMessages } from "@/lib/communication/realtime";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
-import {
-  getBubbleMaxWidthClassName,
-  getConversationLaneClassName,
-} from "@/lib/communication-workspace/conversation-lane";
+import { getConversationLaneClassName } from "@/lib/communication-workspace/conversation-lane";
 import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
 import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
 
@@ -83,25 +76,6 @@ type OmnichannelConversationDetailPanelProps = {
 };
 
 const NEAR_BOTTOM_THRESHOLD_PX = 140;
-
-function getAttachmentLabel(
-  message: MessageRow,
-  ti: (key: InboxKey) => string,
-) {
-  const attachments = Array.isArray(message.attachments_json)
-    ? message.attachments_json
-    : [];
-
-  if (attachments.length === 0) {
-    return null;
-  }
-
-  return attachments.length === 1
-    ? ti("attachmentCountOne")
-    : formatTranslation(ti("attachmentCountMany"), {
-        count: String(attachments.length),
-      });
-}
 
 function ConversationMenuItem({
   icon,
@@ -648,7 +622,7 @@ export function OmnichannelConversationDetailPanel({
         onScroll={handleScroll}
         className="min-h-0 flex-1 overflow-y-auto bg-background"
       >
-        <div className={getConversationLaneClassName(inspectorOpen, "flex flex-col gap-2.5 py-5")}>
+        <div className={getConversationLaneClassName(inspectorOpen, "py-5")}>
           {displayMessages.length === 0 ? (
             <InboxEmptyState
               icon={MessageSquareText}
@@ -665,76 +639,21 @@ export function OmnichannelConversationDetailPanel({
               description={ti("noSearchResultsDesc")}
               size="compact"
             />
-          ) : isWhatsapp ? (
-            visibleMessages.map((message) => (
-              <WhatsappMessageBubble
-                key={message.id}
-                message={message}
-                onRetry={
-                  message.deliveryStatus === "failed" &&
-                  !isOptimisticId(message.id)
-                    ? async () => {
-                        const formData = new FormData();
-                        formData.set("message_id", message.id);
-                        await retryWhatsappConversationReplyAction(formData);
-                      }
-                    : undefined
-                }
-              />
-            ))
           ) : (
-            visibleMessages.map((message) => {
-              const isIncoming = message.direction === "incoming";
-              const isOptimistic = message.id === "optimistic-outgoing";
-              const attachmentLabel = getAttachmentLabel(message, ti);
-
-              return (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex w-full",
-                    isIncoming ? "justify-start" : "justify-end",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "px-3.5 py-2.5",
-                      getBubbleMaxWidthClassName(inspectorOpen),
-                      isIncoming
-                        ? "rounded-2xl rounded-tl-md bg-muted/30 text-foreground dark:bg-muted/20"
-                        : "rounded-2xl rounded-tr-md bg-primary text-primary-foreground",
-                      isOptimistic && "opacity-75",
-                    )}
-                  >
-                    {message.message_text ? (
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.message_text}
-                      </p>
-                    ) : null}
-                    {attachmentLabel ? (
-                      <p
-                        className={cn(
-                          "mt-1 text-[11px]",
-                          isIncoming ? "text-muted-foreground" : "text-primary-foreground/75",
-                        )}
-                      >
-                        {attachmentLabel}
-                      </p>
-                    ) : null}
-                    <p
-                      className={cn(
-                        "mt-1 text-right text-[10px] tabular-nums",
-                        isIncoming ? "text-muted-foreground/80" : "text-primary-foreground/60",
-                      )}
-                    >
-                      {isOptimistic
-                        ? ti("sendingMessage")
-                        : formatInboxMessageTime(message.created_at)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
+            <ConversationMessageThread
+              messages={visibleMessages}
+              customerDisplayName={displayName}
+              customerAvatarUrl={conversation.customerAvatar}
+              onRetryMessage={
+                isWhatsapp
+                  ? async (messageId) => {
+                      const formData = new FormData();
+                      formData.set("message_id", messageId);
+                      await retryWhatsappConversationReplyAction(formData);
+                    }
+                  : undefined
+              }
+            />
           )}
           <div ref={messagesEndRef} />
         </div>

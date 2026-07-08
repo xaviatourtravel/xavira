@@ -214,6 +214,7 @@ export function OmnichannelConversationReplyBox({
   }, [toast]);
 
   const isWhatsapp = channel === "whatsapp";
+  const showSlashHint = messageText.trimStart().startsWith("/");
 
   const isDisabled = !canReply || isPending;
   const canSend = canReply && messageText.trim().length > 0 && !isPending;
@@ -457,6 +458,11 @@ export function OmnichannelConversationReplyBox({
       ) : null}
 
       <div className={getConversationLaneClassName(inspectorOpen)}>
+      {showSlashHint ? (
+        <p className="mb-2 text-[11px] text-muted-foreground">
+          {ti("composerSlashHint")}
+        </p>
+      ) : null}
       {attachmentName ? (
         <div className="mb-2.5 flex flex-wrap gap-1.5">
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/45 px-2.5 py-1 text-xs text-foreground">
@@ -486,7 +492,7 @@ export function OmnichannelConversationReplyBox({
 
       <div
         ref={rowRef}
-        className="flex w-full items-end gap-1 rounded-2xl bg-muted/15 px-2.5 py-2 transition-[background-color,box-shadow] duration-200 ease-in-out focus-within:bg-muted/20 focus-within:ring-2 focus-within:ring-ring/15 dark:bg-muted/10"
+        className="flex w-full items-end gap-1.5 rounded-[22px] border border-border/35 bg-muted/10 px-2 py-1.5 shadow-sm transition-[background-color,box-shadow,border-color] duration-200 ease-in-out focus-within:border-border/60 focus-within:bg-muted/15 focus-within:shadow-md dark:bg-muted/10"
       >
         <div className="relative shrink-0">
           <button
@@ -569,7 +575,7 @@ export function OmnichannelConversationReplyBox({
             placeholder={ti("composerPlaceholder")}
             disabled={isDisabled}
             title={sendTitle}
-            className="max-h-[132px] w-full resize-none border-0 bg-transparent text-[15px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-60"
+            className="max-h-[132px] w-full resize-none border-0 bg-transparent px-1 text-[15px] leading-6 outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
             onKeyDown={handleComposerKeyDown}
           />
         </div>

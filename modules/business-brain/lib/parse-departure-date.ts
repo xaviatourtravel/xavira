@@ -27,6 +27,7 @@ const MONTH_NAMES: Record<string, number> = {
   sept: 9,
   september: 9,
   oct: 10,
+  okt: 10,
   october: 10,
   oktober: 10,
   nov: 11,
@@ -38,6 +39,10 @@ const MONTH_NAMES: Record<string, number> = {
 
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
+}
+
+function resolveMonth(name: string): number | null {
+  return MONTH_NAMES[name.toLowerCase()] ?? null;
 }
 
 function toIsoDate(year: number, month: number, day: number): string | null {
@@ -55,33 +60,175 @@ function toIsoDate(year: number, month: number, day: number): string | null {
   return `${year}-${pad2(month)}-${pad2(day)}`;
 }
 
-/**
- * Parse departure date strings into ISO format (YYYY-MM-DD).
- */
-export function parseDepartureDate(value: string | null | undefined): string | null {
-  if (!value?.trim()) return null;
+function dedupeAndSort(dates: string[]): string[] {
+  return [...new Set(dates)].sort();
+}
 
-  const trimmed = value.trim().replace(/,/g, "").replace(/\s+/g, " ");
-
-  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+function tryIsoOrDmy(input: string): string[] {
+  const isoMatch = input.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (isoMatch) {
-    return toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
+    const iso = toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
+    return iso ? [iso] : [];
   }
 
-  const dmyMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  const dmyMatch = input.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (dmyMatch) {
-    return toIsoDate(Number(dmyMatch[3]), Number(dmyMatch[2]), Number(dmyMatch[1]));
+    const iso = toIsoDate(Number(dmyMatch[3]), Number(dmyMatch[2]), Number(dmyMatch[1]));
+    return iso ? [iso] : [];
   }
 
-  const namedMatch = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/);
-  if (namedMatch) {
-    const day = Number(namedMatch[1]);
-    const month = MONTH_NAMES[namedMatch[2].toLowerCase()];
-    const year = Number(namedMatch[3]);
-    if (month) return toIsoDate(year, month, day);
+  return [];
+}
+
+function tryCommaDayListWithSharedMonthYear(input: string): string[] {
+  const match = input.match(/^([\d\s,]+)\s+([a-zA-Z]+)\s+(\d{4})$/);
+  if (!match || !match[1].includes(",")) return [];
+
+  const month = resolveMonth(match[2]);
+  const year = Number(match[3]);
+  if (!month) return [];
+
+  const days = match[1]
+    .split(/\s*,\s*/)
+    .map((day) => Number(day.trim()))
+    .filter((day) => Number.isFinite(day) && day >= 1 && day <= 31);
+
+  if (days.length === 0) return [];
+
+  const dates = days
+    .map((day) => toIsoDate(year, month, day))
+    .filter((date): date is string => date !== null);
+
+  return dates.length === days.length ? dates : [];
+}
+
+function tryRangeDates(input: string): string[] {
+  const normalized = input.replace(/\s+/g, " ");
+
+  let match = normalized.match(/^(\d{1,2})\s*(?:-|–|—)\s*(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/i);
+  if (!match) {
+    match = normalized.match(
+      /^(\d{1,2})\s+(?:sampai|s\/d)\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/i,
+    );
+  }
+  if (!match) return [];
+
+  const start = Number(match[1]);
+  const end = Number(match[2]);
+  const month = resolveMonth(match[3]);
+  const year = Number(match[4]);
+  if (!month || start > end) return [];
+
+  const dates: string[] = [];
+  for (let day = start; day <= end; day += 1) {
+    const iso = toIsoDate(year, month, day);
+    if (!iso) return [];
+    dates.push(iso);
+  }
+
+  return dates;
+}
+
+function parseDateSegment(text: string, fallbackYear?: number): string | null {
+  const trimmed = text.trim().replace(/\s+/g, " ");
+
+  const isoOrDmy = tryIsoOrDmy(trimmed);
+  if (isoOrDmy.length === 1) return isoOrDmy[0] ?? null;
+
+  const namedWithYear = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/);
+  if (namedWithYear) {
+    const month = resolveMonth(namedWithYear[2]);
+    if (month) {
+      return toIsoDate(Number(namedWithYear[3]), month, Number(namedWithYear[1]));
+    }
+  }
+
+  const namedNoYear = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]+)$/);
+  if (namedNoYear && fallbackYear) {
+    const month = resolveMonth(namedNoYear[2]);
+    if (month) {
+      return toIsoDate(fallbackYear, month, Number(namedNoYear[1]));
+    }
   }
 
   return null;
+}
+
+function tryMultiSegmentDates(input: string): string[] {
+  if (!input.includes(",")) return [];
+
+  const normalized = input.replace(/\s+/g, " ");
+
+  if (/^[\d\s,]+\s+[a-zA-Z]+\s+\d{4}$/.test(normalized)) return [];
+  if (/^\d{1,2}\s+[a-zA-Z]+,?\s+\d{4}$/.test(normalized)) return [];
+
+  const segments = input.split(/,\s*(?=\d)/).map((segment) => segment.trim()).filter(Boolean);
+  if (segments.length < 2) return [];
+  if (!segments.every((segment) => /[a-zA-Z]/.test(segment))) return [];
+
+  let fallbackYear: number | undefined;
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    const yearMatch = segments[index]?.match(/\b(\d{4})\b/);
+    if (yearMatch) {
+      fallbackYear = Number(yearMatch[1]);
+      break;
+    }
+  }
+
+  const dates: string[] = [];
+  for (const segment of segments) {
+    const iso = parseDateSegment(segment, fallbackYear);
+    if (!iso) return [];
+    dates.push(iso);
+  }
+
+  return dates;
+}
+
+function trySingleNamedDate(input: string): string[] {
+  const normalized = input.trim().replace(/\s+/g, " ");
+  const namedMatch = normalized.match(/^(\d{1,2})\s+([a-zA-Z]+),?\s+(\d{4})$/);
+  if (!namedMatch) return [];
+
+  const month = resolveMonth(namedMatch[2]);
+  if (!month) return [];
+
+  const iso = toIsoDate(Number(namedMatch[3]), month, Number(namedMatch[1]));
+  return iso ? [iso] : [];
+}
+
+/**
+ * Parse one or more departure dates into ISO format (YYYY-MM-DD).
+ */
+export function parseDepartureDates(value: string | null | undefined): string[] {
+  if (!value?.trim()) return [];
+
+  const trimmed = value.trim().replace(/\s+/g, " ");
+
+  const parsers = [
+    tryIsoOrDmy,
+    tryCommaDayListWithSharedMonthYear,
+    tryRangeDates,
+    tryMultiSegmentDates,
+    trySingleNamedDate,
+  ];
+
+  for (const parser of parsers) {
+    const dates = parser(trimmed);
+    if (dates.length > 0) {
+      return dedupeAndSort(dates);
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Parse a single departure date string into ISO format (YYYY-MM-DD).
+ */
+export function parseDepartureDate(value: string | null | undefined): string | null {
+  const dates = parseDepartureDates(value);
+  return dates[0] ?? null;
 }
 
 /** Localized preview label for parsed ISO departure dates. */
@@ -109,4 +256,14 @@ export function formatDepartureDatePreview(
     month: "long",
     year: "numeric",
   }).format(date);
+}
+
+/** Localized preview for multiple departure dates. */
+export function formatDepartureDatesPreview(
+  dates: string[],
+  locale: Locale | string = "id",
+): string {
+  if (dates.length === 0) return "—";
+  if (dates.length === 1) return formatDepartureDatePreview(dates[0], locale);
+  return dates.map((date) => formatDepartureDatePreview(date, locale)).join(", ");
 }

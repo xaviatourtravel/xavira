@@ -63,12 +63,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     permission: "inbox.view",
     businessQuestion: "Siapa yang menunggu respons?",
     badgeKey: "communication",
-    items: [
-      { title: "Inbox", href: "/inbox" },
-      { title: "WhatsApp", href: "/inbox?filter=whatsapp" },
-      { title: "Instagram", href: "/inbox?channel=instagram" },
-      { title: "Email", href: "/inbox?channel=email" },
-    ],
+    items: [{ title: "Inbox", href: "/inbox" }],
   },
   {
     id: "customer",

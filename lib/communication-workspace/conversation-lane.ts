@@ -11,18 +11,18 @@ export function getConversationLaneClassName(
   className?: string,
 ) {
   return cn(
-    "mx-auto w-full max-w-none px-4 xl:px-6",
+    "mx-auto w-full px-4 xl:px-6",
     WORKSPACE_CONTENT_TRANSITION_CLASS,
     inspectorOpen ? WORKSPACE_LANE_MAX_CLASS_OPEN : WORKSPACE_LANE_MAX_CLASS_CLOSED,
     className,
   );
 }
 
-export function getBubbleMaxWidthClassName(inspectorOpen: boolean) {
-  return cn(
-    WORKSPACE_CONTENT_TRANSITION_CLASS,
-    inspectorOpen
-      ? "max-w-[min(540px,78%)]"
-      : "max-w-[min(540px,78%)] lg:max-w-[min(540px,80%)]",
-  );
+export function getBubbleStyle() {
+  return {
+    maxWidth: "min(68%, 560px)",
+    minWidth: "72px",
+    wordBreak: "normal",
+    overflowWrap: "break-word",
+  } as const;
 }

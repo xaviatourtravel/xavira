@@ -4,6 +4,7 @@ export type ParsedProductImport = {
   country: string | null;
   duration: string | null;
   departureDate: string | null;
+  departureDates: string[];
   year: string | null;
   pricing: {
     adult: number | null;

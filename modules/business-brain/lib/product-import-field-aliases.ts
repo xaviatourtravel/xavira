@@ -68,9 +68,11 @@ export const PRODUCT_IMPORT_FIELD_ALIASES: Record<
   ],
   DEPARTURE_DATE: [
     "Departure Date",
+    "Departure Dates",
     "Departure",
     "Tanggal Berangkat",
     "Tanggal Keberangkatan",
+    "Jadwal Keberangkatan",
     "Start Date",
     "Tgl Berangkat",
     "Tanggal Mulai",

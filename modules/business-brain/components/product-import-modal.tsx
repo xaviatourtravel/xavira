@@ -163,7 +163,13 @@ export function ProductImportModal({
                     <PreviewRow label={bb("destination")} value={parsed.country || "—"} />
                     <PreviewRow
                       label={bb("departureDate")}
-                      value={formatDepartureDatePreview(parsed.departureDate, locale)}
+                      value={
+                        parsed.departureDates.length > 1
+                          ? formatTranslation(bb("productImportDepartureDateCount"), {
+                              count: String(parsed.departureDates.length),
+                            })
+                          : formatDepartureDatePreview(parsed.departureDate, locale)
+                      }
                     />
                     <PreviewRow
                       label={bb("productImportPreviewAdultPrice")}

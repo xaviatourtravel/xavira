@@ -28,6 +28,7 @@ type ProductDocumentUploadZoneProps = {
   accept: string;
   uploadState: ProductDocumentUploadSlotState;
   disabled?: boolean;
+  compact?: boolean;
   onFileSelected: (file: File) => void;
 };
 
@@ -58,6 +59,7 @@ export function ProductDocumentUploadZone({
   accept,
   uploadState,
   disabled = false,
+  compact = false,
   onFileSelected,
 }: ProductDocumentUploadZoneProps) {
   const { bb } = useBbTranslation();
@@ -78,14 +80,19 @@ export function ProductDocumentUploadZone({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-xl border border-dashed border-border p-4",
+        "flex flex-col rounded-lg border border-dashed border-border/70",
+        compact ? "gap-1.5 p-2.5" : "gap-2 rounded-xl p-4",
         busy && "pointer-events-none opacity-80",
         uploadState.status === "error" && "border-destructive/40 bg-destructive/5",
         uploadState.status === "success" && "border-emerald-500/40 bg-emerald-500/5",
       )}
     >
-      <span className="text-sm font-medium text-foreground">{title}</span>
-      <span className="text-xs text-muted-foreground">{hint}</span>
+      <span className={cn("font-medium text-foreground", compact ? "text-xs" : "text-sm")}>
+        {title}
+      </span>
+      <span className={cn("text-muted-foreground", compact ? "text-[11px]" : "text-xs")}>
+        {hint}
+      </span>
 
       {uploadState.fileName ? (
         <p className="truncate text-xs font-medium text-foreground" title={uploadState.fileName}>
@@ -94,9 +101,9 @@ export function ProductDocumentUploadZone({
       ) : null}
 
       {showProgress ? (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {uploadState.status !== "error" ? (
-            <InspectorProgress value={uploadState.progress} className="h-2" />
+            <InspectorProgress value={uploadState.progress} className={compact ? "h-1.5" : "h-2"} />
           ) : null}
           {message ? (
             <p
@@ -128,11 +135,12 @@ export function ProductDocumentUploadZone({
       <label
         htmlFor={inputId}
         className={cn(
-          "inline-flex items-center gap-2 text-sm text-primary",
+          "inline-flex items-center gap-1.5 text-primary",
+          compact ? "text-xs" : "text-sm",
           busy ? "cursor-not-allowed" : "cursor-pointer",
         )}
       >
-        <Upload className="h-4 w-4" />
+        <Upload className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
         {bb("chooseFile")}
         <input
           id={inputId}

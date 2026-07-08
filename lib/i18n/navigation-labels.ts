@@ -23,6 +23,7 @@ const CHILD_TITLE_LABEL_KEYS: Record<string, string> = {
   Insights: "navigation.insights",
   "Business Brain": "navigation.businessBrain",
   "AI Actions": "navigation.aiActions",
+  Inbox: "navigation.inbox",
 };
 
 export function translateWorkspaceTitle(
@@ -39,6 +40,11 @@ export function translateNavChildTitle(
   href: string | undefined,
   fallback: string,
 ): string {
+  const titleKey = CHILD_TITLE_LABEL_KEYS[fallback];
+  if (titleKey) {
+    return t(titleKey);
+  }
+
   if (href) {
     const hrefKey = CHILD_HREF_LABEL_KEYS[href.split("?")[0] ?? href];
     if (hrefKey) {
@@ -46,8 +52,7 @@ export function translateNavChildTitle(
     }
   }
 
-  const titleKey = CHILD_TITLE_LABEL_KEYS[fallback];
-  return titleKey ? t(titleKey) : fallback;
+  return fallback;
 }
 
 export function translateMobileNavTitle(t: TranslateFn, href: string, fallback: string): string {

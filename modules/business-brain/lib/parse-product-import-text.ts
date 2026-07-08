@@ -1,5 +1,5 @@
 import { parseCurrency } from "@/modules/business-brain/lib/parse-currency";
-import { parseDepartureDate } from "@/modules/business-brain/lib/parse-departure-date";
+import { parseDepartureDates } from "@/modules/business-brain/lib/parse-departure-date";
 import { splitProductAndFaqImportText } from "@/modules/business-brain/lib/parse-faq-import-text";
 import {
   resolveCanonicalFieldKey,
@@ -77,6 +77,7 @@ export function parseProductImportTextFromProductSection(input: string): ParsedP
     country: null,
     duration: null,
     departureDate: null,
+    departureDates: [],
     year: null,
     pricing: {
       adult: null,
@@ -124,9 +125,15 @@ export function parseProductImportTextFromProductSection(input: string): ParsedP
       case "DURATION":
         result.duration = value || null;
         break;
-      case "DEPARTURE_DATE":
-        result.departureDate = parseDepartureDate(value);
+      case "DEPARTURE_DATE": {
+        const departureDates = parseDepartureDates(value);
+        result.departureDates = departureDates;
+        result.departureDate = departureDates[0] ?? null;
+        if (departureDates.length === 0 && value.trim()) {
+          result.additionalFields.push({ key: rawKey, value });
+        }
         break;
+      }
       case "YEAR":
         result.year = value || null;
         break;

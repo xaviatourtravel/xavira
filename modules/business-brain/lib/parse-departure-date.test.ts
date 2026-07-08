@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   formatDepartureDatePreview,
   parseDepartureDate,
+  parseDepartureDates,
 } from "@/modules/business-brain/lib/parse-departure-date";
 import {
   mapProductImportToFormValues,
@@ -65,6 +66,70 @@ describe("parseDepartureDate", () => {
   });
 });
 
+describe("parseDepartureDates multi-date formats", () => {
+  it('parses "2,3,4 Oktober 2026"', () => {
+    assert.deepEqual(parseDepartureDates("2,3,4 Oktober 2026"), [
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+  });
+
+  it('parses "2, 3, 4 October 2026"', () => {
+    assert.deepEqual(parseDepartureDates("2, 3, 4 October 2026"), [
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+  });
+
+  it('parses "2-4 Oktober 2026"', () => {
+    assert.deepEqual(parseDepartureDates("2-4 Oktober 2026"), [
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+  });
+
+  it('parses "2 sampai 4 Oktober 2026"', () => {
+    assert.deepEqual(parseDepartureDates("2 sampai 4 Oktober 2026"), [
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+  });
+
+  it('parses "30 Oktober, 6 November 2026"', () => {
+    assert.deepEqual(parseDepartureDates("30 Oktober, 6 November 2026"), [
+      "2026-10-30",
+      "2026-11-06",
+    ]);
+  });
+
+  it('parses "28 Desember 2026, 4 Januari 2027"', () => {
+    assert.deepEqual(parseDepartureDates("28 Desember 2026, 4 Januari 2027"), [
+      "2026-12-28",
+      "2027-01-04",
+    ]);
+  });
+
+  it('parses "24 September 2026"', () => {
+    assert.deepEqual(parseDepartureDates("24 September 2026"), ["2026-09-24"]);
+  });
+
+  it("dedupes and sorts dates", () => {
+    assert.deepEqual(parseDepartureDates("4,2,3 Oktober 2026"), [
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+  });
+
+  it("returns empty array for unparseable input", () => {
+    assert.deepEqual(parseDepartureDates("soon"), []);
+  });
+});
+
 describe("formatDepartureDatePreview", () => {
   it("formats Indonesian locale", () => {
     assert.equal(formatDepartureDatePreview("2026-09-24", "id"), "24 September 2026");
@@ -81,6 +146,7 @@ describe("parseProductImportText departure regression", () => {
   it("parses departure date to ISO", () => {
     const parsed = parseProductImportText(sample);
     assert.equal(parsed.departureDate, "2026-09-24");
+    assert.deepEqual(parsed.departureDates, ["2026-09-24"]);
     assert.equal(parsed.minParticipants, "25");
   });
 
@@ -159,5 +225,47 @@ describe("parseProductImportText departure regression", () => {
 
     assert.equal(merged.departures.length, 1);
     assert.equal(merged.departures[0]?.availableSeats, 12);
+  });
+
+  it("imports multiple departure dates into schedule list", () => {
+    const parsed = parseProductImportText("DEPARTURE_DATE: 2,3,4 Oktober 2026");
+    const patch = mapProductImportToFormValues(parsed);
+    const merged = mergeProductImportPatch(DEFAULT_BRAIN_PRODUCT_FORM, patch);
+
+    assert.deepEqual(
+      merged.departures.map((item) => item.departureDate),
+      ["2026-10-02", "2026-10-03", "2026-10-04"],
+    );
+  });
+
+  it("skips duplicate dates when importing multiple departures", () => {
+    const existing = {
+      ...DEFAULT_BRAIN_PRODUCT_FORM,
+      departures: [
+        {
+          ...createEmptyDepartureItem(),
+          departureDate: "2026-10-03",
+          availableSeats: 8,
+          status: "open" as const,
+        },
+      ],
+    };
+    const parsed = parseProductImportText("DEPARTURE_DATE: 2,3,4 Oktober 2026");
+    const patch = mapProductImportToFormValues(parsed);
+    const merged = mergeProductImportPatch(existing, patch);
+
+    assert.deepEqual(
+      merged.departures.map((item) => item.departureDate),
+      ["2026-10-03", "2026-10-02", "2026-10-04"],
+    );
+    assert.equal(merged.departures[0]?.availableSeats, 8);
+  });
+
+  it("stores unparseable departure text as additional field", () => {
+    const parsed = parseProductImportText("DEPARTURE_DATE: TBD soon");
+    assert.equal(parsed.departureDate, null);
+    assert.deepEqual(parsed.departureDates, []);
+    assert.equal(parsed.additionalFields.length, 1);
+    assert.equal(parsed.additionalFields[0]?.value, "TBD soon");
   });
 });

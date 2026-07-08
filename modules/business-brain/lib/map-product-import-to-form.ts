@@ -107,46 +107,56 @@ function parseMinParticipants(value: string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function buildImportedDepartureItem(parsed: ParsedProductImport): ProductDepartureItem | null {
-  if (!parsed.departureDate) return null;
+function buildImportedDepartureItems(parsed: ParsedProductImport): ProductDepartureItem[] {
+  const dates =
+    parsed.departureDates.length > 0
+      ? parsed.departureDates
+      : parsed.departureDate
+        ? [parsed.departureDate]
+        : [];
 
-  return {
+  return dates.map((departureDate) => ({
     ...createEmptyDepartureItem(),
-    departureDate: parsed.departureDate,
+    departureDate,
     availableSeats: parseMinParticipants(parsed.minParticipants),
-    status: "open",
-  };
+    status: "open" as const,
+  }));
 }
 
 function mergeImportedDepartures(
   current: ProductDepartureItem[],
   imported: ProductDepartureItem[] | undefined,
 ): ProductDepartureItem[] {
-  const importedItem = imported?.[0];
-  if (!importedItem?.departureDate) return current;
+  if (!imported?.length) return current;
 
-  if (current.some((item) => item.departureDate === importedItem.departureDate)) {
-    return current;
+  let result = [...current];
+
+  for (const importedItem of imported) {
+    if (!importedItem.departureDate) continue;
+
+    if (result.some((item) => item.departureDate === importedItem.departureDate)) {
+      continue;
+    }
+
+    const emptyIndex = result.findIndex((item) => !item.departureDate.trim());
+    if (emptyIndex >= 0) {
+      result = result.map((item, index) =>
+        index === emptyIndex
+          ? {
+              ...item,
+              departureDate: importedItem.departureDate,
+              availableSeats: importedItem.availableSeats,
+              status: importedItem.status,
+            }
+          : item,
+      );
+      continue;
+    }
+
+    result = [...result, importedItem];
   }
 
-  if (current.length === 0) {
-    return [importedItem];
-  }
-
-  const [first, ...rest] = current;
-  if (!first.departureDate.trim()) {
-    return [
-      {
-        ...first,
-        departureDate: importedItem.departureDate,
-        availableSeats: importedItem.availableSeats,
-        status: importedItem.status,
-      },
-      ...rest,
-    ];
-  }
-
-  return [...current, importedItem];
+  return result;
 }
 
 export function buildProductImportWarnings(
@@ -171,7 +181,7 @@ export function buildProductImportWarnings(
     warnings.push("missingStartingPrice");
   }
 
-  if (!parsed.departureDate) {
+  if (parsed.departureDates.length === 0 && !parsed.departureDate) {
     warnings.push("missingDepartureDate");
   }
 
@@ -184,7 +194,7 @@ export function mapProductImportToFormValues(
   const description = buildDescription(parsed);
   const aiNotes = buildAiNotes(parsed);
   const pricing = buildPricingItems(parsed);
-  const importedDeparture = buildImportedDepartureItem(parsed);
+  const importedDepartures = buildImportedDepartureItems(parsed);
 
   const patch: Partial<BrainProductFormValues> = {};
 
@@ -195,7 +205,7 @@ export function mapProductImportToFormValues(
   if (parsed.included.length > 0) patch.included = parsed.included;
   if (parsed.excluded.length > 0) patch.excluded = parsed.excluded;
   if (pricing.length > 0) patch.pricing = pricing;
-  if (importedDeparture) patch.departures = [importedDeparture];
+  if (importedDepartures.length > 0) patch.departures = importedDepartures;
   if (aiNotes.trim()) patch.aiNotes = aiNotes;
 
   return patch;

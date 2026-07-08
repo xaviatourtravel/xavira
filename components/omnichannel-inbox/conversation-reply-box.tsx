@@ -17,7 +17,6 @@ import {
   ImageIcon,
   Paperclip,
   Plus,
-  Send,
   Smile,
   Type,
   X,
@@ -25,10 +24,15 @@ import {
 
 import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnichannel-actions";
 import { DsToast } from "@/components/design-system/toast";
-import { QUICK_REPLY_TEMPLATES } from "@/lib/communication/assist";
 import {
-  isPersistedFailureCode,
-} from "@/lib/communication/composer";
+  AuroraComposer,
+  AuroraComposerIconButton,
+  AuroraComposerInput,
+  AuroraComposerPopover,
+  AuroraComposerSendButton,
+} from "@/components/workspace";
+import { QUICK_REPLY_TEMPLATES } from "@/lib/communication/assist";
+import { isPersistedFailureCode } from "@/lib/communication/composer";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { useConversationDraft } from "@/lib/communication/drafts";
 import { useInboxComposer } from "@/modules/inbox/context/inbox-composer-context";
@@ -37,8 +41,6 @@ import {
   resolveComposerSendError,
 } from "@/modules/inbox/lib/resolve-inbox-error";
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
-import { cn } from "@/lib/utils";
-import { getConversationLaneClassName } from "@/lib/communication-workspace/conversation-lane";
 import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
 
 const EMOJIS = [
@@ -56,14 +58,7 @@ const EMOJIS = [
   "📎",
 ];
 
-const COMPOSER_MIN_HEIGHT_PX = 44;
-const COMPOSER_MAX_HEIGHT_PX = 160;
-const COMPOSER_INPUT_PADDING_Y_PX = 14;
-const COMPOSER_MAX_TEXTAREA_HEIGHT_PX =
-  COMPOSER_MAX_HEIGHT_PX - COMPOSER_INPUT_PADDING_Y_PX * 2;
-
-const GHOST_ICON_BUTTON =
-  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/80 transition-colors duration-150 hover:bg-muted/40 hover:text-foreground disabled:opacity-40";
+const COMPOSER_MAX_TEXTAREA_HEIGHT_PX = 132;
 
 type ComposerToast = {
   variant: "success" | "error" | "info";
@@ -132,7 +127,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted/60"
+      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted/50"
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground">
         {icon}
@@ -152,16 +147,16 @@ function SubmenuHeader({
   backLabel: string;
 }) {
   return (
-    <div className="flex items-center gap-1 border-b px-2 py-1.5">
+    <div className="flex items-center gap-1 border-b border-border/20 px-2 py-1.5">
       <button
         type="button"
         onClick={onBack}
         aria-label={backLabel}
-        className="rounded-md p-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        className="rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
-      <span className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <span className="truncate text-[11px] font-medium text-muted-foreground">
         {title}
       </span>
     </div>
@@ -412,41 +407,9 @@ export function OmnichannelConversationReplyBox({
   }
 
   return (
-    <div
-      className="relative bg-background py-4"
-      onDragEnter={(event) => {
-        event.preventDefault();
-        dragDepthRef.current += 1;
-        setIsDragging(true);
-      }}
-      onDragOver={(event) => {
-        event.preventDefault();
-      }}
-      onDragLeave={(event) => {
-        event.preventDefault();
-        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-        if (dragDepthRef.current === 0) {
-          setIsDragging(false);
-        }
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        dragDepthRef.current = 0;
-        setIsDragging(false);
-        const file = event.dataTransfer.files?.[0];
-        if (file) {
-          attachFile(file);
-        }
-      }}
-    >
-      {isDragging ? (
-        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-primary/25 bg-background/95">
-          <p className="text-sm text-muted-foreground">{ti("composerDropFile")}</p>
-        </div>
-      ) : null}
-
+    <div className="relative">
       {toast ? (
-        <div className="pointer-events-none absolute bottom-full right-3 z-30 mb-2 flex justify-end sm:right-4">
+        <div className="pointer-events-none absolute bottom-full right-3 z-30 mb-2 flex justify-end sm:right-5">
           <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-1">
             <DsToast
               variant={toast.variant}
@@ -457,180 +420,193 @@ export function OmnichannelConversationReplyBox({
         </div>
       ) : null}
 
-      <div className={getConversationLaneClassName(inspectorOpen, "py-0")}>
-      {showSlashHint ? (
-        <p className="mb-2 text-[11px] text-muted-foreground">
-          {ti("composerSlashHint")}
-        </p>
-      ) : null}
-      {attachmentName ? (
-        <div className="mb-2.5 flex flex-wrap gap-1.5">
-          <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/45 px-2.5 py-1 text-xs text-foreground">
-            <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate" title={attachmentName}>
-              {attachmentName}
-            </span>
-            <button
-              type="button"
-              onClick={() => setAttachmentName(null)}
-              aria-label={ti("composerRemoveAttachment")}
-              className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </span>
-        </div>
-      ) : null}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={fileAccept || undefined}
-        className="hidden"
-        onChange={handleFileInputChange}
-      />
-
-      <div
-        ref={rowRef}
-        className="flex w-full items-end gap-1.5 rounded-[22px] border border-border/35 bg-muted/10 px-2 py-1.5 shadow-sm transition-[background-color,box-shadow,border-color] duration-200 ease-in-out focus-within:border-border/60 focus-within:bg-muted/15 focus-within:shadow-md dark:bg-muted/10"
+      <AuroraComposer
+        disabled={isDisabled}
+        isSending={isPending}
+        isDragging={isDragging}
+        dropLabel={ti("composerDropFile")}
+        inspectorOpen={inspectorOpen}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          dragDepthRef.current += 1;
+          setIsDragging(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) {
+            setIsDragging(false);
+          }
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          dragDepthRef.current = 0;
+          setIsDragging(false);
+          const file = event.dataTransfer.files?.[0];
+          if (file) {
+            attachFile(file);
+          }
+        }}
+        meta={
+          <>
+            {showSlashHint ? (
+              <p className="text-[11px] text-muted-foreground/70">
+                {ti("composerSlashHint")}
+              </p>
+            ) : null}
+            {attachmentName ? (
+              <div className="flex flex-wrap gap-1.5">
+                <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/35 px-2.5 py-1 text-xs text-foreground">
+                  <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate" title={attachmentName}>
+                    {attachmentName}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentName(null)}
+                    aria-label={ti("composerRemoveAttachment")}
+                    className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              </div>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={fileAccept || undefined}
+              className="hidden"
+              onChange={handleFileInputChange}
+            />
+          </>
+        }
+        aiSuggestionSlot={
+          /* TODO(Aurora PR-008): integrate AI ghost reply / suggestion layer */
+          null
+        }
       >
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() =>
-              setOpenMenu((value) => (value === "plus" ? null : "plus"))
-            }
-            disabled={isDisabled}
-            title={ti("composerAttachment")}
-            aria-label={ti("composerAttachment")}
-            aria-expanded={openMenu === "plus"}
-            className={cn(
-              GHOST_ICON_BUTTON,
-              openMenu === "plus" && "bg-muted/50 text-foreground",
-            )}
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-          {openMenu === "plus" ? (
-            <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border bg-background py-1 shadow-lg">
-              {plusView === "root" ? (
-                <>
-                  <MenuItem
-                    icon={<FileText className="h-4 w-4" />}
-                    label={ti("composerDocuments")}
-                    onClick={() =>
-                      openFilePicker(
-                        ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv",
-                      )
-                    }
-                  />
-                  <MenuItem
-                    icon={<ImageIcon className="h-4 w-4" />}
-                    label={ti("composerImages")}
-                    onClick={() => openFilePicker("image/*")}
-                  />
-                  <MenuItem
-                    icon={<Film className="h-4 w-4" />}
-                    label={ti("composerVideo")}
-                    onClick={() => openFilePicker("video/*")}
-                  />
-                  <MenuItem
-                    icon={<Type className="h-4 w-4" />}
-                    label={ti("composerTemplates")}
-                    onClick={() => setPlusView("template")}
-                  />
-                </>
-              ) : (
-                <>
-                  <SubmenuHeader
-                    title={ti("composerQuickTemplates")}
-                    onBack={() => setPlusView("root")}
-                    backLabel={ti("composerBack")}
-                  />
-                  {QUICK_REPLY_TEMPLATES.map((template) => (
-                    <button
-                      key={template}
-                      type="button"
-                      onClick={() => insertReply(template)}
-                      className="block w-full px-3 py-2 text-left text-xs leading-relaxed text-foreground transition-colors hover:bg-muted/60"
-                    >
-                      {template}
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
-          ) : null}
-        </div>
+        <div ref={rowRef} className="flex w-full min-w-0 items-end gap-0.5">
+          <div className="relative shrink-0">
+            <AuroraComposerIconButton
+              label={ti("composerAttachment")}
+              active={openMenu === "plus"}
+              disabled={isDisabled}
+              aria-expanded={openMenu === "plus"}
+              onClick={() =>
+                setOpenMenu((value) => (value === "plus" ? null : "plus"))
+              }
+            >
+              <Plus className="h-[18px] w-[18px]" />
+            </AuroraComposerIconButton>
+            {openMenu === "plus" ? (
+              <AuroraComposerPopover align="left" className="w-64">
+                {plusView === "root" ? (
+                  <>
+                    <MenuItem
+                      icon={<FileText className="h-4 w-4" />}
+                      label={ti("composerDocuments")}
+                      onClick={() =>
+                        openFilePicker(
+                          ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv",
+                        )
+                      }
+                    />
+                    <MenuItem
+                      icon={<ImageIcon className="h-4 w-4" />}
+                      label={ti("composerImages")}
+                      onClick={() => openFilePicker("image/*")}
+                    />
+                    <MenuItem
+                      icon={<Film className="h-4 w-4" />}
+                      label={ti("composerVideo")}
+                      onClick={() => openFilePicker("video/*")}
+                    />
+                    <MenuItem
+                      icon={<Type className="h-4 w-4" />}
+                      label={ti("composerTemplates")}
+                      onClick={() => setPlusView("template")}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <SubmenuHeader
+                      title={ti("composerQuickTemplates")}
+                      onBack={() => setPlusView("root")}
+                      backLabel={ti("composerBack")}
+                    />
+                    {QUICK_REPLY_TEMPLATES.map((template) => (
+                      <button
+                        key={template}
+                        type="button"
+                        onClick={() => insertReply(template)}
+                        className="block w-full px-3 py-2 text-left text-xs leading-relaxed text-foreground transition-colors hover:bg-muted/50"
+                      >
+                        {template}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </AuroraComposerPopover>
+            ) : null}
+          </div>
 
-        <div
-          className="flex min-h-[44px] max-h-[160px] min-w-0 flex-1 items-center px-1 py-1"
-          style={{ minHeight: COMPOSER_MIN_HEIGHT_PX, maxHeight: COMPOSER_MAX_HEIGHT_PX }}
-        >
-          <textarea
-            ref={textareaRef}
+          <AuroraComposerInput
+            inputRef={textareaRef}
             value={messageText}
-            onChange={(event) => setMessageText(event.target.value)}
-            rows={1}
+            onChange={setMessageText}
+            onKeyDown={handleComposerKeyDown}
             placeholder={ti("composerPlaceholder")}
             disabled={isDisabled}
             title={sendTitle}
-            className="max-h-[132px] w-full resize-none border-0 bg-transparent px-1 text-[15px] leading-6 outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
-            onKeyDown={handleComposerKeyDown}
+            maxHeight={COMPOSER_MAX_TEXTAREA_HEIGHT_PX}
+          />
+
+          <div className="relative shrink-0">
+            <AuroraComposerIconButton
+              label={ti("composerEmoji")}
+              active={openMenu === "emoji"}
+              disabled={isDisabled}
+              aria-expanded={openMenu === "emoji"}
+              onClick={() =>
+                setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
+              }
+            >
+              <Smile className="h-[18px] w-[18px]" />
+            </AuroraComposerIconButton>
+            {openMenu === "emoji" ? (
+              <AuroraComposerPopover align="right" className="grid grid-cols-6 gap-0.5 p-2">
+                {EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="rounded-lg px-2 py-1 text-lg transition-colors hover:bg-muted/50"
+                    onClick={() => {
+                      insertAtCursor(emoji);
+                      setOpenMenu(null);
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </AuroraComposerPopover>
+            ) : null}
+          </div>
+
+          <AuroraComposerSendButton
+            disabled={!canSend}
+            isSending={isPending}
+            onClick={handleSend}
+            label={ti("composerSendLabel")}
+            sendingLabel={ti("composerSendingLabel")}
+            sendText={ti("composerSend")}
+            sendingText={ti("composerSending")}
           />
         </div>
-
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() =>
-              setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
-            }
-            disabled={isDisabled}
-            title={ti("composerEmoji")}
-            aria-label={ti("composerEmoji")}
-            aria-expanded={openMenu === "emoji"}
-            className={cn(
-              GHOST_ICON_BUTTON,
-              openMenu === "emoji" && "bg-muted/50 text-foreground",
-            )}
-          >
-            <Smile className="h-5 w-5" />
-          </button>
-          {openMenu === "emoji" ? (
-            <div className="absolute bottom-full right-0 z-20 mb-2 grid grid-cols-6 gap-1 rounded-xl border bg-background p-2 shadow-lg">
-              {EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="rounded-md px-2 py-1 text-lg hover:bg-muted/60"
-                  onClick={() => {
-                    insertAtCursor(emoji);
-                    setOpenMenu(null);
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <button
-          type="button"
-          disabled={!canSend}
-          onClick={handleSend}
-          title={sendTitle}
-          className={cn(
-            "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-150 hover:bg-primary/90 hover:shadow disabled:pointer-events-none disabled:opacity-40",
-          )}
-          aria-label={isPending ? ti("composerSendingLabel") : ti("composerSendLabel")}
-        >
-          <Send className="h-4 w-4" />
-          <span className="hidden sm:inline">{isPending ? ti("composerSending") : ti("composerSend")}</span>
-        </button>
-      </div>
-      </div>
+      </AuroraComposer>
     </div>
   );
 }

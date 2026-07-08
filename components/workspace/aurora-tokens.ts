@@ -46,6 +46,16 @@ export const AURORA_READING_LANE_CLASS =
 /** Message bubble corner radius per Aurora Visual DNA */
 export const AURORA_BUBBLE_RADIUS = "rounded-[24px]";
 
+/** Floating composer surface */
+export const AURORA_COMPOSER_SURFACE =
+  "flex w-full items-end gap-0.5 rounded-[24px] border border-border/20 bg-background/90 px-1.5 py-1.5 shadow-[0_2px_14px_-6px_rgba(0,0,0,0.1)] backdrop-blur-sm dark:bg-background/85 dark:shadow-[0_2px_18px_-6px_rgba(0,0,0,0.4)]";
+
+export const AURORA_COMPOSER_ICON_BUTTON =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground/75 transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:opacity-40";
+
+export const AURORA_COMPOSER_SEND_BUTTON =
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
 export const AURORA_CONTEXT_SHEET_WIDTH = {
   sm: "max-w-sm",
   md: "max-w-md",

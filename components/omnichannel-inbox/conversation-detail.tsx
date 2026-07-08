@@ -697,9 +697,7 @@ export function OmnichannelConversationDetailPanel({
       ) : null}
 
       {showComposer ? (
-        <div className="shrink-0 border-t border-border/25 bg-background/95 py-2.5 sm:py-3">
-          {/* TODO(Aurora PR-005): Replace composer with Aurora Composer */}
-          <OmnichannelConversationReplyBox
+        <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}
             canReply={canReply}
@@ -712,7 +710,6 @@ export function OmnichannelConversationDetailPanel({
             onAddOptimistic={addOptimisticMessage}
             onRemoveOptimistic={removeOptimisticMessage}
           />
-        </div>
       ) : null}
     </div>
   );

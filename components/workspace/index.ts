@@ -19,6 +19,22 @@ export { ContextSheet } from "./ContextSheet";
 export type { ContextSheetProps } from "./ContextSheet";
 export { OverlayLayer } from "./OverlayLayer";
 export type { OverlayLayerProps } from "./OverlayLayer";
+export {
+  AuroraComposer,
+  AuroraComposerSurface,
+  AuroraComposerIconButton,
+  AuroraComposerSendButton,
+  AuroraComposerInput,
+  AuroraComposerPopover,
+} from "./AuroraComposer";
+export type {
+  AuroraComposerProps,
+  AuroraComposerSurfaceProps,
+  AuroraComposerIconButtonProps,
+  AuroraComposerSendButtonProps,
+  AuroraComposerInputProps,
+  AuroraComposerPopoverProps,
+} from "./AuroraComposer";
 export * from "./aurora-tokens";
 
 // Entity detail workspace (legacy pattern)

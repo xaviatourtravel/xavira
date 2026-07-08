@@ -99,6 +99,10 @@ export type Dictionary = {
     cancel: string;
     save: string;
   };
+  workspaceHeader: {
+    searchLabel: string;
+    create: string;
+  };
   navigation: {
     today: string;
     inbox: string;
@@ -369,6 +373,10 @@ const id: Dictionary = {
     cancel: "Batal",
     save: "Simpan",
   },
+  workspaceHeader: {
+    searchLabel: "Cari",
+    create: "Buat",
+  },
   navigation: {
     today: "Hari Ini",
     inbox: "Kotak Masuk",
@@ -515,6 +523,10 @@ const en: Dictionary = {
     discardChanges: "Discard Changes",
     cancel: "Cancel",
     save: "Save",
+  },
+  workspaceHeader: {
+    searchLabel: "Search",
+    create: "Create",
   },
   navigation: {
     today: "Today",

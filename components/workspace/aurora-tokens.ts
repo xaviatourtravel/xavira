@@ -23,6 +23,20 @@ export const AURORA_CONTENT_LANE_CLASS =
 export const AURORA_HEADER_CLASS =
   "shrink-0 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80";
 
+/** Compact workspace header rhythm — shared across all modules */
+export const AURORA_WORKSPACE_HEADER_PADDING = "px-4 py-2 md:px-5 md:py-2.5";
+
+export const AURORA_WORKSPACE_HEADER_TITLE =
+  "truncate text-lg font-semibold tracking-tight text-foreground md:text-xl";
+
+export const AURORA_WORKSPACE_HEADER_KPI =
+  "mt-0.5 truncate text-xs leading-snug tabular-nums";
+
+export const AURORA_WORKSPACE_HEADER_SEARCH_MAX = "max-w-[280px]";
+
+export const AURORA_WORKSPACE_HEADER_CONTROL =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[14px] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 export const AURORA_FLAT_SURFACE_CLASS = "bg-background";
 
 /** Centered conversation reading lane — target 680–760px */

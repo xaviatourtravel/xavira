@@ -27,8 +27,11 @@ import {
   OverlayLayer,
   WorkspaceContent,
   WorkspaceHeader,
+  WorkspaceHeaderAction,
+  WorkspaceHeaderKpi,
   WorkspaceShell,
 } from "@/components/workspace";
+import { formatTranslation } from "@/lib/i18n/dictionary";
 import { InboxAiWorkspaceProvider } from "@/modules/inbox/context/inbox-ai-workspace-context";
 import { InboxComposerProvider } from "@/modules/inbox/context/inbox-composer-context";
 import {
@@ -241,6 +244,25 @@ function CommunicationWorkspaceBody({
     [liveConversations, searchQuery],
   );
 
+  const headerKpi = useMemo(() => {
+    const count = filteredConversations.length;
+    const unread = filteredConversations.reduce(
+      (sum, conversation) => sum + conversation.unreadCount,
+      0,
+    );
+
+    if (unread > 0) {
+      return formatTranslation(ti("headerKpiCountUnread"), {
+        count: String(count),
+        unread: String(unread),
+      });
+    }
+
+    return formatTranslation(ti("headerKpiCount"), {
+      count: String(count),
+    });
+  }, [filteredConversations, ti]);
+
   const listHref = useMemo(() => {
     const params = new URLSearchParams();
     if (activeFilter !== "all") {
@@ -273,7 +295,11 @@ function CommunicationWorkspaceBody({
       header={
         <WorkspaceHeader
           title={tStrict("navigation.inbox")}
-          subtitle={ti("workspaceSubtitle")}
+          kpi={
+            <WorkspaceHeaderKpi tone="default" ariaLive="polite">
+              {headerKpi}
+            </WorkspaceHeaderKpi>
+          }
           search={
             showMobileThread ? undefined : (
               <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
@@ -281,19 +307,19 @@ function CommunicationWorkspaceBody({
           }
           actions={
             liveDetail ? (
-              <button
-                type="button"
+              <WorkspaceHeaderAction
+                label={ti("workspaceTitle")}
+                icon={PanelRightOpen}
                 onClick={() => openContextSheet("copilot")}
-                className="inline-flex h-9 items-center gap-2 rounded-[14px] border border-border/40 px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                title={ti("expandPanel")}
-                aria-label={ti("expandPanel")}
-              >
-                <PanelRightOpen className="h-4 w-4" />
-                <span className="hidden sm:inline">{ti("workspaceTitle")}</span>
-              </button>
-            ) : (
-              <InboxGlobalAiChatToggle />
-            )
+              />
+            ) : undefined
+          }
+          toolbar={
+            !liveDetail ? (
+              <div className="max-w-md">
+                <InboxGlobalAiChatToggle />
+              </div>
+            ) : undefined
           }
         />
       }
@@ -323,15 +349,7 @@ function CommunicationWorkspaceBody({
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="space-y-3 px-4 pb-3 pt-3 lg:hidden">
-            <InboxGlobalAiChatToggle />
-          </div>
-
-          <div className="px-4 pb-3 lg:hidden">
-            <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
-          </div>
-
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 pt-3">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}

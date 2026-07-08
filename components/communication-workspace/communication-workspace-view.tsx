@@ -349,7 +349,7 @@ function CommunicationWorkspaceBody({
           </div>
         </section>
 
-        {/* TODO(Aurora PR-004): Replace legacy thread layout with Aurora Conversation Thread V2 */}
+        {/* Conversation thread — Aurora reading lane */}
         <WorkspaceContent
           variant="full"
           className={cn(

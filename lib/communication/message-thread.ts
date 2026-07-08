@@ -7,10 +7,13 @@ export type MessageThreadDateItem = {
   label: string;
 };
 
+export type MessageGroupPosition = "single" | "first" | "middle" | "last";
+
 export type MessageThreadMessageItem = {
   type: "message";
   key: string;
   message: MessageRow;
+  groupPosition: MessageGroupPosition;
 };
 
 export type MessageThreadItem = MessageThreadDateItem | MessageThreadMessageItem;
@@ -50,6 +53,47 @@ export function formatMessageDateSeparatorLabel(
   }).format(new Date(`${dateKey}T12:00:00`));
 }
 
+function annotateMessageGroups(items: MessageThreadItem[]): MessageThreadItem[] {
+  const messageIndices = items
+    .map((item, index) => (item.type === "message" ? index : -1))
+    .filter((index) => index >= 0);
+
+  return items.map((item, index) => {
+    if (item.type !== "message") {
+      return item;
+    }
+
+    const positionInMessages = messageIndices.indexOf(index);
+    const previousItem =
+      positionInMessages > 0 ? items[messageIndices[positionInMessages - 1]!] : null;
+    const nextItem =
+      positionInMessages < messageIndices.length - 1
+        ? items[messageIndices[positionInMessages + 1]!]
+        : null;
+
+    const samePrevious =
+      previousItem?.type === "message" &&
+      previousItem.message.direction === item.message.direction;
+    const sameNext =
+      nextItem?.type === "message" &&
+      nextItem.message.direction === item.message.direction;
+
+    let groupPosition: MessageGroupPosition = "single";
+    if (samePrevious && sameNext) {
+      groupPosition = "middle";
+    } else if (samePrevious) {
+      groupPosition = "last";
+    } else if (sameNext) {
+      groupPosition = "first";
+    }
+
+    return {
+      ...item,
+      groupPosition,
+    };
+  });
+}
+
 export function buildMessageThreadItems(
   messages: MessageRow[],
   labels: { today: string; yesterday: string },
@@ -79,8 +123,9 @@ export function buildMessageThreadItems(
       type: "message",
       key: message.id,
       message,
+      groupPosition: "single",
     });
   }
 
-  return items;
+  return annotateMessageGroups(items);
 }

@@ -25,6 +25,13 @@ export const AURORA_HEADER_CLASS =
 
 export const AURORA_FLAT_SURFACE_CLASS = "bg-background";
 
+/** Centered conversation reading lane — target 680–760px */
+export const AURORA_READING_LANE_CLASS =
+  "mx-auto w-full max-w-[720px] min-w-0 px-4 sm:px-5";
+
+/** Message bubble corner radius per Aurora Visual DNA */
+export const AURORA_BUBBLE_RADIUS = "rounded-[24px]";
+
 export const AURORA_CONTEXT_SHEET_WIDTH = {
   sm: "max-w-sm",
   md: "max-w-md",

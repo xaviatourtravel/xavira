@@ -457,7 +457,7 @@ export function OmnichannelConversationReplyBox({
         </div>
       ) : null}
 
-      <div className={getConversationLaneClassName(inspectorOpen)}>
+      <div className={getConversationLaneClassName(inspectorOpen, "py-0")}>
       {showSlashHint ? (
         <p className="mb-2 text-[11px] text-muted-foreground">
           {ti("composerSlashHint")}

@@ -3,14 +3,18 @@
 import { FileText, Plus, Search, Sparkles } from "lucide-react";
 
 import { DsButton } from "@/components/design-system/button";
-import { DsCard } from "@/components/design-system/card";
 import { DsSearchInput } from "@/components/design-system/form-controls";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
+import { BusinessBrainCompactSection } from "@/modules/business-brain/components/business-brain-content-shell";
+import { ExpandableList } from "@/modules/business-brain/components/expandable-list";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  BB_COMPACT_LIST_IDLE_CLASS,
+  BB_COMPACT_LIST_SELECTED_CLASS,
+} from "@/modules/business-brain/lib/business-brain-compact-styles";
 import {
   bbDisplayProductName,
   bbDocsCount,
-  bbKnowledgeScoreLabel,
   bbProductStatusLabel,
 } from "@/modules/business-brain/lib/bb-ui-labels";
 import {
@@ -79,34 +83,32 @@ export function ProductListPanel({
   });
 
   return (
-    <DsCard className="p-4 md:p-5">
-      <div className="mb-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-foreground">{bb("productList")}</h2>
-          {canEdit ? (
-            <div className="flex items-center gap-1.5">
-              {onImportFromText ? (
-                <DsButton type="button" size="sm" variant="outline" onClick={onImportFromText}>
-                  <FileText className="h-4 w-4" />
-                  {bb("importFromText")}
-                </DsButton>
-              ) : null}
-              <DsButton
-                type="button"
-                size="sm"
-                onClick={onCreateProduct}
-                loading={isCreating}
-              >
-                <Plus className="h-4 w-4" />
-                {bb("newProduct")}
+    <BusinessBrainCompactSection title={bb("productList")}>
+      <div className="mb-3 space-y-2.5">
+        {canEdit ? (
+          <div className="flex items-center justify-end gap-1.5">
+            {onImportFromText ? (
+              <DsButton type="button" size="sm" variant="outline" onClick={onImportFromText}>
+                <FileText className="h-4 w-4" />
+                {bb("importFromText")}
               </DsButton>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+            <DsButton
+              type="button"
+              size="sm"
+              onClick={onCreateProduct}
+              loading={isCreating}
+            >
+              <Plus className="h-4 w-4" />
+              {bb("newProduct")}
+            </DsButton>
+          </div>
+        ) : null}
         <DsSearchInput
           placeholder={bb("searchProducts")}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
+          className="h-8 min-h-8 py-1 text-sm"
         />
         <div className="flex flex-wrap gap-1.5">
           {STATUS_FILTERS.map((filter) => (
@@ -115,7 +117,7 @@ export function ProductListPanel({
               type="button"
               onClick={() => onStatusFilterChange(filter)}
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                 statusFilter === filter
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:text-foreground",
@@ -127,33 +129,33 @@ export function ProductListPanel({
         </div>
       </div>
 
-      <div className="space-y-2">
-        {filteredProducts.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            {bb("noProductsMatch")}
-          </div>
-        ) : (
-          filteredProducts.map((product) => {
+      {filteredProducts.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border/70 px-3 py-6 text-center text-sm text-muted-foreground">
+          {bb("noProductsMatch")}
+        </div>
+      ) : (
+        <ExpandableList
+          items={filteredProducts}
+          itemsClassName="space-y-1.5"
+          getItemKey={(product) => product.id}
+          renderItem={(product) => {
             const selected = product.id === selectedProductId;
 
             return (
               <button
-                key={product.id}
                 type="button"
                 onClick={() => onSelectProduct(product.id)}
                 className={cn(
-                  "w-full rounded-xl border p-3 text-left transition-colors",
-                  selected
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                    : "border-border bg-background hover:border-primary/30 hover:bg-muted/30",
+                  "w-full rounded-lg border p-2.5 text-left transition-colors",
+                  selected ? BB_COMPACT_LIST_SELECTED_CLASS : BB_COMPACT_LIST_IDLE_CLASS,
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {bbDisplayProductName(bb, product.name)}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                       {[product.category, product.destination]
                         .filter(Boolean)
                         .join(" · ") || bb("noCategory")}
@@ -168,7 +170,7 @@ export function ProductListPanel({
                     {bbProductStatusLabel(bb, product.status)}
                   </span>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                   <span>
                     {bb("updated")}{" "}
                     <ClientOnlyRelativeTime
@@ -177,19 +179,19 @@ export function ProductListPanel({
                     />
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {product.knowledgeScore}% · {bbKnowledgeScoreLabel(bb, product.knowledgeScore)}
+                    <Sparkles className="h-3 w-3" />
+                    {product.knowledgeScore}%
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <FileText className="h-3.5 w-3.5" />
+                    <FileText className="h-3 w-3" />
                     {bbDocsCount(bb, product.documentCount)}
                   </span>
                 </div>
               </button>
             );
-          })
-        )}
-      </div>
-    </DsCard>
+          }}
+        />
+      )}
+    </BusinessBrainCompactSection>
   );
 }

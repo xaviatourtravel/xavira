@@ -6,8 +6,13 @@ import { useState, useTransition } from "react";
 import { Eye, Rocket, Upload } from "lucide-react";
 
 import { DsButton } from "@/components/design-system/button";
-import { DsCard } from "@/components/design-system/card";
 import { publishBusinessBrainAction } from "@/modules/business-brain/actions/publish-actions";
+import {
+  BusinessBrainCompactSection,
+  BusinessBrainContentShell,
+  BusinessBrainTwoColumnLayout,
+} from "@/modules/business-brain/components/business-brain-content-shell";
+import { ExpandableList } from "@/modules/business-brain/components/expandable-list";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainDraftSummary,
@@ -158,7 +163,7 @@ export function PublishPageClient({
   };
 
   return (
-    <div className="space-y-6">
+    <BusinessBrainContentShell>
       <BusinessBrainSectionHeader
         title={translateBusinessBrainSectionTitle(tStrict, "publish")}
         iconSlug="publish"
@@ -194,125 +199,119 @@ export function PublishPageClient({
           </>
         }
       />
-      <DsCard title={tStrict("businessBrain.publishStatus")}>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {tStrict("businessBrain.currentStatus")}
-            </p>
-            <div className="mt-2">
-              <StatusBadge status={status.status} />
-            </div>
-          </div>
-          <div className="rounded-xl border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {tStrict("businessBrain.lastPublishedAt")}
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {formatDateTime(status.lastPublishedAt)}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {tStrict("businessBrain.lastPublishedBy")}
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {status.lastPublishedBy?.name ?? "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {tStrict("businessBrain.draftChangesCount")}
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {draftSummary.totalChanges}
-              {status.currentVersionNumber ? (
-                <span className="ml-2 text-xs text-muted-foreground">
-                  (live v{status.currentVersionNumber})
-                </span>
-              ) : null}
-            </p>
-          </div>
-        </div>
-      </DsCard>
-
-      <DsCard
-        title={tStrict("businessBrain.changeSummary")}
-        description={tStrict("businessBrain.changeSummaryDescription")}
-      >
-        <ChangeSummaryTable sections={draftSummary.sections} />
-      </DsCard>
-
-      <DsCard title={tStrict("businessBrain.preview")}>
-        <Link
-          href="/business-brain/playground"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          <Eye className="h-4 w-4" />
-          {tStrict("businessBrain.previewInTestAi")}
-        </Link>
-        {!canPublishNow && canPublish && status.status === "published" ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {tStrict("businessBrain.noUnpublishedChanges")}
-          </p>
-        ) : null}
-      </DsCard>
-
-      <DsCard
-        title={tStrict("businessBrain.versionHistory")}
-        description={tStrict("businessBrain.versionHistoryDescription")}
-      >
-        {versions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-            <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              {tStrict("businessBrain.noVersionsYet")}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.version")}</th>
-                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.publishedAt")}</th>
-                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.publishedBy")}</th>
-                  <th className="px-4 py-3 font-medium">{tStrict("businessBrain.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versions.map((version) => (
-                  <tr key={version.id} className="border-t border-border">
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      v{version.versionNumber}
-                    </td>
-                    <td className="px-4 py-3 text-foreground">
-                      {formatDateTime(version.publishedAt)}
-                    </td>
-                    <td className="px-4 py-3 text-foreground">
-                      {version.publishedBy?.name ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-                          version.status === "published"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {version.status === "published"
-                          ? tStrict("businessBrain.active")
-                          : tStrict("businessBrain.superseded")}
+      <BusinessBrainTwoColumnLayout
+        left={
+          <>
+            <BusinessBrainCompactSection title={tStrict("businessBrain.publishStatus")}>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {tStrict("businessBrain.currentStatus")}
+                  </p>
+                  <div className="mt-1.5">
+                    <StatusBadge status={status.status} />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {tStrict("businessBrain.lastPublishedAt")}
+                  </p>
+                  <p className="mt-1.5 text-sm font-medium text-foreground">
+                    {formatDateTime(status.lastPublishedAt)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {tStrict("businessBrain.lastPublishedBy")}
+                  </p>
+                  <p className="mt-1.5 text-sm font-medium text-foreground">
+                    {status.lastPublishedBy?.name ?? "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {tStrict("businessBrain.draftChangesCount")}
+                  </p>
+                  <p className="mt-1.5 text-sm font-medium text-foreground">
+                    {draftSummary.totalChanges}
+                    {status.currentVersionNumber ? (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (live v{status.currentVersionNumber})
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </DsCard>
-    </div>
+                    ) : null}
+                  </p>
+                </div>
+              </div>
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection
+              title={tStrict("businessBrain.changeSummary")}
+              description={tStrict("businessBrain.changeSummaryDescription")}
+            >
+              <ChangeSummaryTable sections={draftSummary.sections} />
+            </BusinessBrainCompactSection>
+          </>
+        }
+        right={
+          <>
+            <BusinessBrainCompactSection title={tStrict("businessBrain.preview")}>
+              <Link
+                href="/business-brain/playground"
+                className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-border/70 bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <Eye className="h-4 w-4" />
+                {tStrict("businessBrain.previewInTestAi")}
+              </Link>
+              {!canPublishNow && canPublish && status.status === "published" ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {tStrict("businessBrain.noUnpublishedChanges")}
+                </p>
+              ) : null}
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection
+              title={tStrict("businessBrain.versionHistory")}
+              description={tStrict("businessBrain.versionHistoryDescription")}
+            >
+              {versions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/15 px-4 py-8 text-center">
+                  <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {tStrict("businessBrain.noVersionsYet")}
+                  </p>
+                </div>
+              ) : (
+                <ExpandableList
+                  items={versions}
+                  itemsClassName="space-y-1.5"
+                  getItemKey={(version) => version.id}
+                  renderItem={(version) => (
+                    <div className="grid grid-cols-2 gap-2 rounded-lg border border-border/70 px-2.5 py-2 text-sm sm:grid-cols-4">
+                      <span className="font-medium text-foreground">v{version.versionNumber}</span>
+                      <span className="text-foreground">{formatDateTime(version.publishedAt)}</span>
+                      <span className="text-foreground">{version.publishedBy?.name ?? "—"}</span>
+                      <span>
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+                            version.status === "published"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {version.status === "published"
+                            ? tStrict("businessBrain.active")
+                            : tStrict("businessBrain.superseded")}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                />
+              )}
+            </BusinessBrainCompactSection>
+          </>
+        }
+      />
+    </BusinessBrainContentShell>
   );
 }

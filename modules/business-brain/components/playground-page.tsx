@@ -4,6 +4,9 @@ import { useCallback, useState } from "react";
 
 import { saveBrainTestSessionAction } from "@/modules/business-brain/actions/brain-test-session-actions";
 import { runPlaygroundTestAction } from "@/modules/business-brain/actions/playground-actions";
+import {
+  BusinessBrainContentShell,
+} from "@/modules/business-brain/components/business-brain-content-shell";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import { PlaygroundInspector } from "@/modules/business-brain/components/inspector/playground-inspector";
 import { PlaygroundSavedTestsSidebar } from "@/modules/business-brain/components/playground-saved-tests-sidebar";
@@ -282,7 +285,7 @@ export function PlaygroundPageClient({
   };
 
   return (
-    <div className="space-y-6">
+    <BusinessBrainContentShell>
       <BusinessBrainSectionHeader
         title={translateBusinessBrainSectionTitle(tStrict, "playground")}
         iconSlug="playground"
@@ -313,10 +316,10 @@ export function PlaygroundPageClient({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
         <main
           className={cn(
-            "min-w-0 space-y-6",
+            "min-w-0 space-y-3",
             mobilePanel !== "simulator" && mobilePanel !== "saved" && "hidden xl:block",
           )}
         >
@@ -352,7 +355,7 @@ export function PlaygroundPageClient({
 
         <aside
           className={cn(
-            "w-full shrink-0 xl:sticky xl:top-6 xl:w-[380px]",
+            "w-full shrink-0 xl:sticky xl:top-4 xl:w-[320px]",
             mobilePanel !== "inspector" && "hidden xl:block",
           )}
         >
@@ -363,6 +366,6 @@ export function PlaygroundPageClient({
           />
         </aside>
       </div>
-    </div>
+    </BusinessBrainContentShell>
   );
 }

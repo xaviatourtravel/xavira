@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { BehaviorCategoriesPanel } from "@/modules/business-brain/components/behavior-categories-panel";
 import { BehaviorEditor } from "@/modules/business-brain/components/behavior-editor";
+import {
+  BusinessBrainContentShell,
+  BusinessBrainMasterDetailLayout,
+} from "@/modules/business-brain/components/business-brain-content-shell";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainBehaviorRecord,
@@ -15,7 +19,6 @@ import {
   translateBusinessBrainSectionTitle,
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
-import { cn } from "@/lib/utils";
 
 type BehaviorsPageClientProps = {
   initialBehaviors: BrainBehaviorRecord[];
@@ -110,14 +113,15 @@ export function BehaviorsPageClient({
   };
 
   return (
-    <div className="space-y-6">
+    <BusinessBrainContentShell>
       <BusinessBrainSectionHeader
         title={translateBusinessBrainSectionTitle(t, "behaviors")}
         iconSlug="behaviors"
         description={translateBusinessBrainSectionDescription(t, "behaviors")}
       />
-      <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
-        <div className={cn(mobileShowEditor ? "hidden lg:block" : "block")}>
+      <BusinessBrainMasterDetailLayout
+        mobileShowDetail={mobileShowEditor}
+        list={
           <BehaviorCategoriesPanel
             behaviors={behaviors}
             activeCategory={activeCategory}
@@ -128,9 +132,8 @@ export function BehaviorsPageClient({
             onSelectBehavior={handleSelectBehavior}
             onCreateRule={handleCreateRule}
           />
-        </div>
-
-        <div className={cn(!mobileShowEditor ? "hidden lg:block" : "block")}>
+        }
+        detail={
           <BehaviorEditor
             behavior={editorBehavior}
             category={activeCategory}
@@ -144,8 +147,8 @@ export function BehaviorsPageClient({
             onBehaviorDeleted={handleBehaviorDeleted}
             onCancelCreate={() => setIsCreating(false)}
           />
-        </div>
-      </div>
-    </div>
+        }
+      />
+    </BusinessBrainContentShell>
   );
 }

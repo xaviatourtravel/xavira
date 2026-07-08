@@ -2,11 +2,16 @@
 
 import { Search, Zap } from "lucide-react";
 
-import { DsCard } from "@/components/design-system/card";
 import { DsSearchInput } from "@/components/design-system/form-controls";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
 import { formatTranslation } from "@/lib/i18n/dictionary";
+import { BusinessBrainCompactSection } from "@/modules/business-brain/components/business-brain-content-shell";
+import { ExpandableList } from "@/modules/business-brain/components/expandable-list";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
+import {
+  BB_COMPACT_LIST_IDLE_CLASS,
+  BB_COMPACT_LIST_SELECTED_CLASS,
+} from "@/modules/business-brain/lib/business-brain-compact-styles";
 import {
   bbDisplayDocumentName,
   bbDocumentStatusLabel,
@@ -70,13 +75,13 @@ export function DocumentListPanel({
   });
 
   return (
-    <DsCard className="p-4 md:p-5">
-      <div className="mb-4 space-y-3">
-        <h2 className="text-base font-semibold text-foreground">{bb("documentList")}</h2>
+    <BusinessBrainCompactSection title={bb("documentList")}>
+      <div className="mb-3 space-y-2.5">
         <DsSearchInput
           placeholder={bb("searchDocuments")}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
+          className="h-8 min-h-8 py-1 text-sm"
         />
         <div className="flex flex-wrap gap-1.5">
           {TYPE_FILTERS.map((filter) => (
@@ -85,7 +90,7 @@ export function DocumentListPanel({
               type="button"
               onClick={() => onTypeFilterChange(filter)}
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                 typeFilter === filter
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:text-foreground",
@@ -102,7 +107,7 @@ export function DocumentListPanel({
               type="button"
               onClick={() => onStatusFilterChange(filter)}
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                 statusFilter === filter
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:text-foreground",
@@ -114,34 +119,34 @@ export function DocumentListPanel({
         </div>
       </div>
 
-      <div className="space-y-2">
-        {filteredDocuments.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            <Search className="mx-auto mb-2 h-5 w-5 opacity-60" />
-            {bb("noDocumentsMatch")}
-          </div>
-        ) : (
-          filteredDocuments.map((document) => {
+      {filteredDocuments.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border/70 px-3 py-6 text-center text-sm text-muted-foreground">
+          <Search className="mx-auto mb-2 h-4 w-4 opacity-60" />
+          {bb("noDocumentsMatch")}
+        </div>
+      ) : (
+        <ExpandableList
+          items={filteredDocuments}
+          itemsClassName="space-y-1.5"
+          getItemKey={(document) => document.id}
+          renderItem={(document) => {
             const selected = document.id === selectedDocumentId;
 
             return (
               <button
-                key={document.id}
                 type="button"
                 onClick={() => onSelectDocument(document.id)}
                 className={cn(
-                  "w-full rounded-xl border p-3 text-left transition-colors",
-                  selected
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                    : "border-border bg-background hover:border-primary/30 hover:bg-muted/30",
+                  "w-full rounded-lg border p-2.5 text-left transition-colors",
+                  selected ? BB_COMPACT_LIST_SELECTED_CLASS : BB_COMPACT_LIST_IDLE_CLASS,
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {bbDisplayDocumentName(bb, document.name)}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
                       {bbDocumentTypeLabel(bb, document.documentType)}
                     </p>
                   </div>
@@ -154,7 +159,7 @@ export function DocumentListPanel({
                     {bbDocumentStatusLabel(bb, document.status)}
                   </span>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                   <span>
                     {formatTranslation(bb("productsCount"), {
                       count: document.linkedProductCount,
@@ -162,7 +167,7 @@ export function DocumentListPanel({
                   </span>
                   {document.autoSendEnabled ? (
                     <span className="inline-flex items-center gap-1 text-primary">
-                      <Zap className="h-3.5 w-3.5" />
+                      <Zap className="h-3 w-3" />
                       {bb("autoSend")}
                     </span>
                   ) : null}
@@ -173,9 +178,9 @@ export function DocumentListPanel({
                 </div>
               </button>
             );
-          })
-        )}
-      </div>
-    </DsCard>
+          }}
+        />
+      )}
+    </BusinessBrainCompactSection>
   );
 }

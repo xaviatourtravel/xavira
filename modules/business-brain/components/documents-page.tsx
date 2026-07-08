@@ -6,6 +6,11 @@ import { loadBrainDocumentAction } from "@/modules/business-brain/actions/docume
 import { DocumentDetailsPanel } from "@/modules/business-brain/components/document-details-panel";
 import { DocumentListPanel } from "@/modules/business-brain/components/document-list-panel";
 import { DocumentUploadZone } from "@/modules/business-brain/components/document-upload-zone";
+import {
+  BusinessBrainContentShell,
+  BusinessBrainDetailEmptyState,
+  BusinessBrainMasterDetailLayout,
+} from "@/modules/business-brain/components/business-brain-content-shell";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainDocumentDetail,
@@ -19,7 +24,6 @@ import {
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
-import { cn } from "@/lib/utils";
 
 type ProductOption = { id: string; name: string };
 type ArticleOption = { id: string; title: string };
@@ -111,31 +115,32 @@ export function DocumentsPageClient({
   }, [loadDocument, selectedDocument, selectedDocumentId]);
 
   return (
-    <div className="space-y-6">
+    <BusinessBrainContentShell>
       <BusinessBrainSectionHeader
         title={translateBusinessBrainSectionTitle(t, "documents")}
         iconSlug="documents"
         description={translateBusinessBrainSectionDescription(t, "documents")}
       />
-      {canEdit ? <DocumentUploadZone canEdit={canEdit} onUploaded={handleUploaded} /> : null}
-
-      <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
-        <div className={cn(mobileShowDetails ? "hidden lg:block" : "block")}>
-          <DocumentListPanel
-            documents={documents}
-            selectedDocumentId={selectedDocumentId}
-            search={search}
-            typeFilter={typeFilter}
-            statusFilter={statusFilter}
-            onSearchChange={setSearch}
-            onTypeFilterChange={setTypeFilter}
-            onStatusFilterChange={setStatusFilter}
-            onSelectDocument={handleSelectDocument}
-          />
-        </div>
-
-        <div className={cn(!mobileShowDetails ? "hidden lg:block" : "block")}>
-          {selectedDocumentId && selectedDocument && selectedDocument.id === selectedDocumentId ? (
+      <BusinessBrainMasterDetailLayout
+        mobileShowDetail={mobileShowDetails}
+        list={
+          <div className="space-y-3">
+            {canEdit ? <DocumentUploadZone canEdit={canEdit} onUploaded={handleUploaded} /> : null}
+            <DocumentListPanel
+              documents={documents}
+              selectedDocumentId={selectedDocumentId}
+              search={search}
+              typeFilter={typeFilter}
+              statusFilter={statusFilter}
+              onSearchChange={setSearch}
+              onTypeFilterChange={setTypeFilter}
+              onStatusFilterChange={setStatusFilter}
+              onSelectDocument={handleSelectDocument}
+            />
+          </div>
+        }
+        detail={
+          selectedDocumentId && selectedDocument && selectedDocument.id === selectedDocumentId ? (
             <DocumentDetailsPanel
               key={selectedDocument.id}
               document={selectedDocument}
@@ -147,27 +152,26 @@ export function DocumentsPageClient({
               onDocumentDeleted={handleDocumentDeleted}
             />
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-              <p className="text-sm text-muted-foreground">
-                {isLoadingDocument
+            <BusinessBrainDetailEmptyState
+              message={
+                isLoadingDocument
                   ? bb("loadingDocument")
                   : selectedDocumentId
                     ? bb("loadingDocumentDetails")
-                    : bb("documentsEmptyState")}
-              </p>
-              {selectedDocumentId && !isLoadingDocument ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm text-primary hover:underline"
-                  onClick={() => loadDocument(selectedDocumentId)}
-                >
-                  {bb("retryLoading")}
-                </button>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+                    : bb("documentsEmptyState")
+              }
+              actionLabel={
+                selectedDocumentId && !isLoadingDocument ? bb("retryLoading") : undefined
+              }
+              onAction={
+                selectedDocumentId && !isLoadingDocument
+                  ? () => loadDocument(selectedDocumentId)
+                  : undefined
+              }
+            />
+          )
+        }
+      />
+    </BusinessBrainContentShell>
   );
 }

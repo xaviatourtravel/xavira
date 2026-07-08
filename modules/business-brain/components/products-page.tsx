@@ -10,6 +10,11 @@ import {
 import { ProductEditor } from "@/modules/business-brain/components/product-editor";
 import { ProductImportModal } from "@/modules/business-brain/components/product-import-modal";
 import { ProductListPanel } from "@/modules/business-brain/components/product-list-panel";
+import {
+  BusinessBrainContentShell,
+  BusinessBrainDetailEmptyState,
+  BusinessBrainMasterDetailLayout,
+} from "@/modules/business-brain/components/business-brain-content-shell";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import { mapParsedFaqsToApplyItems } from "@/modules/business-brain/lib/parse-faq-import-text";
 import type {
@@ -25,7 +30,6 @@ import {
 import { formatTranslation } from "@/lib/i18n/dictionary";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
-import { cn } from "@/lib/utils";
 
 type FaqOption = {
   id: string;
@@ -213,14 +217,15 @@ export function ProductsPageClient({
   }, [loadProduct, selectedProduct, selectedProductId]);
 
   return (
-    <div className="space-y-6">
+    <BusinessBrainContentShell>
       <BusinessBrainSectionHeader
         title={translateBusinessBrainSectionTitle(t, "products")}
         iconSlug="products"
         description={translateBusinessBrainSectionDescription(t, "products")}
       />
-      <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
-        <div className={cn(mobileShowEditor ? "hidden lg:block" : "block")}>
+      <BusinessBrainMasterDetailLayout
+        mobileShowDetail={mobileShowEditor}
+        list={
           <ProductListPanel
             products={products}
             selectedProductId={selectedProductId}
@@ -234,10 +239,9 @@ export function ProductsPageClient({
             onCreateProduct={handleCreateProduct}
             onImportFromText={canEdit ? () => setImportOpen(true) : undefined}
           />
-        </div>
-
-        <div className={cn(!mobileShowEditor ? "hidden lg:block" : "block")}>
-          {selectedProductId && selectedProduct && selectedProduct.id === selectedProductId ? (
+        }
+        detail={
+          selectedProductId && selectedProduct && selectedProduct.id === selectedProductId ? (
             <ProductEditor
               key={selectedProduct.id}
               product={selectedProduct}
@@ -251,27 +255,26 @@ export function ProductsPageClient({
               onImportApplied={() => setImportPatch(null)}
             />
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-              <p className="text-sm text-muted-foreground">
-                {isLoadingProduct
+            <BusinessBrainDetailEmptyState
+              message={
+                isLoadingProduct
                   ? bb("loadingProduct")
                   : selectedProductId
                     ? bb("loadingProductEditor")
-                    : bb("productsEmptyState")}
-              </p>
-              {selectedProductId && !isLoadingProduct ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm text-primary hover:underline"
-                  onClick={() => loadProduct(selectedProductId)}
-                >
-                  {bb("retryLoading")}
-                </button>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
+                    : bb("productsEmptyState")
+              }
+              actionLabel={
+                selectedProductId && !isLoadingProduct ? bb("retryLoading") : undefined
+              }
+              onAction={
+                selectedProductId && !isLoadingProduct
+                  ? () => loadProduct(selectedProductId)
+                  : undefined
+              }
+            />
+          )
+        }
+      />
 
       <ProductImportModal
         open={importOpen}
@@ -279,6 +282,6 @@ export function ProductsPageClient({
         onApply={handleApplyImport}
         isApplying={isApplyingImport}
       />
-    </div>
+    </BusinessBrainContentShell>
   );
 }

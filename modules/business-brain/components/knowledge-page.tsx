@@ -8,6 +8,11 @@ import {
 } from "@/modules/business-brain/actions/knowledge-actions";
 import { KnowledgeEditor } from "@/modules/business-brain/components/knowledge-editor";
 import { KnowledgeListPanel } from "@/modules/business-brain/components/knowledge-list-panel";
+import {
+  BusinessBrainContentShell,
+  BusinessBrainDetailEmptyState,
+  BusinessBrainMasterDetailLayout,
+} from "@/modules/business-brain/components/business-brain-content-shell";
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainArticleCategory,
@@ -21,7 +26,6 @@ import {
 } from "@/lib/i18n/business-brain-labels";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
-import { cn } from "@/lib/utils";
 
 type ProductOption = {
   id: string;
@@ -121,14 +125,15 @@ export function KnowledgePageClient({
   }, [loadArticle, selectedArticle, selectedArticleId]);
 
   return (
-    <div className="space-y-6">
+    <BusinessBrainContentShell>
       <BusinessBrainSectionHeader
         title={translateBusinessBrainSectionTitle(t, "knowledge")}
         iconSlug="knowledge"
         description={translateBusinessBrainSectionDescription(t, "knowledge")}
       />
-      <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
-        <div className={cn(mobileShowEditor ? "hidden lg:block" : "block")}>
+      <BusinessBrainMasterDetailLayout
+        mobileShowDetail={mobileShowEditor}
+        list={
           <KnowledgeListPanel
             articles={articles}
             selectedArticleId={selectedArticleId}
@@ -143,10 +148,9 @@ export function KnowledgePageClient({
             onSelectArticle={handleSelectArticle}
             onCreateArticle={handleCreateArticle}
           />
-        </div>
-
-        <div className={cn(!mobileShowEditor ? "hidden lg:block" : "block")}>
-          {selectedArticleId && selectedArticle && selectedArticle.id === selectedArticleId ? (
+        }
+        detail={
+          selectedArticleId && selectedArticle && selectedArticle.id === selectedArticleId ? (
             <KnowledgeEditor
               key={selectedArticle.id}
               article={selectedArticle}
@@ -157,27 +161,26 @@ export function KnowledgePageClient({
               onArticleDeleted={handleArticleDeleted}
             />
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
-              <p className="text-sm text-muted-foreground">
-                {isLoadingArticle
+            <BusinessBrainDetailEmptyState
+              message={
+                isLoadingArticle
                   ? bb("loadingArticle")
                   : selectedArticleId
                     ? bb("loadingKnowledgeEditor")
-                    : bb("knowledgeEmptyState")}
-              </p>
-              {selectedArticleId && !isLoadingArticle ? (
-                <button
-                  type="button"
-                  className="mt-3 text-sm text-primary hover:underline"
-                  onClick={() => loadArticle(selectedArticleId)}
-                >
-                  {bb("retryLoading")}
-                </button>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+                    : bb("knowledgeEmptyState")
+              }
+              actionLabel={
+                selectedArticleId && !isLoadingArticle ? bb("retryLoading") : undefined
+              }
+              onAction={
+                selectedArticleId && !isLoadingArticle
+                  ? () => loadArticle(selectedArticleId)
+                  : undefined
+              }
+            />
+          )
+        }
+      />
+    </BusinessBrainContentShell>
   );
 }

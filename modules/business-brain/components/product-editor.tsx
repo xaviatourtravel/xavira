@@ -58,6 +58,10 @@ import {
 } from "@/modules/business-brain/types/products";
 import { cn } from "@/lib/utils";
 import type { ParsedFaqImport } from "@/modules/business-brain/types/faq-import";
+import {
+  BB_COMPACT_INPUT_CLASS,
+  bbCompactCardClassName,
+} from "@/modules/business-brain/lib/business-brain-compact-styles";
 
 type FaqOption = {
   id: string;
@@ -99,8 +103,6 @@ function extractImportedProductCode(aiNotes: string): string | null {
 }
 
 
-const compactInputClass = "h-8 min-h-8 py-1 text-sm";
-
 function CompactField({
   label,
   children,
@@ -113,13 +115,6 @@ function CompactField({
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
-  );
-}
-
-function compactCardClassName(className?: string) {
-  return cn(
-    "rounded-xl border-border/70 shadow-none [&>div:first-child]:mb-2 [&_h3]:text-sm [&_h3]:font-medium",
-    className,
   );
 }
 
@@ -181,7 +176,7 @@ function DynamicTextList({
           }}
           placeholder={placeholder}
           disabled={disabled}
-          className={compactInputClass}
+          className={BB_COMPACT_INPUT_CLASS}
         />
         <DsButton type="button" variant="outline" size="sm" onClick={addItem} disabled={disabled}>
           {bb("add")}
@@ -488,14 +483,14 @@ export function ProductEditor({
 
       <div className="grid gap-3 xl:grid-cols-2 xl:items-start">
         <div className="space-y-3">
-        <DsCard size="sm" title={bb("basicInformation")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("basicInformation")} className={bbCompactCardClassName()}>
           <div className="grid gap-2.5 sm:grid-cols-2">
             <CompactField label={bb("productName")}>
               <DsTextInput
                 value={values.name}
                 onChange={(event) => updateValues({ name: event.target.value })}
                 disabled={!canEdit}
-                className={compactInputClass}
+                className={BB_COMPACT_INPUT_CLASS}
               />
             </CompactField>
             <CompactField label={bb("category")}>
@@ -507,7 +502,7 @@ export function ProductEditor({
                   })
                 }
                 disabled={!canEdit}
-                className={compactInputClass}
+                className={BB_COMPACT_INPUT_CLASS}
               >
                 <option value="">{bb("selectCategory")}</option>
                 {BRAIN_PRODUCT_CATEGORIES.map((category) => (
@@ -522,7 +517,7 @@ export function ProductEditor({
                 value={values.destination}
                 onChange={(event) => updateValues({ destination: event.target.value })}
                 disabled={!canEdit}
-                className={compactInputClass}
+                className={BB_COMPACT_INPUT_CLASS}
               />
             </CompactField>
             <CompactField label={bb("status")}>
@@ -534,7 +529,7 @@ export function ProductEditor({
                   })
                 }
                 disabled={!canEdit}
-                className={compactInputClass}
+                className={BB_COMPACT_INPUT_CLASS}
               >
                 {(["draft", "published", "archived"] as const).map((status) => (
                   <option key={status} value={status}>
@@ -546,7 +541,7 @@ export function ProductEditor({
           </div>
         </DsCard>
 
-        <DsCard size="sm" title={bb("description")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("description")} className={bbCompactCardClassName()}>
           <SimpleRichTextEditor
             value={values.description}
             onChange={(description) => updateValues({ description })}
@@ -555,7 +550,7 @@ export function ProductEditor({
           />
         </DsCard>
 
-        <DsCard size="sm" title={bb("documents")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("documents")} className={bbCompactCardClassName()}>
           <div className="space-y-2.5">
             <ExpandableList
               as="ul"
@@ -640,7 +635,7 @@ export function ProductEditor({
                       onChange={(event) => setVideoUrl(event.target.value)}
                       placeholder={bb("urlPlaceholder")}
                       disabled={isSlotBusy("video")}
-                      className={cn("min-w-[180px] flex-1", compactInputClass)}
+                      className={cn("min-w-[180px] flex-1", BB_COMPACT_INPUT_CLASS)}
                     />
                     <DsButton
                       type="button"
@@ -658,7 +653,7 @@ export function ProductEditor({
           </div>
         </DsCard>
 
-        <DsCard size="sm" title={bb("aiInstructions")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("aiInstructions")} className={bbCompactCardClassName()}>
           <DsTextarea
             value={values.aiNotes}
             onChange={(event) => updateValues({ aiNotes: event.target.value })}
@@ -669,7 +664,7 @@ export function ProductEditor({
           />
         </DsCard>
 
-        <DsCard size="sm" title={bb("highlights")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("highlights")} className={bbCompactCardClassName()}>
           <DynamicTextList
             label={bb("packageHighlights")}
             values={values.highlights}
@@ -680,7 +675,7 @@ export function ProductEditor({
           />
         </DsCard>
 
-        <DsCard size="sm" title={bb("included")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("included")} className={bbCompactCardClassName()}>
           <DynamicTextList
             label={bb("whatsIncluded")}
             values={values.included}
@@ -690,7 +685,7 @@ export function ProductEditor({
           />
         </DsCard>
 
-        <DsCard size="sm" title={bb("excluded")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("excluded")} className={bbCompactCardClassName()}>
           <DynamicTextList
             label={bb("whatsExcluded")}
             values={values.excluded}
@@ -702,7 +697,7 @@ export function ProductEditor({
         </div>
 
         <div className="space-y-3">
-        <DsCard size="sm" title={bb("pricing")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("pricing")} className={bbCompactCardClassName()}>
           <div className="space-y-2">
             <ExpandableList
               items={values.pricing}
@@ -720,7 +715,7 @@ export function ProductEditor({
                           updateValues({ pricing });
                         }}
                         disabled={!canEdit}
-                        className={compactInputClass}
+                        className={BB_COMPACT_INPUT_CLASS}
                       />
                     </CompactField>
                     <CompactField label={bb("price")}>
@@ -736,7 +731,7 @@ export function ProductEditor({
                           updateValues({ pricing });
                         }}
                         disabled={!canEdit}
-                        className={compactInputClass}
+                        className={BB_COMPACT_INPUT_CLASS}
                       />
                     </CompactField>
                     <CompactField label={bb("currency")}>
@@ -751,7 +746,7 @@ export function ProductEditor({
                           updateValues({ pricing });
                         }}
                         disabled={!canEdit}
-                        className={compactInputClass}
+                        className={BB_COMPACT_INPUT_CLASS}
                       >
                         {PRODUCT_CURRENCIES.map((currency) => (
                           <option key={currency} value={currency}>
@@ -770,7 +765,7 @@ export function ProductEditor({
                           updateValues({ pricing });
                         }}
                         disabled={!canEdit}
-                        className={compactInputClass}
+                        className={BB_COMPACT_INPUT_CLASS}
                       />
                     </CompactField>
                     <CompactField label={bb("earlyBird")}>
@@ -782,7 +777,7 @@ export function ProductEditor({
                           updateValues({ pricing });
                         }}
                         disabled={!canEdit}
-                        className={compactInputClass}
+                        className={BB_COMPACT_INPUT_CLASS}
                       />
                     </CompactField>
                     <CompactField label={bb("promo")}>
@@ -794,7 +789,7 @@ export function ProductEditor({
                           updateValues({ pricing });
                         }}
                         disabled={!canEdit}
-                        className={compactInputClass}
+                        className={BB_COMPACT_INPUT_CLASS}
                       />
                     </CompactField>
                   </div>
@@ -833,7 +828,7 @@ export function ProductEditor({
           </div>
         </DsCard>
 
-        <DsCard size="sm" title={bb("departureSchedule")} className={compactCardClassName()}>
+        <DsCard size="sm" title={bb("departureSchedule")} className={bbCompactCardClassName()}>
           <div className="space-y-1.5">
             {values.departures.length > 0 ? (
               <div className="hidden gap-2 px-1 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto]">
@@ -861,7 +856,7 @@ export function ProductEditor({
                       updateValues({ departures });
                     }}
                     disabled={!canEdit}
-                    className={compactInputClass}
+                    className={BB_COMPACT_INPUT_CLASS}
                   />
                   <DsTextInput
                     type="number"
@@ -875,7 +870,7 @@ export function ProductEditor({
                       updateValues({ departures });
                     }}
                     disabled={!canEdit}
-                    className={compactInputClass}
+                    className={BB_COMPACT_INPUT_CLASS}
                   />
                   <DsSelect
                     value={item.status}
@@ -888,7 +883,7 @@ export function ProductEditor({
                       updateValues({ departures });
                     }}
                     disabled={!canEdit}
-                    className={compactInputClass}
+                    className={BB_COMPACT_INPUT_CLASS}
                   >
                     {(["open", "full", "waiting_list"] as const).map((status) => (
                       <option key={status} value={status}>
@@ -937,7 +932,7 @@ export function ProductEditor({
         <DsCard
           size="sm"
           title={bb("frequentlyAskedQuestions")}
-          className={compactCardClassName()}
+          className={bbCompactCardClassName()}
         >
           <div className="space-y-2.5">
             {canEdit ? (
@@ -992,7 +987,7 @@ export function ProductEditor({
                   <DsSelect
                     value={selectedFaqId}
                     onChange={(event) => setSelectedFaqId(event.target.value)}
-                    className={cn("min-w-[180px] flex-1", compactInputClass)}
+                    className={cn("min-w-[180px] flex-1", BB_COMPACT_INPUT_CLASS)}
                   >
                     <option value="">{bb("selectExistingFaq")}</option>
                     {availableFaqOptions.map((option) => (
@@ -1020,7 +1015,7 @@ export function ProductEditor({
                       value={newFaqTitle}
                       onChange={(event) => setNewFaqTitle(event.target.value)}
                       placeholder={bb("faqTitle")}
-                      className={compactInputClass}
+                      className={BB_COMPACT_INPUT_CLASS}
                     />
                     <DsTextarea
                       value={newFaqContent}

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { DsButton } from "@/components/design-system/button";
 import { DsCard } from "@/components/design-system/card";
+import { ExpandableList } from "@/modules/business-brain/components/expandable-list";
 import {
   deleteBrainTestSessionAction,
   renameBrainTestSessionAction,
@@ -133,10 +134,12 @@ export function PlaygroundSavedTestsSidebar({
             </p>
           </div>
         ) : (
-          <div className={cn(compact ? "grid gap-2 sm:grid-cols-2" : "space-y-2")}>
-            {sessions.map((session) => (
+          <ExpandableList
+            items={sessions}
+            itemsClassName={cn(compact ? "grid gap-2 sm:grid-cols-2" : "space-y-2")}
+            getItemKey={(session) => session.id}
+            renderItem={(session) => (
               <SavedTestItem
-                key={session.id}
                 session={session}
                 isActive={activeSessionId === session.id}
                 isRenaming={renamingId === session.id}
@@ -151,8 +154,8 @@ export function PlaygroundSavedTestsSidebar({
                 onReplay={() => onReplay(session)}
                 onDelete={() => handleDelete(session.id)}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
       </div>
     </DsCard>

@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import { ArrowLeft, ChevronDown, Save, Trash2, X } from "lucide-react";
 
 import { DsButton } from "@/components/design-system/button";
-import { DsCard } from "@/components/design-system/card";
 import {
   DsField,
   DsSelect,
@@ -16,7 +15,13 @@ import {
   updateBrainArticleAction,
 } from "@/modules/business-brain/actions/knowledge-actions";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
+import {
+  BusinessBrainCompactSection,
+  BusinessBrainTwoColumnLayout,
+} from "@/modules/business-brain/components/business-brain-content-shell";
+import { ExpandableList } from "@/modules/business-brain/components/expandable-list";
 import { SegmentedControl } from "@/modules/business-brain/components/segmented-control";
+import { BB_COMPACT_INPUT_CLASS } from "@/modules/business-brain/lib/business-brain-compact-styles";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import {
   bbArticleCategoryLabel,
@@ -99,18 +104,19 @@ function TagInput({
           }}
           placeholder={placeholder ?? bb("addKeyword")}
           disabled={disabled}
+          className={BB_COMPACT_INPUT_CLASS}
         />
-        <DsButton type="button" variant="outline" onClick={addTag} disabled={disabled}>
+        <DsButton type="button" variant="outline" size="sm" onClick={addTag} disabled={disabled}>
           {bb("add")}
         </DsButton>
       </div>
       {value.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {value.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm text-foreground"
-            >
+        <ExpandableList
+          items={value}
+          itemsClassName="flex flex-wrap gap-1.5"
+          getItemKey={(tag) => tag}
+          renderItem={(tag) => (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">
               {tag}
               {!disabled ? (
                 <button
@@ -119,12 +125,12 @@ function TagInput({
                   className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
                   aria-label={formatTranslation(bb("removeItem"), { item: tag })}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3 w-3" />
                 </button>
               ) : null}
             </span>
-          ))}
-        </div>
+          )}
+        />
       ) : null}
     </div>
   );
@@ -216,8 +222,8 @@ export function KnowledgeEditor({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {onBack ? (
             <DsButton type="button" variant="outline" size="sm" onClick={onBack}>
@@ -226,8 +232,8 @@ export function KnowledgeEditor({
             </DsButton>
           ) : null}
           <div>
-            <h2 className="text-lg font-semibold text-foreground">{bb("knowledgeEditor")}</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-base font-semibold text-foreground">{bb("knowledgeEditor")}</h2>
+            <p className="text-xs text-muted-foreground">
               {bb("knowledgeEditorDescription")}
             </p>
           </div>
@@ -268,194 +274,208 @@ export function KnowledgeEditor({
       ) : null}
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 
-      <div className="space-y-4">
-        <DsCard title={bb("article")}>
-          <div className="grid gap-4 md:grid-cols-2">
-            <DsField label={bb("title")}>
-              <DsTextInput
-                value={values.title}
-                onChange={(event) => updateValues({ title: event.target.value })}
-                disabled={!canEdit}
-              />
-            </DsField>
-            <DsField label={bb("category")}>
-              <DsSelect
-                value={values.category}
-                onChange={(event) =>
-                  updateValues({
-                    category: event.target.value as BrainArticleFormValues["category"],
-                  })
-                }
-                disabled={!canEdit}
-              >
-                {BRAIN_ARTICLE_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {bbArticleCategoryLabel(bb, category)}
-                  </option>
-                ))}
-              </DsSelect>
-            </DsField>
-          </div>
-        </DsCard>
-
-        <DsCard title={bb("content")}>
-          <SimpleRichTextEditor
-            value={values.content}
-            onChange={(content) => updateValues({ content })}
-            disabled={!canEdit}
-            placeholder={bb("writeArticleContent")}
-          />
-        </DsCard>
-
-        <DsCard title={bb("keywords")}>
-          <TagInput
-            value={values.keywords}
-            onChange={(keywords) => updateValues({ keywords })}
-            disabled={!canEdit}
-          />
-        </DsCard>
-
-        <DsCard title={bb("relatedProducts")}>
-          {productOptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {bb("noProductsForLink")}
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {productOptions.map((product) => {
-                const selected = values.relatedProductIds.includes(product.id);
-                return (
-                  <button
-                    key={product.id}
-                    type="button"
+      <BusinessBrainTwoColumnLayout
+        left={
+          <>
+            <BusinessBrainCompactSection title={bb("article")}>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <DsField label={bb("title")}>
+                  <DsTextInput
+                    value={values.title}
+                    onChange={(event) => updateValues({ title: event.target.value })}
                     disabled={!canEdit}
-                    onClick={() => toggleProduct(product.id)}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-sm transition-colors disabled:opacity-50",
-                      selected
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
-                    )}
-                  >
-                    {bbDisplayProductName(bb, product.name)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </DsCard>
-
-        <DsCard title={bb("visibility")}>
-          <SegmentedControl
-            aria-label={bb("visibility")}
-            value={values.visibility}
-            onChange={(visibility) =>
-              updateValues({
-                visibility: visibility as BrainArticleFormValues["visibility"],
-              })
-            }
-            options={BRAIN_ARTICLE_VISIBILITIES.map((value) => ({
-              value,
-              label: bbArticleVisibilityLabel(bb, value),
-            }))}
-            disabled={!canEdit}
-          />
-        </DsCard>
-
-        <DsCard title={bb("status")}>
-          <SegmentedControl
-            aria-label={bb("status")}
-            value={values.status}
-            onChange={(status) =>
-              updateValues({ status: status as BrainArticleStatus })
-            }
-            options={(["draft", "published"] as const).map((status) => ({
-              value: status,
-              label: bbArticleStatusLabel(bb, status),
-            }))}
-            disabled={!canEdit}
-          />
-        </DsCard>
-
-        <DsCard>
-          <button
-            type="button"
-            onClick={() => setShowAiMetadata((current) => !current)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <div>
-              <h3 className="text-base font-semibold text-foreground">{bb("aiMetadata")}</h3>
-              <p className="text-sm text-muted-foreground">
-                {bb("aiMetadataDescription")}
-              </p>
-            </div>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform",
-                showAiMetadata ? "rotate-180" : "",
-              )}
-            />
-          </button>
-
-          {showAiMetadata ? (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <DsField label={bb("confidenceWeight")}>
-                <DsTextInput
-                  type="number"
-                  value={values.aiMetadata.confidenceWeight ?? ""}
-                  onChange={(event) =>
-                    updateValues({
-                      aiMetadata: {
-                        ...values.aiMetadata,
-                        confidenceWeight: event.target.value
-                          ? Number(event.target.value)
-                          : null,
-                      },
-                    })
-                  }
-                  placeholder={bb("confidenceWeightPlaceholder")}
-                  disabled={!canEdit}
-                />
-              </DsField>
-              <DsField label={bb("priority")}>
-                <DsTextInput
-                  type="number"
-                  value={values.aiMetadata.priority ?? ""}
-                  onChange={(event) =>
-                    updateValues({
-                      aiMetadata: {
-                        ...values.aiMetadata,
-                        priority: event.target.value
-                          ? Number(event.target.value)
-                          : null,
-                      },
-                    })
-                  }
-                  placeholder={bb("priorityPlaceholder")}
-                  disabled={!canEdit}
-                />
-              </DsField>
-              <div className="md:col-span-2">
-                <DsField label={bb("relatedDocuments")}>
-                  <TagInput
-                    value={values.aiMetadata.relatedDocuments ?? []}
-                    onChange={(relatedDocuments) =>
+                    className={BB_COMPACT_INPUT_CLASS}
+                  />
+                </DsField>
+                <DsField label={bb("category")}>
+                  <DsSelect
+                    value={values.category}
+                    onChange={(event) =>
                       updateValues({
-                        aiMetadata: {
-                          ...values.aiMetadata,
-                          relatedDocuments,
-                        },
+                        category: event.target.value as BrainArticleFormValues["category"],
                       })
                     }
                     disabled={!canEdit}
-                    placeholder={bb("addTag")}
-                  />
+                    className={BB_COMPACT_INPUT_CLASS}
+                  >
+                    {BRAIN_ARTICLE_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {bbArticleCategoryLabel(bb, category)}
+                      </option>
+                    ))}
+                  </DsSelect>
                 </DsField>
               </div>
-            </div>
-          ) : null}
-        </DsCard>
-      </div>
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection title={bb("content")}>
+              <SimpleRichTextEditor
+                value={values.content}
+                onChange={(content) => updateValues({ content })}
+                disabled={!canEdit}
+                placeholder={bb("writeArticleContent")}
+                className="[&>div:last-child]:min-h-[120px] [&>div:last-child]:py-2"
+              />
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection title={bb("keywords")}>
+              <TagInput
+                value={values.keywords}
+                onChange={(keywords) => updateValues({ keywords })}
+                disabled={!canEdit}
+              />
+            </BusinessBrainCompactSection>
+          </>
+        }
+        right={
+          <>
+            <BusinessBrainCompactSection title={bb("relatedProducts")}>
+              {productOptions.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {bb("noProductsForLink")}
+                </p>
+              ) : (
+                <ExpandableList
+                  items={productOptions}
+                  itemsClassName="flex flex-wrap gap-1.5"
+                  getItemKey={(product) => product.id}
+                  renderItem={(product) => {
+                    const selected = values.relatedProductIds.includes(product.id);
+                    return (
+                      <button
+                        type="button"
+                        disabled={!canEdit}
+                        onClick={() => toggleProduct(product.id)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50",
+                          selected
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/70 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                        )}
+                      >
+                        {bbDisplayProductName(bb, product.name)}
+                      </button>
+                    );
+                  }}
+                />
+              )}
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection title={bb("visibility")}>
+              <SegmentedControl
+                aria-label={bb("visibility")}
+                value={values.visibility}
+                onChange={(visibility) =>
+                  updateValues({
+                    visibility: visibility as BrainArticleFormValues["visibility"],
+                  })
+                }
+                options={BRAIN_ARTICLE_VISIBILITIES.map((value) => ({
+                  value,
+                  label: bbArticleVisibilityLabel(bb, value),
+                }))}
+                disabled={!canEdit}
+              />
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection title={bb("status")}>
+              <SegmentedControl
+                aria-label={bb("status")}
+                value={values.status}
+                onChange={(status) =>
+                  updateValues({ status: status as BrainArticleStatus })
+                }
+                options={(["draft", "published"] as const).map((status) => ({
+                  value: status,
+                  label: bbArticleStatusLabel(bb, status),
+                }))}
+                disabled={!canEdit}
+              />
+            </BusinessBrainCompactSection>
+
+            <BusinessBrainCompactSection>
+              <button
+                type="button"
+                onClick={() => setShowAiMetadata((current) => !current)}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">{bb("aiMetadata")}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {bb("aiMetadataDescription")}
+                  </p>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    showAiMetadata ? "rotate-180" : "",
+                  )}
+                />
+              </button>
+
+              {showAiMetadata ? (
+                <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                  <DsField label={bb("confidenceWeight")}>
+                    <DsTextInput
+                      type="number"
+                      value={values.aiMetadata.confidenceWeight ?? ""}
+                      onChange={(event) =>
+                        updateValues({
+                          aiMetadata: {
+                            ...values.aiMetadata,
+                            confidenceWeight: event.target.value
+                              ? Number(event.target.value)
+                              : null,
+                          },
+                        })
+                      }
+                      placeholder={bb("confidenceWeightPlaceholder")}
+                      disabled={!canEdit}
+                      className={BB_COMPACT_INPUT_CLASS}
+                    />
+                  </DsField>
+                  <DsField label={bb("priority")}>
+                    <DsTextInput
+                      type="number"
+                      value={values.aiMetadata.priority ?? ""}
+                      onChange={(event) =>
+                        updateValues({
+                          aiMetadata: {
+                            ...values.aiMetadata,
+                            priority: event.target.value
+                              ? Number(event.target.value)
+                              : null,
+                          },
+                        })
+                      }
+                      placeholder={bb("priorityPlaceholder")}
+                      disabled={!canEdit}
+                      className={BB_COMPACT_INPUT_CLASS}
+                    />
+                  </DsField>
+                  <div className="sm:col-span-2">
+                    <DsField label={bb("relatedDocuments")}>
+                      <TagInput
+                        value={values.aiMetadata.relatedDocuments ?? []}
+                        onChange={(relatedDocuments) =>
+                          updateValues({
+                            aiMetadata: {
+                              ...values.aiMetadata,
+                              relatedDocuments,
+                            },
+                          })
+                        }
+                        disabled={!canEdit}
+                        placeholder={bb("addTag")}
+                      />
+                    </DsField>
+                  </div>
+                </div>
+              ) : null}
+            </BusinessBrainCompactSection>
+          </>
+        }
+      />
     </div>
   );
 }

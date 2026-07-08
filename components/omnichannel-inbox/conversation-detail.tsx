@@ -20,6 +20,7 @@ import {
   MailOpen,
   MessageSquareText,
   MoreVertical,
+  PanelRightOpen,
   RefreshCw,
   Search,
   UserCog,
@@ -67,8 +68,6 @@ type OmnichannelConversationDetailPanelProps = {
   canSuggestReply?: boolean;
   canManageAi?: boolean;
   isUnassignedForAgent?: boolean;
-  mobilePanelOpen?: boolean;
-  onToggleMobilePanel?: () => void;
   readOnly?: boolean;
   channel?: OmnichannelChannel;
   backHref?: string;
@@ -122,14 +121,13 @@ export function OmnichannelConversationDetailPanel({
   canSuggestReply = false,
   canManageAi: canManageAi = false,
   isUnassignedForAgent = false,
-  onToggleMobilePanel,
   readOnly = false,
   channel,
   backHref = "/inbox",
   showBackButton = false,
 }: OmnichannelConversationDetailPanelProps) {
   const { ti } = useInboxTranslation();
-  const { inspectorOpen } = useInboxWorkspaceLayout();
+  const { inspectorOpen, openContextSheet } = useInboxWorkspaceLayout();
   const isWhatsapp = (channel ?? conversation.channel) === "whatsapp";
   const showComposer = !readOnly || isWhatsapp;
 
@@ -482,6 +480,16 @@ export function OmnichannelConversationDetailPanel({
 
         <button
           type="button"
+          onClick={() => openContextSheet("copilot")}
+          aria-label={ti("expandPanel")}
+          title={ti("expandPanel")}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:hidden"
+        >
+          <PanelRightOpen className="h-4 w-4" />
+        </button>
+
+        <button
+          type="button"
           onClick={() => {
             setSearchOpen((value) => !value);
             setMenuOpen(false);
@@ -550,21 +558,18 @@ export function OmnichannelConversationDetailPanel({
                 label={ti("assignConversation")}
                 onClick={() => {
                   setMenuOpen(false);
-                  onToggleMobilePanel?.();
+                  openContextSheet("customer360");
                   setNotice(ti("assignConversationHint"));
                 }}
               />
-              {onToggleMobilePanel ? (
-                <ConversationMenuItem
-                  icon={<Info className="h-4 w-4" />}
-                  label={ti("viewDetails")}
-                  className="lg:hidden"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onToggleMobilePanel();
-                  }}
-                />
-              ) : null}
+              <ConversationMenuItem
+                icon={<Info className="h-4 w-4" />}
+                label={ti("viewDetails")}
+                onClick={() => {
+                  setMenuOpen(false);
+                  openContextSheet("copilot");
+                }}
+              />
             </div>
           ) : null}
         </div>
@@ -678,6 +683,7 @@ export function OmnichannelConversationDetailPanel({
 
       {showComposer ? (
         <div className="shrink-0 bg-background">
+          {/* TODO(Aurora PR-005): Replace composer with Aurora Composer */}
           <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}

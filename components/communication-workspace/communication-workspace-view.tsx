@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AlertCircle, PanelRightOpen } from "lucide-react";
 
+import { InboxContextSheetPanels } from "@/components/communication-workspace/inbox-context-sheet-panels";
 import {
   useWhatsappConversationListRealtime,
   type ConversationListPatch,
 } from "@/lib/communication/realtime";
-import { WorkspaceRightSidebar } from "@/components/communication-workspace/workspace-right-sidebar";
 import { InboxGlobalAiChatToggle } from "@/components/omnichannel-inbox/inbox-global-ai-chat-toggle";
 import {
   OmnichannelConversationDetailPanel,
@@ -23,12 +23,18 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
 import {
-  WORKSPACE_LAYOUT_TRANSITION_CLASS,
-  WORKSPACE_SIDEBAR_WIDTH,
-} from "@/lib/communication-workspace/types";
+  ContextSheet,
+  OverlayLayer,
+  WorkspaceContent,
+  WorkspaceHeader,
+  WorkspaceShell,
+} from "@/components/workspace";
 import { InboxAiWorkspaceProvider } from "@/modules/inbox/context/inbox-ai-workspace-context";
 import { InboxComposerProvider } from "@/modules/inbox/context/inbox-composer-context";
-import { InboxWorkspaceLayoutProvider } from "@/modules/inbox/context/inbox-workspace-layout-context";
+import {
+  InboxWorkspaceLayoutProvider,
+  useInboxWorkspaceLayout,
+} from "@/modules/inbox/context/inbox-workspace-layout-context";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import type {
   OmnichannelConversationListItem,
@@ -68,8 +74,6 @@ type CommunicationWorkspaceViewProps = {
   canManageGlobalAi?: boolean;
 };
 
-const SIDEBAR_COLLAPSED_KEY = "desklabs:workspace:detail-collapsed";
-
 function sortByLastMessageAtDesc(
   a: OmnichannelConversationListItem,
   b: OmnichannelConversationListItem,
@@ -92,7 +96,41 @@ function ConversationNotFoundState() {
   );
 }
 
-export function CommunicationWorkspaceView({
+function InboxContextSheetLayer({
+  conversation,
+  organizationId,
+  canUpdateStatus,
+}: {
+  conversation: OmnichannelConversationDetail | null;
+  organizationId: string;
+  canUpdateStatus: boolean;
+}) {
+  const { ti } = useInboxTranslation();
+  const { contextSheetOpen, closeContextSheet } = useInboxWorkspaceLayout();
+
+  return (
+    <ContextSheet
+      open={contextSheetOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          closeContextSheet();
+        }
+      }}
+      title={ti("workspaceTitle")}
+      subtitle={ti("workspaceSubtitle")}
+      width="lg"
+      contentClassName="flex min-h-0 flex-col p-0 md:p-0"
+    >
+      <InboxContextSheetPanels
+        conversation={conversation}
+        organizationId={organizationId}
+        canUpdateStatus={canUpdateStatus}
+      />
+    </ContextSheet>
+  );
+}
+
+function CommunicationWorkspaceBody({
   conversations,
   allConversations,
   detail,
@@ -101,42 +139,35 @@ export function CommunicationWorkspaceView({
   conversationNotFound = false,
   currentUserId,
   organizationId,
-  orgProfiles,
   canReply,
   canSuggestReply,
-  canReassign,
   canUpdateStatus,
-  canAddNote,
-  canConvert,
-  canCreateFollowUp,
   readOnly = false,
   isUnassignedForAgent = false,
   initialError = null,
   initialSuccess = null,
-  aiChatEnabled = true,
-  canManageGlobalAi = false,
-}: CommunicationWorkspaceViewProps) {
-  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+}: Pick<
+  CommunicationWorkspaceViewProps,
+  | "conversations"
+  | "allConversations"
+  | "detail"
+  | "activeFilter"
+  | "selectedConversationId"
+  | "conversationNotFound"
+  | "currentUserId"
+  | "organizationId"
+  | "canReply"
+  | "canSuggestReply"
+  | "canUpdateStatus"
+  | "readOnly"
+  | "isUnassignedForAgent"
+  | "initialError"
+  | "initialSuccess"
+>) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { ti } = useInboxTranslation();
+  const { ti, tStrict } = useInboxTranslation();
+  const { openContextSheet } = useInboxWorkspaceLayout();
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    if (stored === "true") {
-      setSidebarCollapsed(true);
-    } else if (stored === "false") {
-      setSidebarCollapsed(false);
-    }
-  }, []);
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed((value) => {
-      const next = !value;
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
-      return next;
-    });
-  }, []);
   const [liveDetail, setLiveDetail] =
     useState<OmnichannelConversationDetail | null>(detail);
 
@@ -163,12 +194,9 @@ export function CommunicationWorkspaceView({
 
   const filterCounts = buildOmnichannelFilterCounts(allConversations, currentUserId);
 
-  // Daftar percakapan hidup: di-seed dari data server lalu di-patch realtime.
   const [liveConversations, setLiveConversations] =
     useState<OmnichannelConversationListItem[]>(conversations);
 
-  // Seed ulang hanya saat keanggotaan daftar berubah (navigasi/filter), bukan
-  // pada setiap render induk, agar patch realtime tidak terhapus.
   const conversationsKey = useMemo(
     () => conversations.map((item) => item.id).sort().join("|"),
     [conversations],
@@ -213,12 +241,6 @@ export function CommunicationWorkspaceView({
     [liveConversations, searchQuery],
   );
 
-  useEffect(() => {
-    if (selectedConversationId) {
-      setMobilePanelOpen(true);
-    }
-  }, [selectedConversationId]);
-
   const listHref = useMemo(() => {
     const params = new URLSearchParams();
     if (activeFilter !== "all") {
@@ -229,14 +251,53 @@ export function CommunicationWorkspaceView({
   }, [activeFilter]);
 
   const showMobileThread = Boolean(selectedConversationId);
-  const inspectorOpen = !sidebarCollapsed;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === ".") {
+        event.preventDefault();
+        openContextSheet("copilot");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openContextSheet]);
 
   if (initialError) {
     logInboxError("initialError", decodeURIComponent(initialError));
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <WorkspaceShell
+      header={
+        <WorkspaceHeader
+          title={tStrict("navigation.inbox")}
+          subtitle={ti("workspaceSubtitle")}
+          search={
+            showMobileThread ? undefined : (
+              <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
+            )
+          }
+          actions={
+            liveDetail ? (
+              <button
+                type="button"
+                onClick={() => openContextSheet("copilot")}
+                className="inline-flex h-9 items-center gap-2 rounded-[14px] border border-border/40 px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title={ti("expandPanel")}
+                aria-label={ti("expandPanel")}
+              >
+                <PanelRightOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">{ti("workspaceTitle")}</span>
+              </button>
+            ) : (
+              <InboxGlobalAiChatToggle />
+            )
+          }
+        />
+      }
+    >
       {initialError ? (
         <div className="shrink-0 border-b border-red-200/60 bg-red-50 px-4 py-2.5 dark:border-red-900/40 dark:bg-red-950/30">
           <p className="text-sm font-medium text-red-700 dark:text-red-300">
@@ -249,38 +310,24 @@ export function CommunicationWorkspaceView({
       ) : null}
 
       {initialSuccess ? (
-        <div className="shrink-0 rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <div className="shrink-0 border-b border-emerald-200/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
           {decodeURIComponent(initialSuccess)}
         </div>
       ) : null}
 
-      <InboxAiWorkspaceProvider
-        aiChatEnabled={aiChatEnabled}
-        canManageGlobalAi={canManageGlobalAi}
-      >
-      <InboxComposerProvider>
-      <InboxWorkspaceLayoutProvider inspectorOpen={inspectorOpen}>
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 overflow-hidden bg-background",
-          WORKSPACE_LAYOUT_TRANSITION_CLASS,
-          inspectorOpen
-            ? "lg:grid-cols-[320px_minmax(0,1fr)_var(--workspace-inspector-width)]"
-            : "lg:grid-cols-[320px_minmax(0,1fr)]",
-        )}
-        style={{
-          ["--workspace-inspector-width" as string]: WORKSPACE_SIDEBAR_WIDTH,
-        }}
-      >
-        {/* Left — conversation list */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* TODO(Aurora PR-003): Replace legacy Conversation List with Aurora Conversation List V2 */}
         <section
           className={cn(
             "flex min-h-0 w-[320px] min-w-[320px] max-w-[320px] shrink-0 flex-col border-r border-border/30 bg-background",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="space-y-3 px-4 pb-3 pt-4">
+          <div className="space-y-3 px-4 pb-3 pt-3 lg:hidden">
             <InboxGlobalAiChatToggle />
+          </div>
+
+          <div className="px-4 pb-3 lg:hidden">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
           </div>
 
@@ -302,94 +349,61 @@ export function CommunicationWorkspaceView({
           </div>
         </section>
 
-        {/* Center — active thread */}
-        <section
+        {/* TODO(Aurora PR-004): Replace legacy thread layout with Aurora Conversation Thread V2 */}
+        <WorkspaceContent
+          variant="full"
           className={cn(
-            "relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-background transition-[width] duration-200 ease-in-out",
+            "min-w-0 overflow-hidden p-0 md:p-0 [&>div]:h-full [&>div]:min-h-0 [&>div]:flex-1 [&>div]:space-y-0",
             showMobileThread ? "flex flex-col" : "hidden lg:flex lg:flex-col",
           )}
         >
-          {inspectorOpen ? null : (
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="absolute right-4 top-3 z-10 hidden h-9 w-9 items-center justify-center rounded-full border border-border/25 bg-background text-muted-foreground shadow-sm transition-colors duration-200 ease-in-out hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
-              title={ti("expandPanel")}
-              aria-label={ti("expandPanel")}
-            >
-              <PanelRightOpen className="h-4 w-4" />
-            </button>
-          )}
           {liveDetail ? (
-            <>
-              <OmnichannelConversationDetailPanel
-                conversation={liveDetail}
-                canReply={canReply}
-                canSuggestReply={canSuggestReply}
-                canManageAi={canUpdateStatus}
-                isUnassignedForAgent={isUnassignedForAgent}
-                readOnly={readOnly}
-                channel={liveDetail.channel}
-                mobilePanelOpen={mobilePanelOpen}
-                onToggleMobilePanel={() => setMobilePanelOpen((open) => !open)}
-                backHref={listHref}
-                showBackButton
-              />
-              {mobilePanelOpen ? (
-                <>
-                  <button
-                    type="button"
-                    aria-label={ti("closeCustomerIntelligence")}
-                    className="fixed inset-0 z-30 bg-black/30 backdrop-blur-[1px] lg:hidden"
-                    onClick={() => setMobilePanelOpen(false)}
-                  />
-                  <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-border/40 bg-background shadow-lg lg:hidden">
-                    <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" />
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                      <WorkspaceRightSidebar
-                        conversation={liveDetail}
-                        organizationId={organizationId}
-                        orgProfiles={orgProfiles}
-                        canReassign={canReassign}
-                        canUpdateStatus={canUpdateStatus}
-                        canAddNote={canAddNote}
-                        canConvert={canConvert}
-                        canCreateFollowUp={canCreateFollowUp}
-                        collapsed={false}
-                        onToggleCollapsed={() => setMobilePanelOpen(false)}
-                      />
-                    </div>
-                  </aside>
-                </>
-              ) : null}
-            </>
+            <OmnichannelConversationDetailPanel
+              conversation={liveDetail}
+              canReply={canReply}
+              canSuggestReply={canSuggestReply}
+              canManageAi={canUpdateStatus}
+              isUnassignedForAgent={isUnassignedForAgent}
+              readOnly={readOnly}
+              channel={liveDetail.channel}
+              backHref={listHref}
+              showBackButton
+            />
           ) : conversationNotFound ? (
             <ConversationNotFoundState />
           ) : (
             <OmnichannelConversationEmptyState />
           )}
-        </section>
-
-        {inspectorOpen ? (
-          <section className="hidden h-full min-h-0 min-w-0 shrink-0 overflow-hidden border-l border-border/30 lg:block">
-            <WorkspaceRightSidebar
-              conversation={liveDetail}
-              organizationId={organizationId}
-              orgProfiles={orgProfiles}
-              canReassign={canReassign}
-              canUpdateStatus={canUpdateStatus}
-              canAddNote={canAddNote}
-              canConvert={canConvert}
-              canCreateFollowUp={canCreateFollowUp}
-              collapsed={false}
-              onToggleCollapsed={toggleSidebar}
-            />
-          </section>
-        ) : null}
+        </WorkspaceContent>
       </div>
-      </InboxWorkspaceLayoutProvider>
+
+      <InboxContextSheetLayer
+        conversation={liveDetail}
+        organizationId={organizationId}
+        canUpdateStatus={canUpdateStatus}
+      />
+
+      {/* TODO(Aurora): Wire ambient AI assistant via OverlayLayer */}
+      <OverlayLayer open={false} tier="overlay">
+        {null}
+      </OverlayLayer>
+    </WorkspaceShell>
+  );
+}
+
+export function CommunicationWorkspaceView(props: CommunicationWorkspaceViewProps) {
+  const { aiChatEnabled = true, canManageGlobalAi = false, ...bodyProps } = props;
+
+  return (
+    <InboxAiWorkspaceProvider
+      aiChatEnabled={aiChatEnabled}
+      canManageGlobalAi={canManageGlobalAi}
+    >
+      <InboxComposerProvider>
+        <InboxWorkspaceLayoutProvider>
+          <CommunicationWorkspaceBody {...bodyProps} />
+        </InboxWorkspaceLayoutProvider>
       </InboxComposerProvider>
-      </InboxAiWorkspaceProvider>
-    </div>
+    </InboxAiWorkspaceProvider>
   );
 }

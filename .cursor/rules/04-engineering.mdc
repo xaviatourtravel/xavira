@@ -1,0 +1,9 @@
+---
+description: Engineering rules
+alwaysApply: true
+---
+
+Composition over duplication.
+Reuse components.
+Type-safe code.
+Maintainability over cleverness.

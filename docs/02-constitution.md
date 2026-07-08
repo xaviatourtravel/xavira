@@ -1,8 +1,42 @@
-# Desklabs Constitution
+---
+title: Desklabs Constitution
+version: 1.1
+status: Stable
+owner: Product
+review_cycle: Quarterly
+last_updated: 2026-07-08
 
-Version: 1.0  
-Status: Active
+related_docs:
+  - product/product-positioning-bible.md
+  - design/design-language-system.md
+  - design/ui-ux-principles.md
+  - design/component-guidelines.md
+---
 
+# Vision
+
+We believe every customer-facing business deserves one connected workspace.
+
+Not disconnected tools.
+
+Not disconnected data.
+
+Not disconnected teams.
+
+Desklabs exists to become the Customer Operating System where every customer journey begins, evolves, and is managed.
+---
+
+# What Desklabs Is Not
+
+Desklabs is not:
+
+- another CRM
+- another WhatsApp tool
+- another AI wrapper
+- another ERP
+- another dashboard platform
+
+Desklabs is a Customer Operating System.
 ---
 
 # Purpose
@@ -60,6 +94,16 @@ It never replaces human judgement.
 ---
 
 # Product Principles
+Reuse Before Create
+
+Before introducing a new:
+
+- page
+- component
+- workflow
+- pattern
+
+Always evaluate whether an existing solution can be reused.
 
 ## Work Before Data
 
@@ -165,16 +209,27 @@ Every implementation should improve the overall architecture.
 
 ---
 
-# Product Oath
+# Final Question
 
-We do not build software to impress.
+Before shipping any feature, ask:
 
-We build software to reduce work.
+Does this make Desklabs feel more like
+a Customer Operating System?
 
-Every release should make the product feel lighter.
+If the answer is no,
 
-Every feature should make work easier.
+stop.
 
-Every decision should move the customer closer to a successful outcome.
+Rethink the solution.
 
-If it does not improve the user's work, it does not belong in Desklabs.
+---
+
+# Success
+
+A feature is successful when it:
+
+- reduces work
+- reduces clicks
+- preserves context
+- requires less training
+- increases operational clarity

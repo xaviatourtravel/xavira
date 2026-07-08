@@ -1,0 +1,10 @@
+---
+description: Frontend rules
+alwaysApply: true
+---
+
+Next.js App Router.
+TypeScript.
+Tailwind.
+shadcn/ui first.
+Support loading, empty, error, light and dark mode.

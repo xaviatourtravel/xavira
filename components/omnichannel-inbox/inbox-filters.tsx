@@ -6,6 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 
 import type { OmnichannelFilterCounts } from "@/components/omnichannel-inbox/inbox-display";
+import {
+  AURORA_MOTION,
+  AURORA_QUEUE_FILTER_CHIP,
+} from "@/components/workspace/aurora-tokens";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -33,7 +37,10 @@ const SECONDARY_FILTERS: FilterItem[] = [
 
 const ALL_FILTERS: FilterItem[] = [...PRIMARY_FILTERS, ...SECONDARY_FILTERS];
 
-const COUNTED_FILTERS = new Set<OmnichannelInboxFilter>(["unread", "ready_for_human"]);
+const COUNTED_FILTERS = new Set<OmnichannelInboxFilter>([
+  "unread",
+  "ready_for_human",
+]);
 
 function shouldShowFilterCount(filter: OmnichannelInboxFilter) {
   return COUNTED_FILTERS.has(filter);
@@ -71,6 +78,7 @@ function FilterChip({
   showCount?: boolean;
 }) {
   const { ti } = useInboxTranslation();
+  const hasCount = showCount && count > 0;
 
   return (
     <Link
@@ -79,15 +87,25 @@ function FilterChip({
       aria-selected={isActive}
       onClick={onNavigate}
       className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 text-[10px] font-medium transition-colors",
+        AURORA_QUEUE_FILTER_CHIP,
+        AURORA_MOTION.hover,
         isActive
-          ? "bg-muted/80 text-foreground dark:bg-muted/50"
-          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+          ? "bg-foreground/[0.07] text-foreground dark:bg-foreground/10"
+          : "text-muted-foreground hover:bg-muted/35 hover:text-foreground",
       )}
     >
       <span>{ti(filter.labelKey)}</span>
-      {showCount && count > 0 ? (
-        <span className="tabular-nums text-muted-foreground/80">{count}</span>
+      {hasCount ? (
+        <span
+          className={cn(
+            "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums leading-none",
+            isActive
+              ? "bg-primary/15 text-primary"
+              : "bg-muted/50 text-muted-foreground",
+          )}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
       ) : null}
     </Link>
   );
@@ -111,7 +129,9 @@ function MoreFiltersDropdown({
     : null;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     function handlePointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
@@ -145,10 +165,12 @@ function MoreFiltersDropdown({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex h-6 max-w-[9.5rem] items-center gap-0.5 whitespace-nowrap rounded-md px-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          AURORA_QUEUE_FILTER_CHIP,
+          AURORA_MOTION.hover,
+          "max-w-[9.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           secondaryActive
-            ? "bg-muted/80 text-foreground dark:bg-muted/50"
-            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+            ? "bg-foreground/[0.07] text-foreground dark:bg-foreground/10"
+            : "text-muted-foreground hover:bg-muted/35 hover:text-foreground",
         )}
       >
         <span className="truncate">{triggerLabel}</span>
@@ -161,10 +183,11 @@ function MoreFiltersDropdown({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+0.25rem)] z-30 min-w-[11rem] rounded-lg border border-border/40 bg-background py-1 shadow-md"
+          className="absolute right-0 top-[calc(100%+0.35rem)] z-30 min-w-[11rem] overflow-hidden rounded-[14px] border border-border/25 bg-background/95 py-1 shadow-lg backdrop-blur-sm"
         >
           {SECONDARY_FILTERS.map((filter) => {
             const isActive = activeFilter === filter.value;
+            const count = filterCounts[filter.value];
             return (
               <Link
                 key={filter.value}
@@ -172,14 +195,14 @@ function MoreFiltersDropdown({
                 href={buildInboxHref(filter.value, currentConversationId)}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center justify-between gap-3 px-3 py-1.5 text-[11px] transition-colors hover:bg-muted/40",
+                  "flex items-center justify-between gap-3 px-3 py-2 text-xs transition-colors hover:bg-muted/40",
                   isActive ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
                 <span>{ti(filter.labelKey)}</span>
-                {shouldShowFilterCount(filter.value) && filterCounts[filter.value] > 0 ? (
-                  <span className="tabular-nums text-muted-foreground/80">
-                    {filterCounts[filter.value]}
+                {shouldShowFilterCount(filter.value) && count > 0 ? (
+                  <span className="tabular-nums text-muted-foreground/70">
+                    {count}
                   </span>
                 ) : null}
               </Link>
@@ -209,11 +232,11 @@ export function OmnichannelInboxFilters({
 
   return (
     <div
-      className="-mx-4 flex items-center gap-1 px-4"
+      className="-mx-1 flex items-center gap-1.5 px-1"
       role="tablist"
       aria-label={ti("filterAriaLabel")}
     >
-      <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex min-w-0 flex-1 flex-nowrap gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {PRIMARY_FILTERS.map((filter) => (
           <FilterChip
             key={filter.value}

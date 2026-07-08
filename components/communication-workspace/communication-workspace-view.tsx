@@ -342,14 +342,13 @@ function CommunicationWorkspaceBody({
       ) : null}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* TODO(Aurora PR-003): Replace legacy Conversation List with Aurora Conversation List V2 */}
         <section
           className={cn(
-            "flex min-h-0 w-[320px] min-w-[320px] max-w-[320px] shrink-0 flex-col border-r border-border/30 bg-background",
+            "flex min-h-0 w-[300px] min-w-[300px] max-w-[300px] shrink-0 flex-col border-r border-border/25 bg-background",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="px-4 pb-3 pt-3">
+          <div className="px-3 pb-2.5 pt-2">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}

@@ -56,6 +56,20 @@ export const AURORA_COMPOSER_ICON_BUTTON =
 export const AURORA_COMPOSER_SEND_BUTTON =
   "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
+/** Conversation queue — scanning-optimized list */
+export const AURORA_QUEUE_WIDTH = "w-[300px] min-w-[300px] max-w-[300px]";
+
+export const AURORA_QUEUE_ITEM_BASE =
+  "group relative block rounded-[14px] px-2.5 py-2 transition-colors duration-[120ms] motion-reduce:transition-none";
+
+export const AURORA_QUEUE_ITEM_HOVER = "hover:bg-muted/35 dark:hover:bg-muted/20";
+
+export const AURORA_QUEUE_ITEM_SELECTED =
+  "bg-muted/45 ring-1 ring-inset ring-border/25 dark:bg-muted/25";
+
+export const AURORA_QUEUE_FILTER_CHIP =
+  "inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-xs font-medium transition-colors duration-[120ms] motion-reduce:transition-none";
+
 export const AURORA_CONTEXT_SHEET_WIDTH = {
   sm: "max-w-sm",
   md: "max-w-md",

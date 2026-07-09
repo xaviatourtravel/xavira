@@ -489,7 +489,7 @@ export function OmnichannelConversationReplyBox({
           null
         }
       >
-        <div ref={rowRef} className="flex w-full min-w-0 items-center gap-0.5">
+        <div ref={rowRef} className="flex w-full min-w-0 items-center gap-1">
           <div className="relative shrink-0">
             <AuroraComposerIconButton
               label={ti("composerAttachment")}
@@ -500,7 +500,7 @@ export function OmnichannelConversationReplyBox({
                 setOpenMenu((value) => (value === "plus" ? null : "plus"))
               }
             >
-              <Plus className="h-[18px] w-[18px]" />
+              <Plus className="h-4 w-4" />
             </AuroraComposerIconButton>
             {openMenu === "plus" ? (
               <AuroraComposerPopover align="left" className="w-64">
@@ -575,7 +575,7 @@ export function OmnichannelConversationReplyBox({
                 setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
               }
             >
-              <Smile className="h-[18px] w-[18px]" />
+              <Smile className="h-4 w-4" />
             </AuroraComposerIconButton>
             {openMenu === "emoji" ? (
               <AuroraComposerPopover align="right" className="grid grid-cols-6 gap-0.5 p-2">

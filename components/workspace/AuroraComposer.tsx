@@ -80,7 +80,7 @@ export function AuroraComposer({
   return (
     <div
       className={cn(
-        "relative bg-background px-0 pb-2.5 pt-1.5",
+        "relative bg-background px-0 pb-3 pt-0",
         className,
       )}
       onDragEnter={onDragEnter}
@@ -89,7 +89,7 @@ export function AuroraComposer({
       onDrop={onDrop}
     >
       {isDragging && dropLabel ? (
-        <div className="pointer-events-none absolute inset-x-2 inset-y-2 z-20 flex items-center justify-center rounded-[20px] border-2 border-dashed border-primary/20 bg-background/90">
+        <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-20 flex items-center justify-center rounded-[26px] border-2 border-dashed border-border/25 bg-white dark:bg-background">
           <p className="text-sm text-muted-foreground">{dropLabel}</p>
         </div>
       ) : null}
@@ -123,9 +123,9 @@ export function AuroraComposerSurface({
       className={cn(
         AURORA_COMPOSER_SURFACE,
         AURORA_MOTION.hover,
-        "transition-[border-color,opacity,background-color]",
+        "transition-[border-color,opacity]",
         AURORA_MOTION.respectMotion,
-        "focus-within:border-border/25",
+        "focus-within:border-border/40",
         (disabled || isSending) && "opacity-60",
         className,
       )}
@@ -250,15 +250,15 @@ export function AuroraComposerInput({
   placeholder,
   disabled = false,
   title,
-  minHeight = 36,
+  minHeight = 32,
   maxHeight = 132,
   className,
   inputRef,
 }: AuroraComposerInputProps) {
   return (
     <div
-      className={cn("flex min-w-0 flex-1 items-center py-0")}
-      style={{ minHeight, maxHeight: maxHeight + 4 }}
+      className={cn("flex min-h-0 min-w-0 flex-1 items-center")}
+      style={{ maxHeight: maxHeight + 8 }}
     >
       <textarea
         ref={inputRef}
@@ -270,12 +270,12 @@ export function AuroraComposerInput({
         disabled={disabled}
         title={title}
         className={cn(
-          "w-full resize-none border-0 bg-transparent px-1.5 text-sm leading-[1.55] outline-none",
-          "placeholder:text-muted-foreground/55",
+          "w-full resize-none border-0 bg-transparent px-0 text-sm leading-[1.5] outline-none focus:outline-none focus-visible:outline-none",
+          "placeholder:text-muted-foreground/45",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
-        style={{ maxHeight }}
+        style={{ maxHeight, minHeight }}
       />
     </div>
   );

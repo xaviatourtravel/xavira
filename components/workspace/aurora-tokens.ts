@@ -46,15 +46,15 @@ export const AURORA_READING_LANE_CLASS =
 /** Message bubble corner radius per Aurora Visual DNA */
 export const AURORA_BUBBLE_RADIUS = "rounded-[20px]";
 
-/** Floating composer surface */
+/** Aurora conversation composer */
 export const AURORA_COMPOSER_SURFACE =
-  "flex h-[52px] min-h-[52px] w-full items-center gap-1 rounded-[20px] border border-border/15 bg-background px-1.5";
+  "flex h-[54px] min-h-[52px] w-full items-center gap-2 rounded-[26px] border border-border/20 bg-white px-4 dark:bg-background";
 
 export const AURORA_COMPOSER_ICON_BUTTON =
-  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:opacity-40";
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40";
 
 export const AURORA_COMPOSER_SEND_BUTTON =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35";
 
 /** Conversation queue — scanning-optimized list */
 export const AURORA_QUEUE_WIDTH = "w-[300px] min-w-[300px] max-w-[300px]";

@@ -34,6 +34,17 @@ const PRIMARY_WORKSPACES = WORKSPACE_NAV.filter(
   (workspace) => workspace.id !== "settings",
 );
 
+const SIDEBAR_ICON_CLASS = "h-5 w-5 shrink-0";
+const SIDEBAR_ICON_STROKE = 1.75;
+
+const SIDEBAR_ROW_BASE =
+  "relative flex h-10 min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-150 ease-out";
+
+const SIDEBAR_ROW_HOVER = "hover:bg-muted/20";
+
+const SIDEBAR_ROW_ACTIVE =
+  "bg-primary/8 text-primary before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary";
+
 export function SidebarNavigation({
   permissions,
   attentionBadges = EMPTY_NAV_ATTENTION_BADGES,
@@ -50,9 +61,9 @@ export function SidebarNavigation({
   const { t } = useTranslation();
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       {showBrand ? (
-        <div className="flex h-14 items-center border-b border-border px-5">
+        <div className="flex shrink-0 items-center px-5 py-5">
           <Link
             href="/today"
             onClick={onNavigate}
@@ -63,29 +74,31 @@ export function SidebarNavigation({
         </div>
       ) : null}
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
-        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-3">
+        <p className="mb-3 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           {t("common.workspaces")}
         </p>
 
-        {visibleWorkspaces.map((workspace) => (
-          <WorkspaceNavSection
-            key={workspace.id}
-            workspace={workspace}
-            pathname={pathname}
-            searchParams={searchParams}
-            isActive={activeWorkspaceId === workspace.id}
-            badgeCount={
-              workspace.badgeKey ? attentionBadges[workspace.badgeKey] : 0
-            }
-            onNavigate={onNavigate}
-            t={t}
-          />
-        ))}
+        <div className="space-y-6">
+          {visibleWorkspaces.map((workspace) => (
+            <WorkspaceNavSection
+              key={workspace.id}
+              workspace={workspace}
+              pathname={pathname}
+              searchParams={searchParams}
+              isActive={activeWorkspaceId === workspace.id}
+              badgeCount={
+                workspace.badgeKey ? attentionBadges[workspace.badgeKey] : 0
+              }
+              onNavigate={onNavigate}
+              t={t}
+            />
+          ))}
+        </div>
       </nav>
 
       {settingsWorkspace && permissionSet.has(settingsWorkspace.permission) ? (
-        <div className="border-t border-border p-3">
+        <div className="shrink-0 border-t border-border/20 px-3 py-3">
           <SidebarLink
             workspace={settingsWorkspace}
             isActive={activeWorkspaceId === "settings"}
@@ -94,7 +107,7 @@ export function SidebarNavigation({
           />
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -121,7 +134,7 @@ function WorkspaceNavSection({
   const expanded = isActive && hasChildren;
 
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-1">
       <SidebarLink
         workspace={workspace}
         isActive={isActive}
@@ -131,17 +144,17 @@ function WorkspaceNavSection({
       />
 
       {expanded ? (
-        <ul className="ml-4 space-y-0.5 border-l border-border pl-3">
+        <ul className="ml-4 space-y-0.5 border-l border-border/20 pl-3">
           {workspace.items.map((item) => {
             if (item.comingSoon) {
               return (
                 <li key={item.title}>
                   <span
-                    className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground/70"
+                    className="flex h-10 min-h-10 items-center justify-between gap-2 rounded-xl px-3 text-sm text-muted-foreground/70"
                     title={t("common.comingSoon")}
                   >
                     <span>{translateNavChildTitle(t, item.href, item.title)}</span>
-                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <span className="shrink-0 rounded-full bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                       {t("common.soon")}
                     </span>
                   </span>
@@ -161,10 +174,11 @@ function WorkspaceNavSection({
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    "flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm transition-colors",
+                    SIDEBAR_ROW_BASE,
+                    SIDEBAR_ROW_HOVER,
                     childActive
-                      ? "bg-card font-medium text-foreground shadow-sm ring-1 ring-border"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      ? SIDEBAR_ROW_ACTIVE
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {translateNavChildTitle(t, item.href, item.title)}
@@ -200,21 +214,23 @@ function SidebarLink({
       title={workspace.businessQuestion}
       onClick={onNavigate}
       className={cn(
-        "flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
+        SIDEBAR_ROW_BASE,
+        SIDEBAR_ROW_HOVER,
         isActive
-          ? "bg-primary font-medium text-primary-foreground shadow-sm"
-          : "text-foreground/70 hover:bg-muted/60 hover:text-foreground hover:shadow-sm hover:ring-1 hover:ring-border",
+          ? SIDEBAR_ROW_ACTIVE
+          : "text-foreground/75 hover:text-foreground",
       )}
     >
       <Icon
         className={cn(
-          "h-4 w-4 shrink-0",
-          isActive ? "text-primary-foreground" : "text-muted-foreground",
+          SIDEBAR_ICON_CLASS,
+          isActive ? "text-primary" : "text-muted-foreground",
         )}
+        strokeWidth={SIDEBAR_ICON_STROKE}
       />
       <span className="min-w-0 flex-1 truncate">{title}</span>
       {badgeCount > 0 ? (
-        <AttentionBadge count={badgeCount} inverted={isActive} />
+        <AttentionBadge count={badgeCount} active={isActive} />
       ) : null}
     </Link>
   );
@@ -222,18 +238,18 @@ function SidebarLink({
 
 function AttentionBadge({
   count,
-  inverted = false,
+  active = false,
 }: {
   count: number;
-  inverted?: boolean;
+  active?: boolean;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
-        inverted
-          ? "bg-amber-400 text-slate-950"
-          : "bg-amber-100 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 dark:ring-amber-500/30",
+        "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+        active
+          ? "bg-primary/12 text-primary"
+          : "bg-muted/45 text-muted-foreground",
       )}
       aria-label={`${count} items need attention`}
     >

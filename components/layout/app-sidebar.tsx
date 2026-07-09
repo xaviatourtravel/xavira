@@ -17,7 +17,7 @@ export function AppSidebar({
   attentionBadges = EMPTY_NAV_ATTENTION_BADGES,
 }: AppSidebarProps) {
   return (
-    <aside className="hidden h-full w-[17.5rem] shrink-0 flex-col border-r border-border bg-card lg:flex">
+    <aside className="hidden h-full w-[248px] min-w-[248px] max-w-[248px] shrink-0 flex-col border-r border-border/20 bg-background lg:flex">
       <SidebarNavigation permissions={permissions} attentionBadges={attentionBadges} />
     </aside>
   );

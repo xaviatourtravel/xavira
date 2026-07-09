@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AlertCircle, PanelRightOpen } from "lucide-react";
 
+import { InboxContextPanel } from "@/components/communication-workspace/inbox-context-panel";
 import { InboxContextSheetPanels } from "@/components/communication-workspace/inbox-context-sheet-panels";
 import {
   useWhatsappConversationListRealtime,
@@ -23,13 +24,15 @@ import {
 } from "@/components/omnichannel-inbox/inbox-display";
 import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
 import {
+  AURORA_QUEUE_WIDTH,
+  AURORA_SHELL_CLASS,
+  AURORA_WORKSPACE_HEADER_KPI,
+  AURORA_WORKSPACE_HEADER_TITLE,
+} from "@/components/workspace/aurora-tokens";
+import {
   ContextSheet,
-  OverlayLayer,
-  WorkspaceContent,
-  WorkspaceHeader,
   WorkspaceHeaderAction,
   WorkspaceHeaderKpi,
-  WorkspaceShell,
 } from "@/components/workspace";
 import { formatTranslation } from "@/lib/i18n/dictionary";
 import { InboxAiWorkspaceProvider } from "@/modules/inbox/context/inbox-ai-workspace-context";
@@ -277,6 +280,9 @@ function CommunicationWorkspaceBody({
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key === ".") {
+        if (window.matchMedia("(min-width: 1024px)").matches) {
+          return;
+        }
         event.preventDefault();
         openContextSheet("copilot");
       }
@@ -291,39 +297,7 @@ function CommunicationWorkspaceBody({
   }
 
   return (
-    <WorkspaceShell
-      header={
-        <WorkspaceHeader
-          title={tStrict("navigation.inbox")}
-          kpi={
-            <WorkspaceHeaderKpi tone="default" ariaLive="polite">
-              {headerKpi}
-            </WorkspaceHeaderKpi>
-          }
-          search={
-            showMobileThread ? undefined : (
-              <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
-            )
-          }
-          actions={
-            liveDetail ? (
-              <WorkspaceHeaderAction
-                label={ti("workspaceTitle")}
-                icon={PanelRightOpen}
-                onClick={() => openContextSheet("copilot")}
-              />
-            ) : undefined
-          }
-          toolbar={
-            !liveDetail ? (
-              <div className="max-w-md">
-                <InboxGlobalAiChatToggle />
-              </div>
-            ) : undefined
-          }
-        />
-      }
-    >
+    <div className={cn(AURORA_SHELL_CLASS, "h-full overflow-hidden")}>
       {initialError ? (
         <div className="shrink-0 border-b border-red-200/60 bg-red-50 px-4 py-2.5 dark:border-red-900/40 dark:bg-red-950/30">
           <p className="text-sm font-medium text-red-700 dark:text-red-300">
@@ -344,11 +318,41 @@ function CommunicationWorkspaceBody({
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <section
           className={cn(
-            "flex min-h-0 w-[300px] min-w-[300px] max-w-[300px] shrink-0 flex-col border-r border-border/25 bg-background",
+            AURORA_QUEUE_WIDTH,
+            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-border/25 bg-background",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <div className="px-3 pb-2.5 pt-2">
+          <header className="shrink-0 border-b border-border/25 px-3 py-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className={AURORA_WORKSPACE_HEADER_TITLE}>
+                  {tStrict("navigation.inbox")}
+                </h1>
+                <WorkspaceHeaderKpi
+                  tone="default"
+                  ariaLive="polite"
+                  className={AURORA_WORKSPACE_HEADER_KPI}
+                >
+                  {headerKpi}
+                </WorkspaceHeaderKpi>
+              </div>
+
+              <WorkspaceHeaderAction
+                label={ti("workspaceTitle")}
+                icon={PanelRightOpen}
+                onClick={() => openContextSheet("copilot")}
+                className="lg:hidden"
+              />
+            </div>
+          </header>
+
+          <div className="shrink-0 space-y-2 border-b border-border/25 px-3 py-2">
+            <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
+            <InboxGlobalAiChatToggle />
+          </div>
+
+          <div className="shrink-0 px-3 pb-2.5 pt-2">
             <OmnichannelInboxFilters
               activeFilter={activeFilter}
               selectedConversationId={selectedConversationId}
@@ -356,7 +360,7 @@ function CommunicationWorkspaceBody({
             />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <OmnichannelConversationList
               conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
@@ -366,12 +370,10 @@ function CommunicationWorkspaceBody({
           </div>
         </section>
 
-        {/* Conversation thread — Aurora reading lane */}
-        <WorkspaceContent
-          variant="full"
+        <main
           className={cn(
-            "min-w-0 overflow-hidden p-0 md:p-0 [&>div]:h-full [&>div]:min-h-0 [&>div]:flex-1 [&>div]:space-y-0",
-            showMobileThread ? "flex flex-col" : "hidden lg:flex lg:flex-col",
+            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
+            showMobileThread ? "flex" : "hidden lg:flex",
           )}
         >
           {liveDetail ? (
@@ -391,7 +393,9 @@ function CommunicationWorkspaceBody({
           ) : (
             <OmnichannelConversationEmptyState />
           )}
-        </WorkspaceContent>
+        </main>
+
+        <InboxContextPanel conversation={liveDetail} />
       </div>
 
       <InboxContextSheetLayer
@@ -399,12 +403,7 @@ function CommunicationWorkspaceBody({
         organizationId={organizationId}
         canUpdateStatus={canUpdateStatus}
       />
-
-      {/* TODO(Aurora): Wire ambient AI assistant via OverlayLayer */}
-      <OverlayLayer open={false} tier="overlay">
-        {null}
-      </OverlayLayer>
-    </WorkspaceShell>
+    </div>
   );
 }
 

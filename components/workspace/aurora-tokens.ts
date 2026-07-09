@@ -79,3 +79,15 @@ export const AURORA_CONTEXT_SHEET_WIDTH = {
 } as const;
 
 export type AuroraContextSheetWidth = keyof typeof AURORA_CONTEXT_SHEET_WIDTH;
+
+/** Aurora context panel — permanent desktop rail */
+export const AURORA_CONTEXT_PANEL_WIDTH =
+  "w-[360px] min-w-[360px] max-w-[360px]";
+
+export const AURORA_CONTEXT_CARD_CLASS =
+  "rounded-2xl border border-border/20 bg-white p-4 dark:bg-card";
+
+export const AURORA_CONTEXT_CARD_STACK_GAP = "gap-4";
+
+export const AURORA_CONTEXT_CHIP_CLASS =
+  "inline-flex items-center rounded-full bg-muted/35 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground";

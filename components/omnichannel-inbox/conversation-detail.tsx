@@ -50,6 +50,7 @@ import { formatTranslation } from "@/lib/i18n/dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { isQualificationHandoffReason } from "@/modules/ai/types/lead-qualification";
 import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
+import { ConversationMessageLane } from "@/components/omnichannel-inbox/conversation-message-lane";
 import { ConversationMessageThread } from "@/components/omnichannel-inbox/conversation-message-thread";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -642,7 +643,8 @@ export function OmnichannelConversationDetailPanel({
         onScroll={handleScroll}
         className="min-h-0 flex-1 overflow-y-auto bg-background"
       >
-        <div className={getConversationLaneClassName(inspectorOpen, "py-5 pt-4 pb-5")}>
+        <div className="py-5 pt-4 pb-5">
+          <ConversationMessageLane>
           {displayMessages.length === 0 ? (
             <InboxEmptyState
               icon={MessageSquareText}
@@ -675,6 +677,7 @@ export function OmnichannelConversationDetailPanel({
               }
             />
           )}
+          </ConversationMessageLane>
           <div ref={messagesEndRef} />
         </div>
       </div>

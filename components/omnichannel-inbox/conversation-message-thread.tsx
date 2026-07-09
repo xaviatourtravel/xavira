@@ -21,7 +21,7 @@ type ConversationMessageThreadProps = {
 
 function getMessageStackSpacing(groupPosition: MessageGroupPosition) {
   if (groupPosition === "first" || groupPosition === "single") {
-    return "mt-4 first:mt-0";
+    return "mt-5 first:mt-0";
   }
 
   return "mt-1";
@@ -48,11 +48,16 @@ export function ConversationMessageThread({
   );
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex w-full flex-col", className)}>
       {threadItems.map((item) => {
         if (item.type === "date") {
           return (
-            <div key={item.key} className="flex justify-center py-5 first:pt-1">
+            <div
+              key={item.key}
+              className="flex w-full justify-center py-4 first:pt-0"
+              role="separator"
+              aria-label={item.label}
+            >
               <span className="text-[10px] font-medium tracking-wide text-muted-foreground/50">
                 {item.label}
               </span>

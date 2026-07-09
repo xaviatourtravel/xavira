@@ -7,7 +7,7 @@ import {
   formatInboxMessageBubbleTime,
   formatOutgoingBubbleMetadataLine,
 } from "@/components/omnichannel-inbox/inbox-display";
-import { getBubbleStyle } from "@/lib/communication-workspace/conversation-lane";
+import { MESSAGE_BUBBLE_WIDTH_CLASS } from "@/lib/communication-workspace/conversation-lane";
 import type { MessageGroupPosition } from "@/lib/communication/message-thread";
 import { formatTranslation } from "@/lib/i18n/dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -109,14 +109,15 @@ export function ConversationMessageBubble({
   return (
     <div
       className={cn(
-        "flex scroll-mt-24",
-        isIncoming ? "justify-start" : "justify-end",
+        "grid w-full grid-cols-1 scroll-mt-24",
         className,
       )}
     >
       <div
         className={cn(
-          "inline-block w-fit px-3 py-2",
+          MESSAGE_BUBBLE_WIDTH_CLASS,
+          isIncoming ? "justify-self-start" : "justify-self-end",
+          "inline-block px-3 py-2",
           getBubbleShapeClasses(isIncoming, groupPosition),
           isIncoming
             ? "bg-muted/30 text-foreground dark:bg-muted/20"
@@ -124,7 +125,6 @@ export function ConversationMessageBubble({
           isFailed && "ring-1 ring-red-400/35",
           isOptimistic && "opacity-80",
         )}
-        style={getBubbleStyle()}
       >
         {message.message_text ? (
           <p className="whitespace-pre-wrap text-sm leading-[1.5]">

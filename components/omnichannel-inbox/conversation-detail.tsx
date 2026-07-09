@@ -698,14 +698,14 @@ export function OmnichannelConversationDetailPanel({
               description={
                 isWhatsapp ? ti("noMessagesWhatsappDesc") : ti("noMessagesChannelDesc")
               }
-              size="compact"
+              variant="inline"
             />
           ) : searchOpen && normalizedSearch && visibleMessages.length === 0 ? (
             <InboxEmptyState
               icon={Search}
               title={ti("noSearchResults")}
               description={ti("noSearchResultsDesc")}
-              size="compact"
+              variant="inline"
             />
           ) : (
             <ConversationMessageThread
@@ -774,7 +774,9 @@ export function OmnichannelConversationEmptyState() {
       icon={MessageSquareText}
       title={ti("selectConversationEmpty")}
       description={ti("selectConversationEmptyDesc")}
-      className="h-full bg-background"
+      hint={ti("selectConversationEmptyHint")}
+      variant="workspace"
+      className="h-full min-h-[320px] bg-background"
     />
   );
 }

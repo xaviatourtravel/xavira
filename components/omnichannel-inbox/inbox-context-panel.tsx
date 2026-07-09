@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { getConversationDisplayName } from "@/components/omnichannel-inbox/inbox-display";
+import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import {
   AURORA_CONTEXT_AI_SUMMARY_CLASS,
   AURORA_CONTEXT_CARD_CLASS,
@@ -267,6 +268,61 @@ function getLatestNote(conversation: OmnichannelConversationDetail): string | nu
   return latestNote.note.trim() || null;
 }
 
+function isBookingEmpty(booking: BookingView): boolean {
+  return (
+    booking.status === "No Booking Yet" &&
+    booking.departure === EMPTY_VALUE &&
+    booking.destination === EMPTY_VALUE &&
+    booking.travelers === EMPTY_VALUE &&
+    booking.budget === EMPTY_VALUE
+  );
+}
+
+function isAiSummaryEmpty(conversation: OmnichannelConversationDetail): boolean {
+  const summary = buildSalesTakeoverSummary({
+    leadQualification: conversation.leadQualification,
+    conversationMemory: conversation.conversationMemory,
+    aiActivityEvents: conversation.aiActivityEvents,
+    messages: conversation.messages,
+  });
+
+  if (summary.generatedSummary?.trim()) {
+    return false;
+  }
+
+  if (conversation.leadContext?.packageInterest?.trim()) {
+    return false;
+  }
+
+  if (conversation.lastMessagePreview?.trim()) {
+    return false;
+  }
+
+  return !(
+    summary.destination ||
+    summary.budget ||
+    summary.departure ||
+    summary.passengerCount
+  );
+}
+
+function isCustomerProfileEmpty(conversation: OmnichannelConversationDetail): boolean {
+  if (conversation.leadContext || conversation.leadId) {
+    return false;
+  }
+
+  const name = conversation.customerName?.trim();
+  if (!name) {
+    return true;
+  }
+
+  if (name === "Unknown Customer") {
+    return true;
+  }
+
+  return name.startsWith("Customer ");
+}
+
 type ContextSectionProps = {
   title: string;
   icon: LucideIcon;
@@ -298,54 +354,76 @@ function BookingInfoRow({ label, value }: { label: string; value: string }) {
 function CustomerSection({
   title,
   customer,
+  conversation,
+  emptyUnknownLabel,
+  emptyProfileLabel,
 }: {
   title: string;
   customer: CustomerView;
+  conversation: OmnichannelConversationDetail;
+  emptyUnknownLabel: string;
+  emptyProfileLabel: string;
 }) {
+  const profileEmpty = isCustomerProfileEmpty(conversation);
+
   return (
     <ContextSection title={title} icon={User}>
-      <CustomerAvatar
-        displayName={customer.displayName}
-        avatarUrl={customer.avatarUrl}
-        size="md"
-        className="h-10 w-10"
-        channel={
-          customer.channel === "whatsapp"
-            ? "whatsapp"
-            : customer.channel === "instagram"
-              ? "instagram"
-              : customer.channel === "facebook"
-                ? "facebook"
-                : "default"
-        }
-      />
+      {profileEmpty ? (
+        <>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/20">
+            <User className="h-5 w-5 text-muted-foreground/45" strokeWidth={1.5} aria-hidden />
+          </div>
+          <div className="mt-4 min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{emptyUnknownLabel}</p>
+            <p className={cn("mt-1", SECTION_META_CLASS)}>{emptyProfileLabel}</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <CustomerAvatar
+            displayName={customer.displayName}
+            avatarUrl={customer.avatarUrl}
+            size="md"
+            className="h-10 w-10"
+            channel={
+              customer.channel === "whatsapp"
+                ? "whatsapp"
+                : customer.channel === "instagram"
+                  ? "instagram"
+                  : customer.channel === "facebook"
+                    ? "facebook"
+                    : "default"
+            }
+          />
 
-      <div className="mt-4 min-w-0">
-        <p className="truncate text-sm font-semibold text-foreground">{customer.displayName}</p>
-        <p className={cn("mt-1", SECTION_META_CLASS)}>
-          {customer.channelLabel}
-          {customer.statusLabel ? (
-            <>
-              <span aria-hidden> · </span>
-              {customer.statusLabel}
-            </>
+          <div className="mt-4 min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{customer.displayName}</p>
+            <p className={cn("mt-1", SECTION_META_CLASS)}>
+              {customer.channelLabel}
+              {customer.statusLabel ? (
+                <>
+                  <span aria-hidden> · </span>
+                  {customer.statusLabel}
+                </>
+              ) : null}
+            </p>
+          </div>
+
+          {customer.tags.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {customer.tags.map((tag) => (
+                <span key={tag} className={AURORA_CONTEXT_CHIP_CLASS}>
+                  {tag}
+                </span>
+              ))}
+            </div>
           ) : null}
-        </p>
-      </div>
 
-      {customer.tags.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {customer.tags.map((tag) => (
-            <span key={tag} className={AURORA_CONTEXT_CHIP_CLASS}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {customer.assignedTo ? (
-        <p className={cn("mt-4", SECTION_META_CLASS)}>Assigned to {customer.assignedTo}</p>
-      ) : null}
+          {customer.assignedTo ? (
+            <p className={cn("mt-4", SECTION_META_CLASS)}>Assigned to {customer.assignedTo}</p>
+          ) : null}
+        </>
+      )}
     </ContextSection>
   );
 }
@@ -402,19 +480,39 @@ function JourneySection({
 function BookingSection({
   title,
   booking,
+  emptyStatusLabel,
+  emptyMessage,
 }: {
   title: string;
   booking: BookingView;
+  emptyStatusLabel: string;
+  emptyMessage: string;
 }) {
+  const empty = isBookingEmpty(booking);
+
   return (
     <ContextSection title={title} icon={Briefcase}>
-      <div className="space-y-3.5">
-        <BookingInfoRow label="Status" value={booking.status} />
-        <BookingInfoRow label="Departure" value={booking.departure} />
-        <BookingInfoRow label="Destination" value={booking.destination} />
-        <BookingInfoRow label="Travelers" value={booking.travelers} />
-        <BookingInfoRow label="Budget" value={booking.budget} />
-      </div>
+      {empty ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-baseline gap-x-4">
+            <span className={cn(SECTION_META_CLASS, "text-muted-foreground")}>Status</span>
+            <span className="truncate text-right text-sm font-semibold capitalize text-foreground">
+              {emptyStatusLabel}
+            </span>
+          </div>
+          <p className={cn(SECTION_META_CLASS, "leading-relaxed text-muted-foreground")}>
+            {emptyMessage}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3.5">
+          <BookingInfoRow label="Status" value={booking.status} />
+          <BookingInfoRow label="Departure" value={booking.departure} />
+          <BookingInfoRow label="Destination" value={booking.destination} />
+          <BookingInfoRow label="Travelers" value={booking.travelers} />
+          <BookingInfoRow label="Budget" value={booking.budget} />
+        </div>
+      )}
     </ContextSection>
   );
 }
@@ -437,12 +535,14 @@ function NotesSection({
           </article>
         </div>
       ) : (
-        <p className={cn(SECTION_BODY_CLASS, "text-muted-foreground")}>No notes yet</p>
+        <div className="space-y-1">
+          <p className={cn(SECTION_BODY_CLASS, "text-muted-foreground")}>No notes yet</p>
+        </div>
       )}
 
       <button
         type="button"
-        className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-border/20 bg-muted/10 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/25 hover:text-foreground"
+        className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-border/20 bg-muted/10 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/25 hover:text-foreground"
       >
         <Plus className="h-3.5 w-3.5" aria-hidden strokeWidth={1.75} />
         Add Note
@@ -454,9 +554,15 @@ function NotesSection({
 function AiSummarySection({
   title,
   lines,
+  empty,
+  emptyTitle,
+  emptyDescription,
 }: {
   title: string;
   lines: string[];
+  empty: boolean;
+  emptyTitle: string;
+  emptyDescription: string;
 }) {
   return (
     <section className={AURORA_CONTEXT_AI_SUMMARY_CLASS}>
@@ -464,13 +570,20 @@ function AiSummarySection({
         <Sparkles className={SECTION_ICON_CLASS} aria-hidden strokeWidth={1.75} />
         <h3 className={SECTION_TITLE_CLASS}>{title}</h3>
       </div>
-      <div className="space-y-3">
-        {lines.map((line) => (
-          <p key={line} className="text-sm leading-relaxed text-foreground/80">
-            {line}
-          </p>
-        ))}
-      </div>
+      {empty ? (
+        <div className="space-y-2 animate-in fade-in duration-150 ease-out motion-reduce:animate-none">
+          <p className="text-sm font-medium text-foreground/85">{emptyTitle}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{emptyDescription}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {lines.map((line) => (
+            <p key={line} className="text-sm leading-relaxed text-foreground/80">
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -479,14 +592,13 @@ function ContextPanelEmptyState() {
   const { ti } = useInboxTranslation();
 
   return (
-    <div className="flex h-full min-h-[240px] flex-col items-center justify-center px-6 text-center">
-      <p className="text-sm font-semibold text-foreground">
-        {ti("selectConversationEmpty")}
-      </p>
-      <p className="mt-2 max-w-[240px] text-sm leading-relaxed text-muted-foreground">
-        Customer details will appear here
-      </p>
-    </div>
+    <InboxEmptyState
+      icon={User}
+      title={ti("selectConversationEmpty")}
+      description={ti("contextPanelSelectDesc")}
+      variant="compact"
+      className="h-full min-h-[280px]"
+    />
   );
 }
 
@@ -520,6 +632,9 @@ export function InboxContextPanel({
             <CustomerSection
               title={ti("contextPanelCustomer")}
               customer={buildCustomerView(conversation)}
+              conversation={conversation}
+              emptyUnknownLabel={ti("emptyCustomerUnknown")}
+              emptyProfileLabel={ti("emptyCustomerNoProfile")}
             />
             <JourneySection
               title={ti("contextPanelJourney")}
@@ -528,6 +643,8 @@ export function InboxContextPanel({
             <BookingSection
               title={ti("contextPanelBooking")}
               booking={buildBookingView(conversation)}
+              emptyStatusLabel={ti("emptyBookingStatus")}
+              emptyMessage={ti("emptyBookingMessage")}
             />
             <NotesSection
               title={ti("contextPanelNotes")}
@@ -536,6 +653,9 @@ export function InboxContextPanel({
             <AiSummarySection
               title={ti("contextPanelAiSummary")}
               lines={buildAiSummaryLines(conversation)}
+              empty={isAiSummaryEmpty(conversation)}
+              emptyTitle={ti("emptyAiSummaryTitle")}
+              emptyDescription={ti("emptyAiSummaryDesc")}
             />
           </div>
         )}

@@ -43,7 +43,7 @@ function ConversationQueueEmptyState({
         icon={SearchX}
         title={ti("emptySearchNoMatch")}
         description={ti("emptySearchNoMatchDesc")}
-        size="compact"
+        variant="compact"
       />
     );
   }
@@ -60,7 +60,7 @@ function ConversationQueueEmptyState({
             ? ti(filterCopy.descriptionKey)
             : ti("emptySearchNoMatchDesc")
         }
-        size="compact"
+        variant="compact"
       />
     );
   }
@@ -70,7 +70,7 @@ function ConversationQueueEmptyState({
       icon={Inbox}
       title={ti("emptyNoConversations")}
       description={ti("emptyNoConversationsDesc")}
-      size="compact"
+      variant="compact"
     />
   );
 }

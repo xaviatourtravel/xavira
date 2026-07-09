@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { getConversationDisplayName } from "@/components/omnichannel-inbox/inbox-display";
 import {
+  AURORA_CONTEXT_AI_SUMMARY_CLASS,
   AURORA_CONTEXT_CARD_CLASS,
   AURORA_CONTEXT_CARD_STACK_GAP,
   AURORA_CONTEXT_CHIP_CLASS,
@@ -30,6 +31,11 @@ const JOURNEY_STAGES = [
   { id: "quotation", label: "Quotation" },
   { id: "booked", label: "Booked" },
 ] as const;
+
+const SECTION_ICON_CLASS = "h-4 w-4 shrink-0 text-muted-foreground/55";
+const SECTION_TITLE_CLASS = "text-[13px] font-semibold tracking-tight text-foreground";
+const SECTION_BODY_CLASS = "text-sm text-foreground/90";
+const SECTION_META_CLASS = "text-xs text-muted-foreground";
 
 type JourneyStageId = (typeof JOURNEY_STAGES)[number]["id"];
 type JourneyStageState = "completed" | "current" | "upcoming";
@@ -261,34 +267,35 @@ function getLatestNote(conversation: OmnichannelConversationDetail): string | nu
   return latestNote.note.trim() || null;
 }
 
-type ContextSectionCardProps = {
+type ContextSectionProps = {
   title: string;
   icon: LucideIcon;
   children: ReactNode;
+  className?: string;
 };
 
-function ContextSectionCard({ title, icon: Icon, children }: ContextSectionCardProps) {
+function ContextSection({ title, icon: Icon, children, className }: ContextSectionProps) {
   return (
-    <section className={AURORA_CONTEXT_CARD_CLASS}>
-      <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/55" aria-hidden />
-        <h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3>
+    <section className={cn(AURORA_CONTEXT_CARD_CLASS, className)}>
+      <div className="mb-4 flex items-center gap-2">
+        <Icon className={SECTION_ICON_CLASS} aria-hidden strokeWidth={1.75} />
+        <h3 className={SECTION_TITLE_CLASS}>{title}</h3>
       </div>
       {children}
     </section>
   );
 }
 
-function LabelValueRow({ label, value }: { label: string; value: string }) {
+function BookingInfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate text-right text-sm text-foreground">{value}</span>
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-baseline gap-x-4 gap-y-1">
+      <span className={cn(SECTION_META_CLASS, "text-muted-foreground")}>{label}</span>
+      <span className="truncate text-right text-sm font-semibold text-foreground">{value}</span>
     </div>
   );
 }
 
-function CustomerCard({
+function CustomerSection({
   title,
   customer,
 }: {
@@ -296,36 +303,38 @@ function CustomerCard({
   customer: CustomerView;
 }) {
   return (
-    <ContextSectionCard title={title} icon={User}>
-      <div className="flex items-start gap-3">
-        <CustomerAvatar
-          displayName={customer.displayName}
-          avatarUrl={customer.avatarUrl}
-          size="md"
-          channel={customer.channel}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {customer.displayName}
-          </p>
+    <ContextSection title={title} icon={User}>
+      <CustomerAvatar
+        displayName={customer.displayName}
+        avatarUrl={customer.avatarUrl}
+        size="md"
+        className="h-10 w-10"
+        channel={
+          customer.channel === "whatsapp"
+            ? "whatsapp"
+            : customer.channel === "instagram"
+              ? "instagram"
+              : customer.channel === "facebook"
+                ? "facebook"
+                : "default"
+        }
+      />
+
+      <div className="mt-4 min-w-0">
+        <p className="truncate text-sm font-semibold text-foreground">{customer.displayName}</p>
+        <p className={cn("mt-1", SECTION_META_CLASS)}>
+          {customer.channelLabel}
           {customer.statusLabel ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {customer.channelLabel}
+            <>
               <span aria-hidden> · </span>
               {customer.statusLabel}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-xs text-muted-foreground">{customer.channelLabel}</p>
-          )}
-          {customer.assignedTo ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Assigned to {customer.assignedTo}
-            </p>
+            </>
           ) : null}
-        </div>
+        </p>
       </div>
+
       {customer.tags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-4 flex flex-wrap gap-2">
           {customer.tags.map((tag) => (
             <span key={tag} className={AURORA_CONTEXT_CHIP_CLASS}>
               {tag}
@@ -333,11 +342,15 @@ function CustomerCard({
           ))}
         </div>
       ) : null}
-    </ContextSectionCard>
+
+      {customer.assignedTo ? (
+        <p className={cn("mt-4", SECTION_META_CLASS)}>Assigned to {customer.assignedTo}</p>
+      ) : null}
+    </ContextSection>
   );
 }
 
-function JourneyCard({
+function JourneySection({
   title,
   stages,
 }: {
@@ -345,35 +358,34 @@ function JourneyCard({
   stages: JourneyStageView[];
 }) {
   return (
-    <ContextSectionCard title={title} icon={Route}>
+    <ContextSection title={title} icon={Route}>
       <ol className="space-y-0">
         {stages.map((stage, index) => {
           const isLast = index === stages.length - 1;
-          const isCompleted = stage.state === "completed";
-          const isCurrent = stage.state === "current";
+          const isReached = stage.state === "completed" || stage.state === "current";
 
           return (
-            <li key={stage.id} className="flex gap-2.5">
-              <div className="flex flex-col items-center">
+            <li key={stage.id} className="flex gap-3">
+              <div className="flex flex-col items-center pt-0.5">
                 <span
                   className={cn(
-                    "mt-0.5 h-2 w-2 shrink-0 rounded-full",
-                    isCompleted && "bg-emerald-500/80",
-                    isCurrent && "bg-primary",
-                    !isCompleted && !isCurrent && "bg-muted-foreground/25",
+                    "flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-full",
+                    isReached
+                      ? "bg-primary"
+                      : "border-2 border-muted-foreground/25 bg-transparent",
                   )}
+                  aria-hidden
                 />
                 {!isLast ? (
-                  <span className="my-0.5 w-px flex-1 bg-border/40" aria-hidden />
+                  <span className="my-1 w-px flex-1 min-h-[20px] bg-border/30" aria-hidden />
                 ) : null}
               </div>
-              <div className={cn("min-w-0 pb-3", isLast && "pb-0")}>
+              <div className={cn("min-w-0", !isLast && "pb-5")}>
                 <p
                   className={cn(
-                    "text-sm leading-snug",
-                    isCompleted && "font-medium text-emerald-700 dark:text-emerald-400",
-                    isCurrent && "font-semibold text-foreground",
-                    !isCompleted && !isCurrent && "text-muted-foreground/55",
+                    SECTION_BODY_CLASS,
+                    isReached ? "font-medium text-foreground" : "text-muted-foreground/55",
+                    stage.state === "current" && "font-semibold text-primary",
                   )}
                 >
                   {stage.label}
@@ -383,11 +395,11 @@ function JourneyCard({
           );
         })}
       </ol>
-    </ContextSectionCard>
+    </ContextSection>
   );
 }
 
-function BookingCard({
+function BookingSection({
   title,
   booking,
 }: {
@@ -395,19 +407,19 @@ function BookingCard({
   booking: BookingView;
 }) {
   return (
-    <ContextSectionCard title={title} icon={Briefcase}>
-      <div className="divide-y divide-border/20">
-        <LabelValueRow label="Status" value={booking.status} />
-        <LabelValueRow label="Departure" value={booking.departure} />
-        <LabelValueRow label="Destination" value={booking.destination} />
-        <LabelValueRow label="Travelers" value={booking.travelers} />
-        <LabelValueRow label="Budget" value={booking.budget} />
+    <ContextSection title={title} icon={Briefcase}>
+      <div className="space-y-3.5">
+        <BookingInfoRow label="Status" value={booking.status} />
+        <BookingInfoRow label="Departure" value={booking.departure} />
+        <BookingInfoRow label="Destination" value={booking.destination} />
+        <BookingInfoRow label="Travelers" value={booking.travelers} />
+        <BookingInfoRow label="Budget" value={booking.budget} />
       </div>
-    </ContextSectionCard>
+    </ContextSection>
   );
 }
 
-function NotesCard({
+function NotesSection({
   title,
   latestNote,
 }: {
@@ -415,22 +427,31 @@ function NotesCard({
   latestNote: string | null;
 }) {
   return (
-    <ContextSectionCard title={title} icon={NotebookPen}>
-      <p className="text-sm text-muted-foreground">
-        {latestNote ?? "No notes yet"}
-      </p>
+    <ContextSection title={title} icon={NotebookPen}>
+      {latestNote ? (
+        <div className="space-y-3">
+          <article className="rounded-xl bg-muted/15 px-3.5 py-3">
+            <p className={cn(SECTION_BODY_CLASS, "leading-relaxed text-foreground/85")}>
+              {latestNote}
+            </p>
+          </article>
+        </div>
+      ) : (
+        <p className={cn(SECTION_BODY_CLASS, "text-muted-foreground")}>No notes yet</p>
+      )}
+
       <button
         type="button"
-        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border/25 bg-muted/15 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+        className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-border/20 bg-muted/10 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/25 hover:text-foreground"
       >
-        <Plus className="h-3.5 w-3.5" aria-hidden />
+        <Plus className="h-3.5 w-3.5" aria-hidden strokeWidth={1.75} />
         Add Note
       </button>
-    </ContextSectionCard>
+    </ContextSection>
   );
 }
 
-function AiSummaryCard({
+function AiSummarySection({
   title,
   lines,
 }: {
@@ -438,18 +459,19 @@ function AiSummaryCard({
   lines: string[];
 }) {
   return (
-    <ContextSectionCard title={title} icon={Sparkles}>
-      <div className="space-y-2">
+    <section className={AURORA_CONTEXT_AI_SUMMARY_CLASS}>
+      <div className="mb-4 flex items-center gap-2">
+        <Sparkles className={SECTION_ICON_CLASS} aria-hidden strokeWidth={1.75} />
+        <h3 className={SECTION_TITLE_CLASS}>{title}</h3>
+      </div>
+      <div className="space-y-3">
         {lines.map((line) => (
-          <p
-            key={line}
-            className="text-[13px] leading-relaxed text-muted-foreground/80"
-          >
+          <p key={line} className="text-sm leading-relaxed text-foreground/80">
             {line}
           </p>
         ))}
       </div>
-    </ContextSectionCard>
+    </section>
   );
 }
 
@@ -461,7 +483,7 @@ function ContextPanelEmptyState() {
       <p className="text-sm font-semibold text-foreground">
         {ti("selectConversationEmpty")}
       </p>
-      <p className="mt-1.5 max-w-[240px] text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-2 max-w-[240px] text-sm leading-relaxed text-muted-foreground">
         Customer details will appear here
       </p>
     </div>
@@ -474,7 +496,7 @@ type InboxContextPanelProps = {
 };
 
 /**
- * Aurora Context Panel — CRM-style desktop rail bound to the selected conversation.
+ * Aurora Context Panel — premium CRM side rail bound to the selected conversation.
  */
 export function InboxContextPanel({
   conversation,
@@ -486,32 +508,32 @@ export function InboxContextPanel({
     <aside
       className={cn(
         AURORA_CONTEXT_PANEL_WIDTH,
-        "hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-l border-border/25 bg-background lg:flex",
+        "hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-l border-border/20 bg-background lg:flex",
         className,
       )}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">
         {!conversation ? (
           <ContextPanelEmptyState />
         ) : (
           <div className={cn("flex flex-col", AURORA_CONTEXT_CARD_STACK_GAP)}>
-            <CustomerCard
+            <CustomerSection
               title={ti("contextPanelCustomer")}
               customer={buildCustomerView(conversation)}
             />
-            <JourneyCard
+            <JourneySection
               title={ti("contextPanelJourney")}
               stages={buildJourneyStages(conversation)}
             />
-            <BookingCard
+            <BookingSection
               title={ti("contextPanelBooking")}
               booking={buildBookingView(conversation)}
             />
-            <NotesCard
+            <NotesSection
               title={ti("contextPanelNotes")}
               latestNote={getLatestNote(conversation)}
             />
-            <AiSummaryCard
+            <AiSummarySection
               title={ti("contextPanelAiSummary")}
               lines={buildAiSummaryLines(conversation)}
             />

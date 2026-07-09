@@ -90,9 +90,12 @@ export const AURORA_CONTEXT_PANEL_WIDTH =
   "w-[360px] min-w-[360px] max-w-[360px]";
 
 export const AURORA_CONTEXT_CARD_CLASS =
-  "rounded-2xl border border-border/20 bg-white p-4 dark:bg-card";
+  "rounded-2xl border border-border/15 p-5";
 
 export const AURORA_CONTEXT_CARD_STACK_GAP = "gap-4";
 
+export const AURORA_CONTEXT_AI_SUMMARY_CLASS =
+  "rounded-2xl border border-border/15 bg-primary/[0.04] p-5 dark:bg-primary/[0.06]";
+
 export const AURORA_CONTEXT_CHIP_CLASS =
-  "inline-flex items-center rounded-full bg-muted/35 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground";
+  "inline-flex items-center rounded-full bg-muted/30 px-2.5 py-1 text-xs font-medium text-muted-foreground";

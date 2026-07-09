@@ -77,6 +77,64 @@ type OmnichannelConversationDetailPanelProps = {
 
 const NEAR_BOTTOM_THRESHOLD_PX = 140;
 
+function ConversationHeaderIconButton({
+  label,
+  onClick,
+  active = false,
+  children,
+  className,
+  ariaExpanded,
+}: {
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  children: ReactNode;
+  className?: string;
+  ariaExpanded?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-expanded={ariaExpanded}
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/75 transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        active && "bg-muted/35 text-foreground",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ConversationHeaderMeta({
+  channelLabel,
+  statusLabel,
+  lastMessageAt,
+}: {
+  channelLabel: string;
+  statusLabel: string | null;
+  lastMessageAt: string | null;
+}) {
+  return (
+    <p className="mt-1 truncate text-[11px] leading-none text-muted-foreground/65">
+      {channelLabel}
+      <span aria-hidden> · </span>
+      {statusLabel ? (
+        statusLabel
+      ) : (
+        <ClientOnlyActiveLabel
+          date={lastMessageAt}
+          className="inline min-w-0 tabular-nums"
+        />
+      )}
+    </p>
+  );
+}
+
 function ConversationMenuItem({
   icon,
   label,
@@ -155,6 +213,8 @@ export function OmnichannelConversationDetailPanel({
   const [newMessageCount, setNewMessageCount] = useState(0);
 
   const displayName = getConversationDisplayName(conversation);
+  const headerStatusLabel =
+    conversation.leadContext?.statusLabel ?? conversation.statusLabel ?? null;
   const isWhatsappChannel = (channel ?? conversation.channel) === "whatsapp";
   const showQualificationHandoffStatus =
     isWhatsappChannel &&
@@ -423,163 +483,149 @@ export function OmnichannelConversationDetailPanel({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <header className="shrink-0 border-b border-border/25">
+      <header className="shrink-0 border-b border-border/20 bg-background">
         <div
           className={getConversationLaneClassName(
             inspectorOpen,
-            "flex min-h-16 items-center gap-3 py-0",
+            "flex h-16 items-center gap-3",
           )}
         >
-        {showBackButton ? (
-          <Link
-            href={backHref}
-            aria-label={ti("backToConversations")}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-9 w-9 shrink-0 rounded-full p-0 lg:hidden",
-            )}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-        ) : null}
-
-        <CustomerAvatar
-          displayName={displayName}
-          avatarUrl={conversation.customerAvatar}
-          size="md"
-          channel={
-            conversation.channel === "whatsapp"
-              ? "whatsapp"
-              : conversation.channel === "instagram"
-                ? "instagram"
-                : conversation.channel === "facebook"
-                  ? "facebook"
-                  : "default"
-          }
-        />
-
-        <div className="min-w-0 flex-1">
-          <h2
-            className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground"
-            title={displayName}
-          >
-            {displayName}
-          </h2>
-          <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground/75">
-            {conversation.channelLabel}
-            <span aria-hidden> · </span>
-            <ClientOnlyActiveLabel
-              date={conversation.lastMessageAt}
-              className="min-w-0"
-            />
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-        {isWhatsappChannel ? (
-          <ConversationAiModeToggle
-            conversationId={conversation.id}
-            aiState={conversation.aiState}
-            canManage={canManageAi}
-          />
-        ) : null}
-
-        <button
-          type="button"
-          onClick={() => openContextSheet("copilot")}
-          aria-label={ti("expandPanel")}
-          title={ti("expandPanel")}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground lg:hidden"
-        >
-          <PanelRightOpen className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setSearchOpen((value) => !value);
-            setMenuOpen(false);
-          }}
-          aria-label={ti("searchInConversation")}
-          title={ti("searchInConversation")}
-          className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground",
-            searchOpen && "bg-muted/50 text-foreground",
-          )}
-        >
-          <Search className="h-4 w-4" />
-        </button>
-
-        <div ref={menuRef} className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((value) => !value)}
-            aria-label={ti("conversationMenu")}
-            title={ti("conversationMenu")}
-            aria-expanded={menuOpen}
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground",
-              menuOpen && "bg-muted/50 text-foreground",
-            )}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </button>
-          {menuOpen ? (
-            <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-lg border border-border/40 bg-background py-1 shadow-md">
-              <ConversationMenuItem
-                icon={<RefreshCw className="h-4 w-4" />}
-                label={ti("reloadConversation")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  router.refresh();
-                }}
-              />
-              <ConversationMenuItem
-                icon={<MailOpen className="h-4 w-4" />}
-                label={ti("markUnread")}
-                onClick={handleMarkUnread}
-              />
-              <ConversationMenuItem
-                icon={<Download className="h-4 w-4" />}
-                label={ti("exportChat")}
-                onClick={handleExportChat}
-              />
-              <div className="my-1 h-px bg-border/40" />
-              <ConversationMenuItem
-                icon={<UserRoundPlus className="h-4 w-4" />}
-                label={ti("convertToLead")}
-                onClick={handleConvertToLead}
-                disabled={isActionPending}
-              />
-              <ConversationMenuItem
-                icon={<CalendarPlus className="h-4 w-4" />}
-                label={ti("createBooking")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  router.push("/bookings/new");
-                }}
-              />
-              <ConversationMenuItem
-                icon={<UserCog className="h-4 w-4" />}
-                label={ti("assignConversation")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  openContextSheet("customer360");
-                  setNotice(ti("assignConversationHint"));
-                }}
-              />
-              <ConversationMenuItem
-                icon={<Info className="h-4 w-4" />}
-                label={ti("viewDetails")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  openContextSheet("copilot");
-                }}
-              />
-            </div>
+          {showBackButton ? (
+            <Link
+              href={backHref}
+              aria-label={ti("backToConversations")}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "h-8 w-8 shrink-0 rounded-full p-0 lg:hidden",
+              )}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
           ) : null}
-        </div>
-        </div>
+
+          <CustomerAvatar
+            displayName={displayName}
+            avatarUrl={conversation.customerAvatar}
+            size="sm"
+            className="h-9 w-9 shrink-0"
+            channel={
+              conversation.channel === "whatsapp"
+                ? "whatsapp"
+                : conversation.channel === "instagram"
+                  ? "instagram"
+                  : conversation.channel === "facebook"
+                    ? "facebook"
+                    : "default"
+            }
+          />
+
+          <div className="min-w-0 flex-1">
+            <h2
+              className="truncate text-[15px] font-semibold leading-none tracking-tight text-foreground"
+              title={displayName}
+            >
+              {displayName}
+            </h2>
+            <ConversationHeaderMeta
+              channelLabel={conversation.channelLabel}
+              statusLabel={headerStatusLabel}
+              lastMessageAt={conversation.lastMessageAt}
+            />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1">
+            {isWhatsappChannel ? (
+              <ConversationAiModeToggle
+                conversationId={conversation.id}
+                aiState={conversation.aiState}
+                canManage={canManageAi}
+              />
+            ) : null}
+
+            <ConversationHeaderIconButton
+              label={ti("expandPanel")}
+              onClick={() => openContextSheet("copilot")}
+              className="lg:hidden"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </ConversationHeaderIconButton>
+
+            <ConversationHeaderIconButton
+              label={ti("searchInConversation")}
+              active={searchOpen}
+              onClick={() => {
+                setSearchOpen((value) => !value);
+                setMenuOpen(false);
+              }}
+            >
+              <Search className="h-4 w-4" />
+            </ConversationHeaderIconButton>
+
+            <div ref={menuRef} className="relative shrink-0">
+              <ConversationHeaderIconButton
+                label={ti("conversationMenu")}
+                active={menuOpen}
+                ariaExpanded={menuOpen}
+                onClick={() => setMenuOpen((value) => !value)}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </ConversationHeaderIconButton>
+              {menuOpen ? (
+                <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-56 overflow-hidden rounded-xl border border-border/30 bg-background py-1">
+                  <ConversationMenuItem
+                    icon={<RefreshCw className="h-4 w-4" />}
+                    label={ti("reloadConversation")}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.refresh();
+                    }}
+                  />
+                  <ConversationMenuItem
+                    icon={<MailOpen className="h-4 w-4" />}
+                    label={ti("markUnread")}
+                    onClick={handleMarkUnread}
+                  />
+                  <ConversationMenuItem
+                    icon={<Download className="h-4 w-4" />}
+                    label={ti("exportChat")}
+                    onClick={handleExportChat}
+                  />
+                  <div className="my-1 h-px bg-border/40" />
+                  <ConversationMenuItem
+                    icon={<UserRoundPlus className="h-4 w-4" />}
+                    label={ti("convertToLead")}
+                    onClick={handleConvertToLead}
+                    disabled={isActionPending}
+                  />
+                  <ConversationMenuItem
+                    icon={<CalendarPlus className="h-4 w-4" />}
+                    label={ti("createBooking")}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push("/bookings/new");
+                    }}
+                  />
+                  <ConversationMenuItem
+                    icon={<UserCog className="h-4 w-4" />}
+                    label={ti("assignConversation")}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openContextSheet("customer360");
+                      setNotice(ti("assignConversationHint"));
+                    }}
+                  />
+                  <ConversationMenuItem
+                    icon={<Info className="h-4 w-4" />}
+                    label={ti("viewDetails")}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openContextSheet("copilot");
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -598,7 +644,7 @@ export function OmnichannelConversationDetailPanel({
         <div
           className={getConversationLaneClassName(
             inspectorOpen,
-            "flex shrink-0 items-center gap-2 border-b border-border/25 bg-background py-1.5",
+            "flex h-9 shrink-0 items-center gap-2 border-b border-border/20 bg-background",
           )}
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />

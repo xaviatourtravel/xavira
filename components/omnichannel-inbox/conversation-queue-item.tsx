@@ -9,7 +9,6 @@ import {
   getInboxChannelShortLabel,
 } from "@/components/omnichannel-inbox/inbox-display";
 import {
-  AURORA_MOTION,
   AURORA_QUEUE_ITEM_BASE,
   AURORA_QUEUE_ITEM_HOVER,
   AURORA_QUEUE_ITEM_SELECTED,
@@ -87,17 +86,17 @@ export function ConversationQueueItem({
       className={cn(
         AURORA_QUEUE_ITEM_BASE,
         AURORA_QUEUE_ITEM_HOVER,
-        AURORA_MOTION.hover,
         isSelected && AURORA_QUEUE_ITEM_SELECTED,
         isSelected &&
-          "before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-primary",
+          "before:absolute before:bottom-2 before:left-0 before:top-2 before:w-px before:rounded-full before:bg-primary/70",
       )}
     >
-      <div className="flex items-start gap-2.5">
+      <div className="flex items-center gap-2.5">
         <CustomerAvatar
           displayName={displayName}
           avatarUrl={conversation.customerAvatar}
-          size="sm"
+          size="md"
+          className="h-10 w-10 shrink-0"
           channel={
             conversation.channel === "whatsapp"
               ? "whatsapp"
@@ -107,40 +106,23 @@ export function ConversationQueueItem({
                   ? "facebook"
                   : "default"
           }
-          className="mt-0.5 shrink-0"
         />
 
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-start justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1.5">
-              {isUnread && conversation.unreadCount <= 1 ? (
-                <span
-                  aria-hidden
-                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                />
-              ) : null}
-              <p
-                className={cn(
-                  "min-w-0 truncate text-[13px] leading-tight",
-                  isUnread
-                    ? "font-semibold text-foreground"
-                    : "font-medium text-foreground/90",
-                )}
-                title={displayName}
-              >
-                {displayName}
-              </p>
-              {/* TODO(Aurora): AI queue priority badge */}
-            </div>
+          <div className="flex min-w-0 items-baseline justify-between gap-2">
+            <p
+              className={cn(
+                "min-w-0 truncate text-[13px] leading-tight",
+                isUnread ? "font-semibold text-foreground" : "font-semibold text-foreground/90",
+              )}
+              title={displayName}
+            >
+              {displayName}
+            </p>
 
             <ClientOnlyRelativeTime
               date={conversation.lastMessageAt}
-              className={cn(
-                "shrink-0 text-[10px] leading-none tabular-nums",
-                isUnread
-                  ? "font-medium text-foreground/70"
-                  : "text-muted-foreground/60",
-              )}
+              className="shrink-0 text-[10px] leading-none tabular-nums text-muted-foreground/50"
             />
           </div>
 
@@ -148,20 +130,31 @@ export function ConversationQueueItem({
             <p
               className={cn(
                 "min-w-0 flex-1 truncate text-xs leading-snug",
-                isUnread ? "text-foreground/80" : "text-muted-foreground/75",
+                isUnread ? "text-muted-foreground/75" : "text-muted-foreground/60",
               )}
               title={conversation.lastMessagePreview ?? undefined}
             >
               {conversation.lastMessagePreview ?? ti("noMessageYet")}
             </p>
-            {conversation.unreadCount > 1 ? (
+            {isUnread ? (
               <span
-                className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground"
-                aria-label={String(conversation.unreadCount)}
+                className={cn(
+                  "inline-flex shrink-0 items-center justify-center rounded-full bg-primary/90 font-medium leading-none text-primary-foreground",
+                  conversation.unreadCount > 1
+                    ? "h-4 min-w-4 px-1 text-[9px]"
+                    : "h-1.5 w-1.5",
+                )}
+                aria-label={
+                  conversation.unreadCount > 1
+                    ? String(conversation.unreadCount)
+                    : ti("filterUnread")
+                }
               >
-                {conversation.unreadCount > 99
-                  ? "99+"
-                  : conversation.unreadCount}
+                {conversation.unreadCount > 1
+                  ? conversation.unreadCount > 99
+                    ? "99+"
+                    : conversation.unreadCount
+                  : null}
               </span>
             ) : null}
           </div>
@@ -170,8 +163,8 @@ export function ConversationQueueItem({
             className={cn(
               "mt-0.5 truncate text-[10px] leading-snug",
               hasPriority && isReadyForHuman
-                ? "font-medium text-amber-700/90 dark:text-amber-400/90"
-                : "text-muted-foreground/55",
+                ? "font-medium text-amber-700/80 dark:text-amber-400/80"
+                : "text-muted-foreground/45",
             )}
           >
             {topicLine}

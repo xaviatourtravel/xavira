@@ -59,16 +59,21 @@ export const AURORA_COMPOSER_SEND_BUTTON =
 /** Conversation queue — scanning-optimized list */
 export const AURORA_QUEUE_WIDTH = "w-[300px] min-w-[300px] max-w-[300px]";
 
+export const AURORA_QUEUE_SEARCH_CLASS =
+  "h-10 w-full rounded-full border border-border/15 bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus-visible:border-border/25 focus-visible:ring-1 focus-visible:ring-ring/10";
+
+export const AURORA_QUEUE_AI_TOGGLE_SURFACE =
+  "rounded-lg border border-border/15 bg-muted/8 px-2.5 py-1.5";
+
 export const AURORA_QUEUE_ITEM_BASE =
-  "group relative block rounded-[14px] px-2.5 py-2 transition-colors duration-[120ms] motion-reduce:transition-none";
+  "group relative block rounded-xl px-2.5 py-2";
 
-export const AURORA_QUEUE_ITEM_HOVER = "hover:bg-muted/35 dark:hover:bg-muted/20";
+export const AURORA_QUEUE_ITEM_HOVER = "hover:bg-muted/15";
 
-export const AURORA_QUEUE_ITEM_SELECTED =
-  "bg-muted/45 ring-1 ring-inset ring-border/25 dark:bg-muted/25";
+export const AURORA_QUEUE_ITEM_SELECTED = "bg-muted/20 dark:bg-muted/15";
 
 export const AURORA_QUEUE_FILTER_CHIP =
-  "inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-xs font-medium transition-colors duration-[120ms] motion-reduce:transition-none";
+  "inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[11px] font-medium";
 
 export const AURORA_CONTEXT_SHEET_WIDTH = {
   sm: "max-w-sm",

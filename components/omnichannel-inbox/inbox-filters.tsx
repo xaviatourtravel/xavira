@@ -6,10 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 
 import type { OmnichannelFilterCounts } from "@/components/omnichannel-inbox/inbox-display";
-import {
-  AURORA_MOTION,
-  AURORA_QUEUE_FILTER_CHIP,
-} from "@/components/workspace/aurora-tokens";
+import { AURORA_QUEUE_FILTER_CHIP } from "@/components/workspace/aurora-tokens";
 import type { InboxKey } from "@/lib/i18n/inbox-dictionary";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -88,20 +85,19 @@ function FilterChip({
       onClick={onNavigate}
       className={cn(
         AURORA_QUEUE_FILTER_CHIP,
-        AURORA_MOTION.hover,
         isActive
-          ? "bg-foreground/[0.07] text-foreground dark:bg-foreground/10"
-          : "text-muted-foreground hover:bg-muted/35 hover:text-foreground",
+          ? "bg-muted/35 text-foreground"
+          : "text-muted-foreground/70 hover:bg-muted/20 hover:text-foreground",
       )}
     >
       <span>{ti(filter.labelKey)}</span>
       {hasCount ? (
         <span
           className={cn(
-            "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums leading-none",
+            "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-medium tabular-nums leading-none",
             isActive
-              ? "bg-primary/15 text-primary"
-              : "bg-muted/50 text-muted-foreground",
+              ? "bg-primary/12 text-primary/90"
+              : "bg-muted/40 text-muted-foreground/70",
           )}
         >
           {count > 99 ? "99+" : count}
@@ -166,11 +162,10 @@ function MoreFiltersDropdown({
         onClick={() => setOpen((value) => !value)}
         className={cn(
           AURORA_QUEUE_FILTER_CHIP,
-          AURORA_MOTION.hover,
-          "max-w-[9.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "max-w-[9.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
           secondaryActive
-            ? "bg-foreground/[0.07] text-foreground dark:bg-foreground/10"
-            : "text-muted-foreground hover:bg-muted/35 hover:text-foreground",
+            ? "bg-muted/35 text-foreground"
+            : "text-muted-foreground/70 hover:bg-muted/20 hover:text-foreground",
         )}
       >
         <span className="truncate">{triggerLabel}</span>
@@ -232,11 +227,11 @@ export function OmnichannelInboxFilters({
 
   return (
     <div
-      className="-mx-1 flex items-center gap-1.5 px-1"
+      className="-mx-0.5 flex items-center gap-2 px-0.5"
       role="tablist"
       aria-label={ti("filterAriaLabel")}
     >
-      <div className="flex min-w-0 flex-1 flex-nowrap gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {PRIMARY_FILTERS.map((filter) => (
           <FilterChip
             key={filter.value}

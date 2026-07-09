@@ -407,7 +407,7 @@ export function OmnichannelConversationReplyBox({
   }
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       {toast ? (
         <div className="pointer-events-none absolute bottom-full right-3 z-30 mb-2 flex justify-end sm:right-5">
           <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-1">
@@ -489,7 +489,7 @@ export function OmnichannelConversationReplyBox({
           null
         }
       >
-        <div ref={rowRef} className="flex w-full min-w-0 items-end gap-0.5">
+        <div ref={rowRef} className="flex w-full min-w-0 items-center gap-0.5">
           <div className="relative shrink-0">
             <AuroraComposerIconButton
               label={ti("composerAttachment")}

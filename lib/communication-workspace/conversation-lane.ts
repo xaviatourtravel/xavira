@@ -20,10 +20,10 @@ export function getConversationLaneClassName(
   );
 }
 
-/** Bubble width cap within the reading lane — messages never span full workspace */
+/** Bubble width within the reading lane */
 export function getBubbleStyle() {
   return {
-    maxWidth: "min(88%, 540px)",
+    maxWidth: "88%",
     minWidth: "3.5rem",
     wordBreak: "normal",
     overflowWrap: "break-word",

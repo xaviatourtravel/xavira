@@ -422,11 +422,11 @@ export function OmnichannelConversationDetailPanel({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <header className="shrink-0 border-b border-border/25 py-2">
+      <header className="shrink-0 border-b border-border/25">
         <div
           className={getConversationLaneClassName(
             inspectorOpen,
-            "flex items-center gap-2.5",
+            "flex min-h-16 items-center gap-3 py-0",
           )}
         >
         {showBackButton ? (
@@ -445,7 +445,7 @@ export function OmnichannelConversationDetailPanel({
         <CustomerAvatar
           displayName={displayName}
           avatarUrl={conversation.customerAvatar}
-          size="sm"
+          size="md"
           channel={
             conversation.channel === "whatsapp"
               ? "whatsapp"
@@ -459,12 +459,12 @@ export function OmnichannelConversationDetailPanel({
 
         <div className="min-w-0 flex-1">
           <h2
-            className="truncate text-sm font-semibold tracking-tight text-foreground"
+            className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground"
             title={displayName}
           >
             {displayName}
           </h2>
-          <p className="mt-0.5 truncate text-[11px] leading-snug text-muted-foreground/80">
+          <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground/75">
             {conversation.channelLabel}
             <span aria-hidden> · </span>
             <ClientOnlyActiveLabel
@@ -474,7 +474,7 @@ export function OmnichannelConversationDetailPanel({
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
         {isWhatsappChannel ? (
           <ConversationAiModeToggle
             conversationId={conversation.id}
@@ -488,9 +488,9 @@ export function OmnichannelConversationDetailPanel({
           onClick={() => openContextSheet("copilot")}
           aria-label={ti("expandPanel")}
           title={ti("expandPanel")}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground lg:hidden"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground lg:hidden"
         >
-          <PanelRightOpen className="h-3.5 w-3.5" />
+          <PanelRightOpen className="h-4 w-4" />
         </button>
 
         <button
@@ -502,11 +502,11 @@ export function OmnichannelConversationDetailPanel({
           aria-label={ti("searchInConversation")}
           title={ti("searchInConversation")}
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground",
             searchOpen && "bg-muted/50 text-foreground",
           )}
         >
-          <Search className="h-3.5 w-3.5" />
+          <Search className="h-4 w-4" />
         </button>
 
         <div ref={menuRef} className="relative shrink-0">
@@ -517,11 +517,11 @@ export function OmnichannelConversationDetailPanel({
             title={ti("conversationMenu")}
             aria-expanded={menuOpen}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground",
+              "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground",
               menuOpen && "bg-muted/50 text-foreground",
             )}
           >
-            <MoreVertical className="h-3.5 w-3.5" />
+            <MoreVertical className="h-4 w-4" />
           </button>
           {menuOpen ? (
             <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-lg border border-border/40 bg-background py-1 shadow-md">
@@ -642,7 +642,7 @@ export function OmnichannelConversationDetailPanel({
         onScroll={handleScroll}
         className="min-h-0 flex-1 overflow-y-auto bg-background"
       >
-        <div className={getConversationLaneClassName(inspectorOpen, "py-6 pt-5 pb-8")}>
+        <div className={getConversationLaneClassName(inspectorOpen, "py-5 pt-4 pb-5")}>
           {displayMessages.length === 0 ? (
             <InboxEmptyState
               icon={MessageSquareText}
@@ -697,7 +697,8 @@ export function OmnichannelConversationDetailPanel({
       ) : null}
 
       {showComposer ? (
-        <OmnichannelConversationReplyBox
+        <div className="shrink-0">
+          <OmnichannelConversationReplyBox
             conversationId={conversation.id}
             channel={conversation.channel}
             canReply={canReply}
@@ -710,6 +711,7 @@ export function OmnichannelConversationDetailPanel({
             onAddOptimistic={addOptimisticMessage}
             onRemoveOptimistic={removeOptimisticMessage}
           />
+        </div>
       ) : null}
     </div>
   );

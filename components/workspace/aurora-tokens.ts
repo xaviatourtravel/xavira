@@ -39,22 +39,22 @@ export const AURORA_WORKSPACE_HEADER_CONTROL =
 
 export const AURORA_FLAT_SURFACE_CLASS = "bg-background";
 
-/** Centered conversation reading lane — target 680–760px */
+/** Centered conversation reading lane — target 720–760px */
 export const AURORA_READING_LANE_CLASS =
-  "mx-auto w-full max-w-[720px] min-w-0 px-4 sm:px-5";
+  "mx-auto w-full max-w-[740px] min-w-0 px-4 sm:px-5";
 
 /** Message bubble corner radius per Aurora Visual DNA */
-export const AURORA_BUBBLE_RADIUS = "rounded-[24px]";
+export const AURORA_BUBBLE_RADIUS = "rounded-[20px]";
 
 /** Floating composer surface */
 export const AURORA_COMPOSER_SURFACE =
-  "flex w-full items-end gap-0.5 rounded-[24px] border border-border/20 bg-background/90 px-1.5 py-1.5 shadow-[0_2px_14px_-6px_rgba(0,0,0,0.1)] backdrop-blur-sm dark:bg-background/85 dark:shadow-[0_2px_18px_-6px_rgba(0,0,0,0.4)]";
+  "flex h-[52px] min-h-[52px] w-full items-center gap-1 rounded-[20px] border border-border/15 bg-background px-1.5";
 
 export const AURORA_COMPOSER_ICON_BUTTON =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground/75 transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:opacity-40";
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:opacity-40";
 
 export const AURORA_COMPOSER_SEND_BUTTON =
-  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /** Conversation queue — scanning-optimized list */
 export const AURORA_QUEUE_WIDTH = "w-[300px] min-w-[300px] max-w-[300px]";

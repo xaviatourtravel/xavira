@@ -51,32 +51,32 @@ function getBubbleShapeClasses(
 ) {
   if (groupPosition === "single") {
     return isIncoming
-      ? "rounded-[24px] rounded-bl-[14px]"
-      : "rounded-[24px] rounded-br-[14px]";
+      ? "rounded-[20px] rounded-bl-[12px]"
+      : "rounded-[20px] rounded-br-[12px]";
   }
 
   if (isIncoming) {
     switch (groupPosition) {
       case "first":
-        return "rounded-t-[24px] rounded-tr-[24px] rounded-bl-lg rounded-br-[24px]";
+        return "rounded-t-[20px] rounded-tr-[20px] rounded-bl-md rounded-br-[20px]";
       case "middle":
-        return "rounded-t-lg rounded-tr-[24px] rounded-bl-lg rounded-br-[24px]";
+        return "rounded-t-md rounded-tr-[20px] rounded-bl-md rounded-br-[20px]";
       case "last":
-        return "rounded-t-lg rounded-tr-[24px] rounded-bl-[24px] rounded-br-[24px] rounded-bl-[14px]";
+        return "rounded-t-md rounded-tr-[20px] rounded-bl-[20px] rounded-br-[20px] rounded-bl-[12px]";
       default:
-        return "rounded-[24px]";
+        return "rounded-[20px]";
     }
   }
 
   switch (groupPosition) {
     case "first":
-      return "rounded-t-[24px] rounded-tl-[24px] rounded-bl-[24px] rounded-br-lg";
+      return "rounded-t-[20px] rounded-tl-[20px] rounded-bl-[20px] rounded-br-md";
     case "middle":
-      return "rounded-t-lg rounded-tl-[24px] rounded-bl-[24px] rounded-br-lg";
+      return "rounded-t-md rounded-tl-[20px] rounded-bl-[20px] rounded-br-md";
     case "last":
-      return "rounded-t-lg rounded-tl-[24px] rounded-bl-[24px] rounded-br-[24px] rounded-br-[14px]";
+      return "rounded-t-md rounded-tl-[20px] rounded-bl-[20px] rounded-br-[20px] rounded-br-[12px]";
     default:
-      return "rounded-[24px]";
+      return "rounded-[20px]";
   }
 }
 
@@ -116,7 +116,7 @@ export function ConversationMessageBubble({
     >
       <div
         className={cn(
-          "inline-block w-fit px-3.5 py-2.5",
+          "inline-block w-fit px-3 py-2",
           getBubbleShapeClasses(isIncoming, groupPosition),
           isIncoming
             ? "bg-muted/30 text-foreground dark:bg-muted/20"
@@ -127,7 +127,7 @@ export function ConversationMessageBubble({
         style={getBubbleStyle()}
       >
         {message.message_text ? (
-          <p className="whitespace-pre-wrap text-sm leading-[1.55]">
+          <p className="whitespace-pre-wrap text-sm leading-[1.5]">
             {message.message_text}
           </p>
         ) : null}
@@ -146,10 +146,10 @@ export function ConversationMessageBubble({
         {showTimestamp && metadataLine ? (
           <div
             className={cn(
-              "mt-1 flex items-center justify-end gap-1.5 text-[9px] leading-none tabular-nums tracking-wide",
+              "mt-1.5 flex items-center justify-end gap-1.5 text-[9px] leading-none tabular-nums",
               isIncoming
-                ? "text-muted-foreground/50"
-                : "text-primary-foreground/50",
+                ? "text-muted-foreground/45"
+                : "text-primary-foreground/45",
             )}
           >
             <span>{metadataLine}</span>

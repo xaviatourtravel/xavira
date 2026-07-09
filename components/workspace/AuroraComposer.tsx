@@ -80,7 +80,7 @@ export function AuroraComposer({
   return (
     <div
       className={cn(
-        "relative bg-gradient-to-t from-background from-60% via-background/95 to-transparent px-0 pb-3 pt-2 sm:pb-4",
+        "relative bg-background px-0 pb-2.5 pt-1.5",
         className,
       )}
       onDragEnter={onDragEnter}
@@ -89,7 +89,7 @@ export function AuroraComposer({
       onDrop={onDrop}
     >
       {isDragging && dropLabel ? (
-        <div className="pointer-events-none absolute inset-x-2 inset-y-2 z-20 flex items-center justify-center rounded-[24px] border-2 border-dashed border-primary/20 bg-background/90 backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-x-2 inset-y-2 z-20 flex items-center justify-center rounded-[20px] border-2 border-dashed border-primary/20 bg-background/90">
           <p className="text-sm text-muted-foreground">{dropLabel}</p>
         </div>
       ) : null}
@@ -123,9 +123,9 @@ export function AuroraComposerSurface({
       className={cn(
         AURORA_COMPOSER_SURFACE,
         AURORA_MOTION.hover,
-        "transition-[box-shadow,border-color,opacity,background-color]",
+        "transition-[border-color,opacity,background-color]",
         AURORA_MOTION.respectMotion,
-        "focus-within:border-border/30 focus-within:bg-background focus-within:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)] dark:focus-within:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.45)]",
+        "focus-within:border-border/25",
         (disabled || isSending) && "opacity-60",
         className,
       )}
@@ -250,15 +250,15 @@ export function AuroraComposerInput({
   placeholder,
   disabled = false,
   title,
-  minHeight = 40,
+  minHeight = 36,
   maxHeight = 132,
   className,
   inputRef,
 }: AuroraComposerInputProps) {
   return (
     <div
-      className={cn("flex min-w-0 flex-1 items-center py-0.5")}
-      style={{ minHeight, maxHeight: maxHeight + 8 }}
+      className={cn("flex min-w-0 flex-1 items-center py-0")}
+      style={{ minHeight, maxHeight: maxHeight + 4 }}
     >
       <textarea
         ref={inputRef}

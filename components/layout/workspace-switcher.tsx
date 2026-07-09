@@ -281,20 +281,21 @@ export function WorkspaceSwitcher({
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex items-center gap-2 rounded-lg border border-border text-sm text-foreground/80 transition-colors hover:bg-muted/60",
+          "inline-flex items-center gap-2 rounded-xl text-foreground/80 transition-colors duration-150 ease-out hover:bg-muted/20",
           variant === "mobile"
-            ? "h-11 min-w-0 max-w-full px-2 py-1.5"
-            : "h-9 max-w-[168px] px-2 py-1.5",
-          open && "bg-muted/60",
+            ? "h-10 min-w-0 max-w-full px-2"
+            : "h-10 max-w-[180px] px-2",
+          open && "bg-muted/20",
         )}
       >
-        <WorkspaceAvatar workspace={activeWorkspace} size="sm" />
-        <span className="min-w-0 truncate font-medium">{activeWorkspace.name}</span>
+        <WorkspaceAvatar workspace={activeWorkspace} size="sm" className="h-6 w-6 shrink-0" />
+        <span className="min-w-0 truncate text-[13px] font-medium">{activeWorkspace.name}</span>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+            "h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-200",
             open && "rotate-180",
           )}
+          strokeWidth={1.75}
         />
       </button>
 

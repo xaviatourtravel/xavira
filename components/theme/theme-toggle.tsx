@@ -70,11 +70,15 @@ export function ThemeToggleIconButton({ className }: { className?: string }) {
       aria-label={isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
       title={isDark ? "Mode terang" : "Mode gelap"}
       className={cn(
-        "inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+        "inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20 hover:text-foreground",
         className,
       )}
     >
-      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      {isDark ? (
+        <Sun className="h-[18px] w-[18px]" strokeWidth={1.75} />
+      ) : (
+        <Moon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+      )}
     </button>
   );
 }

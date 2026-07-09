@@ -357,7 +357,7 @@ export function UniversalSearchBar({ className }: { className?: string }) {
         ref={triggerRef}
         type="button"
         onClick={openDropdown}
-        className="flex h-9 w-full min-w-[220px] items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
+        className="flex h-10 w-full min-w-[220px] items-center gap-2 rounded-xl border border-border/20 bg-muted/20 px-3 text-sm text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/30"
       >
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-left">Cari...</span>
@@ -378,11 +378,11 @@ export function UniversalSearchIconButton({ className }: { className?: string })
       aria-label="Buka pencarian"
       onClick={openPalette}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted/60",
+        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20",
         className,
       )}
     >
-      <Search className="h-4 w-4" />
+      <Search className="h-[18px] w-[18px]" strokeWidth={1.75} />
     </button>
   );
 }

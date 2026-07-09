@@ -93,8 +93,8 @@ export function NotificationDropdown({ attentionBadges }: NotificationDropdownPr
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "relative inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/60",
-          open && "bg-muted/60",
+          "relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20",
+          open && "bg-muted/20",
         )}
         aria-label={
           summary.totalCount > 0
@@ -103,9 +103,9 @@ export function NotificationDropdown({ attentionBadges }: NotificationDropdownPr
         }
         aria-expanded={open}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
         {summary.totalCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500/90 px-0.5 text-[10px] font-semibold leading-none text-white">
             {summary.totalCount > 9 ? "9+" : summary.totalCount}
           </span>
         ) : null}

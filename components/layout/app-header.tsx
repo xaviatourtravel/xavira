@@ -38,15 +38,15 @@ export function AppHeader({
 
   return (
     <UniversalSearchScope>
-      <header className="sticky top-0 z-30 shrink-0 border-b border-border bg-background px-3 lg:px-4">
-        <div className="flex h-14 w-full items-center gap-2 lg:gap-3">
+      <header className="sticky top-0 z-30 shrink-0 border-b border-border/20 bg-background px-3 lg:px-4">
+        <div className="flex h-16 w-full items-center gap-2">
           <button
             type="button"
             aria-label="Buka menu navigasi"
             onClick={onMenuClick}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/60 lg:hidden"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20 lg:hidden"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-[18px] w-[18px]" strokeWidth={1.75} />
           </button>
 
           <div className="min-w-0 flex-1 overflow-hidden lg:hidden">
@@ -57,7 +57,7 @@ export function AppHeader({
             <UniversalSearchBar />
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5 lg:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <UniversalSearchIconButton className="lg:hidden" />
 
             <div className="hidden lg:block">
@@ -71,10 +71,10 @@ export function AppHeader({
             <button
               type="button"
               onClick={() => setAiOpen(true)}
-              className="hidden h-11 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15 dark:border-primary/30 dark:bg-primary/15 dark:text-primary-foreground/90 dark:hover:bg-primary/20 lg:inline-flex"
+              className="hidden h-9 items-center gap-1.5 rounded-lg border border-border/20 bg-background px-2.5 text-sm font-medium text-foreground/80 transition-colors duration-150 ease-out hover:bg-muted/20 lg:inline-flex"
               aria-label="Asisten AI"
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
               <span>AI</span>
             </button>
 

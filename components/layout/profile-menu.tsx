@@ -269,19 +269,25 @@ export function ProfileMenu({ profile, email }: ProfileMenuProps) {
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex h-11 items-center gap-2 rounded-lg border border-border pl-1.5 pr-2.5 transition-colors hover:bg-muted/60",
-          open && "bg-muted/60",
+          "inline-flex h-10 items-center gap-1.5 rounded-xl pl-1 pr-2 transition-colors duration-150 ease-out hover:bg-muted/20",
+          open && "bg-muted/20",
         )}
       >
-        <UserAvatar name={displayName} imageUrl={profile.avatar_url} size="sm" />
-        <span className="hidden max-w-[100px] truncate text-sm font-medium text-foreground sm:inline">
+        <UserAvatar
+          name={displayName}
+          imageUrl={profile.avatar_url}
+          size="sm"
+          className="h-7 w-7 shrink-0"
+        />
+        <span className="hidden max-w-[100px] truncate text-[13px] font-medium text-foreground sm:inline">
           {displayName}
         </span>
         <ChevronDown
           className={cn(
-            "hidden h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 sm:block",
+            "hidden h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-200 sm:block",
             open && "rotate-180",
           )}
+          strokeWidth={1.75}
         />
       </button>
 

@@ -104,10 +104,10 @@ export function QuickCreateMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Buat cepat"
-        className="hidden h-11 gap-1.5 bg-emerald-700 px-3 hover:bg-emerald-800 md:inline-flex"
+        className="hidden h-10 gap-1.5 rounded-xl bg-emerald-600 px-2.5 text-sm font-medium hover:bg-emerald-700 md:inline-flex"
         onClick={() => setOpen((value) => !value)}
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-[18px] w-[18px]" strokeWidth={1.75} />
         <span className="hidden sm:inline">Buat</span>
       </Button>
 

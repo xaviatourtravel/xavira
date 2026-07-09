@@ -16,7 +16,15 @@ export type MessageThreadMessageItem = {
   groupPosition: MessageGroupPosition;
 };
 
-export type MessageThreadItem = MessageThreadDateItem | MessageThreadMessageItem;
+export type MessageThreadUnreadItem = {
+  type: "unread";
+  key: string;
+};
+
+export type MessageThreadItem =
+  | MessageThreadDateItem
+  | MessageThreadUnreadItem
+  | MessageThreadMessageItem;
 
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
@@ -51,6 +59,18 @@ export function formatMessageDateSeparatorLabel(
     year: "numeric",
     timeZone: JAKARTA_TIME_ZONE,
   }).format(new Date(`${dateKey}T12:00:00`));
+}
+
+export function getFirstUnreadMessageId(
+  messages: MessageRow[],
+  unreadCount: number,
+): string | null {
+  if (unreadCount <= 0 || messages.length === 0) {
+    return null;
+  }
+
+  const startIndex = Math.max(0, messages.length - unreadCount);
+  return messages[startIndex]?.id ?? null;
 }
 
 function annotateMessageGroups(items: MessageThreadItem[]): MessageThreadItem[] {
@@ -98,13 +118,16 @@ export function buildMessageThreadItems(
   messages: MessageRow[],
   labels: { today: string; yesterday: string },
   locale: string,
+  options?: { firstUnreadMessageId?: string | null },
 ): MessageThreadItem[] {
   if (messages.length === 0) {
     return [];
   }
 
+  const firstUnreadMessageId = options?.firstUnreadMessageId ?? null;
   const items: MessageThreadItem[] = [];
   let lastDateKey: string | null = null;
+  let unreadSeparatorInserted = false;
 
   for (const message of messages) {
     const dateKey = getMessageDateKey(message.created_at);
@@ -117,6 +140,18 @@ export function buildMessageThreadItems(
         label: formatMessageDateSeparatorLabel(dateKey, locale, labels),
       });
       lastDateKey = dateKey;
+    }
+
+    if (
+      !unreadSeparatorInserted &&
+      firstUnreadMessageId &&
+      message.id === firstUnreadMessageId
+    ) {
+      items.push({
+        type: "unread",
+        key: "unread-divider",
+      });
+      unreadSeparatorInserted = true;
     }
 
     items.push({

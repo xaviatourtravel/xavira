@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bot, Menu, Sparkles } from "lucide-react";
 
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
+import { NavIconButton } from "@/components/layout/nav-icon-button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { QuickCreateMenu } from "@/components/layout/quick-create-menu";
 import {
@@ -15,9 +16,15 @@ import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { ThemeToggleIconButton } from "@/components/theme/theme-toggle";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
 import { Button } from "@/components/ui/button";
+import {
+  AURORA_NAV_ACTIONS_GAP,
+  AURORA_NAV_HEIGHT,
+  AURORA_NAV_ICON_SIZE,
+} from "@/components/workspace/aurora-tokens";
 import type { NavAttentionBadges } from "@/config/navigation";
 import type { Profile } from "@/types/app-types";
 import type { WorkspaceSwitcherContext } from "@/lib/workspace/types";
+import { cn } from "@/lib/utils";
 
 type AppHeaderProps = {
   profile: Profile;
@@ -39,7 +46,7 @@ export function AppHeader({
   return (
     <UniversalSearchScope>
       <header className="sticky top-0 z-30 shrink-0 border-b border-border/20 bg-background px-3 lg:px-4">
-        <div className="flex h-16 w-full items-center gap-2">
+        <div className={cn("flex w-full items-center", AURORA_NAV_HEIGHT, "gap-2")}>
           <button
             type="button"
             aria-label="Buka menu navigasi"
@@ -57,7 +64,7 @@ export function AppHeader({
             <UniversalSearchBar />
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className={cn("ml-auto flex shrink-0 items-center", AURORA_NAV_ACTIONS_GAP)}>
             <UniversalSearchIconButton className="lg:hidden" />
 
             <div className="hidden lg:block">
@@ -68,15 +75,15 @@ export function AppHeader({
 
             <ThemeToggleIconButton className="hidden lg:inline-flex" />
 
-            <button
-              type="button"
+            <NavIconButton
+              variant="emphasized"
               onClick={() => setAiOpen(true)}
-              className="hidden h-9 items-center gap-1.5 rounded-lg border border-border/20 bg-background px-2.5 text-sm font-medium text-foreground/80 transition-colors duration-150 ease-out hover:bg-muted/20 lg:inline-flex"
+              className="hidden lg:inline-flex"
               aria-label="Asisten AI"
+              title="Asisten AI"
             >
-              <Sparkles className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-              <span>AI</span>
-            </button>
+              <Sparkles className={AURORA_NAV_ICON_SIZE} strokeWidth={1.75} />
+            </NavIconButton>
 
             <div className="hidden lg:block">
               <WorkspaceSwitcher context={workspaceContext} variant="desktop" />

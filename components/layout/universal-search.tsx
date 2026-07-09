@@ -15,6 +15,12 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
 import { SearchResultsList } from "@/components/layout/search-results-list";
+import {
+  AURORA_NAV_SEARCH_KBD,
+  AURORA_NAV_SEARCH_MAX_WIDTH,
+  AURORA_NAV_SEARCH_PLACEHOLDER,
+  AURORA_NAV_SEARCH_TRIGGER,
+} from "@/components/workspace/aurora-tokens";
 import { Input } from "@/components/ui/input";
 import {
   DEFAULT_RECENT_SEARCHES,
@@ -28,6 +34,8 @@ import {
   getNextSectionStartIndex,
   type UniversalSearchItem,
 } from "@/lib/navigation/universal-search";
+import { NavIconButton } from "@/components/layout/nav-icon-button";
+import { AURORA_NAV_ICON_SIZE } from "@/components/workspace/aurora-tokens";
 import { cn } from "@/lib/utils";
 
 type SearchMode = "dropdown" | "palette" | null;
@@ -352,18 +360,19 @@ export function UniversalSearchBar({ className }: { className?: string }) {
   const { rootRef, triggerRef, openDropdown } = useUniversalSearchContext();
 
   return (
-    <div ref={rootRef} className={cn("relative min-w-0 w-full max-w-[340px]", className)}>
+    <div
+      ref={rootRef}
+      className={cn("relative min-w-0 w-full", AURORA_NAV_SEARCH_MAX_WIDTH, className)}
+    >
       <button
         ref={triggerRef}
         type="button"
         onClick={openDropdown}
-        className="flex h-10 w-full min-w-[220px] items-center gap-2 rounded-xl border border-border/20 bg-muted/20 px-3 text-sm text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/30"
+        className={cn(AURORA_NAV_SEARCH_TRIGGER, "min-w-[220px]")}
       >
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="flex-1 text-left">Cari...</span>
-        <kbd className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-          Ctrl K
-        </kbd>
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" strokeWidth={1.75} />
+        <span className={AURORA_NAV_SEARCH_PLACEHOLDER}>Cari...</span>
+        <kbd className={AURORA_NAV_SEARCH_KBD}>Ctrl K</kbd>
       </button>
     </div>
   );
@@ -373,17 +382,9 @@ export function UniversalSearchIconButton({ className }: { className?: string })
   const { openPalette } = useUniversalSearchContext();
 
   return (
-    <button
-      type="button"
-      aria-label="Buka pencarian"
-      onClick={openPalette}
-      className={cn(
-        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20",
-        className,
-      )}
-    >
-      <Search className="h-[18px] w-[18px]" strokeWidth={1.75} />
-    </button>
+    <NavIconButton aria-label="Buka pencarian" onClick={openPalette} className={className}>
+      <Search className={AURORA_NAV_ICON_SIZE} strokeWidth={1.75} />
+    </NavIconButton>
   );
 }
 

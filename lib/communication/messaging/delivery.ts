@@ -19,13 +19,53 @@ export const DELIVERY_STATUS_LABELS: Record<MessageDeliveryStatus, string> = {
   failed: "Gagal dikirim",
 };
 
-/** Compact labels for outgoing bubble metadata (HH:mm • Status). */
+/** @deprecated Prefer getOutgoingBubbleDeliveryGlyph in bubble UI */
 export const DELIVERY_STATUS_BUBBLE_LABELS: Record<MessageDeliveryStatus, string> = {
   pending: "Mengirim",
   sent: "Terkirim",
   delivered: "Terkirim",
   failed: "Gagal",
 };
+
+/** Visual delivery step for outgoing bubble metadata. */
+export type OutgoingDeliveryVisual = "sending" | "sent" | "delivered";
+
+export function getOutgoingBubbleDeliveryVisual(
+  deliveryStatus: MessageDeliveryStatus | null | undefined,
+  options?: { isOptimistic?: boolean },
+): OutgoingDeliveryVisual | null {
+  if (options?.isOptimistic || deliveryStatus === "pending") {
+    return "sending";
+  }
+
+  if (deliveryStatus === "sent") {
+    return "sent";
+  }
+
+  if (deliveryStatus === "delivered") {
+    return "delivered";
+  }
+
+  return null;
+}
+
+/** Compact delivery glyphs for outgoing bubble metadata. */
+export function getOutgoingBubbleDeliveryGlyph(
+  deliveryStatus: MessageDeliveryStatus | null | undefined,
+  options?: { isOptimistic?: boolean },
+): string | null {
+  const visual = getOutgoingBubbleDeliveryVisual(deliveryStatus, options);
+
+  if (visual === "sent") {
+    return "✓";
+  }
+
+  if (visual === "delivered") {
+    return "✓✓";
+  }
+
+  return null;
+}
 
 export function getOutgoingBubbleDeliveryStatusLabel(
   deliveryStatus: MessageDeliveryStatus | null | undefined,

@@ -7,6 +7,7 @@ import { ChevronDown, LogOut } from "lucide-react";
 
 import { signOut } from "@/actions/auth";
 import { UserAvatar, formatProfileRoleLabel } from "@/components/layout/user-avatar";
+import { AURORA_NAV_PROFILE_TRIGGER } from "@/components/workspace/aurora-tokens";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
@@ -269,22 +270,22 @@ export function ProfileMenu({ profile, email }: ProfileMenuProps) {
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex h-10 items-center gap-1.5 rounded-xl pl-1 pr-2 transition-colors duration-150 ease-out hover:bg-muted/20",
-          open && "bg-muted/20",
+          AURORA_NAV_PROFILE_TRIGGER,
+          open && "border-border/30 bg-muted/30",
         )}
       >
         <UserAvatar
           name={displayName}
           imageUrl={profile.avatar_url}
           size="sm"
-          className="h-7 w-7 shrink-0"
+          className="h-6 w-6 shrink-0"
         />
-        <span className="hidden max-w-[100px] truncate text-[13px] font-medium text-foreground sm:inline">
+        <span className="hidden max-w-[108px] truncate text-[13px] font-medium leading-none text-foreground sm:inline">
           {displayName}
         </span>
         <ChevronDown
           className={cn(
-            "hidden h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-200 sm:block",
+            "hidden h-3.5 w-3.5 shrink-0 text-muted-foreground/45 transition-transform duration-200 sm:block",
             open && "rotate-180",
           )}
           strokeWidth={1.75}

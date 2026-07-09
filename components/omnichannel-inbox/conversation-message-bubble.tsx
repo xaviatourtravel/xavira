@@ -1,12 +1,20 @@
 "use client";
 
 import { useTransition } from "react";
-import { RotateCcw } from "lucide-react";
 
+import { formatInboxMessageBubbleTime } from "@/components/omnichannel-inbox/inbox-display";
+import { ConversationMessageStatus } from "@/components/omnichannel-inbox/conversation-message-status";
 import {
-  formatInboxMessageBubbleTime,
-  formatOutgoingBubbleMetadataLine,
-} from "@/components/omnichannel-inbox/inbox-display";
+  AURORA_MESSAGE_BUBBLE_ATTACHMENT,
+  AURORA_MESSAGE_BUBBLE_INCOMING,
+  AURORA_MESSAGE_BUBBLE_OUTGOING,
+  AURORA_MESSAGE_BUBBLE_PADDING,
+  AURORA_MESSAGE_BUBBLE_RADIUS,
+  AURORA_MESSAGE_BUBBLE_SELECTION,
+  AURORA_MESSAGE_BUBBLE_TEXT,
+  AURORA_MESSAGE_BUBBLE_TEXT_LINK_INCOMING,
+  AURORA_MESSAGE_BUBBLE_TEXT_LINK_OUTGOING,
+} from "@/components/workspace/aurora-tokens";
 import { MESSAGE_BUBBLE_WIDTH_CLASS } from "@/lib/communication-workspace/conversation-lane";
 import type { MessageGroupPosition } from "@/lib/communication/message-thread";
 import { formatTranslation } from "@/lib/i18n/dictionary";
@@ -33,53 +41,6 @@ function getAttachmentLabel(
       });
 }
 
-function getBubbleMetadataLine(message: MessageRow, isIncoming: boolean) {
-  if (isIncoming) {
-    return formatInboxMessageBubbleTime(message.created_at);
-  }
-
-  return formatOutgoingBubbleMetadataLine(
-    message.created_at,
-    message.deliveryStatus,
-    { isOptimistic: message.id === "optimistic-outgoing" },
-  );
-}
-
-function getBubbleShapeClasses(
-  isIncoming: boolean,
-  groupPosition: MessageGroupPosition,
-) {
-  if (groupPosition === "single") {
-    return isIncoming
-      ? "rounded-[20px] rounded-bl-[12px]"
-      : "rounded-[20px] rounded-br-[12px]";
-  }
-
-  if (isIncoming) {
-    switch (groupPosition) {
-      case "first":
-        return "rounded-t-[20px] rounded-tr-[20px] rounded-bl-md rounded-br-[20px]";
-      case "middle":
-        return "rounded-t-md rounded-tr-[20px] rounded-bl-md rounded-br-[20px]";
-      case "last":
-        return "rounded-t-md rounded-tr-[20px] rounded-bl-[20px] rounded-br-[20px] rounded-bl-[12px]";
-      default:
-        return "rounded-[20px]";
-    }
-  }
-
-  switch (groupPosition) {
-    case "first":
-      return "rounded-t-[20px] rounded-tl-[20px] rounded-bl-[20px] rounded-br-md";
-    case "middle":
-      return "rounded-t-md rounded-tl-[20px] rounded-bl-[20px] rounded-br-md";
-    case "last":
-      return "rounded-t-md rounded-tl-[20px] rounded-bl-[20px] rounded-br-[20px] rounded-br-[12px]";
-    default:
-      return "rounded-[20px]";
-  }
-}
-
 type ConversationMessageBubbleProps = {
   message: MessageRow;
   groupPosition?: MessageGroupPosition;
@@ -98,88 +59,78 @@ export function ConversationMessageBubble({
   const isIncoming = message.direction === "incoming";
   const attachmentLabel = getAttachmentLabel(message, ti);
   const isFailed = message.deliveryStatus === "failed";
-  const metadataLine = getBubbleMetadataLine(message, isIncoming);
   const isOptimistic = message.id === "optimistic-outgoing";
+  const timestamp = formatInboxMessageBubbleTime(message.created_at);
   const showTimestamp =
     groupPosition === "single" ||
     groupPosition === "last" ||
     isFailed ||
-    Boolean(onRetry);
+    Boolean(onRetry) ||
+    isOptimistic ||
+    message.deliveryStatus === "pending";
 
   return (
-    <div
-      className={cn(
-        "grid w-full grid-cols-1 scroll-mt-24",
-        className,
-      )}
-    >
+    <div className={cn(MESSAGE_BUBBLE_WIDTH_CLASS, className)}>
       <div
         className={cn(
-          MESSAGE_BUBBLE_WIDTH_CLASS,
-          isIncoming ? "justify-self-start" : "justify-self-end",
-          "inline-block px-3 py-2",
-          getBubbleShapeClasses(isIncoming, groupPosition),
-          isIncoming
-            ? "bg-muted/30 text-foreground dark:bg-muted/20"
-            : "bg-primary text-primary-foreground",
+          AURORA_MESSAGE_BUBBLE_RADIUS,
+          AURORA_MESSAGE_BUBBLE_PADDING,
+          AURORA_MESSAGE_BUBBLE_SELECTION,
+          isIncoming ? AURORA_MESSAGE_BUBBLE_INCOMING : AURORA_MESSAGE_BUBBLE_OUTGOING,
           isFailed && "ring-1 ring-red-400/35",
           isOptimistic && "opacity-80",
         )}
       >
         {message.message_text ? (
-          <p className="whitespace-pre-wrap text-sm leading-[1.5]">
+          <p
+            className={cn(
+              AURORA_MESSAGE_BUBBLE_TEXT,
+              isIncoming
+                ? AURORA_MESSAGE_BUBBLE_TEXT_LINK_INCOMING
+                : AURORA_MESSAGE_BUBBLE_TEXT_LINK_OUTGOING,
+            )}
+          >
             {message.message_text}
           </p>
         ) : null}
 
         {attachmentLabel ? (
-          <p
-            className={cn(
-              "mt-1 text-[11px] leading-snug",
-              isIncoming ? "text-muted-foreground/80" : "text-primary-foreground/70",
-            )}
-          >
-            {attachmentLabel}
-          </p>
+          <div className={AURORA_MESSAGE_BUBBLE_ATTACHMENT}>
+            <p
+              className={cn(
+                "text-[11px] leading-snug",
+                isIncoming ? "text-muted-foreground/75" : "text-primary-foreground/70",
+              )}
+            >
+              {attachmentLabel}
+            </p>
+          </div>
         ) : null}
 
-        {showTimestamp && metadataLine ? (
+        {showTimestamp ? (
+          <ConversationMessageStatus
+            isIncoming={isIncoming}
+            timestamp={timestamp}
+            deliveryStatus={message.deliveryStatus}
+            isOptimistic={isOptimistic}
+            isFailed={isFailed}
+            onRetry={onRetry ? () => startRetry(onRetry) : undefined}
+            isRetrying={isRetrying}
+          />
+        ) : onRetry ? (
           <div
             className={cn(
-              "mt-1.5 flex items-center justify-end gap-1.5 text-[9px] leading-none tabular-nums",
-              isIncoming
-                ? "text-muted-foreground/45"
-                : "text-primary-foreground/45",
+              "mt-1 flex",
+              isIncoming ? "justify-start" : "justify-end",
             )}
           >
-            <span>{metadataLine}</span>
-            {onRetry ? (
-              <button
-                type="button"
-                disabled={isRetrying}
-                onClick={() => startRetry(onRetry)}
-                className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-medium text-inherit opacity-80 hover:opacity-100"
-              >
-                <RotateCcw
-                  className={cn("h-2.5 w-2.5", isRetrying && "animate-spin")}
-                />
-                {isRetrying ? ti("retrySending") : ti("retrySend")}
-              </button>
-            ) : null}
-          </div>
-        ) : onRetry ? (
-          <div className="mt-1 flex justify-end">
-            <button
-              type="button"
-              disabled={isRetrying}
-              onClick={() => startRetry(onRetry)}
-              className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-medium opacity-80 hover:opacity-100"
-            >
-              <RotateCcw
-                className={cn("h-2.5 w-2.5", isRetrying && "animate-spin")}
-              />
-              {isRetrying ? ti("retrySending") : ti("retrySend")}
-            </button>
+            <ConversationMessageStatus
+              isIncoming={isIncoming}
+              timestamp={null}
+              isFailed
+              onRetry={() => startRetry(onRetry)}
+              isRetrying={isRetrying}
+            />
           </div>
         ) : null}
       </div>

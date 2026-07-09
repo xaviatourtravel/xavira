@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { AURORA_NAV_CREATE_BUTTON, AURORA_NAV_ICON_SIZE } from "@/components/workspace/aurora-tokens";
 import {
   QUICK_CREATE_ITEMS,
   type QuickCreateItem,
@@ -97,19 +97,18 @@ export function QuickCreateMenu() {
 
   return (
     <div ref={rootRef} className="relative">
-      <Button
+      <button
         ref={triggerRef}
         type="button"
-        size="sm"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Buat cepat"
-        className="hidden h-10 gap-1.5 rounded-xl bg-emerald-600 px-2.5 text-sm font-medium hover:bg-emerald-700 md:inline-flex"
+        className={cn(AURORA_NAV_CREATE_BUTTON, open && "bg-emerald-700 shadow-sm")}
         onClick={() => setOpen((value) => !value)}
       >
-        <Plus className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        <Plus className={AURORA_NAV_ICON_SIZE} strokeWidth={1.75} />
         <span className="hidden sm:inline">Buat</span>
-      </Button>
+      </button>
 
       {open ? (
         <div

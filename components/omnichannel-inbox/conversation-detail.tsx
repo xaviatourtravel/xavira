@@ -38,6 +38,7 @@ import {
   retryWhatsappConversationReplyAction,
 } from "@/app/(dashboard)/inbox/whatsapp-actions";
 import { buildRuleBasedIntelligence } from "@/lib/communication/intelligence/rule-based-intelligence";
+import { getFirstUnreadMessageId } from "@/lib/communication/message-thread";
 import { ConversationAiModeToggle } from "@/components/omnichannel-inbox/conversation-ai-mode-toggle";
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { ClientOnlyActiveLabel } from "@/components/omnichannel-inbox/client-only-relative-time";
@@ -49,7 +50,10 @@ import {
 import { formatTranslation } from "@/lib/i18n/dictionary";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { isQualificationHandoffReason } from "@/modules/ai/types/lead-qualification";
-import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
+import {
+  isWhatsappAiAutoReplyEnabled,
+  resolveWhatsappAiState,
+} from "@/lib/whatsapp-inbox/ai/constants";
 import { ConversationMessageLane } from "@/components/omnichannel-inbox/conversation-message-lane";
 import { ConversationMessageThread } from "@/components/omnichannel-inbox/conversation-message-thread";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
@@ -209,18 +213,15 @@ export function OmnichannelConversationDetailPanel({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const markedReadRef = useRef<string | null>(null);
+  const initialUnreadRef = useRef<{
+    conversationId: string;
+    firstUnreadMessageId: string | null;
+  }>({
+    conversationId: "",
+    firstUnreadMessageId: null,
+  });
   const prevCountRef = useRef(0);
   const [newMessageCount, setNewMessageCount] = useState(0);
-
-  const displayName = getConversationDisplayName(conversation);
-  const headerStatusLabel =
-    conversation.leadContext?.statusLabel ?? conversation.statusLabel ?? null;
-  const isWhatsappChannel = (channel ?? conversation.channel) === "whatsapp";
-  const showQualificationHandoffStatus =
-    isWhatsappChannel &&
-    resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN" &&
-    isQualificationHandoffReason(conversation.aiHandoffReason) &&
-    Boolean(conversation.leadQualification);
 
   const displayMessages: MessageRow[] = useMemo(() => {
     if (isWhatsapp) {
@@ -252,6 +253,50 @@ export function OmnichannelConversationDetailPanel({
     conversation.messages,
     conversation.id,
   ]);
+
+  const displayName = getConversationDisplayName(conversation);
+  const headerStatusLabel =
+    conversation.leadContext?.statusLabel ?? conversation.statusLabel ?? null;
+  const isWhatsappChannel = (channel ?? conversation.channel) === "whatsapp";
+  const showQualificationHandoffStatus =
+    isWhatsappChannel &&
+    resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN" &&
+    isQualificationHandoffReason(conversation.aiHandoffReason) &&
+    Boolean(conversation.leadQualification);
+
+  if (initialUnreadRef.current.conversationId !== conversation.id) {
+    initialUnreadRef.current = {
+      conversationId: conversation.id,
+      firstUnreadMessageId: getFirstUnreadMessageId(
+        conversation.messages,
+        conversation.unreadCount,
+      ),
+    };
+  }
+
+  const firstUnreadMessageId = initialUnreadRef.current.firstUnreadMessageId;
+
+  const showAiThinking = useMemo(() => {
+    if (
+      !isWhatsapp ||
+      !isWhatsappAiAutoReplyEnabled(resolveWhatsappAiState(conversation.aiState))
+    ) {
+      return false;
+    }
+
+    const lastMessage = displayMessages[displayMessages.length - 1];
+    if (!lastMessage || lastMessage.direction !== "incoming") {
+      return false;
+    }
+
+    return !displayMessages.some(
+      (message) =>
+        message.direction === "outgoing" &&
+        (message.deliveryStatus === "pending" ||
+          message.id === "optimistic-outgoing" ||
+          message.id.startsWith("temp-")),
+    );
+  }, [conversation.aiState, displayMessages, isWhatsapp]);
 
   const lastCustomerMessage = useMemo(() => {
     for (let index = displayMessages.length - 1; index >= 0; index -= 1) {
@@ -698,6 +743,7 @@ export function OmnichannelConversationDetailPanel({
               description={
                 isWhatsapp ? ti("noMessagesWhatsappDesc") : ti("noMessagesChannelDesc")
               }
+              hint={ti("emptyThreadHint")}
               variant="inline"
             />
           ) : searchOpen && normalizedSearch && visibleMessages.length === 0 ? (
@@ -712,6 +758,8 @@ export function OmnichannelConversationDetailPanel({
               messages={visibleMessages}
               customerDisplayName={displayName}
               customerAvatarUrl={conversation.customerAvatar}
+              firstUnreadMessageId={firstUnreadMessageId}
+              showAiThinking={showAiThinking}
               onRetryMessage={
                 isWhatsapp
                   ? async (messageId) => {

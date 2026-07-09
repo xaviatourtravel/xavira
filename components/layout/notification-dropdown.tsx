@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 
+import { NavIconButton } from "@/components/layout/nav-icon-button";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import {
+  AURORA_NAV_BADGE,
+  AURORA_NAV_ICON_SIZE,
+} from "@/components/workspace/aurora-tokens";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type { NavAttentionBadges } from "@/config/navigation";
 import { buildNotificationSummary } from "@/lib/navigation/build-notification-summary";
-import { cn } from "@/lib/utils";
 
 type NotificationDropdownProps = {
   attentionBadges: NavAttentionBadges;
@@ -89,13 +93,10 @@ export function NotificationDropdown({ attentionBadges }: NotificationDropdownPr
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
+      <NavIconButton
         onClick={() => setOpen((value) => !value)}
-        className={cn(
-          "relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20",
-          open && "bg-muted/20",
-        )}
+        active={open}
+        className="relative"
         aria-label={
           summary.totalCount > 0
             ? `Notifikasi (${summary.totalCount})`
@@ -103,13 +104,13 @@ export function NotificationDropdown({ attentionBadges }: NotificationDropdownPr
         }
         aria-expanded={open}
       >
-        <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        <Bell className={AURORA_NAV_ICON_SIZE} strokeWidth={1.75} />
         {summary.totalCount > 0 ? (
-          <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500/90 px-0.5 text-[10px] font-semibold leading-none text-white">
+          <span className={AURORA_NAV_BADGE}>
             {summary.totalCount > 9 ? "9+" : summary.totalCount}
           </span>
         ) : null}
-      </button>
+      </NavIconButton>
 
       {open && isMobile ? (
         <MobileSheet

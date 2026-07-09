@@ -2,10 +2,12 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 
+import { NavIconButton } from "@/components/layout/nav-icon-button";
 import {
   useTheme,
   type ThemePreference,
 } from "@/components/theme/theme-provider";
+import { AURORA_NAV_ICON_SIZE } from "@/components/workspace/aurora-tokens";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
@@ -64,21 +66,17 @@ export function ThemeToggleIconButton({ className }: { className?: string }) {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <button
-      type="button"
+    <NavIconButton
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
       title={isDark ? "Mode terang" : "Mode gelap"}
-      className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-muted/20 hover:text-foreground",
-        className,
-      )}
+      className={cn("hover:text-foreground", className)}
     >
       {isDark ? (
-        <Sun className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        <Sun className={AURORA_NAV_ICON_SIZE} strokeWidth={1.75} />
       ) : (
-        <Moon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        <Moon className={AURORA_NAV_ICON_SIZE} strokeWidth={1.75} />
       )}
-    </button>
+    </NavIconButton>
   );
 }

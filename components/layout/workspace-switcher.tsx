@@ -6,6 +6,7 @@ import { Check, ChevronDown, Plus, Settings, SlidersHorizontal } from "lucide-re
 
 import { WorkspaceAvatar } from "@/components/layout/workspace-avatar";
 import { MobileSheet } from "@/components/ui/mobile-sheet";
+import { AURORA_NAV_SWITCHER_TRIGGER } from "@/components/workspace/aurora-tokens";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import {
   getRecentWorkspaceIds,
@@ -281,18 +282,20 @@ export function WorkspaceSwitcher({
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex items-center gap-2 rounded-xl text-foreground/80 transition-colors duration-150 ease-out hover:bg-muted/20",
+          AURORA_NAV_SWITCHER_TRIGGER,
           variant === "mobile"
-            ? "h-10 min-w-0 max-w-full px-2"
-            : "h-10 max-w-[180px] px-2",
-          open && "bg-muted/20",
+            ? "h-10 min-w-0 max-w-full border-transparent px-2 hover:border-transparent"
+            : "min-w-0 max-w-[200px] px-2.5",
+          open && "border-border/30 bg-muted/30",
         )}
       >
         <WorkspaceAvatar workspace={activeWorkspace} size="sm" className="h-6 w-6 shrink-0" />
-        <span className="min-w-0 truncate text-[13px] font-medium">{activeWorkspace.name}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none">
+          {activeWorkspace.name}
+        </span>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-200",
+            "h-3.5 w-3.5 shrink-0 text-muted-foreground/45 transition-transform duration-200",
             open && "rotate-180",
           )}
           strokeWidth={1.75}

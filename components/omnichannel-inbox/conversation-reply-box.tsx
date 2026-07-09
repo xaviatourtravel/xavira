@@ -26,11 +26,13 @@ import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnich
 import { DsToast } from "@/components/design-system/toast";
 import {
   AuroraComposer,
+  AuroraComposerAiPill,
   AuroraComposerIconButton,
   AuroraComposerInput,
   AuroraComposerPopover,
   AuroraComposerSendButton,
 } from "@/components/workspace";
+import { AURORA_COMPOSER_ICON_SIZE } from "@/components/workspace/aurora-tokens";
 import { QUICK_REPLY_TEMPLATES } from "@/lib/communication/assist";
 import { isPersistedFailureCode } from "@/lib/communication/composer";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -489,69 +491,110 @@ export function OmnichannelConversationReplyBox({
           null
         }
       >
-        <div ref={rowRef} className="flex w-full min-w-0 items-center gap-1">
-          <div className="relative shrink-0">
+        <div ref={rowRef} className="flex w-full min-w-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-0.5">
+            <div className="relative">
+              <AuroraComposerIconButton
+                label={ti("composerQuickTemplates")}
+                active={openMenu === "plus"}
+                disabled={isDisabled}
+                aria-expanded={openMenu === "plus"}
+                onClick={() =>
+                  setOpenMenu((value) => (value === "plus" ? null : "plus"))
+                }
+              >
+                <Plus className={AURORA_COMPOSER_ICON_SIZE} strokeWidth={1.75} />
+              </AuroraComposerIconButton>
+              {openMenu === "plus" ? (
+                <AuroraComposerPopover align="left" className="w-64">
+                  {plusView === "root" ? (
+                    <>
+                      <MenuItem
+                        icon={<FileText className="h-4 w-4" />}
+                        label={ti("composerDocuments")}
+                        onClick={() =>
+                          openFilePicker(
+                            ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv",
+                          )
+                        }
+                      />
+                      <MenuItem
+                        icon={<ImageIcon className="h-4 w-4" />}
+                        label={ti("composerImages")}
+                        onClick={() => openFilePicker("image/*")}
+                      />
+                      <MenuItem
+                        icon={<Film className="h-4 w-4" />}
+                        label={ti("composerVideo")}
+                        onClick={() => openFilePicker("video/*")}
+                      />
+                      <MenuItem
+                        icon={<Type className="h-4 w-4" />}
+                        label={ti("composerTemplates")}
+                        onClick={() => setPlusView("template")}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <SubmenuHeader
+                        title={ti("composerQuickTemplates")}
+                        onBack={() => setPlusView("root")}
+                        backLabel={ti("composerBack")}
+                      />
+                      {QUICK_REPLY_TEMPLATES.map((template) => (
+                        <button
+                          key={template}
+                          type="button"
+                          onClick={() => insertReply(template)}
+                          className="block w-full px-3 py-2 text-left text-xs leading-relaxed text-foreground transition-colors hover:bg-muted/50"
+                        >
+                          {template}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </AuroraComposerPopover>
+              ) : null}
+            </div>
+
             <AuroraComposerIconButton
               label={ti("composerAttachment")}
-              active={openMenu === "plus"}
               disabled={isDisabled}
-              aria-expanded={openMenu === "plus"}
-              onClick={() =>
-                setOpenMenu((value) => (value === "plus" ? null : "plus"))
-              }
+              onClick={() => openFilePicker("image/*,video/*,.pdf,.doc,.docx,.txt")}
             >
-              <Plus className="h-4 w-4" />
+              <Paperclip className={AURORA_COMPOSER_ICON_SIZE} strokeWidth={1.75} />
             </AuroraComposerIconButton>
-            {openMenu === "plus" ? (
-              <AuroraComposerPopover align="left" className="w-64">
-                {plusView === "root" ? (
-                  <>
-                    <MenuItem
-                      icon={<FileText className="h-4 w-4" />}
-                      label={ti("composerDocuments")}
-                      onClick={() =>
-                        openFilePicker(
-                          ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv",
-                        )
-                      }
-                    />
-                    <MenuItem
-                      icon={<ImageIcon className="h-4 w-4" />}
-                      label={ti("composerImages")}
-                      onClick={() => openFilePicker("image/*")}
-                    />
-                    <MenuItem
-                      icon={<Film className="h-4 w-4" />}
-                      label={ti("composerVideo")}
-                      onClick={() => openFilePicker("video/*")}
-                    />
-                    <MenuItem
-                      icon={<Type className="h-4 w-4" />}
-                      label={ti("composerTemplates")}
-                      onClick={() => setPlusView("template")}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <SubmenuHeader
-                      title={ti("composerQuickTemplates")}
-                      onBack={() => setPlusView("root")}
-                      backLabel={ti("composerBack")}
-                    />
-                    {QUICK_REPLY_TEMPLATES.map((template) => (
-                      <button
-                        key={template}
-                        type="button"
-                        onClick={() => insertReply(template)}
-                        className="block w-full px-3 py-2 text-left text-xs leading-relaxed text-foreground transition-colors hover:bg-muted/50"
-                      >
-                        {template}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </AuroraComposerPopover>
-            ) : null}
+
+            <div className="relative">
+              <AuroraComposerIconButton
+                label={ti("composerEmoji")}
+                active={openMenu === "emoji"}
+                disabled={isDisabled}
+                aria-expanded={openMenu === "emoji"}
+                onClick={() =>
+                  setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
+                }
+              >
+                <Smile className={AURORA_COMPOSER_ICON_SIZE} strokeWidth={1.75} />
+              </AuroraComposerIconButton>
+              {openMenu === "emoji" ? (
+                <AuroraComposerPopover align="left" className="grid grid-cols-6 gap-0.5 p-2">
+                  {EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="rounded-lg px-2 py-1 text-lg transition-colors hover:bg-muted/50"
+                      onClick={() => {
+                        insertAtCursor(emoji);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </AuroraComposerPopover>
+              ) : null}
+            </div>
           </div>
 
           <AuroraComposerInput
@@ -565,46 +608,20 @@ export function OmnichannelConversationReplyBox({
             maxHeight={COMPOSER_MAX_TEXTAREA_HEIGHT_PX}
           />
 
-          <div className="relative shrink-0">
-            <AuroraComposerIconButton
-              label={ti("composerEmoji")}
-              active={openMenu === "emoji"}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <AuroraComposerAiPill
+              label={ti("composerAskAi")}
               disabled={isDisabled}
-              aria-expanded={openMenu === "emoji"}
-              onClick={() =>
-                setOpenMenu((value) => (value === "emoji" ? null : "emoji"))
-              }
-            >
-              <Smile className="h-4 w-4" />
-            </AuroraComposerIconButton>
-            {openMenu === "emoji" ? (
-              <AuroraComposerPopover align="right" className="grid grid-cols-6 gap-0.5 p-2">
-                {EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className="rounded-lg px-2 py-1 text-lg transition-colors hover:bg-muted/50"
-                    onClick={() => {
-                      insertAtCursor(emoji);
-                      setOpenMenu(null);
-                    }}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </AuroraComposerPopover>
-            ) : null}
-          </div>
+            />
 
-          <AuroraComposerSendButton
-            disabled={!canSend}
-            isSending={isPending}
-            onClick={handleSend}
-            label={ti("composerSendLabel")}
-            sendingLabel={ti("composerSendingLabel")}
-            sendText={ti("composerSend")}
-            sendingText={ti("composerSending")}
-          />
+            <AuroraComposerSendButton
+              disabled={!canSend}
+              isSending={isPending}
+              onClick={handleSend}
+              label={ti("composerSendLabel")}
+              sendingLabel={ti("composerSendingLabel")}
+            />
+          </div>
         </div>
       </AuroraComposer>
     </div>

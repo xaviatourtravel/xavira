@@ -53,14 +53,14 @@ const VARIANT_CONFIG: Record<
     action: "mt-5",
   },
   inline: {
-    padding: "px-4 py-8",
-    iconWrap: "h-14 w-14 rounded-xl bg-muted/15",
+    padding: "px-5 py-10",
+    iconWrap: "h-16 w-16 rounded-2xl bg-muted/15",
     icon: "h-5 w-5 text-muted-foreground/45",
-    title: "mt-4 text-sm font-semibold text-foreground",
-    description: "mt-2 max-w-[280px] text-sm leading-relaxed text-muted-foreground",
-    descriptionMaxWidth: "max-w-[280px]",
-    hint: "mt-3 text-xs text-muted-foreground/60",
-    action: "mt-4",
+    title: "mt-5 text-base font-semibold text-foreground",
+    description: "mt-3 max-w-[320px] text-sm leading-relaxed text-muted-foreground",
+    descriptionMaxWidth: "max-w-[320px]",
+    hint: "mt-4 text-xs leading-relaxed text-muted-foreground/55",
+    action: "mt-5",
   },
 };
 

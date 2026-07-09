@@ -7,9 +7,14 @@ import { getConversationLaneClassName } from "@/lib/communication-workspace/conv
 import { cn } from "@/lib/utils";
 
 import {
+  AURORA_COMPOSER_AI_PILL,
   AURORA_COMPOSER_ICON_BUTTON,
+  AURORA_COMPOSER_ICON_SIZE,
+  AURORA_COMPOSER_INPUT,
+  AURORA_COMPOSER_RADIUS,
   AURORA_COMPOSER_SEND_BUTTON,
   AURORA_COMPOSER_SURFACE,
+  AURORA_COMPOSER_SURFACE_FOCUS,
   AURORA_MOTION,
 } from "./aurora-tokens";
 
@@ -79,17 +84,19 @@ export function AuroraComposer({
 
   return (
     <div
-      className={cn(
-        "relative bg-background px-0 pb-3 pt-0",
-        className,
-      )}
+      className={cn("relative bg-background px-0 pb-3 pt-0", className)}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
       {isDragging && dropLabel ? (
-        <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-20 flex items-center justify-center rounded-[26px] border-2 border-dashed border-border/25 bg-white dark:bg-background">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-0 inset-y-0 z-20 flex items-center justify-center border-2 border-dashed border-border/25 bg-white dark:bg-background",
+            AURORA_COMPOSER_RADIUS,
+          )}
+        >
           <p className="text-sm text-muted-foreground">{dropLabel}</p>
         </div>
       ) : null}
@@ -122,10 +129,10 @@ export function AuroraComposerSurface({
     <div
       className={cn(
         AURORA_COMPOSER_SURFACE,
+        AURORA_COMPOSER_SURFACE_FOCUS,
         AURORA_MOTION.hover,
         "transition-[border-color,opacity]",
         AURORA_MOTION.respectMotion,
-        "focus-within:border-border/40",
         (disabled || isSending) && "opacity-60",
         className,
       )}
@@ -166,11 +173,40 @@ export function AuroraComposerIconButton({
       aria-expanded={ariaExpanded}
       className={cn(
         AURORA_COMPOSER_ICON_BUTTON,
-        active && "bg-muted/45 text-foreground",
+        active && "bg-muted/30 text-foreground",
         className,
       )}
     >
       {children}
+    </button>
+  );
+}
+
+export type AuroraComposerAiPillProps = {
+  label: string;
+  disabled?: boolean;
+  onClick?: () => void;
+  className?: string;
+};
+
+/** Visual AI entry — no modal or logic in Composer 2.0 */
+export function AuroraComposerAiPill({
+  label,
+  disabled = false,
+  onClick,
+  className,
+}: AuroraComposerAiPillProps) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(AURORA_COMPOSER_AI_PILL, className)}
+    >
+      <span aria-hidden>✨</span>
+      <span>{label}</span>
     </button>
   );
 }
@@ -187,14 +223,14 @@ export type AuroraComposerSendButtonProps = {
   className?: string;
 };
 
-/** Primary send action — clear final control on the right */
+/** Primary send action — icon-first control on the right */
 export function AuroraComposerSendButton({
   disabled = false,
   isSending = false,
   onClick,
   label,
   sendingLabel,
-  showText = true,
+  showText = false,
   sendText,
   sendingText,
   className,
@@ -209,16 +245,14 @@ export function AuroraComposerSendButton({
       className={cn(
         AURORA_COMPOSER_SEND_BUTTON,
         AURORA_MOTION.hover,
-        "transition-[background-color,transform,opacity]",
         AURORA_MOTION.respectMotion,
-        "disabled:pointer-events-none disabled:opacity-35",
         className,
       )}
     >
       {isSending ? (
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        <Loader2 className={cn(AURORA_COMPOSER_ICON_SIZE, "animate-spin")} aria-hidden />
       ) : (
-        <Send className="h-4 w-4" aria-hidden />
+        <Send className={AURORA_COMPOSER_ICON_SIZE} aria-hidden />
       )}
       {showText && (sendText || sendingText) ? (
         <span className="hidden sm:inline">
@@ -250,14 +284,14 @@ export function AuroraComposerInput({
   placeholder,
   disabled = false,
   title,
-  minHeight = 32,
+  minHeight = 24,
   maxHeight = 132,
   className,
   inputRef,
 }: AuroraComposerInputProps) {
   return (
     <div
-      className={cn("flex min-h-0 min-w-0 flex-1 items-center")}
+      className="flex min-h-0 min-w-0 flex-1 items-center py-1"
       style={{ maxHeight: maxHeight + 8 }}
     >
       <textarea
@@ -269,12 +303,7 @@ export function AuroraComposerInput({
         placeholder={placeholder}
         disabled={disabled}
         title={title}
-        className={cn(
-          "w-full resize-none border-0 bg-transparent px-0 text-sm leading-[1.5] outline-none focus:outline-none focus-visible:outline-none",
-          "placeholder:text-muted-foreground/45",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          className,
-        )}
+        className={cn(AURORA_COMPOSER_INPUT, className)}
         style={{ maxHeight, minHeight }}
       />
     </div>
@@ -295,7 +324,7 @@ export function AuroraComposerPopover({
   return (
     <div
       className={cn(
-        "absolute bottom-full z-20 mb-2 overflow-hidden rounded-[18px] border border-border/25 bg-background/95 py-1 shadow-lg backdrop-blur-sm",
+        "absolute bottom-full z-20 mb-2 overflow-hidden rounded-2xl border border-border/20 bg-background py-1 shadow-none",
         align === "left" ? "left-0" : "right-0",
         className,
       )}

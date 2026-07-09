@@ -1,3 +1,6 @@
+import {
+  AURORA_MESSAGE_BUBBLE_MAX_WIDTH,
+} from "@/components/workspace/aurora-tokens";
 import { cn } from "@/lib/utils";
 
 import { WORKSPACE_CONTENT_TRANSITION_CLASS } from "@/lib/communication-workspace/types";
@@ -26,7 +29,10 @@ export const AURORA_MESSAGE_LANE_CLASS =
   "mx-auto w-full max-w-[740px] min-w-0 px-4 sm:px-5";
 
 /** Bubble width cap relative to the message lane */
-export const MESSAGE_BUBBLE_WIDTH_CLASS = "w-fit min-w-[3.5rem] max-w-[72%]";
+export const MESSAGE_BUBBLE_WIDTH_CLASS = cn(
+  "w-fit min-w-[3.5rem]",
+  AURORA_MESSAGE_BUBBLE_MAX_WIDTH,
+);
 
 export function getMessageLaneClassName(className?: string) {
   return cn(AURORA_MESSAGE_LANE_CLASS, className);
@@ -35,7 +41,7 @@ export function getMessageLaneClassName(className?: string) {
 /** @deprecated Prefer MESSAGE_BUBBLE_WIDTH_CLASS — kept for callers using inline styles */
 export function getBubbleStyle() {
   return {
-    maxWidth: "72%",
+    maxWidth: "68%",
     minWidth: "3.5rem",
     wordBreak: "normal",
     overflowWrap: "break-word",

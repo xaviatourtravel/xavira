@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AURORA_SNAPSHOT_JOURNEY_CONNECTOR,
   AURORA_SNAPSHOT_JOURNEY_DOT,
   AURORA_SNAPSHOT_JOURNEY_LABEL,
   AURORA_SNAPSHOT_JOURNEY_LABEL_PENDING,
@@ -17,9 +18,9 @@ type CustomerSnapshotJourneyProps = {
 };
 
 const DOT_CLASS = {
-  completed: "bg-foreground/70",
-  current: "bg-primary ring-2 ring-primary/20",
-  pending: "bg-border/50",
+  completed: "bg-foreground/75",
+  current: "bg-primary ring-[3px] ring-primary/15",
+  pending: "bg-border/55",
 } as const;
 
 export function CustomerSnapshotJourney({ stages, labels }: CustomerSnapshotJourneyProps) {
@@ -28,9 +29,12 @@ export function CustomerSnapshotJourney({ stages, labels }: CustomerSnapshotJour
       <h5 id="customer-snapshot-journey" className={AURORA_SNAPSHOT_SUBSECTION_TITLE}>
         {labels.journey}
       </h5>
-      <ol className="mt-1.5 space-y-0 p-0">
-        {stages.map((stage) => (
+      <ol className="mt-2 space-y-0 p-0">
+        {stages.map((stage, index) => (
           <li key={stage.id} className={AURORA_SNAPSHOT_JOURNEY_STEP}>
+            {index < stages.length - 1 ? (
+              <span className={AURORA_SNAPSHOT_JOURNEY_CONNECTOR} aria-hidden />
+            ) : null}
             <span
               className={cn(AURORA_SNAPSHOT_JOURNEY_DOT, DOT_CLASS[stage.state])}
               aria-hidden
@@ -40,7 +44,7 @@ export function CustomerSnapshotJourney({ stages, labels }: CustomerSnapshotJour
                 stage.state === "pending"
                   ? AURORA_SNAPSHOT_JOURNEY_LABEL_PENDING
                   : AURORA_SNAPSHOT_JOURNEY_LABEL,
-                stage.state === "current" && "text-primary",
+                stage.state === "current" && "text-foreground/75",
               )}
             >
               {stage.label}

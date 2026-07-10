@@ -64,8 +64,9 @@ import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
 import {
+  AURORA_CONVERSATION_HEADER_CHANNEL,
   AURORA_CONVERSATION_HEADER_HEIGHT,
-  AURORA_CONVERSATION_HEADER_META,
+  AURORA_CONVERSATION_HEADER_SECONDARY_META,
 } from "@/components/workspace/aurora-tokens";
 import { getConversationLaneClassName } from "@/lib/communication-workspace/conversation-lane";
 import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
@@ -128,18 +129,19 @@ function ConversationHeaderMeta({
   lastMessageAt: string | null;
 }) {
   return (
-    <p className={AURORA_CONVERSATION_HEADER_META}>
-      {channelLabel}
-      <span aria-hidden> · </span>
-      {statusLabel ? (
-        statusLabel
-      ) : (
-        <ClientOnlyActiveLabel
-          date={lastMessageAt}
-          className="inline min-w-0 tabular-nums"
-        />
-      )}
-    </p>
+    <div className="flex flex-col gap-0.5">
+      <p className={AURORA_CONVERSATION_HEADER_CHANNEL}>{channelLabel}</p>
+      <p className={AURORA_CONVERSATION_HEADER_SECONDARY_META}>
+        {statusLabel ? (
+          statusLabel
+        ) : (
+          <ClientOnlyActiveLabel
+            date={lastMessageAt}
+            className="inline min-w-0 tabular-nums"
+          />
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -568,7 +570,7 @@ export function OmnichannelConversationDetailPanel({
             }
           />
 
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-px">
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
             <h2
               className="truncate text-[15px] font-semibold leading-none tracking-tight text-foreground"
               title={displayName}

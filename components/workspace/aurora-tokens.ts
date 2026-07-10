@@ -111,6 +111,13 @@ export const AURORA_CONVERSATION_HEADER_ICON_ACTIVE =
 export const AURORA_CONVERSATION_HEADER_NAME =
   "truncate text-[15px] font-semibold leading-none tracking-tight text-foreground";
 
+export const AURORA_CONVERSATION_HEADER_CHANNEL =
+  "truncate text-xs leading-none text-muted-foreground/70";
+
+export const AURORA_CONVERSATION_HEADER_SECONDARY_META =
+  "truncate text-xs leading-none text-muted-foreground/55";
+
+/** @deprecated Prefer AURORA_CONVERSATION_HEADER_CHANNEL + SECONDARY_META stacked layout */
 export const AURORA_CONVERSATION_HEADER_META =
   "truncate text-xs leading-none text-muted-foreground/65";
 
@@ -287,9 +294,9 @@ export const AURORA_QUEUE_AI_TOGGLE_SURFACE =
 export const AURORA_QUEUE_ITEM_BASE =
   "group relative flex h-16 items-center rounded-xl px-2.5";
 
-export const AURORA_QUEUE_ITEM_HOVER = "hover:bg-muted/15";
+export const AURORA_QUEUE_ITEM_HOVER = "hover:bg-muted/8";
 
-export const AURORA_QUEUE_ITEM_SELECTED = "bg-muted/20 dark:bg-muted/15";
+export const AURORA_QUEUE_ITEM_SELECTED = "bg-muted/10 dark:bg-muted/8";
 
 export const AURORA_QUEUE_FILTER_CHIP =
   "inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[11px] font-medium";
@@ -409,58 +416,73 @@ export const AURORA_TIMELINE_ICON = AURORA_TIMELINE_ICON_NODE;
 export const AURORA_SNAPSHOT_CARD =
   "rounded-2xl border border-border/15 bg-background p-4";
 
-export const AURORA_SNAPSHOT_SECTION_GAP = "space-y-2.5";
+export const AURORA_SNAPSHOT_SECTION_GAP = "space-y-4";
 
 export const AURORA_SNAPSHOT_SUBSECTION_TITLE =
-  "text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50";
+  "text-[13px] font-semibold leading-tight tracking-tight text-foreground/90";
 
-export const AURORA_SNAPSHOT_DIVIDER = "border-t border-border/10";
+export const AURORA_SNAPSHOT_DIVIDER = "hidden";
 
 export const AURORA_SNAPSHOT_HEADER_NAME =
   "truncate text-[15px] font-semibold leading-tight text-foreground";
 
+export const AURORA_SNAPSHOT_HEADER_CHANNEL =
+  "truncate text-xs leading-none text-muted-foreground/70";
+
 export const AURORA_SNAPSHOT_HEADER_META =
-  "mt-0.5 truncate text-[11px] text-muted-foreground/75";
+  "truncate text-xs leading-none text-muted-foreground/55";
 
 export const AURORA_SNAPSHOT_LEAD_BADGE =
-  "inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary";
+  "inline-flex items-center rounded-full bg-muted/25 px-2 py-0.5 text-xs font-medium text-muted-foreground";
 
 export const AURORA_SNAPSHOT_JOURNEY_STEP =
-  "relative flex items-center gap-2 py-0.5";
+  "relative flex items-center gap-2.5 py-1";
 
 export const AURORA_SNAPSHOT_JOURNEY_DOT =
-  "h-1.5 w-1.5 shrink-0 rounded-full";
+  "relative z-[1] h-2.5 w-2.5 shrink-0 rounded-full";
+
+export const AURORA_SNAPSHOT_JOURNEY_CONNECTOR =
+  "absolute left-[5px] top-[18px] bottom-0 w-px bg-border/25";
 
 export const AURORA_SNAPSHOT_JOURNEY_LABEL =
-  "text-xs font-medium text-foreground";
+  "text-xs font-normal text-muted-foreground/65";
 
 export const AURORA_SNAPSHOT_JOURNEY_LABEL_PENDING =
-  "text-xs font-medium text-muted-foreground/55";
+  "text-xs font-normal text-muted-foreground/45";
 
 export const AURORA_SNAPSHOT_ROW = "space-y-0";
 
-export const AURORA_SNAPSHOT_ROW_LABEL = "text-[11px] leading-tight text-muted-foreground/70";
+export const AURORA_SNAPSHOT_ROW_LABEL = "text-xs leading-none text-muted-foreground/60";
 
 export const AURORA_SNAPSHOT_ROW_VALUE =
-  "truncate text-xs font-semibold leading-tight text-foreground";
+  "truncate text-sm font-medium leading-tight text-foreground";
 
-export const AURORA_SNAPSHOT_AI_CARD =
-  "rounded-lg border border-border/12 bg-muted/15 px-2.5 py-2";
+export const AURORA_SNAPSHOT_AI_SURFACE =
+  "rounded-md bg-muted/8 px-0 py-1";
 
 export const AURORA_SNAPSHOT_AI_BULLET =
-  "text-[11px] leading-snug text-foreground/80";
+  "text-sm leading-snug text-foreground/75";
+
+export const AURORA_SNAPSHOT_ACTIVITY_LIST =
+  "relative mt-2 border-l border-border/15 pl-3";
 
 export const AURORA_SNAPSHOT_ACTIVITY_ROW =
-  "flex items-start justify-between gap-2 py-1";
+  "relative pb-3 last:pb-0";
+
+export const AURORA_SNAPSHOT_ACTIVITY_NODE =
+  "absolute -left-[calc(0.75rem+1px)] top-[7px] h-1.5 w-1.5 rounded-full bg-border/45";
 
 export const AURORA_SNAPSHOT_ACTIVITY_TITLE =
-  "min-w-0 text-xs font-medium leading-snug text-foreground";
+  "min-w-0 text-sm font-normal leading-snug text-foreground/90";
 
 export const AURORA_SNAPSHOT_ACTIVITY_TIME =
-  "shrink-0 text-[10px] tabular-nums text-muted-foreground/65";
+  "shrink-0 text-xs tabular-nums text-muted-foreground/55";
 
 export const AURORA_SNAPSHOT_LINK_BUTTON =
-  "inline-flex h-7 items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+  "inline-flex h-8 items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+
+/** @deprecated Use AURORA_SNAPSHOT_AI_SURFACE */
+export const AURORA_SNAPSHOT_AI_CARD = AURORA_SNAPSHOT_AI_SURFACE;
 
 /** Aurora customer 360 — CRM overview in context panel */
 export const AURORA_CUSTOMER_360_SECTION_GAP = "space-y-5";

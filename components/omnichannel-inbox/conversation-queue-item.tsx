@@ -34,7 +34,7 @@ export type ConversationQueueItemProps = {
 };
 
 /**
- * Aurora Conversation Queue row — avatar, name, preview, time, unread at a glance.
+ * Aurora Conversation Queue row — name, preview, time, subtle channel badge, unread.
  */
 export function ConversationQueueItem({
   conversation,
@@ -54,7 +54,7 @@ export function ConversationQueueItem({
         AURORA_QUEUE_ITEM_HOVER,
         isSelected && AURORA_QUEUE_ITEM_SELECTED,
         isSelected &&
-          "before:absolute before:bottom-2 before:left-0 before:top-2 before:w-px before:rounded-full before:bg-primary/70",
+          "before:absolute before:bottom-2.5 before:left-0 before:top-2.5 before:w-0.5 before:rounded-full before:bg-primary/45",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -62,7 +62,7 @@ export function ConversationQueueItem({
           displayName={displayName}
           avatarUrl={conversation.customerAvatar}
           size="md"
-          className="h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 opacity-95"
           channel={
             conversation.channel === "whatsapp"
               ? "whatsapp"
@@ -85,15 +85,15 @@ export function ConversationQueueItem({
 
             <ClientOnlyRelativeTime
               date={conversation.lastMessageAt}
-              className="shrink-0 text-[10px] leading-none tabular-nums text-muted-foreground/55"
+              className="shrink-0 text-xs leading-none tabular-nums text-muted-foreground/50"
             />
           </div>
 
-          <div className="mt-0.5 flex min-w-0 items-center justify-between gap-2">
+          <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
             <p
               className={cn(
                 "min-w-0 flex-1 truncate text-xs leading-snug",
-                isUnread ? "text-muted-foreground/75" : "text-muted-foreground/60",
+                isUnread ? "text-muted-foreground/70" : "text-muted-foreground/55",
               )}
               title={conversation.lastMessagePreview ?? undefined}
             >
@@ -102,10 +102,10 @@ export function ConversationQueueItem({
             {isUnread ? (
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center justify-center rounded-full bg-primary/90 font-medium leading-none text-primary-foreground",
+                  "inline-flex shrink-0 items-center justify-center rounded-full bg-primary/80 font-medium leading-none text-primary-foreground",
                   conversation.unreadCount > 1
-                    ? "h-4 min-w-4 px-1 text-[9px]"
-                    : "h-1.5 w-1.5",
+                    ? "h-3.5 min-w-3.5 px-0.5 text-[8px]"
+                    : "h-1 w-1",
                 )}
                 aria-label={
                   conversation.unreadCount > 1

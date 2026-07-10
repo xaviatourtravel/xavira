@@ -6,7 +6,6 @@ import { User } from "lucide-react";
 import { getConversationDisplayName } from "@/components/omnichannel-inbox/inbox-display";
 import {
   AURORA_SNAPSHOT_CARD,
-  AURORA_SNAPSHOT_DIVIDER,
   AURORA_SNAPSHOT_SECTION_GAP,
   AURORA_WORKSPACE_COLUMN_HEADER,
 } from "@/components/workspace/aurora-tokens";
@@ -79,30 +78,18 @@ export function CustomerSnapshot({ conversation, className }: CustomerSnapshotPr
       aria-labelledby="customer-snapshot-heading"
       className={cn(AURORA_SNAPSHOT_CARD, "rounded-none border-0 p-0", className)}
     >
-      <div className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "gap-2 px-3")}>
+      <div className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "gap-2 px-4")}>
         <User className={SECTION_ICON_CLASS} aria-hidden strokeWidth={1.75} />
         <h3 id="customer-snapshot-heading" className={SECTION_TITLE_CLASS}>
           {labels.title}
         </h3>
       </div>
 
-      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "p-3 pt-2.5")}>
+      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "px-4 pb-4 pt-3")}>
         <CustomerSnapshotHeaderSection header={snapshot.header} labels={labels} />
-
-        <div className={AURORA_SNAPSHOT_DIVIDER} />
-
         <CustomerSnapshotJourney stages={snapshot.journey} labels={labels} />
-
-        <div className={AURORA_SNAPSHOT_DIVIDER} />
-
         <CustomerSnapshotBooking booking={snapshot.booking} labels={labels} />
-
-        <div className={AURORA_SNAPSHOT_DIVIDER} />
-
         <CustomerSnapshotAiInsightSection insight={snapshot.aiInsight} labels={labels} />
-
-        <div className={AURORA_SNAPSHOT_DIVIDER} />
-
         <CustomerSnapshotRecentActivity events={snapshot.recentActivity} labels={labels} />
       </div>
     </section>

@@ -6,7 +6,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { marketingButtonVariants } from "@/components/marketing/design-system/button";
 import { MarketingSection } from "@/components/marketing/design-system/sections";
 import { MarketingBodyLarge, MarketingEyebrow, MarketingH2 } from "@/components/marketing/design-system/typography";
-import { AuroraWorkflowScene } from "@/components/marketing/aurora/AuroraWorkflowScene";
+import { AuroraAssistScene } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export function AuroraAiSection() {
           </Link>
         </div>
 
-        <AuroraWorkflowScene steps={content.aurora.steps} />
+        <AuroraAssistScene />
       </div>
     </MarketingSection>
   );

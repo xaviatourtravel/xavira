@@ -1,57 +1,40 @@
 "use client";
 
-import {
-  BarChart3,
-  Bot,
-  CreditCard,
-  LayoutGrid,
-  MessageSquare,
-  Users,
-  Workflow,
-} from "lucide-react";
-
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
+import {
+  AuroraAssistScene,
+  OperationsWorkspaceScene,
+  sceneStyles,
+  UnifiedInboxScene,
+} from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { cn } from "@/lib/utils";
-
-const MODULE_ICONS = {
-  communication: MessageSquare,
-  crm: Users,
-  operations: LayoutGrid,
-  finance: CreditCard,
-  automation: Workflow,
-  aurora: Bot,
-  analytics: BarChart3,
-} as const;
 
 const FEATURED_IDS = ["communication", "operations", "aurora"] as const;
 const SUPPORTING_IDS = ["crm", "finance", "automation", "analytics"] as const;
 
-function FeaturedModuleScene({ moduleId }: { moduleId: keyof typeof MODULE_ICONS }) {
-  const Icon = MODULE_ICONS[moduleId];
+function FeaturedModuleScene({ moduleId }: { moduleId: (typeof FEATURED_IDS)[number] }) {
+  const cropClass =
+    "mt-auto flex h-[200px] min-h-[200px] flex-col overflow-hidden rounded-[var(--marketing-radius-lg)] border border-[var(--marketing-border-strong)] [&_.marketing-scene-frame]:border-0 [&_.marketing-scene-frame]:shadow-none [&_.marketing-dark-band-glow]:hidden";
 
+  if (moduleId === "communication") {
+    return (
+      <div className={cropClass} aria-hidden>
+        <UnifiedInboxScene compact className="scale-[1.02] origin-top" />
+      </div>
+    );
+  }
+  if (moduleId === "operations") {
+    return (
+      <div className={cropClass} aria-hidden>
+        <OperationsWorkspaceScene compact dark className="[&_.marketing-scene-canvas]:border-0" />
+      </div>
+    );
+  }
   return (
-    <div
-      className="mt-6 min-h-[160px] rounded-[var(--marketing-radius-lg)] border border-[var(--marketing-border-strong)] bg-[var(--marketing-foreground)]/40 p-5"
-      aria-hidden
-    >
-      <div className="flex items-center gap-2">
-        <Icon className="h-5 w-5 text-[var(--marketing-accent-secondary)]" />
-        <span className="text-xs font-medium uppercase tracking-wide text-[var(--marketing-muted-foreground)]">
-          Product preview
-        </span>
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg bg-[var(--marketing-foreground)]/60 p-3">
-          <div className="h-2 w-full rounded bg-[var(--marketing-border-strong)]" />
-          <div className="mt-2 h-2 w-[70%] rounded bg-[var(--marketing-primary)]/50" />
-        </div>
-        <div className="rounded-lg bg-[var(--marketing-foreground)]/60 p-3">
-          <div className="h-2 w-full rounded bg-[var(--marketing-border-strong)]" />
-          <div className="mt-2 h-2 w-[55%] rounded bg-[var(--marketing-border-strong)]" />
-        </div>
-      </div>
+    <div className={cropClass} aria-hidden>
+      <AuroraAssistScene compact />
     </div>
   );
 }
@@ -59,9 +42,11 @@ function FeaturedModuleScene({ moduleId }: { moduleId: keyof typeof MODULE_ICONS
 function SupportingModuleBlock({
   title,
   outcome,
+  metrics,
 }: {
   title: string;
   outcome: string;
+  metrics: Array<{ label: string; value: string }>;
 }) {
   return (
     <article className="rounded-[var(--marketing-radius-lg)] border border-[var(--marketing-border-strong)] bg-[var(--marketing-foreground)]/30 p-5">
@@ -69,9 +54,38 @@ function SupportingModuleBlock({
       <p className="mt-2 text-sm leading-relaxed text-[var(--marketing-muted-foreground)]">
         {outcome}
       </p>
+      <div className="mt-4 grid grid-cols-2 gap-2" aria-hidden>
+        {metrics.map((metric) => (
+          <div key={metric.label} className={cn(sceneStyles.darkSurface, "px-2.5 py-2")}>
+            <p className="text-[10px] text-[color-mix(in_srgb,var(--marketing-background)_65%,transparent)]">
+              {metric.label}
+            </p>
+            <p className="mt-0.5 text-xs font-semibold text-[var(--marketing-background)]">{metric.value}</p>
+          </div>
+        ))}
+      </div>
     </article>
   );
 }
+
+const SUPPORTING_METRICS: Record<(typeof SUPPORTING_IDS)[number], Array<{ label: string; value: string }>> = {
+  crm: [
+    { label: "Timeline", value: "Unified" },
+    { label: "Stage", value: "Proposal" },
+  ],
+  finance: [
+    { label: "Invoice", value: "Draft" },
+    { label: "Status", value: "Pending" },
+  ],
+  automation: [
+    { label: "Rules", value: "3 active" },
+    { label: "Reminders", value: "On" },
+  ],
+  analytics: [
+    { label: "Pipeline", value: "Shared" },
+    { label: "Context", value: "Live" },
+  ],
+};
 
 export function HomeProductModulesSection() {
   const { content } = useMarketingContent();
@@ -103,7 +117,7 @@ export function HomeProductModulesSection() {
         {featured.map((module) => (
           <article
             key={module.id}
-            className="rounded-[var(--marketing-radius-xl)] border border-[var(--marketing-border-strong)] bg-[var(--marketing-foreground)]/50 p-6 sm:p-7 lg:p-8"
+            className="flex flex-col rounded-[var(--marketing-radius-xl)] border border-[var(--marketing-border-strong)] bg-[var(--marketing-foreground)]/50 p-6 sm:p-7 lg:p-8"
           >
             <h3 className="text-xl font-semibold text-[var(--marketing-background)]">
               {module.title}
@@ -118,14 +132,19 @@ export function HomeProductModulesSection() {
                 </li>
               ))}
             </ul>
-            <FeaturedModuleScene moduleId={module.id} />
+            <FeaturedModuleScene moduleId={module.id as (typeof FEATURED_IDS)[number]} />
           </article>
         ))}
       </div>
 
       <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {supporting.map((module) => (
-          <SupportingModuleBlock key={module.id} title={module.title} outcome={module.outcome} />
+          <SupportingModuleBlock
+            key={module.id}
+            title={module.title}
+            outcome={module.outcome}
+            metrics={SUPPORTING_METRICS[module.id as (typeof SUPPORTING_IDS)[number]]}
+          />
         ))}
       </div>
     </MarketingSection>

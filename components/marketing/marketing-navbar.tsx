@@ -73,7 +73,7 @@ export function MarketingNavbar() {
             />
             <div
               id="mobile-nav-panel"
-              className="fixed inset-x-0 bottom-0 z-[81] max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--marketing-border-default)] bg-[var(--marketing-elevated-surface)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--marketing-shadow-float)] lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[81] max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--marketing-border-default)] bg-[var(--marketing-elevated-surface)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--marketing-shadow-soft)] lg:hidden"
             >
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-[var(--marketing-foreground)]">Menu</p>
@@ -88,7 +88,7 @@ export function MarketingNavbar() {
               </div>
 
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex items-center rounded-md ring-1 ring-[var(--marketing-border-default)]">
+                <div className="flex items-center rounded-md ring-1 ring-[var(--marketing-border-default)] bg-[var(--marketing-elevated-surface)]">
                   <button
                     type="button"
                     onClick={() => setLocale("id")}
@@ -163,12 +163,8 @@ export function MarketingNavbar() {
   return (
     <>
       <header
-        className={cn(
-          "sticky top-0 z-50 border-b transition-all duration-300",
-          scrolled
-            ? "border-[var(--marketing-border-default)] bg-[var(--marketing-elevated-surface)]/90 shadow-[var(--marketing-shadow-soft)] backdrop-blur-md"
-            : "border-transparent bg-[var(--marketing-elevated-surface)]/75 backdrop-blur-sm",
-        )}
+        className="marketing-navbar-shell sticky top-0 z-50 transition-shadow duration-300"
+        data-scrolled={scrolled ? "true" : "false"}
       >
         <div
           className={cn(
@@ -196,7 +192,7 @@ export function MarketingNavbar() {
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <div className="flex items-center rounded-md ring-1 ring-[var(--marketing-border-default)]">
+            <div className="flex items-center rounded-md bg-[var(--marketing-elevated-surface)] ring-1 ring-[var(--marketing-border-default)]">
               <button
                 type="button"
                 onClick={() => setLocale("id")}
@@ -240,7 +236,7 @@ export function MarketingNavbar() {
 
           <button
             type="button"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md ring-1 ring-[var(--marketing-border-default)] lg:hidden"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--marketing-elevated-surface)] ring-1 ring-[var(--marketing-border-default)] lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav-panel"
             aria-label={open ? "Close menu" : "Open menu"}

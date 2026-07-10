@@ -14,7 +14,7 @@ import {
   MarketingEyebrow,
   MarketingH1,
 } from "@/components/marketing/design-system/typography";
-import { HeroWorkspaceScene } from "@/components/marketing/shared/HeroWorkspaceScene";
+import { HeroWorkspaceScene } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
@@ -27,13 +27,17 @@ export function HomeHeroSection() {
       <div
         className={cn(
           marketingContainerClass,
-          "grid items-center gap-10 lg:grid-cols-[0.44fr_0.56fr] lg:gap-12 xl:gap-16",
+          "grid items-center gap-10 lg:grid-cols-[0.47fr_0.53fr] lg:gap-12 xl:gap-14",
         )}
       >
-        <div className={cn("min-w-0", marketingSpacing.maxWidth.proseNarrow)}>
+        <div className="min-w-0 lg:max-w-none">
           <MarketingEyebrow>{content.hero.eyebrow}</MarketingEyebrow>
-          <MarketingH1 className="mt-5 sm:mt-6">{content.hero.headline}</MarketingH1>
-          <MarketingBodyLarge className="mt-5 sm:mt-6">{content.hero.subheadline}</MarketingBodyLarge>
+          <MarketingH1 className="marketing-hero-headline mt-5 sm:mt-6">
+            {content.hero.headline}
+          </MarketingH1>
+          <MarketingBodyLarge className="mt-5 max-w-xl sm:mt-6">
+            {content.hero.subheadline}
+          </MarketingBodyLarge>
 
           <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
             <Link
@@ -57,7 +61,7 @@ export function HomeHeroSection() {
           <MarketingCaption className="mt-5">{content.hero.microcopy}</MarketingCaption>
         </div>
 
-        <HeroWorkspaceScene className="lg:scale-[1.02] lg:origin-left" />
+        <HeroWorkspaceScene className="lg:min-h-[540px]" />
       </div>
     </section>
   );

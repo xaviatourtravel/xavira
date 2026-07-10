@@ -1,54 +1,10 @@
 "use client";
 
-import { Check, MessageSquare, Table, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
-import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
+import { ComparisonWorkspaceScene } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
-import { cn } from "@/lib/utils";
-
-function DisconnectedPreview() {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2" aria-hidden>
-      <div className="marketing-scene-panel p-3">
-        <MessageSquare className="h-4 w-4 text-[var(--marketing-muted)]" />
-        <p className="mt-2 text-xs text-[var(--marketing-muted)]">WhatsApp thread A</p>
-      </div>
-      <div className="marketing-scene-panel p-3">
-        <Table className="h-4 w-4 text-[var(--marketing-muted)]" />
-        <p className="mt-2 text-xs text-[var(--marketing-muted)]">Spreadsheet tracker</p>
-      </div>
-      <div className="marketing-scene-panel p-3 sm:col-span-2">
-        <p className="text-xs text-[var(--marketing-muted)]">
-          Customer data copied manually · reminders in separate notes
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ConnectedPreview() {
-  return (
-    <div className="space-y-3" aria-hidden>
-      <div className="marketing-scene-panel p-4">
-        <p className="text-sm font-semibold text-[var(--marketing-foreground)]">
-          Sarah Wijaya · unified workspace
-        </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <div className="rounded-lg bg-[var(--marketing-surface)] px-3 py-2 text-xs text-[var(--marketing-muted)]">
-            Inbox + CRM context
-          </div>
-          <div className="rounded-lg bg-[var(--marketing-surface)] px-3 py-2 text-xs text-[var(--marketing-muted)]">
-            Operations linked
-          </div>
-        </div>
-      </div>
-      <div className={cn("p-3 text-xs", marketingColorClasses.solutionCallout)}>
-        Aurora follow-up suggested · awaiting review
-      </div>
-    </div>
-  );
-}
 
 export function HomeProofSection() {
   const { content } = useMarketingContent();
@@ -57,14 +13,11 @@ export function HomeProofSection() {
     <MarketingSection tone="muted" rhythm="large">
       <MarketingSectionHeader title={content.proof.title} />
 
-      <div className="mt-14 grid gap-8 lg:grid-cols-2 lg:gap-10">
-        <article className="rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-surface-muted)] p-7 ring-1 ring-[var(--marketing-border-default)] sm:p-8">
+      <div className="mt-14 grid items-stretch gap-8 lg:grid-cols-2 lg:gap-10">
+        <article className="flex flex-col rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-surface-muted)] p-7 ring-1 ring-[var(--marketing-border-default)] sm:p-8">
           <h3 className="text-xl font-semibold text-[var(--marketing-foreground)]">
             {content.proof.disconnected.title}
           </h3>
-          <div className="mt-6">
-            <DisconnectedPreview />
-          </div>
           <ul className="mt-8 space-y-3">
             {content.proof.disconnected.items.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-[var(--marketing-muted)] sm:text-base">
@@ -80,13 +33,10 @@ export function HomeProofSection() {
           </ul>
         </article>
 
-        <article className="rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-elevated-surface)] p-7 shadow-[var(--marketing-shadow-soft)] ring-1 ring-[var(--marketing-border-accent)] sm:p-8">
+        <article className="flex flex-col rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-elevated-surface)] p-7 shadow-[var(--marketing-shadow-soft)] ring-1 ring-[var(--marketing-border-accent)] sm:p-8">
           <h3 className="text-xl font-semibold text-[var(--marketing-foreground)]">
             {content.proof.desklabs.title}
           </h3>
-          <div className="mt-6">
-            <ConnectedPreview />
-          </div>
           <ul className="mt-8 space-y-3">
             {content.proof.desklabs.items.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-[var(--marketing-muted)] sm:text-base">
@@ -103,7 +53,9 @@ export function HomeProofSection() {
         </article>
       </div>
 
-      <ul className="mt-12 flex flex-wrap justify-center gap-3">
+      <ComparisonWorkspaceScene className="mt-8" />
+
+      <ul className="mt-10 flex flex-wrap justify-center gap-3">
         {content.proof.outcomes.map((outcome) => (
           <li
             key={outcome}

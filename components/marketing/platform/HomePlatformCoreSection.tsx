@@ -1,7 +1,7 @@
 "use client";
 
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
-import { PlatformCoreComposition } from "@/components/marketing/platform/PlatformCoreComposition";
+import { PlatformCoreScene } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 
 export function HomePlatformCoreSection() {
@@ -14,7 +14,7 @@ export function HomePlatformCoreSection() {
         description={content.platformCore.description}
       />
 
-      <PlatformCoreComposition modules={content.platformCore.modules} className="mt-12 lg:mt-14" />
+      <PlatformCoreScene modules={content.platformCore.modules} className="mt-12 lg:mt-14" />
     </MarketingSection>
   );
 }

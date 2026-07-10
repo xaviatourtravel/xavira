@@ -13,7 +13,7 @@ export function HomeProblemsSection() {
     <MarketingSection tone="muted" rhythm="large">
       <MarketingSectionHeader title={content.problems.title} />
 
-      <div className="mt-16 space-y-24 sm:space-y-28 lg:space-y-32">
+      <div className="mt-14 space-y-20 lg:space-y-24">
         {content.problems.items.map((item, index) => (
           <ProblemSolutionRow
             key={item.problem}

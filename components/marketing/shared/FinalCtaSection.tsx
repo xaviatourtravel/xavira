@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { marketingButtonVariants } from "@/components/marketing/design-system/button";
 import { MarketingSection } from "@/components/marketing/design-system/sections";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
-import { MarketingBodyLarge, MarketingH2 } from "@/components/marketing/design-system/typography";
+import { MarketingH2 } from "@/components/marketing/design-system/typography";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
@@ -28,14 +28,12 @@ export function FinalCtaSection() {
         )}
       />
 
-      <div className="relative mx-auto max-w-3xl text-center">
-        <MarketingH2 className="text-[var(--marketing-background)]">{content.finalCta.title}</MarketingH2>
-        <MarketingBodyLarge className="mt-5 text-[var(--marketing-muted-foreground)]">
+      <div className="relative mx-auto w-full max-w-3xl text-center">
+        <MarketingH2>{content.finalCta.title}</MarketingH2>
+        <p className="mt-5 text-lg leading-relaxed marketing-on-dark-muted">
           {content.finalCta.description}
-        </MarketingBodyLarge>
-        <p className="mt-4 text-sm text-[var(--marketing-muted-foreground)]">
-          {content.finalCta.reassurance}
         </p>
+        <p className="mt-4 text-sm marketing-on-dark-muted">{content.finalCta.reassurance}</p>
 
         <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-center">
           <Link

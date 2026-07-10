@@ -1,11 +1,11 @@
 "use client";
 
-import { useMarketingContent } from '@/components/marketing/marketing-locale-provider';
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
+import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { MarketingSection } from "@/components/marketing/marketing-section";
-import { buttonVariants } from "@/components/ui/button";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +16,11 @@ export function MarketingCtaSection() {
     <MarketingSection id="pricing" tone="dark" className="relative overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.16),transparent_42%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,115,213,0.16),transparent_42%)]"
       />
 
       <div className="relative">
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="marketing-prose mx-auto text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             {content.cta.title}
           </h2>
@@ -33,8 +33,8 @@ export function MarketingCtaSection() {
           <Link
             href={marketingRoutes.demo}
             className={cn(
-              buttonVariants({ size: "lg" }),
-              "w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400 sm:w-auto",
+              marketingButtonVariants({ size: "lg", onDark: true }),
+              "w-full sm:w-auto",
             )}
           >
             {content.cta.primary}
@@ -43,8 +43,8 @@ export function MarketingCtaSection() {
           <Link
             href={marketingRoutes.contact}
             className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "w-full border-slate-700 bg-transparent text-white hover:bg-slate-900 hover:text-white sm:w-auto",
+              marketingButtonVariants({ variant: "outline", size: "lg", onDark: true }),
+              "w-full sm:w-auto",
             )}
           >
             {content.cta.secondary}

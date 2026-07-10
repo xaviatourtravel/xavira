@@ -39,7 +39,7 @@ export function MarketingHeroMockup() {
     <div className="relative mx-auto w-full max-w-2xl min-w-0">
       <div
         aria-hidden
-        className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-emerald-100/50 via-white to-slate-100 blur-2xl sm:-inset-4"
+        className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-[rgba(45,115,213,0.12)] via-white to-slate-100 blur-2xl sm:-inset-4"
       />
 
       <div className="relative overflow-hidden rounded-[1.5rem] bg-white shadow-[0_24px_80px_-24px_rgba(15,23,42,0.22)] ring-1 ring-slate-200/70 sm:rounded-[1.75rem]">
@@ -58,7 +58,7 @@ export function MarketingHeroMockup() {
           <div className="space-y-3">
             <MockCard title="Incoming Message">
               <div className="flex items-start gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--marketing-primary-muted)] text-[var(--marketing-primary)]">
                   <MessageSquare className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -100,7 +100,7 @@ export function MarketingHeroMockup() {
 
             <MockCard title="AI Summary">
               <div className="flex items-start gap-2">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[var(--marketing-accent)]" />
                 <p className="text-sm leading-relaxed text-slate-600">
                   Customer siap lanjut, membutuhkan proposal dan timeline
                   implementasi minggu depan.
@@ -129,7 +129,7 @@ export function MarketingHeroMockup() {
                   <span className="shrink-0 font-medium text-slate-900">Proposal</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full w-[68%] rounded-full bg-emerald-600" />
+                  <div className="h-full w-[68%] rounded-full bg-[var(--marketing-primary)]" />
                 </div>
                 <p className="text-xs text-slate-500">Est. value Rp 48.000.000</p>
               </div>
@@ -149,16 +149,16 @@ export function MarketingHeroMockup() {
               </div>
             </MockCard>
 
-            <div className="rounded-xl bg-emerald-50/80 p-3 ring-1 ring-emerald-200/70">
-              <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
+            <div className="rounded-xl bg-[var(--marketing-primary-muted)]/80 p-3 ring-1 ring-[var(--marketing-border-accent)]">
+              <div className="flex items-center gap-2 text-sm font-medium text-[var(--marketing-primary-muted-foreground)]">
                 <Bot className="h-4 w-4" />
                 Next Best Action
               </div>
-              <p className="mt-2 text-sm text-emerald-800">
+              <p className="mt-2 text-sm text-[var(--marketing-primary-hover)]">
                 Kirim proposal singkat dan jadwalkan call follow up dalam satu
                 balasan.
               </p>
-              <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+              <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--marketing-primary)]">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Ready for review
                 <ArrowRight className="h-3.5 w-3.5" />

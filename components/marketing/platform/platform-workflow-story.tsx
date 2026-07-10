@@ -16,7 +16,7 @@ export function PlatformWorkflowStorySection() {
       <div className="relative mx-auto mt-12 max-w-4xl">
         <div
           aria-hidden
-          className="absolute left-4 top-0 hidden h-full w-px bg-gradient-to-b from-emerald-200 via-slate-200 to-emerald-200 sm:block"
+          className="absolute left-4 top-0 hidden h-full w-px bg-gradient-to-b from-[var(--marketing-border-accent)] via-[var(--marketing-border-default)] to-[var(--marketing-border-accent)] sm:block"
         />
 
         <ol className="space-y-4">

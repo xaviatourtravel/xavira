@@ -4,11 +4,13 @@ import { useMarketingContent } from '@/components/marketing/marketing-locale-pro
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Mail } from "lucide-react";
 
+import { MarketingPageShell } from "@/components/marketing/design-system";
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
+import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
+import { marketingTypography } from "@/components/marketing/design-system/tokens/typography";
 import { submitContactMessageAction } from "@/app/contact/actions";
-import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
-import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,7 +62,7 @@ function ContactSuccessState() {
 
   return (
     <div className="rounded-2xl bg-white p-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.22)] ring-1 ring-slate-200/70">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--marketing-primary-muted)] text-[var(--marketing-primary)]">
         <CheckCircle2 className="h-6 w-6" />
       </div>
       <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">
@@ -74,12 +76,12 @@ function ContactSuccessState() {
         Email:{" "}
         <a
           href={`mailto:${content.brand.email}`}
-          className="font-medium text-emerald-700 hover:text-emerald-800"
+          className="font-medium text-[var(--marketing-primary)] hover:text-[var(--marketing-primary-hover)]"
         >
           {content.brand.email}
         </a>
       </p>
-      <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "mt-8")}>
+      <Link href="/" className={cn(marketingButtonVariants({ variant: "outline" }), "mt-8")}>
         Kembali ke beranda
       </Link>
     </div>
@@ -90,11 +92,10 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
   const errorMessage = getErrorMessage(error);
 
   return (
-    <MarketingLocaleProvider>
-      <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
+    <MarketingPageShell>
       <MarketingNavbar />
 
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+      <main className={cn(marketingContainerClass, "py-12 sm:py-16 lg:py-20")}>
         {success ? (
           <div className="mx-auto max-w-2xl">
             <ContactSuccessState />
@@ -102,9 +103,7 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
         ) : (
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
             <div className="min-w-0">
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-emerald-700">
-                Contact
-              </p>
+              <p className={marketingTypography.eyebrow}>Contact</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                 Hubungi Desklabs
               </h1>
@@ -129,7 +128,7 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
                         </h2>
                         <a
                           href={`mailto:${channel.email}`}
-                          className="mt-1 inline-block text-sm font-medium text-emerald-700 hover:text-emerald-800"
+                          className="mt-1 inline-block text-sm font-medium text-[var(--marketing-primary)] hover:text-[var(--marketing-primary-hover)]"
                         >
                           {channel.email}
                         </a>
@@ -244,10 +243,7 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
 
                 <button
                   type="submit"
-                  className={cn(
-                    buttonVariants({ size: "lg" }),
-                    "w-full bg-emerald-700 hover:bg-emerald-800",
-                  )}
+                  className={cn(marketingButtonVariants({ size: "lg" }), "w-full")}
                 >
                   Kirim Pesan
                   <ArrowRight className="h-4 w-4" aria-hidden />
@@ -259,7 +255,6 @@ export function ContactPageView({ error, success }: ContactPageViewProps) {
       </main>
 
       <MarketingFooter />
-    </div>
-    </MarketingLocaleProvider>
+    </MarketingPageShell>
   );
 }

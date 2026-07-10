@@ -43,7 +43,7 @@ export function PlatformDashboardMockup() {
     <div className="relative mx-auto w-full max-w-2xl min-w-0">
       <div
         aria-hidden
-        className="absolute -inset-3 animate-pulse rounded-[2rem] bg-gradient-to-br from-emerald-100/40 via-white to-slate-100 blur-2xl [animation-duration:6s] sm:-inset-4"
+        className="absolute -inset-3 animate-pulse rounded-[2rem] bg-gradient-to-br from-[rgba(45,115,213,0.1)] via-white to-slate-100 blur-2xl [animation-duration:6s] sm:-inset-4"
       />
 
       <div className="relative overflow-hidden rounded-[1.5rem] bg-white shadow-[0_28px_90px_-28px_rgba(15,23,42,0.28)] ring-1 ring-slate-200/70 sm:rounded-[1.75rem]">
@@ -51,7 +51,7 @@ export function PlatformDashboardMockup() {
           <div className="flex gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-red-300/80" />
             <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[var(--marketing-accent-secondary)]/80" />
           </div>
           <div className="mx-auto truncate rounded-md bg-white px-2 py-1 text-[10px] text-slate-500 shadow-sm sm:px-3 sm:text-[11px]">
             app.desklabs.id / today
@@ -88,7 +88,7 @@ export function PlatformDashboardMockup() {
           <div className="space-y-3 sm:col-span-5">
             <MockShell title="Communication">
               <div className="flex items-start gap-2">
-                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-[var(--marketing-primary)]" />
                 <div>
                   <p className="text-xs leading-relaxed text-slate-600">
                     “Kami ingin demo platform untuk workflow sales dan support.”
@@ -99,7 +99,7 @@ export function PlatformDashboardMockup() {
             </MockShell>
             <MockShell title="AI Summary">
               <div className="flex items-start gap-2">
-                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-[var(--marketing-primary)]" />
                 <p className="text-xs leading-relaxed text-slate-600">
                   High intent. Recommend scheduling demo and sharing enterprise
                   workflow overview.
@@ -112,7 +112,7 @@ export function PlatformDashboardMockup() {
                 <span className="font-medium text-slate-900">Proposal</span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[70%] rounded-full bg-emerald-600" />
+                <div className="h-full w-[70%] rounded-full bg-[var(--marketing-primary)]" />
               </div>
             </MockShell>
           </div>
@@ -130,12 +130,12 @@ export function PlatformDashboardMockup() {
                 SOP: Demo flow
               </div>
             </MockShell>
-            <div className="rounded-xl bg-emerald-50/90 p-3 ring-1 ring-emerald-200/70">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-900">
+            <div className="rounded-xl bg-[var(--marketing-primary-muted)]/90 p-3 ring-1 ring-[var(--marketing-border-accent)]">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--marketing-primary-muted-foreground)]">
                 <Zap className="h-3.5 w-3.5" />
                 Next action
               </div>
-              <p className="mt-1.5 text-[11px] leading-relaxed text-emerald-800">
+              <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--marketing-primary-hover)]">
                 Schedule demo + send proposal link
               </p>
             </div>
@@ -151,7 +151,7 @@ export function PlatformCapabilityPreview({ id }: { id: string }) {
     communication: (
       <MockShell title="Inbox">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-emerald-600" />
+          <MessageSquare className="h-4 w-4 text-[var(--marketing-primary)]" />
           <p className="text-xs text-slate-600">3 channels · 1 workspace</p>
         </div>
       </MockShell>
@@ -207,7 +207,7 @@ export function PlatformCapabilityPreview({ id }: { id: string }) {
     ai: (
       <MockShell title="AI Insights">
         <div className="flex items-center gap-2">
-          <Bot className="h-4 w-4 text-emerald-600" />
+          <Bot className="h-4 w-4 text-[var(--marketing-primary)]" />
           <p className="text-xs text-slate-600">Summary · Next action</p>
         </div>
       </MockShell>

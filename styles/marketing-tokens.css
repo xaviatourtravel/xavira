@@ -1,0 +1,219 @@
+/**
+ * Desklabs Marketing Website — visual tokens (Website Bible v1.0).
+ * Scoped to `.marketing-site` only — must not affect dashboard/application routes.
+ */
+
+.marketing-site {
+  /* Brand */
+  --marketing-brand-500: #2d73d5;
+  --marketing-brand-600: #1f5fbf;
+  --marketing-brand-700: #164a96;
+
+  /* Aurora accents — use sparingly */
+  --marketing-aurora-violet: #6d5dfb;
+  --marketing-aurora-cyan: #4cc9f0;
+
+  /* Semantic surfaces */
+  --marketing-background: #ffffff;
+  --marketing-foreground: #0f172a;
+  --marketing-muted: #64748b;
+  --marketing-muted-foreground: #64748b;
+  --marketing-surface: #f7f9fc;
+  --marketing-surface-muted: #eef2f7;
+  --marketing-elevated-surface: #ffffff;
+
+  /* Primary semantic aliases */
+  --marketing-primary: var(--marketing-brand-600);
+  --marketing-primary-hover: var(--marketing-brand-700);
+  --marketing-primary-foreground: #ffffff;
+  --marketing-primary-muted: #eef4fc;
+  --marketing-primary-muted-foreground: var(--marketing-brand-700);
+
+  /* Accent semantic aliases */
+  --marketing-accent: var(--marketing-aurora-violet);
+  --marketing-accent-secondary: var(--marketing-aurora-cyan);
+  --marketing-accent-foreground: #ffffff;
+
+  /* Borders */
+  --marketing-border: rgba(15, 23, 42, 0.07);
+  --marketing-border-subtle: rgba(15, 23, 42, 0.06);
+  --marketing-border-default: rgba(15, 23, 42, 0.09);
+  --marketing-border-strong: rgba(15, 23, 42, 0.14);
+  --marketing-border-accent: rgba(45, 115, 213, 0.22);
+
+  /* Status */
+  --marketing-success: #0b8f6a;
+  --marketing-success-background: #ecfdf5;
+  --marketing-success-border: rgba(11, 143, 106, 0.2);
+  --marketing-warning: #b45309;
+  --marketing-warning-background: #fffbeb;
+  --marketing-warning-border: rgba(180, 83, 9, 0.2);
+  --marketing-error: #b91c1c;
+  --marketing-error-background: #fef2f2;
+  --marketing-error-border: rgba(185, 28, 28, 0.2);
+
+  /* Radius */
+  --marketing-radius-sm: 12px;
+  --marketing-radius-md: 16px;
+  --marketing-radius-lg: 20px;
+  --marketing-radius-xl: 28px;
+  --marketing-radius-pill: 999px;
+
+  /* Shadows — minimal */
+  --marketing-shadow-soft: 0 18px 60px rgba(15, 23, 42, 0.08);
+  --marketing-shadow-float: 0 28px 90px rgba(15, 23, 42, 0.12);
+
+  /* Layout */
+  --marketing-max-width: 1220px;
+  --marketing-prose-width: 720px;
+  --marketing-gutter-mobile: 20px;
+  --marketing-gutter-tablet: 24px;
+  --marketing-gutter-desktop: 32px;
+  --marketing-section-space: clamp(72px, 9vw, 120px);
+
+  /* Gradients — accent only */
+  --marketing-gradient-hero: linear-gradient(
+    135deg,
+    rgba(76, 201, 240, 0.14),
+    rgba(109, 93, 251, 0.12),
+    rgba(31, 95, 191, 0.1)
+  );
+
+  /* Typography */
+  --marketing-font-family: Inter, Geist, system-ui, sans-serif;
+
+  /* Motion — preparation for WEB-004 */
+  --marketing-duration-instant: 80ms;
+  --marketing-duration-fast: 140ms;
+  --marketing-duration-normal: 240ms;
+  --marketing-duration-slow: 500ms;
+  --marketing-duration-reveal: 500ms;
+  --marketing-duration-hero: 800ms;
+  --marketing-duration-stagger: 75ms;
+  --marketing-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --marketing-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --marketing-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  color: var(--marketing-foreground);
+  background-color: var(--marketing-background);
+  font-family: var(--marketing-font-family);
+}
+
+/* Container */
+.marketing-site .marketing-container {
+  width: min(var(--marketing-max-width), calc(100% - var(--marketing-gutter-mobile) * 2));
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .marketing-site .marketing-container {
+    width: min(var(--marketing-max-width), calc(100% - var(--marketing-gutter-tablet) * 2));
+  }
+}
+
+@media (min-width: 1280px) {
+  .marketing-site .marketing-container {
+    width: min(var(--marketing-max-width), calc(100% - var(--marketing-gutter-desktop) * 2));
+  }
+}
+
+/* Section rhythm */
+.marketing-site .marketing-section {
+  padding-block: var(--marketing-section-space);
+}
+
+/* Readable prose width */
+.marketing-site .marketing-prose {
+  max-width: var(--marketing-prose-width);
+}
+
+/* Typography scale */
+.marketing-site .marketing-type-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--marketing-primary);
+}
+
+.marketing-site .marketing-type-display {
+  font-size: clamp(3.5rem, 5vw + 0.5rem, 4.5rem);
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  color: var(--marketing-foreground);
+  text-wrap: balance;
+}
+
+.marketing-site .marketing-type-h1 {
+  font-size: clamp(3.5rem, 5vw + 0.5rem, 4.5rem);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--marketing-foreground);
+  text-wrap: balance;
+}
+
+.marketing-site .marketing-type-h2 {
+  font-size: clamp(2.5rem, 3vw + 0.75rem, 3.25rem);
+  font-weight: 630;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--marketing-foreground);
+  text-wrap: balance;
+}
+
+.marketing-site .marketing-type-h3 {
+  font-size: clamp(1.25rem, 1vw + 0.85rem, 1.75rem);
+  font-weight: 620;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--marketing-foreground);
+}
+
+.marketing-site .marketing-type-body-lg {
+  font-size: clamp(1.125rem, 0.4vw + 1rem, 1.25rem);
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--marketing-muted);
+}
+
+.marketing-site .marketing-type-body {
+  font-size: clamp(0.9375rem, 0.2vw + 0.875rem, 1.0625rem);
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--marketing-muted);
+}
+
+.marketing-site .marketing-type-metadata {
+  font-size: clamp(0.75rem, 0.15vw + 0.7rem, 0.875rem);
+  font-weight: 450;
+  line-height: 1.5;
+  color: var(--marketing-muted-foreground);
+}
+
+.marketing-site .marketing-type-caption {
+  font-size: clamp(0.75rem, 0.15vw + 0.7rem, 0.8125rem);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--marketing-muted-foreground);
+}
+
+/* Focus ring — marketing only */
+.marketing-site .marketing-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--marketing-background), 0 0 0 4px var(--marketing-brand-500);
+}
+
+/* Reduced motion — scoped */
+@media (prefers-reduced-motion: reduce) {
+  .marketing-site *,
+  .marketing-site *::before,
+  .marketing-site *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

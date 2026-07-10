@@ -24,13 +24,13 @@ function SnippetShell({
 }: {
   title: string;
   children: ReactNode;
-  accent?: "emerald" | "slate";
+  accent?: "brand" | "slate";
 }) {
   return (
     <div
       className={cn(
         "rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70",
-        accent === "emerald" && "ring-emerald-200/60",
+        accent === "brand" && "ring-[var(--marketing-border-accent)]",
       )}
     >
       <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
@@ -46,7 +46,7 @@ const industrySnippets: Record<SolutionIndustryId, ReactNode> = {
     <div className="grid gap-2 sm:grid-cols-2">
       <SnippetShell title="Inquiry">
         <div className="flex items-start gap-2">
-          <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-[var(--marketing-primary)]" />
           <p className="text-xs text-slate-600">Bali 5D4N · 4 pax · April</p>
         </div>
       </SnippetShell>
@@ -62,9 +62,9 @@ const industrySnippets: Record<SolutionIndustryId, ReactNode> = {
           4 travelers · docs complete
         </div>
       </SnippetShell>
-      <SnippetShell title="Payment" accent="emerald">
+      <SnippetShell title="Payment" accent="brand">
         <div className="flex items-center gap-2 text-xs text-slate-700">
-          <CreditCard className="h-4 w-4 text-emerald-600" />
+          <CreditCard className="h-4 w-4 text-[var(--marketing-primary)]" />
           DP paid · balance due
         </div>
       </SnippetShell>

@@ -62,7 +62,7 @@ export function MarketingSolutionSection() {
 
             return (
               <div key={item.id} className="flex items-center gap-3">
-                <article className="w-44 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/80">
+                <article className="w-44 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[var(--marketing-border-default)] transition-[transform,box-shadow,ring-color] duration-[var(--marketing-duration-fast)] hover:-translate-y-0.5 hover:ring-[var(--marketing-border-accent)]">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
                     <Icon className="h-5 w-5" />
                   </div>
@@ -94,7 +94,7 @@ export function MarketingCapabilitiesSection() {
         {content.capabilities.items.map((item) => (
           <article
             key={item.title}
-            className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/70"
+            className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-[var(--marketing-border-default)] transition-[transform,box-shadow,ring-color] duration-[var(--marketing-duration-fast)] hover:-translate-y-0.5 hover:ring-[var(--marketing-border-accent)]"
           >
             <h3 className="text-base font-semibold text-slate-950">{item.title}</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.description}</p>

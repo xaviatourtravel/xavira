@@ -33,6 +33,7 @@ export {
   MarketingBody,
   MarketingSmall,
   MarketingCaption,
+  MarketingMetadata,
   MarketingEyebrow,
 } from "./typography";
 
@@ -78,6 +79,7 @@ export { MarketingIcon, MarketingListMarker } from "./icon";
 // Sections & layout
 export {
   MarketingSection,
+  MarketingContainer,
   MarketingSectionHeader,
   MarketingHeroSection,
   MarketingFeatureGridSection,

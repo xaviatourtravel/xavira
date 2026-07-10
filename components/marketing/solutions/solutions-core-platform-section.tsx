@@ -19,7 +19,7 @@ export function SolutionsCorePlatformSection() {
       />
 
       <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-[var(--marketing-border-default)]">
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
             Core Platform
           </p>
@@ -43,8 +43,8 @@ export function SolutionsCorePlatformSection() {
           <ArrowRight className="h-5 w-5" />
         </div>
 
-        <div className="rounded-2xl bg-[linear-gradient(to_bottom,#ffffff,#f0fdf4)] p-6 shadow-sm ring-1 ring-emerald-200/60">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-700">
+        <div className="rounded-2xl bg-[linear-gradient(to_bottom,var(--marketing-background),var(--marketing-primary-muted))] p-6 shadow-sm ring-1 ring-[var(--marketing-border-accent)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--marketing-primary)]">
             Industry Packs
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -54,13 +54,13 @@ export function SolutionsCorePlatformSection() {
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-medium ring-1",
                   index === 0
-                    ? "bg-emerald-700 text-white ring-emerald-800"
+                    ? "bg-[var(--marketing-primary)] text-white ring-[var(--marketing-primary-hover)]"
                     : "bg-white text-slate-800 ring-slate-200/70",
                 )}
               >
                 {pack}
                 {index === 0 ? (
-                  <span className="ml-2 text-[10px] font-normal text-emerald-100">
+                  <span className="ml-2 text-[10px] font-normal text-white/80">
                     Available
                   </span>
                 ) : null}

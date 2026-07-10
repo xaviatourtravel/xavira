@@ -1,30 +1,33 @@
 /**
  * Spacing tokens — responsive section, container, and grid rhythm.
+ * Container width and section padding use CSS classes from marketing-tokens.css.
  */
 
 export const marketingSpacing = {
-  /** Section vertical padding */
+  /** Section vertical padding — uses CSS clamp rhythm */
   section: {
-    mobile: "py-16",
-    tablet: "sm:py-24",
-    desktop: "lg:py-28",
-    combined: "py-16 sm:py-24 lg:py-28",
+    className: "marketing-section",
+    /** @deprecated Use section.className — kept for backward compatibility */
+    mobile: "marketing-section",
+    tablet: "",
+    desktop: "",
+    combined: "marketing-section",
   },
   /** Hero vertical padding (slightly tighter top) */
   hero: {
     combined: "pb-16 pt-14 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-20",
   },
-  /** Horizontal page container padding */
+  /** Horizontal page container padding — handled by .marketing-container */
   container: {
-    mobile: "px-4",
-    tablet: "sm:px-6",
-    desktop: "lg:px-8",
-    combined: "px-4 sm:px-6 lg:px-8",
+    mobile: "",
+    tablet: "",
+    desktop: "",
+    combined: "",
   },
   /** Max content width */
   maxWidth: {
-    page: "max-w-6xl",
-    prose: "max-w-3xl",
+    page: "marketing-container",
+    prose: "marketing-prose",
     narrow: "max-w-2xl",
   },
   /** Grid and stack gaps */
@@ -40,8 +43,4 @@ export const marketingSpacing = {
   scrollMargin: "scroll-mt-20 sm:scroll-mt-24",
 } as const;
 
-export const marketingContainerClass = [
-  "mx-auto w-full",
-  marketingSpacing.maxWidth.page,
-  marketingSpacing.container.combined,
-].join(" ");
+export const marketingContainerClass = "marketing-container";

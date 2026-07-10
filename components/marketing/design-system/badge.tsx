@@ -12,9 +12,12 @@ const marketingBadgeVariants = cva(
     variants: {
       variant: {
         default: "bg-slate-100 text-slate-600 ring-1 ring-slate-200/70",
-        success: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70",
-        warning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200/70",
-        danger: "bg-red-50 text-red-700 ring-1 ring-red-200/70",
+        success:
+          "bg-[var(--marketing-success-background)] text-[var(--marketing-success)] ring-1 ring-[var(--marketing-success-border)]",
+        warning:
+          "bg-[var(--marketing-warning-background)] text-[var(--marketing-warning)] ring-1 ring-[var(--marketing-warning-border)]",
+        danger:
+          "bg-[var(--marketing-error-background)] text-[var(--marketing-error)] ring-1 ring-[var(--marketing-error-border)]",
         dark: "bg-slate-950 text-white ring-1 ring-slate-900",
       },
       size: {

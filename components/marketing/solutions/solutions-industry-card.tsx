@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
 import type { SolutionIndustryId } from "@/lib/marketing/solutions-content";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ function StatusBadge({ status }: { status: "available" | "coming_soon" }) {
       className={cn(
         "inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
         status === "available"
-          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70"
+          ? "bg-[var(--marketing-success-background)] text-[var(--marketing-success)] ring-1 ring-[var(--marketing-success-border)]"
           : "bg-slate-100 text-slate-600 ring-1 ring-slate-200/70",
       )}
     >
@@ -64,16 +64,16 @@ export function SolutionsIndustryCard({
   return (
     <article
       className={cn(
-        "group flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/80 sm:p-6",
+        "group flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-[var(--marketing-border-default)] transition-[transform,box-shadow,ring-color] duration-[var(--marketing-duration-fast)] hover:-translate-y-0.5 hover:ring-[var(--marketing-border-accent)] sm:p-6",
         status === "available" &&
-          "bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] ring-emerald-200/50",
+          "bg-[linear-gradient(to_bottom,var(--marketing-background),var(--marketing-surface))] ring-[var(--marketing-border-accent)]",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div
           className={cn(
             "flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-sm",
-            status === "available" ? "bg-emerald-700" : "bg-slate-900",
+            status === "available" ? "bg-[var(--marketing-primary)]" : "bg-slate-900",
           )}
         >
           <Icon className="h-5 w-5" />
@@ -87,7 +87,7 @@ export function SolutionsIndustryCard({
       <ul className="mt-4 flex-1 space-y-2">
         {(compact ? workflows.slice(0, 4) : workflows).map((workflow) => (
           <li key={workflow} className="flex items-center gap-2 text-sm text-slate-600">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--marketing-primary)]" aria-hidden />
             {workflow}
           </li>
         ))}
@@ -100,10 +100,7 @@ export function SolutionsIndustryCard({
         {isAvailable ? (
           <Link
             href={exploreHref}
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "w-full bg-emerald-700 hover:bg-emerald-800",
-            )}
+            className={cn(marketingButtonVariants({ size: "sm" }), "w-full")}
           >
             {exploreLabel ?? "Explore Solution"}
           </Link>
@@ -112,7 +109,7 @@ export function SolutionsIndustryCard({
             type="button"
             disabled
             className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
+              marketingButtonVariants({ variant: "outline", size: "sm" }),
               "w-full cursor-not-allowed opacity-60",
             )}
           >

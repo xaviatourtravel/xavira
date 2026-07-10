@@ -3,31 +3,35 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { marketingAnimation } from "@/components/marketing/design-system/tokens/animation";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
+import { marketingRadius } from "@/components/marketing/design-system/tokens/radius";
 import { cn } from "@/lib/utils";
 
 export const marketingButtonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium",
-    "rounded-md transition-colors",
+    marketingRadius.button,
+    "transition-colors duration-[var(--marketing-duration-fast)] ease-[var(--marketing-ease-standard)]",
     marketingColorClasses.focusRing,
-    marketingAnimation.hoverScale,
     marketingAnimation.respectMotion,
     "disabled:pointer-events-none disabled:opacity-50",
   ].join(" "),
   {
     variants: {
       variant: {
-        primary: "bg-emerald-700 text-white hover:bg-emerald-800",
-        secondary: "bg-slate-950 text-white hover:bg-slate-800",
-        ghost: "text-slate-700 hover:bg-slate-100 hover:text-slate-950",
+        primary:
+          "bg-[var(--marketing-primary)] text-[var(--marketing-primary-foreground)] hover:bg-[var(--marketing-primary-hover)]",
+        secondary:
+          "bg-[var(--marketing-foreground)] text-white hover:bg-slate-800",
+        ghost:
+          "text-[var(--marketing-muted)] hover:bg-[var(--marketing-surface)] hover:text-[var(--marketing-foreground)]",
         outline:
-          "border border-slate-200 bg-white text-slate-950 hover:bg-slate-50",
-        link: "text-emerald-700 underline-offset-4 hover:text-emerald-800 hover:underline",
+          "border border-[var(--marketing-border-strong)] bg-[var(--marketing-background)] text-[var(--marketing-foreground)] hover:bg-[var(--marketing-surface)]",
+        link: "h-auto min-h-0 px-0 text-[var(--marketing-primary)] underline-offset-4 hover:text-[var(--marketing-primary-hover)] hover:underline",
       },
       size: {
-        sm: "h-9 px-3",
-        default: "h-10 px-4 py-2",
-        lg: "h-11 px-8",
+        sm: "min-h-11 h-11 px-3",
+        default: "min-h-11 h-11 px-4",
+        lg: "min-h-11 h-11 px-8 text-base",
       },
       /** For CTA sections on dark backgrounds */
       onDark: {
@@ -39,7 +43,8 @@ export const marketingButtonVariants = cva(
       {
         variant: "primary",
         onDark: true,
-        className: "bg-emerald-500 text-slate-950 hover:bg-emerald-400",
+        className:
+          "bg-[var(--marketing-brand-500)] text-white hover:bg-[var(--marketing-brand-600)]",
       },
       {
         variant: "outline",

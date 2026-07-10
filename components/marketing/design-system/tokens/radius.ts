@@ -1,18 +1,18 @@
-/** Border radius tokens for marketing UI */
+/** Border radius tokens for marketing UI — aligned with CSS variables */
 
 export const marketingRadius = {
-  sm: "rounded-lg",
-  md: "rounded-xl",
-  lg: "rounded-2xl",
-  xl: "rounded-[1.5rem]",
-  full: "rounded-full",
-  icon: "rounded-xl",
-  button: "rounded-md",
+  sm: "rounded-[var(--marketing-radius-sm)]",
+  md: "rounded-[var(--marketing-radius-md)]",
+  lg: "rounded-[var(--marketing-radius-lg)]",
+  xl: "rounded-[var(--marketing-radius-xl)]",
+  full: "rounded-[var(--marketing-radius-pill)]",
+  icon: "rounded-[var(--marketing-radius-md)]",
+  button: "rounded-[var(--marketing-radius-sm)]",
 } as const;
 
 export const marketingShadow = {
   card: "shadow-sm",
   cardHover: "shadow-md",
-  elevated: "shadow-[0_20px_60px_-30px_rgba(15,23,42,0.22)]",
-  hero: "shadow-[0_28px_90px_-28px_rgba(15,23,42,0.28)]",
+  elevated: "shadow-[var(--marketing-shadow-soft)]",
+  hero: "shadow-[var(--marketing-shadow-float)]",
 } as const;

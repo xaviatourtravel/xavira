@@ -49,11 +49,11 @@ export function PlatformComparisonSection() {
                   </>
                 ) : null}
               </div>
-              <div className="flex items-start gap-3 border-l border-slate-100 bg-emerald-50/20 px-4 py-4 sm:px-6">
+              <div className="flex items-start gap-3 border-l border-slate-100 bg-[var(--marketing-primary-muted)]/30 px-4 py-4 sm:px-6">
                 {desklabs ? (
                   <>
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                      <Check className="h-3 w-3 text-emerald-700" />
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--marketing-success-background)]">
+                      <Check className="h-3 w-3 text-[var(--marketing-success)]" />
                     </span>
                     <span className="text-sm text-slate-800">{desklabs}</span>
                   </>

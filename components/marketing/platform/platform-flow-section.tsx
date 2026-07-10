@@ -22,7 +22,7 @@ export function PlatformFlowSection() {
             <div key={step.id} className="flex w-full max-w-md flex-col items-center">
               <article
                 className={cn(
-                  "w-full rounded-2xl bg-white px-6 py-4 text-center shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/80",
+                  "w-full rounded-2xl bg-white px-6 py-4 text-center shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-[var(--marketing-border-accent)]",
                   index === platformFlowSteps.length - 1 &&
                     "bg-slate-950 text-white ring-slate-900",
                 )}
@@ -54,7 +54,7 @@ export function PlatformFlowSection() {
             <div key={step.id} className="flex items-center gap-2">
               <article
                 className={cn(
-                  "rounded-2xl px-5 py-3 text-center shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/80",
+                  "rounded-2xl px-5 py-3 text-center shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-[var(--marketing-border-accent)]",
                   index === platformFlowSteps.length - 1
                     ? "bg-slate-950 text-white ring-slate-900"
                     : "bg-white",

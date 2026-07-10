@@ -1,3 +1,5 @@
+@import "../styles/marketing-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -265,20 +267,4 @@
     }
   }
 
-  .marketing-site {
-    --marketing-primary: 161 94% 30%;
-    --marketing-accent: 160 84% 39%;
-    --marketing-border: 214 32% 91%;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .marketing-site *,
-    .marketing-site *::before,
-    .marketing-site *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
 }

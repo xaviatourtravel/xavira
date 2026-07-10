@@ -22,7 +22,7 @@ function FooterColumn({
           <li key={link.label}>
             <Link
               href={link.href}
-              className="text-sm text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+              className="text-sm text-[var(--marketing-muted)] transition-colors hover:text-[var(--marketing-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)] focus-visible:ring-offset-2"
             >
               {link.label}
             </Link>
@@ -57,14 +57,14 @@ export function MarketingDesignFooter() {
           <div>
             <Link
               href="/"
-              className="inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+              className="inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)] focus-visible:ring-offset-2"
             >
               <BrandLogo variant="full" size="md" />
             </Link>
             <p className="mt-4 text-sm text-slate-600">{content.brand.tagline}</p>
             <a
               href={`mailto:${content.brand.email}`}
-              className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+              className="mt-3 inline-block text-sm font-medium text-[var(--marketing-primary)] hover:text-[var(--marketing-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)] focus-visible:ring-offset-2"
             >
               {content.brand.email}
             </a>

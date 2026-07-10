@@ -7,7 +7,8 @@ import { createPortal } from "react-dom";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
-import { buttonVariants } from "@/components/ui/button";
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
+import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { marketingRoutes } from "@/lib/marketing/routes";
 import { cn } from "@/lib/utils";
@@ -120,7 +121,7 @@ export function MarketingNavbar() {
                     key={item.href}
                     href={item.href}
                     label={item.label}
-                    className="flex min-h-[44px] items-center rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                    className="flex min-h-[44px] items-center rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)]"
                     onClick={() => setOpen(false)}
                   />
                 ))}
@@ -129,17 +130,14 @@ export function MarketingNavbar() {
               <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
                 <Link
                   href={marketingRoutes.login}
-                  className={cn(buttonVariants({ variant: "outline" }), "h-11 w-full")}
+                  className={cn(marketingButtonVariants({ variant: "outline" }), "h-11 w-full")}
                   onClick={() => setOpen(false)}
                 >
                   {content.nav.signIn}
                 </Link>
                 <Link
                   href={marketingRoutes.demo}
-                  className={cn(
-                    buttonVariants(),
-                    "h-11 w-full bg-emerald-700 hover:bg-emerald-800",
-                  )}
+                  className={cn(marketingButtonVariants(), "h-11 w-full")}
                   onClick={() => setOpen(false)}
                 >
                   {content.nav.demo}
@@ -161,7 +159,7 @@ export function MarketingNavbar() {
             : "border-transparent bg-white/75 backdrop-blur-sm",
         )}
       >
-        <div className="mx-auto flex h-14 min-w-0 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
+        <div className={cn("mx-auto flex h-14 min-w-0 items-center justify-between gap-3 sm:h-16", marketingContainerClass)}>
           <Link href={marketingRoutes.home} className="flex min-w-0 items-center">
             <BrandLogo variant="icon" size="md" className="sm:hidden" />
             <BrandLogo variant="full" size="lg" className="hidden sm:inline-flex" />
@@ -173,7 +171,7 @@ export function MarketingNavbar() {
                 key={item.href}
                 href={item.href}
                 label={item.label}
-                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)] focus-visible:ring-offset-2"
               />
             ))}
           </nav>
@@ -209,16 +207,13 @@ export function MarketingNavbar() {
             </div>
             <Link
               href={marketingRoutes.login}
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              className={cn(marketingButtonVariants({ variant: "ghost", size: "sm" }))}
             >
               {content.nav.signIn}
             </Link>
             <Link
               href={marketingRoutes.demo}
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "bg-emerald-700 hover:bg-emerald-800",
-              )}
+              className={cn(marketingButtonVariants({ size: "sm" }))}
             >
               {content.nav.demo}
             </Link>

@@ -28,12 +28,14 @@ function ComparisonListItem({
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-          positive ? "bg-emerald-100" : "bg-slate-200",
+          positive
+            ? "bg-[var(--marketing-success-background)]"
+            : "bg-slate-200",
         )}
         aria-hidden
       >
         {positive ? (
-          <Check className="h-3 w-3 text-emerald-700" />
+          <Check className="h-3 w-3 text-[var(--marketing-success)]" />
         ) : (
           <X className="h-3 w-3 text-slate-600" />
         )}
@@ -116,7 +118,7 @@ export function MarketingComparisonTable({
             <p className="text-sm font-medium text-slate-900">{row.feature}</p>
             <div className="mt-1 text-sm text-slate-600">{row.left}</div>
           </div>
-          <div className="border-l border-slate-100 bg-emerald-50/20 px-4 py-4 sm:px-6">
+          <div className="border-l border-slate-100 bg-[var(--marketing-primary-muted)]/30 px-4 py-4 sm:px-6">
             <p className="sr-only">{row.feature}</p>
             <div className="text-sm text-slate-800">{row.right}</div>
           </div>

@@ -21,6 +21,7 @@ const defaultElements: Record<MarketingTypographyVariant, ElementType> = {
   bodyLarge: "p",
   body: "p",
   small: "p",
+  metadata: "p",
   caption: "p",
   eyebrow: "p",
 };
@@ -70,6 +71,10 @@ export function MarketingSmall(props: Omit<MarketingTextProps, "variant">) {
 
 export function MarketingCaption(props: Omit<MarketingTextProps, "variant">) {
   return <MarketingText variant="caption" {...props} />;
+}
+
+export function MarketingMetadata(props: Omit<MarketingTextProps, "variant">) {
+  return <MarketingText variant="metadata" {...props} />;
 }
 
 export function MarketingEyebrow(props: Omit<MarketingTextProps, "variant">) {

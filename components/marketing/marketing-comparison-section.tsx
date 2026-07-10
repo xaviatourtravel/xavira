@@ -31,15 +31,15 @@ export function MarketingComparisonSection() {
           </ul>
         </article>
 
-        <article className="rounded-2xl bg-white p-6 shadow-md ring-1 ring-emerald-200/70">
+        <article className="rounded-2xl bg-white p-6 shadow-md ring-1 ring-[var(--marketing-border-accent)]">
           <h3 className="text-lg font-semibold text-slate-900">
             {content.comparison.desklabs.title}
           </h3>
           <ul className="mt-5 space-y-3">
             {content.comparison.desklabs.items.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-slate-700">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                  <Check className="h-3 w-3 text-emerald-700" />
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--marketing-success-background)]">
+                  <Check className="h-3 w-3 text-[var(--marketing-success)]" />
                 </span>
                 {item}
               </li>

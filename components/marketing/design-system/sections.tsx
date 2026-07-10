@@ -24,6 +24,16 @@ const toneClass: Record<SectionTone, string> = {
   dark: marketingColorClasses.bgDark,
 };
 
+export function MarketingContainer({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn(marketingContainerClass, className)}>{children}</div>;
+}
+
 export type MarketingSectionProps = {
   id?: string;
   children: ReactNode;
@@ -49,9 +59,7 @@ export function MarketingSection({
         className,
       )}
     >
-      <div className={cn(marketingContainerClass, containerClassName)}>
-        {children}
-      </div>
+      <MarketingContainer className={containerClassName}>{children}</MarketingContainer>
     </section>
   );
 }
@@ -78,7 +86,7 @@ export function MarketingSectionHeader({
   return (
     <div
       className={cn(
-        "mx-auto max-w-3xl",
+        "marketing-prose mx-auto",
         align === "center" && "text-center",
         className,
       )}
@@ -129,7 +137,7 @@ export function MarketingHeroSection({
           visual && "lg:grid-cols-[1.05fr_0.95fr] lg:gap-16",
         )}
       >
-        <div className={cn("min-w-0", centered ? "mx-auto max-w-3xl text-center" : "max-w-2xl")}>
+        <div className={cn("min-w-0", centered ? "marketing-prose mx-auto text-center" : "max-w-2xl")}>
           {eyebrow ? <MarketingEyebrow>{eyebrow}</MarketingEyebrow> : null}
           <MarketingH1 className={eyebrow ? "mt-5 sm:mt-6" : undefined}>
             {title}
@@ -202,7 +210,7 @@ export function MarketingWorkflowSection({
         <div className="flex min-w-[960px] items-center justify-center gap-2">
           {steps.map((step, index) => (
             <div key={step.id} className="flex items-center gap-2">
-              <article className="rounded-2xl bg-white px-5 py-3 text-center shadow-sm ring-1 ring-slate-200/70 transition-all hover:-translate-y-0.5 hover:ring-emerald-200/80">
+              <article className="rounded-2xl bg-white px-5 py-3 text-center shadow-sm ring-1 ring-[var(--marketing-border-default)] transition-[transform,box-shadow,ring-color] duration-[var(--marketing-duration-fast)] hover:-translate-y-0.5 hover:ring-[var(--marketing-border-accent)]">
                 <p className="text-sm font-semibold">{step.label}</p>
               </article>
               {index < steps.length - 1 ? (
@@ -247,7 +255,7 @@ export function MarketingTimelineSection({
       <div className="relative mx-auto mt-12 max-w-4xl">
         <div
           aria-hidden
-          className="absolute left-4 top-0 hidden h-full w-px bg-gradient-to-b from-emerald-200 via-slate-200 to-emerald-200 sm:block"
+          className="absolute left-4 top-0 hidden h-full w-px bg-gradient-to-b from-[var(--marketing-border-accent)] via-[var(--marketing-border-default)] to-[var(--marketing-border-accent)] sm:block"
         />
         <ol className="space-y-4">
           {steps.map((step, index) => (
@@ -372,10 +380,10 @@ export function MarketingCtaSection({
       {onDark ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.16),transparent_42%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,115,213,0.16),transparent_42%)]"
         />
       ) : null}
-      <div className="relative mx-auto max-w-3xl text-center">
+      <div className="relative marketing-prose mx-auto text-center">
         <MarketingH2 className={onDark ? "text-white" : undefined}>{title}</MarketingH2>
         {description ? (
           <p

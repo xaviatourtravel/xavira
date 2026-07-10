@@ -24,8 +24,9 @@ function MarketingCardBase({
         marketingRadius.lg,
         "bg-white p-5",
         marketingShadow.card,
-        "ring-1 ring-slate-200/70",
-        accent && "bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] ring-emerald-200/50",
+        "ring-1 ring-[var(--marketing-border-default)]",
+        accent &&
+          "bg-[linear-gradient(to_bottom,var(--marketing-background),var(--marketing-surface))] ring-[var(--marketing-border-accent)]",
         interactive && marketingAnimation.hoverLift,
         marketingAnimation.respectMotion,
         "sm:p-6",
@@ -97,7 +98,7 @@ export function MarketingIndustryCard({
           className={cn(
             "flex h-11 w-11 items-center justify-center text-white",
             marketingRadius.icon,
-            accent ? "bg-emerald-700" : "bg-slate-900",
+            accent ? "bg-[var(--marketing-primary)]" : "bg-slate-900",
           )}
         >
           <Icon className="h-5 w-5" aria-hidden />
@@ -109,7 +110,7 @@ export function MarketingIndustryCard({
       <ul className="mt-4 flex-1 space-y-2">
         {workflows.map((workflow) => (
           <li key={workflow} className="flex items-center gap-2 text-sm text-slate-600">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--marketing-primary)]" aria-hidden />
             {workflow}
           </li>
         ))}
@@ -181,7 +182,7 @@ export function MarketingComparisonCard({
     <MarketingCardBase
       className={cn(
         tone === "neutral" && "bg-slate-50/80",
-        tone === "accent" && "shadow-md ring-emerald-200/70",
+        tone === "accent" && "shadow-md ring-[var(--marketing-border-accent)]",
         className,
       )}
     >

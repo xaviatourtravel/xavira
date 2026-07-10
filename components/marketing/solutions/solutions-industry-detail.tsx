@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
+import { marketingTypography } from "@/components/marketing/design-system/tokens/typography";
 import { SolutionsUiSnippet } from "@/components/marketing/solutions/solutions-ui-snippet";
-import { buttonVariants } from "@/components/ui/button";
 import type { SolutionIndustryId } from "@/lib/marketing/solutions-content";
 import { cn } from "@/lib/utils";
 
@@ -40,15 +41,9 @@ export function SolutionsIndustryDetail({
         )}
       >
         <div className="min-w-0">
-          <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
-            {name}
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-            {headline}
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-            {description}
-          </p>
+          <p className={marketingTypography.eyebrow}>{name}</p>
+          <h2 className={cn(marketingTypography.h2, "mt-3")}>{headline}</h2>
+          <p className={cn(marketingTypography.bodyLarge, "mt-4")}>{description}</p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {workflows.map((workflow) => (
               <li
@@ -63,10 +58,7 @@ export function SolutionsIndustryDetail({
             {isAvailable ? (
               <Link
                 href={exploreHref}
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "bg-emerald-700 hover:bg-emerald-800",
-                )}
+                className={cn(marketingButtonVariants({ size: "lg" }))}
               >
                 {exploreLabel ?? "Explore Solution"}
                 <ArrowRight className="h-4 w-4" aria-hidden />
@@ -76,7 +68,7 @@ export function SolutionsIndustryDetail({
                 type="button"
                 disabled
                 className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
+                  marketingButtonVariants({ variant: "outline", size: "lg" }),
                   "cursor-not-allowed opacity-60",
                 )}
               >

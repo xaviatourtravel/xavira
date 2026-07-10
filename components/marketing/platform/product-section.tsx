@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
+import { marketingTypography } from "@/components/marketing/design-system/tokens/typography";
 import { PlatformCapabilityPreview } from "@/components/marketing/platform/platform-dashboard-mockup";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type ProductSectionProps = {
@@ -33,19 +34,13 @@ export function ProductSection({
         )}
       >
         <div className="min-w-0">
-          <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
-            {eyebrow}
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-            {headline}
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-            {description}
-          </p>
+          <p className={marketingTypography.eyebrow}>{eyebrow}</p>
+          <h2 className={cn(marketingTypography.h2, "mt-3")}>{headline}</h2>
+          <p className={cn(marketingTypography.bodyLarge, "mt-4")}>{description}</p>
           <ul className="mt-6 space-y-3">
             {benefits.map((benefit) => (
               <li key={benefit} className="flex items-start gap-3 text-sm text-slate-700">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--marketing-primary-muted)] text-[var(--marketing-primary)]">
                   <Check className="h-3 w-3" />
                 </span>
                 {benefit}
@@ -54,7 +49,7 @@ export function ProductSection({
           </ul>
           <Link
             href={learnMoreHref}
-            className={cn(buttonVariants({ variant: "outline" }), "mt-8")}
+            className={cn(marketingButtonVariants({ variant: "outline" }), "mt-8")}
           >
             Learn More
             <ArrowRight className="h-4 w-4" />

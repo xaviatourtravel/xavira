@@ -1,4 +1,5 @@
-import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
+import { MarketingPageShell } from "@/components/marketing/design-system";
+import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { PlatformComparisonSection } from "@/components/marketing/platform/platform-comparison-section";
@@ -11,14 +12,13 @@ import { platformCapabilities } from "@/lib/marketing/platform-content";
 
 export function PlatformPageView() {
   return (
-    <MarketingLocaleProvider>
-      <div className="min-h-screen bg-white text-slate-950">
+    <MarketingPageShell>
       <MarketingNavbar />
       <main>
         <PlatformHeroSection />
         <PlatformFlowSection />
 
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className={marketingContainerClass}>
           {platformCapabilities.map((capability, index) => (
             <ProductSection
               key={capability.id}
@@ -38,7 +38,6 @@ export function PlatformPageView() {
         <PlatformCtaSection />
       </main>
       <MarketingFooter />
-    </div>
-    </MarketingLocaleProvider>
+    </MarketingPageShell>
   );
 }

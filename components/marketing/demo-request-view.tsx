@@ -4,11 +4,13 @@ import { useMarketingContent } from '@/components/marketing/marketing-locale-pro
 import Link from "next/link";
 import { CalendarCheck, CheckCircle2, Mail, MessageSquare } from "lucide-react";
 
+import { MarketingPageShell } from "@/components/marketing/design-system";
+import { marketingButtonVariants } from "@/components/marketing/design-system/button";
+import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
+import { marketingTypography } from "@/components/marketing/design-system/tokens/typography";
 import { submitDemoRequestAction } from "@/app/demo/actions";
-import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
-import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -84,7 +86,7 @@ function DemoSuccessState() {
 
   return (
     <div className="rounded-2xl bg-white p-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.22)] ring-1 ring-slate-200/70">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--marketing-primary-muted)] text-[var(--marketing-primary)]">
         <CheckCircle2 className="h-6 w-6" />
       </div>
       <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">
@@ -99,7 +101,7 @@ function DemoSuccessState() {
           Email:{" "}
           <a
             href={`mailto:${content.brand.email}`}
-            className="font-medium text-emerald-700 hover:text-emerald-800"
+            className="font-medium text-[var(--marketing-primary)] hover:text-[var(--marketing-primary-hover)]"
           >
             {content.brand.email}
           </a>
@@ -107,7 +109,7 @@ function DemoSuccessState() {
       </div>
       <Link
         href="/"
-        className={cn(buttonVariants({ variant: "outline" }), "mt-8")}
+        className={cn(marketingButtonVariants({ variant: "outline" }), "mt-8")}
       >
         Kembali ke beranda
       </Link>
@@ -120,11 +122,10 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
   const errorMessage = getErrorMessage(error);
 
   return (
-    <MarketingLocaleProvider>
-      <div className="min-h-screen bg-[linear-gradient(to_bottom,#ffffff,#f8fafc)] text-slate-950">
+    <MarketingPageShell>
       <MarketingNavbar />
 
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+      <main className={cn(marketingContainerClass, "py-12 sm:py-16 lg:py-20")}>
         {success ? (
           <div className="mx-auto max-w-2xl">
             <DemoSuccessState />
@@ -132,9 +133,7 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
         ) : (
           <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start lg:gap-14">
             <div className="min-w-0">
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-emerald-700">
-                Demo Desklabs
-              </p>
+              <p className={marketingTypography.eyebrow}>Demo Desklabs</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                 Jadwalkan Demo Desklabs
               </h1>
@@ -179,7 +178,7 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
                   Pertanyaan?{" "}
                   <a
                     href={`mailto:${content.brand.email}?subject=Demo Desklabs`}
-                    className="font-medium text-emerald-700 hover:text-emerald-800"
+                    className="font-medium text-[var(--marketing-primary)] hover:text-[var(--marketing-primary-hover)]"
                   >
                     {content.brand.email}
                   </a>
@@ -328,10 +327,7 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
                 <div className="border-t border-slate-100 pt-5">
                   <button
                     type="submit"
-                    className={cn(
-                      buttonVariants({ size: "lg" }),
-                      "w-full bg-emerald-700 hover:bg-emerald-800",
-                    )}
+                    className={cn(marketingButtonVariants({ size: "lg" }), "w-full")}
                   >
                     Jadwalkan Demo
                   </button>
@@ -347,7 +343,6 @@ export function DemoRequestView({ error, success }: DemoRequestViewProps) {
       </main>
 
       <MarketingFooter />
-    </div>
-    </MarketingLocaleProvider>
+    </MarketingPageShell>
   );
 }

@@ -17,7 +17,7 @@ const sizeClasses = {
 
 const toneClasses = {
   default: "bg-slate-950 text-white",
-  accent: "bg-emerald-700 text-white",
+  accent: "bg-[var(--marketing-primary)] text-white",
   dark: "bg-slate-950 text-white",
   muted: "bg-slate-100 text-slate-700",
 } as const;
@@ -57,7 +57,9 @@ export function MarketingListMarker({
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-          positive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600",
+          positive
+            ? "bg-[var(--marketing-success-background)] text-[var(--marketing-success)]"
+            : "bg-slate-100 text-slate-600",
         )}
         aria-hidden
       >
@@ -68,7 +70,7 @@ export function MarketingListMarker({
 
   return (
     <span
-      className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+      className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--marketing-primary)]"
       aria-hidden
     />
   );

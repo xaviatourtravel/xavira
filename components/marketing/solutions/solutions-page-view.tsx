@@ -1,4 +1,5 @@
-import { MarketingLocaleProvider } from "@/components/marketing/marketing-locale-provider";
+import { MarketingPageShell } from "@/components/marketing/design-system";
+import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { SolutionsCorePlatformSection } from "@/components/marketing/solutions/solutions-core-platform-section";
@@ -10,14 +11,13 @@ import { solutionIndustries } from "@/lib/marketing/solutions-content";
 
 export function SolutionsPageView() {
   return (
-    <MarketingLocaleProvider>
-      <div className="min-h-screen bg-white text-slate-950">
+    <MarketingPageShell>
       <MarketingNavbar />
       <main>
         <SolutionsHeroSection />
         <SolutionsIndustryGridSection />
 
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className={marketingContainerClass}>
           {solutionIndustries.map((industry, index) => (
             <SolutionsIndustryDetail
               key={industry.id}
@@ -38,7 +38,6 @@ export function SolutionsPageView() {
         <SolutionsCtaSection />
       </main>
       <MarketingFooter />
-    </div>
-    </MarketingLocaleProvider>
+    </MarketingPageShell>
   );
 }

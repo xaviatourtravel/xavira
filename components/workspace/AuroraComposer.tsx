@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 import {
   AURORA_COMPOSER_AI_PILL,
+  AURORA_COMPOSER_AI_PILL_ACTIVE,
   AURORA_COMPOSER_ICON_BUTTON,
   AURORA_COMPOSER_ICON_SIZE,
   AURORA_COMPOSER_INPUT,
@@ -185,6 +186,7 @@ export function AuroraComposerIconButton({
 export type AuroraComposerAiPillProps = {
   label: string;
   disabled?: boolean;
+  active?: boolean;
   onClick?: () => void;
   className?: string;
 };
@@ -193,6 +195,7 @@ export type AuroraComposerAiPillProps = {
 export function AuroraComposerAiPill({
   label,
   disabled = false,
+  active = false,
   onClick,
   className,
 }: AuroraComposerAiPillProps) {
@@ -202,8 +205,13 @@ export function AuroraComposerAiPill({
       disabled={disabled}
       onClick={onClick}
       aria-label={label}
+      aria-pressed={active}
       title={label}
-      className={cn(AURORA_COMPOSER_AI_PILL, className)}
+      className={cn(
+        AURORA_COMPOSER_AI_PILL,
+        active && AURORA_COMPOSER_AI_PILL_ACTIVE,
+        className,
+      )}
     >
       <span aria-hidden>✨</span>
       <span>{label}</span>

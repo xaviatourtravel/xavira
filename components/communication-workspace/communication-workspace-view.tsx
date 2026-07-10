@@ -11,7 +11,6 @@ import {
   useWhatsappConversationListRealtime,
   type ConversationListPatch,
 } from "@/lib/communication/realtime";
-import { InboxGlobalAiChatToggle } from "@/components/omnichannel-inbox/inbox-global-ai-chat-toggle";
 import {
   OmnichannelConversationDetailPanel,
   OmnichannelConversationEmptyState,
@@ -23,6 +22,7 @@ import { filterConversationsBySearch } from "@/components/omnichannel-inbox/inbo
 import {
   AURORA_QUEUE_WIDTH,
   AURORA_SHELL_CLASS,
+  AURORA_WORKSPACE_COLUMN_HEADER,
   AURORA_WORKSPACE_HEADER_KPI,
   AURORA_WORKSPACE_HEADER_TITLE,
 } from "@/components/workspace/aurora-tokens";
@@ -311,7 +311,7 @@ function CommunicationWorkspaceBody({
       ) : null}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <InboxFlowPanel />
+        <InboxFlowPanel queueCount={filteredConversations.length} />
 
         <section
           className={cn(
@@ -320,8 +320,8 @@ function CommunicationWorkspaceBody({
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <header className="shrink-0 border-b border-border/25 px-3 py-2">
-            <div className="flex items-start justify-between gap-2">
+          <header className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "px-3 py-2")}>
+            <div className="flex w-full items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h2 className={AURORA_WORKSPACE_HEADER_TITLE}>{ti("conversationListTitle")}</h2>
                 <WorkspaceHeaderKpi
@@ -342,9 +342,8 @@ function CommunicationWorkspaceBody({
             </div>
           </header>
 
-          <div className="shrink-0 space-y-2 border-b border-border/25 px-3 py-2">
+          <div className="shrink-0 border-b border-border/25 px-3 py-2">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
-            <InboxGlobalAiChatToggle />
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">

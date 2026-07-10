@@ -140,7 +140,7 @@ export const inboxEn = {
   customerSnapshotJourneyBooking: "Booking",
 
   // Inbox flow — queue navigation column (layout v2)
-  inboxFlowTitle: "Inbox Flow",
+  inboxFlowTitle: "Inbox",
   inboxFlowMyQueue: "My Queue",
   inboxFlowUnread: "Unread",
   inboxFlowNeedAction: "Need Action",
@@ -846,7 +846,7 @@ export const inboxId: InboxDictionary = {
   customerSnapshotJourneyQualified: "Terkualifikasi",
   customerSnapshotJourneyBooking: "Booking",
 
-  inboxFlowTitle: "Alur Inbox",
+  inboxFlowTitle: "Kotak Masuk",
   inboxFlowMyQueue: "Antrian Saya",
   inboxFlowUnread: "Belum Dibaca",
   inboxFlowNeedAction: "Perlu Tindakan",

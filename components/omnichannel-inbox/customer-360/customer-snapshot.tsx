@@ -8,6 +8,7 @@ import {
   AURORA_SNAPSHOT_CARD,
   AURORA_SNAPSHOT_DIVIDER,
   AURORA_SNAPSHOT_SECTION_GAP,
+  AURORA_WORKSPACE_COLUMN_HEADER,
 } from "@/components/workspace/aurora-tokens";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
@@ -76,16 +77,16 @@ export function CustomerSnapshot({ conversation, className }: CustomerSnapshotPr
   return (
     <section
       aria-labelledby="customer-snapshot-heading"
-      className={cn(AURORA_SNAPSHOT_CARD, className)}
+      className={cn(AURORA_SNAPSHOT_CARD, "rounded-none border-0 p-0", className)}
     >
-      <div className="mb-3 flex items-center gap-2">
+      <div className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "gap-2 px-3")}>
         <User className={SECTION_ICON_CLASS} aria-hidden strokeWidth={1.75} />
         <h3 id="customer-snapshot-heading" className={SECTION_TITLE_CLASS}>
           {labels.title}
         </h3>
       </div>
 
-      <div className={AURORA_SNAPSHOT_SECTION_GAP}>
+      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "p-4 pt-3")}>
         <CustomerSnapshotHeaderSection header={snapshot.header} labels={labels} />
 
         <div className={AURORA_SNAPSHOT_DIVIDER} />

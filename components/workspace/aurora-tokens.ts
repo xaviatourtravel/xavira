@@ -213,6 +213,9 @@ export const AURORA_COMPOSER_INPUT =
 export const AURORA_COMPOSER_AI_PILL =
   "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-border/20 bg-muted/15 px-2.5 text-xs font-medium text-muted-foreground/75 transition-colors duration-150 ease-out hover:border-border/30 hover:bg-muted/25 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-40";
 
+export const AURORA_COMPOSER_AI_PILL_ACTIVE =
+  "border-primary/25 bg-primary/[0.06] text-primary";
+
 export const AURORA_COMPOSER_SEND_BUTTON =
   "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-none transition-[background-color,opacity] duration-150 ease-out hover:bg-primary/90 active:bg-primary/85 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-35";
 
@@ -258,13 +261,19 @@ export const AURORA_NAV_RAIL_EXPANDED_WIDTH =
 export const AURORA_INBOX_FLOW_WIDTH =
   "w-[220px] min-w-[220px] max-w-[220px]";
 
+export const AURORA_WORKSPACE_COLUMN_HEADER =
+  "flex min-h-16 shrink-0 items-center border-b border-border/25";
+
 export const AURORA_INBOX_FLOW_SECTION = "px-2";
 
 export const AURORA_INBOX_FLOW_SECTION_TITLE =
   "mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/55";
 
 export const AURORA_INBOX_FLOW_ITEM =
-  "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+  "flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+
+export const AURORA_INBOX_FLOW_ITEM_SELECTED =
+  "flex h-9 w-full items-center justify-between gap-2 rounded-lg border-l-2 border-primary bg-muted/15 pl-2 pr-2.5 text-left text-xs font-medium text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
 
 /** Conversation queue — scanning-optimized list */
 export const AURORA_QUEUE_WIDTH = "w-[320px] min-w-[320px] max-w-[320px]";

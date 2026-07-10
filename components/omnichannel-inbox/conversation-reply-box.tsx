@@ -24,6 +24,7 @@ import {
 
 import { sendOmnichannelConversationReply } from "@/app/(dashboard)/inbox/omnichannel-actions";
 import { DsToast } from "@/components/design-system/toast";
+import { SmartReplyComposer } from "@/components/omnichannel-inbox/smart-reply-composer";
 import {
   AuroraComposer,
   AuroraComposerAiPill,
@@ -191,7 +192,12 @@ export function OmnichannelConversationReplyBox({
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const [plusView, setPlusView] = useState<"root" | "template">("root");
   const [isDragging, setIsDragging] = useState(false);
+  const [aiComposerOpen, setAiComposerOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setAiComposerOpen(false);
+  }, [conversationId]);
 
   useOutsideClose(openMenu !== null, rowRef, () => setOpenMenu(null));
 
@@ -211,7 +217,6 @@ export function OmnichannelConversationReplyBox({
   }, [toast]);
 
   const isWhatsapp = channel === "whatsapp";
-  const showSlashHint = messageText.trimStart().startsWith("/");
 
   const isDisabled = !canReply || isPending;
   const canSend = canReply && messageText.trim().length > 0 && !isPending;
@@ -422,6 +427,25 @@ export function OmnichannelConversationReplyBox({
         </div>
       ) : null}
 
+      <SmartReplyComposer
+        messageText={messageText}
+        aiOpen={aiComposerOpen}
+        onAiOpenChange={setAiComposerOpen}
+        onInsert={insertReply}
+        onClearInput={() => setMessageText("")}
+        labels={{
+          suggestedReply: ti("suggestedReply"),
+          copy: ti("copy"),
+          insert: ti("smartReplyInsert"),
+          regenerate: ti("regenerate"),
+          dismiss: ti("smartReplyDismiss"),
+          templatePickerTitle: ti("smartReplyTemplatePickerTitle"),
+          templateSearchPlaceholder: ti("smartReplyTemplateSearch"),
+          rewriteMenuTitle: ti("smartReplyRewriteTitle"),
+          translateMenuTitle: ti("smartReplyTranslateTitle"),
+        }}
+      >
+        {({ suggestionSlot, quickActionsSlot }) => (
       <AuroraComposer
         disabled={isDisabled}
         isSending={isPending}
@@ -454,11 +478,7 @@ export function OmnichannelConversationReplyBox({
         }}
         meta={
           <>
-            {showSlashHint ? (
-              <p className="text-[11px] text-muted-foreground/70">
-                {ti("composerSlashHint")}
-              </p>
-            ) : null}
+            {quickActionsSlot}
             {attachmentName ? (
               <div className="flex flex-wrap gap-1.5">
                 <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/35 px-2.5 py-1 text-xs text-foreground">
@@ -486,10 +506,7 @@ export function OmnichannelConversationReplyBox({
             />
           </>
         }
-        aiSuggestionSlot={
-          /* TODO(Aurora PR-008): integrate AI ghost reply / suggestion layer */
-          null
-        }
+        aiSuggestionSlot={suggestionSlot}
       >
         <div ref={rowRef} className="flex w-full min-w-0 items-center gap-1.5">
           <div className="flex shrink-0 items-center gap-0.5">
@@ -612,6 +629,8 @@ export function OmnichannelConversationReplyBox({
             <AuroraComposerAiPill
               label={ti("composerAskAi")}
               disabled={isDisabled}
+              active={aiComposerOpen}
+              onClick={() => setAiComposerOpen((open) => !open)}
             />
 
             <AuroraComposerSendButton
@@ -624,6 +643,8 @@ export function OmnichannelConversationReplyBox({
           </div>
         </div>
       </AuroraComposer>
+        )}
+      </SmartReplyComposer>
     </div>
   );
 }

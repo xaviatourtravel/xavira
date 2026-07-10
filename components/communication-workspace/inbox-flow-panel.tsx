@@ -2,35 +2,68 @@
 
 import {
   AURORA_INBOX_FLOW_ITEM,
+  AURORA_INBOX_FLOW_ITEM_SELECTED,
   AURORA_INBOX_FLOW_SECTION,
   AURORA_INBOX_FLOW_SECTION_TITLE,
   AURORA_INBOX_FLOW_WIDTH,
+  AURORA_WORKSPACE_COLUMN_HEADER,
 } from "@/components/workspace/aurora-tokens";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { cn } from "@/lib/utils";
 
+type InboxFlowId =
+  | "my-queue"
+  | "unread"
+  | "need-action"
+  | "ai-queue"
+  | "closed"
+  | "whatsapp"
+  | "instagram"
+  | "facebook"
+  | "email";
+
 type InboxFlowPanelProps = {
   className?: string;
+  activeFlowId?: InboxFlowId;
+  queueCount?: number;
 };
 
 function FlowPlaceholderItem({
   label,
   count,
+  selected = false,
 }: {
   label: string;
   count?: number;
+  selected?: boolean;
 }) {
   return (
-    <button type="button" className={AURORA_INBOX_FLOW_ITEM} aria-disabled>
+    <button
+      type="button"
+      className={selected ? AURORA_INBOX_FLOW_ITEM_SELECTED : AURORA_INBOX_FLOW_ITEM}
+      aria-current={selected ? "true" : undefined}
+      aria-disabled
+    >
       <span className="truncate">{label}</span>
       {count != null ? (
-        <span className="shrink-0 tabular-nums text-muted-foreground/60">{count}</span>
+        <span
+          className={cn(
+            "shrink-0 tabular-nums",
+            selected ? "text-primary/70" : "text-muted-foreground/60",
+          )}
+        >
+          {count}
+        </span>
       ) : null}
     </button>
   );
 }
 
-export function InboxFlowPanel({ className }: InboxFlowPanelProps) {
+export function InboxFlowPanel({
+  className,
+  activeFlowId = "my-queue",
+  queueCount,
+}: InboxFlowPanelProps) {
   const { ti } = useInboxTranslation();
 
   return (
@@ -42,7 +75,7 @@ export function InboxFlowPanel({ className }: InboxFlowPanelProps) {
       )}
       aria-label={ti("inboxFlowTitle")}
     >
-      <header className="shrink-0 border-b border-border/25 px-3 py-2.5">
+      <header className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "px-3")}>
         <h2 className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
           {ti("inboxFlowTitle")}
         </h2>
@@ -50,22 +83,53 @@ export function InboxFlowPanel({ className }: InboxFlowPanelProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
         <section className={AURORA_INBOX_FLOW_SECTION}>
-          <h3 className={AURORA_INBOX_FLOW_SECTION_TITLE}>{ti("inboxFlowMyQueue")}</h3>
           <div className="space-y-0.5">
-            <FlowPlaceholderItem label={ti("inboxFlowUnread")} count={0} />
-            <FlowPlaceholderItem label={ti("inboxFlowNeedAction")} count={0} />
-            <FlowPlaceholderItem label={ti("inboxFlowAiQueue")} count={0} />
-            <FlowPlaceholderItem label={ti("inboxFlowClosed")} />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowMyQueue")}
+              count={queueCount}
+              selected={activeFlowId === "my-queue"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowUnread")}
+              count={0}
+              selected={activeFlowId === "unread"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowNeedAction")}
+              count={0}
+              selected={activeFlowId === "need-action"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowAiQueue")}
+              count={0}
+              selected={activeFlowId === "ai-queue"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowClosed")}
+              selected={activeFlowId === "closed"}
+            />
           </div>
         </section>
 
         <section className={cn(AURORA_INBOX_FLOW_SECTION, "mt-4")}>
           <h3 className={AURORA_INBOX_FLOW_SECTION_TITLE}>{ti("inboxFlowChannels")}</h3>
           <div className="space-y-0.5">
-            <FlowPlaceholderItem label={ti("inboxFlowWhatsapp")} />
-            <FlowPlaceholderItem label={ti("inboxFlowInstagram")} />
-            <FlowPlaceholderItem label={ti("inboxFlowFacebook")} />
-            <FlowPlaceholderItem label={ti("inboxFlowEmail")} />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowWhatsapp")}
+              selected={activeFlowId === "whatsapp"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowInstagram")}
+              selected={activeFlowId === "instagram"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowFacebook")}
+              selected={activeFlowId === "facebook"}
+            />
+            <FlowPlaceholderItem
+              label={ti("inboxFlowEmail")}
+              selected={activeFlowId === "email"}
+            />
           </div>
         </section>
       </div>

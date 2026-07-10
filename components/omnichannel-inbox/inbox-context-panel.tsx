@@ -5,7 +5,6 @@ import { User } from "lucide-react";
 import { CustomerSnapshot } from "@/components/omnichannel-inbox/customer-360/customer-snapshot";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import {
-  AURORA_CONTEXT_CARD_STACK_GAP,
   AURORA_CONTEXT_PANEL_WIDTH,
 } from "@/components/workspace/aurora-tokens";
 import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/queries";
@@ -46,7 +45,7 @@ export function InboxContextPanel({
         className,
       )}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {!conversation ? (
           <ContextPanelEmptyState />
         ) : (

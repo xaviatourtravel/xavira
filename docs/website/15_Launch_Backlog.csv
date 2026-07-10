@@ -1,0 +1,21 @@
+﻿Priority,Workstream,Task,Owner,Status
+P0,Strategy,Approve platform positioning and language strategy,Founder/Product,Not started
+P0,Design,Create marketing Figma foundations and component library,Design,Not started
+P0,Assets,Produce hero neutral product scene,Design,Not started
+P0,Engineering,Marketing route group and tokens,Frontend,Not started
+P0,Content,Approve Indonesian homepage copy,Product/Marketing,Not started
+P1,Engineering,Static homepage implementation,Frontend,Not started
+P1,Motion,Hero motion proof of concept,Motion/Frontend,Not started
+P1,Assets,Five industry visual cards,Design,Not started
+P1,Content,Travel industry page copy,Marketing,Not started
+P1,Conversion,Demo form and CRM handoff,Growth/Engineering,Not started
+P1,SEO,"Metadata, sitemap, structured data",SEO/Frontend,Not started
+P1,Analytics,Event taxonomy implementation,Growth/Frontend,Not started
+P2,Pages,Travel industry page,Design/Frontend,Not started
+P2,Pages,Product module pages,Design/Frontend,Not started
+P2,Localization,English version,Content/Frontend,Not started
+P2,Pages,Agency industry page,Design/Frontend,Not started
+P3,Pages,Education industry page,Design/Frontend,Not started
+P3,Pages,Property industry page,Design/Frontend,Not started
+P3,Compliance,Healthcare readiness review,Legal/Security/Product,Not started
+P3,Optimization,A/B tests and conversion optimization,Growth,Not started

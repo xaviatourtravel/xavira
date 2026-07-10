@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "name": "Desklabs Marketing System",
+    "version": "1.0.0"
+  },
+  "color": {
+    "brand": {
+      "500": "#2D73D5",
+      "600": "#1F5FBF",
+      "700": "#164A96"
+    },
+    "aurora": {
+      "violet": "#6D5DFB",
+      "cyan": "#4CC9F0",
+      "emerald": "#0B8F6A"
+    },
+    "neutral": {
+      "0": "#FFFFFF",
+      "50": "#F7F9FC",
+      "100": "#EEF2F7",
+      "200": "#E2E8F0",
+      "500": "#64748B",
+      "700": "#334155",
+      "900": "#0F172A"
+    },
+    "gradient": {
+      "hero": "linear-gradient(135deg, rgba(76,201,240,.18), rgba(109,93,251,.16), rgba(31,95,191,.12))"
+    }
+  },
+  "typography": {
+    "fontFamily": "Inter, Geist, system-ui, sans-serif",
+    "display": {
+      "size": "clamp(3rem, 6vw, 4.5rem)",
+      "lineHeight": 1.02,
+      "weight": 650,
+      "letterSpacing": "-0.045em"
+    },
+    "h1": {
+      "size": "clamp(2.75rem, 5vw, 4rem)",
+      "lineHeight": 1.05,
+      "weight": 650,
+      "letterSpacing": "-0.04em"
+    },
+    "h2": {
+      "size": "clamp(2rem, 4vw, 3rem)",
+      "lineHeight": 1.1,
+      "weight": 630,
+      "letterSpacing": "-0.03em"
+    },
+    "h3": {
+      "size": "1.75rem",
+      "lineHeight": 1.2,
+      "weight": 620
+    },
+    "bodyLg": {
+      "size": "1.125rem",
+      "lineHeight": 1.65,
+      "weight": 400
+    },
+    "body": {
+      "size": "1rem",
+      "lineHeight": 1.65,
+      "weight": 400
+    },
+    "small": {
+      "size": "0.875rem",
+      "lineHeight": 1.5,
+      "weight": 450
+    },
+    "caption": {
+      "size": "0.75rem",
+      "lineHeight": 1.45,
+      "weight": 500
+    }
+  },
+  "spacing": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "20px",
+    "6": "24px",
+    "8": "32px",
+    "10": "40px",
+    "12": "48px",
+    "16": "64px",
+    "20": "80px",
+    "24": "96px",
+    "32": "128px"
+  },
+  "radius": {
+    "sm": "12px",
+    "md": "16px",
+    "lg": "20px",
+    "xl": "28px",
+    "pill": "999px"
+  },
+  "shadow": {
+    "soft": "0 18px 60px rgba(15,23,42,.08)",
+    "float": "0 28px 90px rgba(15,23,42,.12)"
+  },
+  "border": {
+    "subtle": "rgba(15,23,42,.06)",
+    "default": "rgba(15,23,42,.09)",
+    "strong": "rgba(15,23,42,.14)"
+  },
+  "motion": {
+    "instant": 80,
+    "fast": 140,
+    "standard": 240,
+    "section": 500,
+    "hero": 800,
+    "stagger": 75,
+    "easeOut": "cubic-bezier(0.2,0,0,1)",
+    "easeSection": "cubic-bezier(0.16,1,0.3,1)"
+  },
+  "layout": {
+    "maxWidth": "1240px",
+    "gutterDesktop": "32px",
+    "gutterTablet": "24px",
+    "gutterMobile": "20px",
+    "sectionDesktop": "120px",
+    "sectionMobile": "72px"
+  }
+}

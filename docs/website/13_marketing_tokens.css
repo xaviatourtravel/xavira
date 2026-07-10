@@ -1,0 +1,47 @@
+:root {
+  --marketing-brand-500: #2d73d5;
+  --marketing-brand-600: #1f5fbf;
+  --marketing-brand-700: #164a96;
+  --marketing-aurora-violet: #6d5dfb;
+  --marketing-aurora-cyan: #4cc9f0;
+  --marketing-success: #0b8f6a;
+  --marketing-ink: #0f172a;
+  --marketing-muted: #64748b;
+  --marketing-surface: #f7f9fc;
+  --marketing-border: rgba(15, 23, 42, 0.07);
+  --marketing-radius-sm: 12px;
+  --marketing-radius-md: 16px;
+  --marketing-radius-lg: 20px;
+  --marketing-radius-xl: 28px;
+  --marketing-shadow-soft: 0 18px 60px rgba(15, 23, 42, 0.08);
+  --marketing-max-width: 1240px;
+  --marketing-section-space: clamp(72px, 9vw, 120px);
+  --marketing-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --marketing-ease-section: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.marketing-container {
+  width: min(var(--marketing-max-width), calc(100% - 40px));
+  margin-inline: auto;
+}
+
+.marketing-section {
+  padding-block: var(--marketing-section-space);
+}
+
+@media (min-width: 768px) {
+  .marketing-container { width: min(var(--marketing-max-width), calc(100% - 48px)); }
+}
+
+@media (min-width: 1280px) {
+  .marketing-container { width: min(var(--marketing-max-width), calc(100% - 64px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

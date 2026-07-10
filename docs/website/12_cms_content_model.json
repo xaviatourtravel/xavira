@@ -1,0 +1,100 @@
+{
+  "siteSettings": [
+    "defaultLocale",
+    "supportedLocales",
+    "navigation",
+    "footer",
+    "socialLinks",
+    "legalLinks",
+    "announcement"
+  ],
+  "page": [
+    "slug",
+    "locale",
+    "pageType",
+    "title",
+    "sections",
+    "seo",
+    "status",
+    "publishedAt"
+  ],
+  "hero": [
+    "eyebrow",
+    "headline",
+    "subheadline",
+    "primaryCta",
+    "secondaryCta",
+    "visualKey",
+    "motionPreset"
+  ],
+  "industry": [
+    "slug",
+    "name",
+    "positioning",
+    "audiences",
+    "lifecycle",
+    "pains",
+    "modules",
+    "aiUseCases",
+    "proof",
+    "faq",
+    "complianceNotes",
+    "seo"
+  ],
+  "productModule": [
+    "slug",
+    "name",
+    "promise",
+    "description",
+    "capabilities",
+    "visualKey",
+    "industries",
+    "integrations",
+    "faq",
+    "seo"
+  ],
+  "customerStory": [
+    "slug",
+    "company",
+    "industry",
+    "summary",
+    "challenge",
+    "implementation",
+    "outcomes",
+    "quote",
+    "media",
+    "permissions",
+    "seo"
+  ],
+  "faq": [
+    "question",
+    "answer",
+    "category",
+    "industries",
+    "order"
+  ],
+  "pricing": [
+    "plan",
+    "summary",
+    "audience",
+    "priceDisplay",
+    "billingUnit",
+    "features",
+    "limits",
+    "cta",
+    "order"
+  ],
+  "resource": [
+    "slug",
+    "type",
+    "title",
+    "excerpt",
+    "body",
+    "author",
+    "industry",
+    "topic",
+    "cover",
+    "publishedAt",
+    "seo"
+  ]
+}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import {
   EMPTY_NAV_ATTENTION_BADGES,
@@ -28,6 +29,8 @@ type SidebarNavigationProps = {
   showBrand?: boolean;
   /** Icon-only mark for compact drawers / collapsed states. */
   brandVariant?: "full" | "icon";
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 const PRIMARY_WORKSPACES = WORKSPACE_NAV.filter(
@@ -51,6 +54,8 @@ export function SidebarNavigation({
   onNavigate,
   showBrand = true,
   brandVariant = "full",
+  collapsed = false,
+  onToggleCollapsed,
 }: SidebarNavigationProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -59,25 +64,59 @@ export function SidebarNavigation({
   const settingsWorkspace = WORKSPACE_NAV.find((item) => item.id === "settings");
   const activeWorkspaceId = getWorkspaceForPath(pathname);
   const { t } = useTranslation();
+  const resolvedBrandVariant = collapsed ? "icon" : brandVariant;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {showBrand ? (
-        <div className="flex shrink-0 items-center px-5 py-5">
+        <div
+          className={cn(
+            "flex shrink-0 items-center",
+            collapsed ? "justify-center px-2 py-4" : "px-5 py-5",
+          )}
+        >
           <Link
             href="/today"
             onClick={onNavigate}
             className="inline-flex min-w-0 max-w-full items-center"
           >
-            <BrandLogo variant={brandVariant} size="md" />
+            <BrandLogo variant={resolvedBrandVariant} size="md" />
           </Link>
         </div>
       ) : null}
 
+      {onToggleCollapsed ? (
+        <div className={cn("shrink-0 px-2 pb-2", collapsed ? "flex justify-center" : "")}>
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className={cn(
+              SIDEBAR_ROW_BASE,
+              "h-9 min-h-9 w-full text-muted-foreground hover:bg-muted/20 hover:text-foreground",
+              collapsed && "w-9 justify-center px-0",
+            )}
+            aria-label={collapsed ? t("navigation.expandSidebar") : t("navigation.collapseSidebar")}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className={SIDEBAR_ICON_CLASS} strokeWidth={SIDEBAR_ICON_STROKE} />
+            ) : (
+              <>
+                <PanelLeftClose className={SIDEBAR_ICON_CLASS} strokeWidth={SIDEBAR_ICON_STROKE} />
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {t("navigation.collapseSidebar")}
+                </span>
+              </>
+            )}
+          </button>
+        </div>
+      ) : null}
+
       <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-3">
-        <p className="mb-3 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {t("common.workspaces")}
-        </p>
+        {!collapsed ? (
+          <p className="mb-3 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {t("common.workspaces")}
+          </p>
+        ) : null}
 
         <div className="space-y-6">
           {visibleWorkspaces.map((workspace) => (
@@ -92,18 +131,25 @@ export function SidebarNavigation({
               }
               onNavigate={onNavigate}
               t={t}
+              collapsed={collapsed}
             />
           ))}
         </div>
       </nav>
 
       {settingsWorkspace && permissionSet.has(settingsWorkspace.permission) ? (
-        <div className="shrink-0 border-t border-border/20 px-3 py-3">
+        <div
+          className={cn(
+            "shrink-0 border-t border-border/20 px-3 py-3",
+            collapsed && "flex justify-center px-2",
+          )}
+        >
           <SidebarLink
             workspace={settingsWorkspace}
             isActive={activeWorkspaceId === "settings"}
             onNavigate={onNavigate}
             t={t}
+            collapsed={collapsed}
           />
         </div>
       ) : null}
@@ -121,6 +167,7 @@ function WorkspaceNavSection({
   badgeCount,
   onNavigate,
   t,
+  collapsed = false,
 }: {
   workspace: WorkspaceNavItem;
   pathname: string;
@@ -129,9 +176,10 @@ function WorkspaceNavSection({
   badgeCount: number;
   onNavigate?: () => void;
   t: TranslateFn;
+  collapsed?: boolean;
 }) {
   const hasChildren = workspace.items.length > 0;
-  const expanded = isActive && hasChildren;
+  const expanded = isActive && hasChildren && !collapsed;
 
   return (
     <div className="space-y-1">
@@ -141,6 +189,7 @@ function WorkspaceNavSection({
         badgeCount={badgeCount}
         onNavigate={onNavigate}
         t={t}
+        collapsed={collapsed}
       />
 
       {expanded ? (
@@ -198,12 +247,14 @@ function SidebarLink({
   badgeCount = 0,
   onNavigate,
   t,
+  collapsed = false,
 }: {
   workspace: WorkspaceNavItem;
   isActive: boolean;
   badgeCount?: number;
   onNavigate?: () => void;
   t: TranslateFn;
+  collapsed?: boolean;
 }) {
   const Icon = workspace.icon;
   const title = translateWorkspaceTitle(t, workspace.id, workspace.title);
@@ -216,10 +267,12 @@ function SidebarLink({
       className={cn(
         SIDEBAR_ROW_BASE,
         SIDEBAR_ROW_HOVER,
+        collapsed && "h-9 min-h-9 w-9 justify-center px-0",
         isActive
           ? SIDEBAR_ROW_ACTIVE
           : "text-foreground/75 hover:text-foreground",
       )}
+      aria-label={title}
     >
       <Icon
         className={cn(
@@ -228,8 +281,8 @@ function SidebarLink({
         )}
         strokeWidth={SIDEBAR_ICON_STROKE}
       />
-      <span className="min-w-0 flex-1 truncate">{title}</span>
-      {badgeCount > 0 ? (
+      {!collapsed ? <span className="min-w-0 flex-1 truncate">{title}</span> : null}
+      {!collapsed && badgeCount > 0 ? (
         <AttentionBadge count={badgeCount} active={isActive} />
       ) : null}
     </Link>

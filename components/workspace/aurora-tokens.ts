@@ -247,8 +247,27 @@ export const AURORA_SMART_REPLY_POPOVER =
 export const AURORA_SMART_REPLY_SEARCH =
   "h-10 w-full border-0 border-b border-border/15 bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground/55 focus-visible:ring-0";
 
+/** App navigation — collapsed icon rail for Communication workspace */
+export const AURORA_NAV_RAIL_COLLAPSED_WIDTH =
+  "w-[72px] min-w-[72px] max-w-[72px]";
+
+export const AURORA_NAV_RAIL_EXPANDED_WIDTH =
+  "w-[248px] min-w-[248px] max-w-[248px]";
+
+/** Inbox flow — queue and channel navigation column */
+export const AURORA_INBOX_FLOW_WIDTH =
+  "w-[220px] min-w-[220px] max-w-[220px]";
+
+export const AURORA_INBOX_FLOW_SECTION = "px-2";
+
+export const AURORA_INBOX_FLOW_SECTION_TITLE =
+  "mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/55";
+
+export const AURORA_INBOX_FLOW_ITEM =
+  "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+
 /** Conversation queue — scanning-optimized list */
-export const AURORA_QUEUE_WIDTH = "w-[300px] min-w-[300px] max-w-[300px]";
+export const AURORA_QUEUE_WIDTH = "w-[320px] min-w-[320px] max-w-[320px]";
 
 export const AURORA_QUEUE_SEARCH_CLASS =
   "h-10 w-full rounded-full border border-border/15 bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus-visible:border-border/25 focus-visible:ring-1 focus-visible:ring-ring/10";
@@ -278,7 +297,7 @@ export type AuroraContextSheetWidth = keyof typeof AURORA_CONTEXT_SHEET_WIDTH;
 
 /** Aurora context panel — permanent desktop rail */
 export const AURORA_CONTEXT_PANEL_WIDTH =
-  "w-[360px] min-w-[360px] max-w-[360px]";
+  "w-[320px] min-w-[320px] max-w-[320px]";
 
 export const AURORA_CONTEXT_CARD_CLASS =
   "rounded-2xl border border-border/15 p-5";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 
@@ -39,15 +39,30 @@ export function DashboardShellFrame({
   workspaceContext: WorkspaceSwitcherContext;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [navExpanded, setNavExpanded] = useState(false);
   const pathname = usePathname();
   const isInboxWorkspace = isInboxWorkspacePath(pathname);
   const permissions = getProfilePermissions(profile);
+  const navCollapsed = isInboxWorkspace && !navExpanded;
+
+  useEffect(() => {
+    if (isInboxWorkspace) {
+      setNavExpanded(false);
+    }
+  }, [isInboxWorkspace]);
 
   return (
     <PermissionProvider permissions={permissions}>
       <div className="flex h-dvh overflow-hidden bg-background text-foreground">
         <Suspense fallback={<SidebarFallback />}>
-          <AppSidebar permissions={permissions} attentionBadges={attentionBadges} />
+          <AppSidebar
+            permissions={permissions}
+            attentionBadges={attentionBadges}
+            collapsed={navCollapsed}
+            onToggleCollapsed={
+              isInboxWorkspace ? () => setNavExpanded((value) => !value) : undefined
+            }
+          />
         </Suspense>
 
         <MobileSidebarDrawer

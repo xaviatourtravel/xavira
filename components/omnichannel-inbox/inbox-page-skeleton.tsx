@@ -17,10 +17,21 @@ export function InboxPageSkeleton() {
 
   return (
     <div
-      className="grid h-full min-h-0 overflow-hidden bg-background transition-[grid-template-columns] duration-[180ms] ease-out lg:grid-cols-[320px_minmax(0,1fr)_400px]"
+      className="flex h-full min-h-0 overflow-hidden bg-background lg:grid lg:grid-cols-[220px_320px_minmax(0,1fr)_320px]"
       aria-busy="true"
       aria-label={ti("inboxLoading")}
     >
+      <section className="hidden min-h-0 flex-col border-r border-border/40 lg:flex">
+        <div className="space-y-2 border-b border-border/40 px-3 py-3">
+          <Block className="h-3 w-20" />
+        </div>
+        <div className="flex-1 space-y-2 px-2 py-2">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Block key={index} className="h-7 w-full rounded-lg" />
+          ))}
+        </div>
+      </section>
+
       <section className="flex min-h-0 flex-col border-r border-border/40">
         <div className="space-y-3 px-4 py-3">
           <div className="flex items-center justify-between">

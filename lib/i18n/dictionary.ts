@@ -118,6 +118,8 @@ export type Dictionary = {
     automation: string;
     insights: string;
     settings: string;
+    collapseSidebar: string;
+    expandSidebar: string;
   };
   businessBrain: {
     title: string;
@@ -392,6 +394,8 @@ const id: Dictionary = {
     automation: "Otomatisasi",
     insights: "Wawasan",
     settings: "Pengaturan",
+    collapseSidebar: "Ciutkan navigasi",
+    expandSidebar: "Perluas navigasi",
   },
   businessBrain: {
     title: "Business Brain",
@@ -543,6 +547,8 @@ const en: Dictionary = {
     automation: "Automation",
     insights: "Insights",
     settings: "Settings",
+    collapseSidebar: "Collapse navigation",
+    expandSidebar: "Expand navigation",
   },
   businessBrain: {
     title: "Business Brain",

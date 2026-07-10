@@ -6,6 +6,7 @@ import { AlertCircle, PanelRightOpen } from "lucide-react";
 
 import { InboxContextPanel } from "@/components/communication-workspace/inbox-context-panel";
 import { InboxContextSheetPanels } from "@/components/communication-workspace/inbox-context-sheet-panels";
+import { InboxFlowPanel } from "@/components/communication-workspace/inbox-flow-panel";
 import {
   useWhatsappConversationListRealtime,
   type ConversationListPatch,
@@ -18,11 +19,7 @@ import {
 import { OmnichannelConversationList } from "@/components/omnichannel-inbox/conversation-list";
 import { InboxEmptyState } from "@/components/omnichannel-inbox/inbox-empty-state";
 import { InboxConversationSearch } from "@/components/omnichannel-inbox/inbox-conversation-search";
-import {
-  buildOmnichannelFilterCounts,
-  filterConversationsBySearch,
-} from "@/components/omnichannel-inbox/inbox-display";
-import { OmnichannelInboxFilters } from "@/components/omnichannel-inbox/inbox-filters";
+import { filterConversationsBySearch } from "@/components/omnichannel-inbox/inbox-display";
 import {
   AURORA_QUEUE_WIDTH,
   AURORA_SHELL_CLASS,
@@ -138,12 +135,12 @@ function InboxContextSheetLayer({
 
 function CommunicationWorkspaceBody({
   conversations,
-  allConversations,
+  allConversations: _allConversations,
   detail,
   activeFilter,
   selectedConversationId,
   conversationNotFound = false,
-  currentUserId,
+  currentUserId: _currentUserId,
   organizationId,
   canReply,
   canSuggestReply,
@@ -171,7 +168,7 @@ function CommunicationWorkspaceBody({
   | "initialSuccess"
 >) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { ti, tStrict } = useInboxTranslation();
+  const { ti } = useInboxTranslation();
   const { openContextSheet } = useInboxWorkspaceLayout();
 
   const [liveDetail, setLiveDetail] =
@@ -197,8 +194,6 @@ function CommunicationWorkspaceBody({
     conversation: liveDetail,
     onAvatarUpdated: handleAvatarUpdated,
   });
-
-  const filterCounts = buildOmnichannelFilterCounts(allConversations, currentUserId);
 
   const [liveConversations, setLiveConversations] =
     useState<OmnichannelConversationListItem[]>(conversations);
@@ -316,6 +311,8 @@ function CommunicationWorkspaceBody({
       ) : null}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
+        <InboxFlowPanel />
+
         <section
           className={cn(
             AURORA_QUEUE_WIDTH,
@@ -326,9 +323,7 @@ function CommunicationWorkspaceBody({
           <header className="shrink-0 border-b border-border/25 px-3 py-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h1 className={AURORA_WORKSPACE_HEADER_TITLE}>
-                  {tStrict("navigation.inbox")}
-                </h1>
+                <h2 className={AURORA_WORKSPACE_HEADER_TITLE}>{ti("conversationListTitle")}</h2>
                 <WorkspaceHeaderKpi
                   tone="default"
                   ariaLive="polite"
@@ -350,14 +345,6 @@ function CommunicationWorkspaceBody({
           <div className="shrink-0 space-y-2 border-b border-border/25 px-3 py-2">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
             <InboxGlobalAiChatToggle />
-          </div>
-
-          <div className="shrink-0 px-3 pb-2.5 pt-2">
-            <OmnichannelInboxFilters
-              activeFilter={activeFilter}
-              selectedConversationId={selectedConversationId}
-              filterCounts={filterCounts}
-            />
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">

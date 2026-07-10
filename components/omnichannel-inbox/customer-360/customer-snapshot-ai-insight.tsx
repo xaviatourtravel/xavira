@@ -23,7 +23,7 @@ export function CustomerSnapshotAiInsightSection({
 }: CustomerSnapshotAiInsightProps) {
   return (
     <section aria-labelledby="customer-snapshot-ai">
-      <h5 id="customer-snapshot-ai" className={AURORA_SNAPSHOT_SUBSECTION_TITLE}>
+      <h5 id="customer-snapshot-ai" className={cn(AURORA_SNAPSHOT_SUBSECTION_TITLE, "mb-1")}>
         {labels.aiInsight}
       </h5>
       <div className={AURORA_SNAPSHOT_AI_CARD}>
@@ -35,7 +35,7 @@ export function CustomerSnapshotAiInsightSection({
             </li>
           ))}
         </ul>
-        <button type="button" className={cn(AURORA_SNAPSHOT_LINK_BUTTON, "mt-2")}>
+        <button type="button" className={cn(AURORA_SNAPSHOT_LINK_BUTTON, "mt-1.5")}>
           <Sparkles className="h-3 w-3" aria-hidden />
           {labels.openCopilot}
           <ArrowRight className="h-3 w-3" aria-hidden />

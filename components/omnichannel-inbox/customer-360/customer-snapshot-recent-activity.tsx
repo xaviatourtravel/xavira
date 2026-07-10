@@ -28,7 +28,7 @@ export function CustomerSnapshotRecentActivity({
       <h5 id="customer-snapshot-activity" className={AURORA_SNAPSHOT_SUBSECTION_TITLE}>
         {labels.recentActivity}
       </h5>
-      <ol className="mt-2 space-y-0 p-0">
+      <ol className="mt-1.5 space-y-0 p-0">
         {events.map((event) => (
           <li key={event.id} className={AURORA_SNAPSHOT_ACTIVITY_ROW}>
             <p className={AURORA_SNAPSHOT_ACTIVITY_TITLE}>{event.title}</p>
@@ -40,7 +40,7 @@ export function CustomerSnapshotRecentActivity({
           </li>
         ))}
       </ol>
-      <button type="button" className={cn(AURORA_SNAPSHOT_LINK_BUTTON, "mt-2")}>
+      <button type="button" className={cn(AURORA_SNAPSHOT_LINK_BUTTON, "mt-1.5")}>
         {labels.viewFullTimeline}
         <ArrowRight className="h-3 w-3" aria-hidden />
       </button>

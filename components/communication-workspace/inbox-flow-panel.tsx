@@ -81,7 +81,7 @@ export function InboxFlowPanel({
         </h2>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1.5">
         <section className={AURORA_INBOX_FLOW_SECTION}>
           <div className="space-y-0.5">
             <FlowPlaceholderItem
@@ -111,7 +111,12 @@ export function InboxFlowPanel({
           </div>
         </section>
 
-        <section className={cn(AURORA_INBOX_FLOW_SECTION, "mt-4")}>
+        <section
+          className={cn(
+            AURORA_INBOX_FLOW_SECTION,
+            "mt-3 border-t border-border/15 pt-2.5",
+          )}
+        >
           <h3 className={AURORA_INBOX_FLOW_SECTION_TITLE}>{ti("inboxFlowChannels")}</h3>
           <div className="space-y-0.5">
             <FlowPlaceholderItem

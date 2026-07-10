@@ -86,7 +86,7 @@ export function CustomerSnapshot({ conversation, className }: CustomerSnapshotPr
         </h3>
       </div>
 
-      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "p-4 pt-3")}>
+      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "p-3 pt-2.5")}>
         <CustomerSnapshotHeaderSection header={snapshot.header} labels={labels} />
 
         <div className={AURORA_SNAPSHOT_DIVIDER} />

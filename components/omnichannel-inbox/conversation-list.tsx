@@ -102,7 +102,7 @@ export function OmnichannelConversationList({
 
   return (
     <div
-      className="flex flex-col gap-0.5 px-2 py-1.5"
+      className="flex flex-col gap-0 px-2 py-1"
       role="list"
       aria-label={ti("conversationQueueAriaLabel")}
     >

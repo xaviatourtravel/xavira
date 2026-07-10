@@ -28,7 +28,7 @@ export function CustomerSnapshotJourney({ stages, labels }: CustomerSnapshotJour
       <h5 id="customer-snapshot-journey" className={AURORA_SNAPSHOT_SUBSECTION_TITLE}>
         {labels.journey}
       </h5>
-      <ol className="mt-2 space-y-0 p-0">
+      <ol className="mt-1.5 space-y-0 p-0">
         {stages.map((stage) => (
           <li key={stage.id} className={AURORA_SNAPSHOT_JOURNEY_STEP}>
             <span

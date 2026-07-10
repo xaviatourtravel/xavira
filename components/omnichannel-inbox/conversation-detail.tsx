@@ -63,6 +63,10 @@ import type { OmnichannelConversationDetail } from "@/lib/omnichannel-inbox/quer
 import type { OmnichannelChannel } from "@/types/omnichannel-inbox";
 import type { MessageRow } from "@/types/omnichannel-inbox";
 import { cn } from "@/lib/utils";
+import {
+  AURORA_CONVERSATION_HEADER_HEIGHT,
+  AURORA_CONVERSATION_HEADER_META,
+} from "@/components/workspace/aurora-tokens";
 import { getConversationLaneClassName } from "@/lib/communication-workspace/conversation-lane";
 import { useInboxWorkspaceLayout } from "@/modules/inbox/context/inbox-workspace-layout-context";
 import { logInboxError } from "@/modules/inbox/lib/resolve-inbox-error";
@@ -124,7 +128,7 @@ function ConversationHeaderMeta({
   lastMessageAt: string | null;
 }) {
   return (
-    <p className="mt-1 truncate text-[11px] leading-none text-muted-foreground/65">
+    <p className={AURORA_CONVERSATION_HEADER_META}>
       {channelLabel}
       <span aria-hidden> · </span>
       {statusLabel ? (
@@ -528,11 +532,11 @@ export function OmnichannelConversationDetailPanel({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <header className="shrink-0 border-b border-border/20 bg-background">
+      <header className="shrink-0 border-b border-border/15 bg-background">
         <div
           className={getConversationLaneClassName(
             inspectorOpen,
-            "flex h-16 items-center gap-3",
+            cn("flex items-center gap-2.5", AURORA_CONVERSATION_HEADER_HEIGHT),
           )}
         >
           {showBackButton ? (
@@ -564,7 +568,7 @@ export function OmnichannelConversationDetailPanel({
             }
           />
 
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-px">
             <h2
               className="truncate text-[15px] font-semibold leading-none tracking-tight text-foreground"
               title={displayName}

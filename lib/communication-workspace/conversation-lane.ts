@@ -26,7 +26,7 @@ export function getConversationLaneClassName(
 
 /** Centered message lane — the only reading area for conversation bubbles */
 export const AURORA_MESSAGE_LANE_CLASS =
-  "mx-auto w-full max-w-[740px] min-w-0 px-4 sm:px-5";
+  "mx-auto w-full max-w-[710px] min-w-0 px-4 sm:px-5";
 
 /** Bubble width cap relative to the message lane */
 export const MESSAGE_BUBBLE_WIDTH_CLASS = cn(

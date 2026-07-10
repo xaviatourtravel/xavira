@@ -70,7 +70,7 @@ export function InboxPageSkeleton() {
             <Block className="h-2.5 w-28" />
           </div>
         </div>
-        <div className="mx-auto w-full max-w-[740px] flex-1 space-y-5 px-4 py-6 sm:px-5">
+        <div className="mx-auto w-full max-w-[710px] flex-1 space-y-5 px-4 py-6 sm:px-5">
           <div className="flex items-end gap-2">
             <Block className={cn(AURORA_MESSAGE_AVATAR_SIZE, "rounded-full")} />
             <div className="space-y-1.5">
@@ -93,7 +93,7 @@ export function InboxPageSkeleton() {
           </div>
         </div>
         <div className="border-t border-border/40 px-4 py-3">
-          <Block className="mx-auto h-14 max-w-[740px] rounded-2xl" />
+          <Block className="mx-auto h-[50px] max-w-[710px] rounded-2xl" />
         </div>
       </section>
 

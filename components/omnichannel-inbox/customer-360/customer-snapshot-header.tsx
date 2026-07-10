@@ -44,7 +44,7 @@ export function CustomerSnapshotHeaderSection({
           {header.statusLabel}
         </p>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className={AURORA_SNAPSHOT_LEAD_BADGE}>
             {header.leadBadge.label}
             <span aria-hidden> · </span>

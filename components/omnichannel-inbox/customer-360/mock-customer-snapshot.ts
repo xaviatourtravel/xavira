@@ -12,7 +12,7 @@ import type {
   CustomerSnapshotLabels,
 } from "./types";
 
-const RECENT_ACTIVITY_LIMIT = 5;
+const RECENT_ACTIVITY_LIMIT = 4;
 const AI_INSIGHT_BULLET_LIMIT = 3;
 
 function formatJoinedDate(isoDate: string): string {

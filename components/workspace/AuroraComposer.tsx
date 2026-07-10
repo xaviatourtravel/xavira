@@ -85,7 +85,7 @@ export function AuroraComposer({
 
   return (
     <div
-      className={cn("relative bg-background px-0 pb-3 pt-0", className)}
+      className={cn("relative bg-background px-0 pb-2 pt-0", className)}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -299,7 +299,7 @@ export function AuroraComposerInput({
 }: AuroraComposerInputProps) {
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-1 items-center py-1"
+      className="flex min-h-0 min-w-0 flex-1 items-center py-0.5"
       style={{ maxHeight: maxHeight + 8 }}
     >
       <textarea

@@ -4,10 +4,7 @@ import Link from "next/link";
 
 import { CustomerAvatar } from "@/components/omnichannel-inbox/customer-avatar";
 import { ClientOnlyRelativeTime } from "@/components/omnichannel-inbox/client-only-relative-time";
-import {
-  getConversationDisplayName,
-  getInboxChannelShortLabel,
-} from "@/components/omnichannel-inbox/inbox-display";
+import { getConversationDisplayName } from "@/components/omnichannel-inbox/inbox-display";
 import {
   AURORA_QUEUE_ITEM_BASE,
   AURORA_QUEUE_ITEM_HOVER,
@@ -15,7 +12,6 @@ import {
 } from "@/components/workspace/aurora-tokens";
 import type { OmnichannelConversationListItem } from "@/lib/omnichannel-inbox/queries";
 import type { OmnichannelInboxFilter } from "@/lib/omnichannel-inbox/queries";
-import { resolveWhatsappAiState } from "@/lib/whatsapp-inbox/ai/constants";
 import { useInboxTranslation } from "@/modules/inbox/hooks/use-inbox-translation";
 import { cn } from "@/lib/utils";
 
@@ -31,27 +27,6 @@ function buildConversationHref(
   return `/inbox?${params.toString()}`;
 }
 
-function getQueueTopicLine(
-  conversation: OmnichannelConversationListItem,
-  activeFilter: OmnichannelInboxFilter,
-  readyForHumanLabel: string,
-) {
-  const channelLabel = getInboxChannelShortLabel(conversation.channel);
-  const isReadyForHuman =
-    conversation.channel === "whatsapp" &&
-    resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN";
-
-  const parts = [channelLabel];
-
-  if (isReadyForHuman && activeFilter !== "ready_for_human") {
-    parts.push(readyForHumanLabel);
-  } else if (conversation.status === "following_up") {
-    parts.push(conversation.statusLabel);
-  }
-
-  return parts.join(" · ");
-}
-
 export type ConversationQueueItemProps = {
   conversation: OmnichannelConversationListItem;
   isSelected: boolean;
@@ -59,7 +34,7 @@ export type ConversationQueueItemProps = {
 };
 
 /**
- * Aurora Conversation Queue row — who, priority, topic, preview, time at a glance.
+ * Aurora Conversation Queue row — avatar, name, preview, time, unread at a glance.
  */
 export function ConversationQueueItem({
   conversation,
@@ -69,15 +44,6 @@ export function ConversationQueueItem({
   const { ti } = useInboxTranslation();
   const isUnread = conversation.unreadCount > 0;
   const displayName = getConversationDisplayName(conversation);
-  const topicLine = getQueueTopicLine(
-    conversation,
-    activeFilter,
-    ti("filterReadyForHuman"),
-  );
-  const isReadyForHuman =
-    conversation.channel === "whatsapp" &&
-    resolveWhatsappAiState(conversation.aiState) === "READY_FOR_HUMAN";
-  const hasPriority = isUnread || isReadyForHuman;
 
   return (
     <Link
@@ -91,12 +57,12 @@ export function ConversationQueueItem({
           "before:absolute before:bottom-2 before:left-0 before:top-2 before:w-px before:rounded-full before:bg-primary/70",
       )}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <CustomerAvatar
           displayName={displayName}
           avatarUrl={conversation.customerAvatar}
           size="md"
-          className="h-10 w-10 shrink-0"
+          className="h-9 w-9 shrink-0"
           channel={
             conversation.channel === "whatsapp"
               ? "whatsapp"
@@ -111,10 +77,7 @@ export function ConversationQueueItem({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-baseline justify-between gap-2">
             <p
-              className={cn(
-                "min-w-0 truncate text-[13px] leading-tight",
-                isUnread ? "font-semibold text-foreground" : "font-semibold text-foreground/90",
-              )}
+              className="min-w-0 truncate text-[13px] font-semibold leading-tight text-foreground"
               title={displayName}
             >
               {displayName}
@@ -122,7 +85,7 @@ export function ConversationQueueItem({
 
             <ClientOnlyRelativeTime
               date={conversation.lastMessageAt}
-              className="shrink-0 text-[10px] leading-none tabular-nums text-muted-foreground/50"
+              className="shrink-0 text-[10px] leading-none tabular-nums text-muted-foreground/55"
             />
           </div>
 
@@ -158,17 +121,6 @@ export function ConversationQueueItem({
               </span>
             ) : null}
           </div>
-
-          <p
-            className={cn(
-              "mt-0.5 truncate text-[10px] leading-snug",
-              hasPriority && isReadyForHuman
-                ? "font-medium text-amber-700/80 dark:text-amber-400/80"
-                : "text-muted-foreground/45",
-            )}
-          >
-            {topicLine}
-          </p>
         </div>
       </div>
     </Link>

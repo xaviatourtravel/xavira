@@ -85,7 +85,7 @@ export function AuroraComposer({
 
   return (
     <div
-      className={cn("relative bg-background px-0 pb-2 pt-0", className)}
+      className={cn("relative bg-background px-0 pb-4 pt-0", className)}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}

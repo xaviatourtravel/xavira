@@ -7,15 +7,13 @@ export const marketingSpacing = {
   /** Section vertical padding — uses CSS clamp rhythm */
   section: {
     className: "marketing-section",
-    /** @deprecated Use section.className — kept for backward compatibility */
-    mobile: "marketing-section",
-    tablet: "",
-    desktop: "",
+    large: "marketing-section-lg",
+    compact: "marketing-section-compact",
     combined: "marketing-section",
   },
-  /** Hero vertical padding (slightly tighter top) */
+  /** Hero section shell */
   hero: {
-    combined: "pb-16 pt-14 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-20",
+    className: "marketing-hero-section",
   },
   /** Horizontal page container padding — handled by .marketing-container */
   container: {
@@ -28,6 +26,7 @@ export const marketingSpacing = {
   maxWidth: {
     page: "marketing-container",
     prose: "marketing-prose",
+    proseNarrow: "marketing-prose-narrow",
     narrow: "max-w-2xl",
   },
   /** Grid and stack gaps */

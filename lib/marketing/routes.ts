@@ -6,7 +6,21 @@ export const marketingRoutes = {
   platform: "/platform",
   solutions: "/solutions",
   login: "/login",
+  register: "/daftar",
   contactEmail: "hello@desklabs.id",
-  /** Landing page anchor for platform overview section */
-  platformSection: "#platform",
 } as const;
+
+/** Homepage section anchors — always use absolute paths for cross-route navigation */
+export const marketingHomeAnchors = {
+  industries: "/#industries",
+  platform: "/#platform",
+  aurora: "/#aurora",
+  pricing: "/#pricing",
+  faq: "/#faq",
+} as const;
+
+export type MarketingHomeAnchor = keyof typeof marketingHomeAnchors;
+
+export function marketingHomeAnchor(section: MarketingHomeAnchor): string {
+  return marketingHomeAnchors[section];
+}

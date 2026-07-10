@@ -1,30 +1,36 @@
+import { AuroraAiSection } from "@/components/marketing/aurora/AuroraAiSection";
 import { MarketingPageShell } from "@/components/marketing/design-system";
-import { MarketingCapabilitiesSection } from "@/components/marketing/marketing-solution-section";
-import { MarketingComparisonSection } from "@/components/marketing/marketing-comparison-section";
-import { MarketingCtaSection } from "@/components/marketing/marketing-cta-section";
+import { MarketingFaqSection } from "@/components/marketing/faq/MarketingFaqSection";
+import { HomeHeroSection } from "@/components/marketing/hero/HomeHeroSection";
+import { HomeIndustriesSection } from "@/components/marketing/industries/HomeIndustriesSection";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
-import { MarketingHeroSection } from "@/components/marketing/marketing-hero-section";
-import { MarketingIndustriesSection } from "@/components/marketing/marketing-industries-section";
-import { MarketingJourneySection } from "@/components/marketing/marketing-journey-section";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
-import { MarketingProblemSection } from "@/components/marketing/marketing-problem-section";
-import { MarketingSolutionSection } from "@/components/marketing/marketing-solution-section";
-import { MarketingTrustSection } from "@/components/marketing/marketing-trust-section";
+import { HomePlatformCoreSection } from "@/components/marketing/platform/HomePlatformCoreSection";
+import { HomePricingSection } from "@/components/marketing/pricing/HomePricingSection";
+import { HomeProblemsSection } from "@/components/marketing/problems/HomeProblemsSection";
+import { HomeProductModulesSection } from "@/components/marketing/product-modules/HomeProductModulesSection";
+import { HomeProofSection } from "@/components/marketing/proof/HomeProofSection";
+import { FinalCtaSection } from "@/components/marketing/shared/FinalCtaSection";
+import { TrustRelevanceStrip } from "@/components/marketing/trust/TrustRelevanceStrip";
+import { HomeWorkflowSection } from "@/components/marketing/workflow/HomeWorkflowSection";
 
 export function LandingPage() {
   return (
     <MarketingPageShell>
       <MarketingNavbar />
       <main>
-        <MarketingHeroSection />
-        <MarketingProblemSection />
-        <MarketingSolutionSection />
-        <MarketingCapabilitiesSection />
-        <MarketingIndustriesSection />
-        <MarketingJourneySection />
-        <MarketingComparisonSection />
-        <MarketingTrustSection />
-        <MarketingCtaSection />
+        <HomeHeroSection />
+        <TrustRelevanceStrip />
+        <HomeIndustriesSection />
+        <HomeProblemsSection />
+        <HomePlatformCoreSection />
+        <HomeProductModulesSection />
+        <AuroraAiSection />
+        <HomeWorkflowSection />
+        <HomeProofSection />
+        <HomePricingSection />
+        <MarketingFaqSection />
+        <FinalCtaSection />
       </main>
       <MarketingFooter />
     </MarketingPageShell>

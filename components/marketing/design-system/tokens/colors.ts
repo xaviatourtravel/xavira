@@ -85,4 +85,14 @@ export const marketingColorClasses = {
   borderAccent: "ring-1 ring-[var(--marketing-border-accent)]",
   focusRing:
     "marketing-focus-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)] focus-visible:ring-offset-2",
+  link: "marketing-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--marketing-brand-500)] focus-visible:ring-offset-2",
+  sceneFrame: "marketing-scene-frame",
+  scenePanel: "marketing-scene-panel",
+  sceneCanvas: "marketing-scene-canvas",
+  solutionCallout: "marketing-solution-callout",
+  statusAvailable: "marketing-status-available",
+  trustStrip: "marketing-trust-strip",
+  finalCta: "marketing-final-cta",
+  faqShell: "marketing-faq-shell",
+  darkBandGlow: "marketing-dark-band-glow",
 } as const;

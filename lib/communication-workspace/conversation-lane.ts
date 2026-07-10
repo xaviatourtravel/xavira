@@ -41,7 +41,7 @@ export function getMessageLaneClassName(className?: string) {
 /** @deprecated Prefer MESSAGE_BUBBLE_WIDTH_CLASS — kept for callers using inline styles */
 export function getBubbleStyle() {
   return {
-    maxWidth: "68%",
+    maxWidth: "70%",
     minWidth: "3.5rem",
     wordBreak: "normal",
     overflowWrap: "break-word",

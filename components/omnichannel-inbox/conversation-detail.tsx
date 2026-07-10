@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 import {
   AURORA_CONVERSATION_HEADER_CHANNEL,
   AURORA_CONVERSATION_HEADER_HEIGHT,
+  AURORA_CONVERSATION_HEADER_NAME,
   AURORA_CONVERSATION_HEADER_SECONDARY_META,
 } from "@/components/workspace/aurora-tokens";
 import { getConversationLaneClassName } from "@/lib/communication-workspace/conversation-lane";
@@ -129,7 +130,7 @@ function ConversationHeaderMeta({
   lastMessageAt: string | null;
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-1">
       <p className={AURORA_CONVERSATION_HEADER_CHANNEL}>{channelLabel}</p>
       <p className={AURORA_CONVERSATION_HEADER_SECONDARY_META}>
         {statusLabel ? (
@@ -538,7 +539,7 @@ export function OmnichannelConversationDetailPanel({
         <div
           className={getConversationLaneClassName(
             inspectorOpen,
-            cn("flex items-center gap-2.5", AURORA_CONVERSATION_HEADER_HEIGHT),
+            cn("flex items-center gap-3", AURORA_CONVERSATION_HEADER_HEIGHT),
           )}
         >
           {showBackButton ? (
@@ -558,7 +559,7 @@ export function OmnichannelConversationDetailPanel({
             displayName={displayName}
             avatarUrl={conversation.customerAvatar}
             size="sm"
-            className="h-9 w-9 shrink-0"
+            className="h-10 w-10 shrink-0"
             channel={
               conversation.channel === "whatsapp"
                 ? "whatsapp"
@@ -572,7 +573,7 @@ export function OmnichannelConversationDetailPanel({
 
           <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
             <h2
-              className="truncate text-[15px] font-semibold leading-none tracking-tight text-foreground"
+              className={AURORA_CONVERSATION_HEADER_NAME}
               title={displayName}
             >
               {displayName}

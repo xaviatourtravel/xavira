@@ -21,7 +21,7 @@ export function InboxPageSkeleton() {
       aria-busy="true"
       aria-label={ti("inboxLoading")}
     >
-      <section className="hidden min-h-0 flex-col border-r border-border/40 lg:flex">
+      <section className="hidden min-h-0 flex-col border-r border-border/15 lg:flex">
         <div className="space-y-2 border-b border-border/40 px-3 py-3">
           <Block className="h-3 w-20" />
         </div>
@@ -32,7 +32,7 @@ export function InboxPageSkeleton() {
         </div>
       </section>
 
-      <section className="flex min-h-0 flex-col border-r border-border/40">
+      <section className="flex min-h-0 flex-col border-r border-border/15">
         <div className="space-y-3 px-4 py-3">
           <div className="flex items-center justify-between">
             <Block className="h-4 w-28" />
@@ -92,12 +92,12 @@ export function InboxPageSkeleton() {
             </div>
           </div>
         </div>
-        <div className="border-t border-border/40 px-4 py-3">
-          <Block className="mx-auto h-[50px] max-w-[710px] rounded-2xl" />
+        <div className="border-t border-border/15 px-4 py-4">
+          <Block className="mx-auto h-11 max-w-[710px] rounded-xl" />
         </div>
       </section>
 
-      <section className="hidden min-h-0 flex-col border-l border-border/40 lg:flex">
+      <section className="hidden min-h-0 flex-col border-l border-border/15 lg:flex">
         <div className="space-y-4 border-b border-border/40 p-5">
           <div className="flex items-center gap-3">
             <Block className="h-10 w-10 rounded-full" />

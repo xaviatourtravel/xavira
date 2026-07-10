@@ -21,7 +21,7 @@ type SectionTone = "default" | "muted" | "dark";
 const toneClass: Record<SectionTone, string> = {
   default: marketingColorClasses.bgPage,
   muted: marketingColorClasses.bgMuted,
-  dark: marketingColorClasses.bgDark,
+  dark: "marketing-dark-band",
 };
 
 export function MarketingContainer({
@@ -40,7 +40,15 @@ export type MarketingSectionProps = {
   className?: string;
   containerClassName?: string;
   tone?: SectionTone;
+  rhythm?: "default" | "large" | "compact" | "none";
 };
+
+const rhythmClass = {
+  default: marketingSpacing.section.combined,
+  large: marketingSpacing.section.large,
+  compact: marketingSpacing.section.compact,
+  none: "",
+} as const;
 
 export function MarketingSection({
   id,
@@ -48,13 +56,14 @@ export function MarketingSection({
   className,
   containerClassName,
   tone = "default",
+  rhythm = "default",
 }: MarketingSectionProps) {
   return (
     <section
       id={id}
       className={cn(
         marketingSpacing.scrollMargin,
-        marketingSpacing.section.combined,
+        rhythmClass[rhythm],
         toneClass[tone],
         className,
       )}
@@ -126,7 +135,7 @@ export function MarketingHeroSection({
       className={cn(
         "relative overflow-hidden",
         marketingColorClasses.bgPage,
-        marketingSpacing.hero.combined,
+        marketingSpacing.hero.className,
         className,
       )}
     >

@@ -316,11 +316,11 @@ function CommunicationWorkspaceBody({
         <section
           className={cn(
             AURORA_QUEUE_WIDTH,
-            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-border/25 bg-background",
+            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-border/15 bg-background",
             showMobileThread ? "hidden lg:flex" : "flex",
           )}
         >
-          <header className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "px-3 py-2")}>
+          <header className={AURORA_WORKSPACE_COLUMN_HEADER}>
             <div className="flex w-full items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h2 className={AURORA_WORKSPACE_HEADER_TITLE}>{ti("conversationListTitle")}</h2>
@@ -342,7 +342,7 @@ function CommunicationWorkspaceBody({
             </div>
           </header>
 
-          <div className="shrink-0 border-b border-border/25 px-3 py-2">
+          <div className="shrink-0 border-b border-border/15 px-4 py-4">
             <InboxConversationSearch value={searchQuery} onChange={setSearchQuery} />
           </div>
 

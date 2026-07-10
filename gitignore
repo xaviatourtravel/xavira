@@ -69,3 +69,7 @@ storage/
 # Keep documentation clean
 docs/**/*.exe
 docs/**/*.msi
+
+# Website Bible exports
+docs/website/exports/
+docs/website/*.zip

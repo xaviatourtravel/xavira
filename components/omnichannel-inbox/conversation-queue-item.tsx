@@ -33,9 +33,6 @@ export type ConversationQueueItemProps = {
   activeFilter: OmnichannelInboxFilter;
 };
 
-/**
- * Aurora Conversation Queue row — name, preview, time, subtle channel badge, unread.
- */
 export function ConversationQueueItem({
   conversation,
   isSelected,
@@ -54,7 +51,7 @@ export function ConversationQueueItem({
         AURORA_QUEUE_ITEM_HOVER,
         isSelected && AURORA_QUEUE_ITEM_SELECTED,
         isSelected &&
-          "before:absolute before:bottom-2.5 before:left-0 before:top-2.5 before:w-0.5 before:rounded-full before:bg-primary/45",
+          "before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-primary/40",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -62,7 +59,7 @@ export function ConversationQueueItem({
           displayName={displayName}
           avatarUrl={conversation.customerAvatar}
           size="md"
-          className="h-9 w-9 shrink-0 opacity-95"
+          className="h-10 w-10 shrink-0"
           channel={
             conversation.channel === "whatsapp"
               ? "whatsapp"
@@ -77,7 +74,7 @@ export function ConversationQueueItem({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-baseline justify-between gap-2">
             <p
-              className="min-w-0 truncate text-[13px] font-semibold leading-tight text-foreground"
+              className="min-w-0 truncate text-[15px] font-semibold leading-none text-foreground"
               title={displayName}
             >
               {displayName}
@@ -85,14 +82,14 @@ export function ConversationQueueItem({
 
             <ClientOnlyRelativeTime
               date={conversation.lastMessageAt}
-              className="shrink-0 text-xs leading-none tabular-nums text-muted-foreground/50"
+              className="shrink-0 text-[11px] leading-none tabular-nums text-muted-foreground/50"
             />
           </div>
 
           <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
             <p
               className={cn(
-                "min-w-0 flex-1 truncate text-xs leading-snug",
+                "min-w-0 flex-1 truncate text-[13px] leading-5",
                 isUnread ? "text-muted-foreground/70" : "text-muted-foreground/55",
               )}
               title={conversation.lastMessagePreview ?? undefined}
@@ -102,10 +99,10 @@ export function ConversationQueueItem({
             {isUnread ? (
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center justify-center rounded-full bg-primary/80 font-medium leading-none text-primary-foreground",
+                  "inline-flex shrink-0 items-center justify-center rounded-full bg-primary/75 font-medium leading-none text-primary-foreground",
                   conversation.unreadCount > 1
-                    ? "h-3.5 min-w-3.5 px-0.5 text-[8px]"
-                    : "h-1 w-1",
+                    ? "h-4 min-w-4 px-1 text-[9px]"
+                    : "h-1.5 w-1.5",
                 )}
                 aria-label={
                   conversation.unreadCount > 1

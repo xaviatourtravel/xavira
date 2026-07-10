@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { LandingPage } from "@/components/marketing/landing-page";
 import { siteConfig } from "@/config/site";
 
-const title = "Desklabs | Kelola seluruh perjalanan customer dalam satu platform";
+const title = "Desklabs — Customer Operations Platform for Service Businesses";
 const description =
-  "Kelola seluruh perjalanan customer dalam satu platform yang didukung AI.";
+  "Satukan komunikasi, CRM, operasional, keuangan, automasi, dan AI dalam satu workspace untuk bisnis berbasis layanan.";
 
 export const metadata: Metadata = {
   title,

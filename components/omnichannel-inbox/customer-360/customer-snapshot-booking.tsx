@@ -28,7 +28,7 @@ export function CustomerSnapshotBooking({ booking, labels }: CustomerSnapshotBoo
       <h5 id="customer-snapshot-booking" className={AURORA_SNAPSHOT_SUBSECTION_TITLE}>
         {labels.bookingSummary}
       </h5>
-      <dl className="mt-2 space-y-3">
+      <dl className="mt-2 space-y-4">
         {rows.map((row) => (
           <div key={row.label} className={AURORA_SNAPSHOT_ROW}>
             <dt className={AURORA_SNAPSHOT_ROW_LABEL}>{row.label}</dt>

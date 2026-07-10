@@ -41,7 +41,7 @@ export function InboxContextPanel({
     <aside
       className={cn(
         AURORA_CONTEXT_PANEL_WIDTH,
-        "hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-l border-border/20 bg-background lg:flex",
+        "hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-l border-border/15 bg-background lg:flex",
         className,
       )}
     >

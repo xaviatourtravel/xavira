@@ -24,13 +24,13 @@ export const AURORA_HEADER_CLASS =
   "shrink-0 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80";
 
 /** Compact workspace header rhythm — shared across all modules */
-export const AURORA_WORKSPACE_HEADER_PADDING = "px-4 py-2 md:px-5 md:py-2.5";
+export const AURORA_WORKSPACE_HEADER_PADDING = "px-4 py-2";
 
 export const AURORA_WORKSPACE_HEADER_TITLE =
-  "truncate text-lg font-semibold tracking-tight text-foreground md:text-xl";
+  "truncate text-xl font-semibold leading-none tracking-tight text-foreground";
 
 export const AURORA_WORKSPACE_HEADER_KPI =
-  "mt-0.5 truncate text-xs leading-snug tabular-nums";
+  "mt-1 truncate text-xs leading-5 tabular-nums text-muted-foreground/60";
 
 export const AURORA_WORKSPACE_HEADER_SEARCH_MAX = "max-w-[280px]";
 
@@ -47,11 +47,11 @@ export const AURORA_READING_LANE_CLASS =
 export const AURORA_BUBBLE_RADIUS = "rounded-[20px]";
 
 /** Aurora message bubble system — CRM conversation presentation */
-export const AURORA_MESSAGE_BUBBLE_RADIUS = "rounded-[18px]";
+export const AURORA_MESSAGE_BUBBLE_RADIUS = "rounded-[20px]";
 
-export const AURORA_MESSAGE_BUBBLE_PADDING = "px-4 py-2";
+export const AURORA_MESSAGE_BUBBLE_PADDING = "px-5 py-2";
 
-export const AURORA_MESSAGE_BUBBLE_MAX_WIDTH = "max-w-[68%]";
+export const AURORA_MESSAGE_BUBBLE_MAX_WIDTH = "max-w-[70%]";
 
 export const AURORA_MESSAGE_BUBBLE_INCOMING =
   "bg-muted/35 text-foreground border border-border/10 shadow-none";
@@ -60,7 +60,7 @@ export const AURORA_MESSAGE_BUBBLE_OUTGOING =
   "bg-primary text-primary-foreground shadow-none";
 
 export const AURORA_MESSAGE_BUBBLE_TEXT =
-  "whitespace-pre-wrap text-sm leading-[1.45]";
+  "whitespace-pre-wrap text-sm leading-6";
 
 export const AURORA_MESSAGE_BUBBLE_TEXT_LINK_INCOMING =
   "[&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_a]:underline-offset-2";
@@ -74,28 +74,28 @@ export const AURORA_MESSAGE_BUBBLE_ENTER =
   "animate-in fade-in slide-in-from-bottom-1 duration-[140ms] ease-out motion-reduce:animate-none";
 
 export const AURORA_MESSAGE_BUBBLE_TIMESTAMP =
-  "text-[11px] leading-none tabular-nums opacity-55";
+  "text-[11px] leading-none tabular-nums opacity-50";
 
 export const AURORA_MESSAGE_BUBBLE_DELIVERY =
-  "text-[11px] font-normal leading-none opacity-55";
+  "text-[11px] font-normal leading-none opacity-50";
 
 export const AURORA_MESSAGE_BUBBLE_ATTACHMENT =
   "mt-1.5 overflow-hidden rounded-xl border border-border/10 bg-muted/15 px-3 py-2";
 
 export const AURORA_MESSAGE_GROUP_GAP = "mt-1";
 
-export const AURORA_MESSAGE_SENDER_GAP = "mt-[18px]";
+export const AURORA_MESSAGE_SENDER_GAP = "mt-4";
 
-export const AURORA_MESSAGE_AVATAR_SIZE = "h-7 w-7";
+export const AURORA_MESSAGE_AVATAR_SIZE = "h-8 w-8";
 
 export const AURORA_MESSAGE_DATE_SEPARATOR =
-  "flex w-full justify-center py-6 first:pt-0";
+  "flex w-full justify-center py-4 first:pt-0";
 
 export const AURORA_MESSAGE_DATE_SEPARATOR_LABEL =
-  "text-xs text-muted-foreground/50";
+  "rounded-full bg-muted/20 px-3 py-1 text-xs leading-5 text-muted-foreground/55";
 
-/** Aurora conversation header — compact identity bar */
-export const AURORA_CONVERSATION_HEADER_HEIGHT = "h-14";
+/** Aurora conversation header — 16px vertical rhythm */
+export const AURORA_CONVERSATION_HEADER_HEIGHT = "py-4";
 
 export const AURORA_CONVERSATION_HEADER_BORDER = "border-b border-border/15";
 
@@ -112,10 +112,10 @@ export const AURORA_CONVERSATION_HEADER_NAME =
   "truncate text-[15px] font-semibold leading-none tracking-tight text-foreground";
 
 export const AURORA_CONVERSATION_HEADER_CHANNEL =
-  "truncate text-xs leading-none text-muted-foreground/70";
+  "truncate text-xs leading-5 text-muted-foreground/70";
 
 export const AURORA_CONVERSATION_HEADER_SECONDARY_META =
-  "truncate text-xs leading-none text-muted-foreground/55";
+  "truncate text-xs leading-5 text-muted-foreground/55";
 
 /** @deprecated Prefer AURORA_CONVERSATION_HEADER_CHANNEL + SECONDARY_META stacked layout */
 export const AURORA_CONVERSATION_HEADER_META =
@@ -192,19 +192,19 @@ export const AURORA_STATE_UNREAD_SEPARATOR_LINE =
 export const AURORA_STATE_UNREAD_SEPARATOR_LABEL =
   "shrink-0 text-xs uppercase tracking-wide text-primary/55 dark:text-primary/45";
 
-/** Aurora conversation composer 2.0 */
-export const AURORA_COMPOSER_HEIGHT = "h-[50px]";
+/** Aurora conversation composer — 44px bar, 14px input */
+export const AURORA_COMPOSER_HEIGHT = "h-11";
 
-export const AURORA_COMPOSER_MIN_HEIGHT = "min-h-[50px]";
+export const AURORA_COMPOSER_MIN_HEIGHT = "min-h-11";
 
-export const AURORA_COMPOSER_RADIUS = "rounded-2xl";
+export const AURORA_COMPOSER_RADIUS = "rounded-xl";
 
-export const AURORA_COMPOSER_PADDING = "px-2.5";
+export const AURORA_COMPOSER_PADDING = "px-3";
 
-export const AURORA_COMPOSER_GAP = "gap-1.5";
+export const AURORA_COMPOSER_GAP = "gap-2";
 
 export const AURORA_COMPOSER_SURFACE =
-  "flex h-[50px] min-h-[50px] w-full items-center gap-1.5 rounded-2xl border border-border/20 bg-white px-2.5 shadow-none dark:bg-background";
+  "flex h-11 min-h-11 w-full items-center gap-2 rounded-xl border border-border/15 bg-white px-3 shadow-none dark:bg-background";
 
 export const AURORA_COMPOSER_SURFACE_FOCUS =
   "focus-within:border-border/35 focus-within:outline-none focus-within:ring-0";
@@ -269,37 +269,37 @@ export const AURORA_INBOX_FLOW_WIDTH =
   "w-[220px] min-w-[220px] max-w-[220px]";
 
 export const AURORA_WORKSPACE_COLUMN_HEADER =
-  "flex min-h-14 shrink-0 items-center border-b border-border/25";
+  "flex shrink-0 items-center border-b border-border/15 px-4 py-4";
 
-export const AURORA_INBOX_FLOW_SECTION = "px-2";
+export const AURORA_INBOX_FLOW_SECTION = "px-3";
 
 export const AURORA_INBOX_FLOW_SECTION_TITLE =
-  "mb-1 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/55";
+  "mb-2 px-1 text-[13px] font-semibold leading-none text-foreground/80";
 
 export const AURORA_INBOX_FLOW_ITEM =
-  "flex h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+  "flex h-9 w-full items-center justify-between gap-2 rounded-lg px-3 text-left text-xs leading-5 font-medium text-muted-foreground transition-colors hover:bg-muted/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
 
 export const AURORA_INBOX_FLOW_ITEM_SELECTED =
-  "flex h-9 w-full items-center justify-between gap-2 rounded-lg border-l-2 border-primary bg-muted/12 pl-2 pr-2.5 text-left text-xs font-medium text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+  "flex h-9 w-full items-center justify-between gap-2 rounded-lg border-l-2 border-primary bg-muted/8 pl-2 pr-3 text-left text-xs leading-5 font-medium text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
 
 /** Conversation queue — scanning-optimized list */
 export const AURORA_QUEUE_WIDTH = "w-[320px] min-w-[320px] max-w-[320px]";
 
 export const AURORA_QUEUE_SEARCH_CLASS =
-  "h-10 w-full rounded-full border border-border/15 bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus-visible:border-border/25 focus-visible:ring-1 focus-visible:ring-ring/10";
+  "h-10 w-full rounded-xl border border-border/15 bg-background pl-9 pr-3 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus-visible:border-border/25 focus-visible:ring-1 focus-visible:ring-ring/10";
 
 export const AURORA_QUEUE_AI_TOGGLE_SURFACE =
-  "rounded-lg border border-border/15 bg-muted/8 px-2.5 py-1.5";
+  "rounded-xl border border-border/15 bg-muted/8 px-3 py-2";
 
 export const AURORA_QUEUE_ITEM_BASE =
-  "group relative flex h-16 items-center rounded-xl px-2.5";
+  "group relative flex h-[60px] items-center rounded-xl px-3";
 
 export const AURORA_QUEUE_ITEM_HOVER = "hover:bg-muted/8";
 
-export const AURORA_QUEUE_ITEM_SELECTED = "bg-muted/10 dark:bg-muted/8";
+export const AURORA_QUEUE_ITEM_SELECTED = "bg-muted/8 dark:bg-muted/8";
 
 export const AURORA_QUEUE_FILTER_CHIP =
-  "inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[11px] font-medium";
+  "inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 text-[11px] font-medium leading-5";
 
 export const AURORA_CONTEXT_SHEET_WIDTH = {
   sm: "max-w-sm",
@@ -316,7 +316,7 @@ export const AURORA_CONTEXT_PANEL_WIDTH =
   "w-[320px] min-w-[320px] max-w-[320px]";
 
 export const AURORA_CONTEXT_CARD_CLASS =
-  "rounded-2xl border border-border/15 p-5";
+  "rounded-xl border border-border/15 p-4 shadow-none";
 
 export const AURORA_CONTEXT_CARD_STACK_GAP = "gap-3";
 
@@ -412,56 +412,55 @@ export const AURORA_TIMELINE_MODULE = "font-medium text-muted-foreground/55";
 /** @deprecated Use AURORA_TIMELINE_ICON_NODE */
 export const AURORA_TIMELINE_ICON = AURORA_TIMELINE_ICON_NODE;
 
-/** Aurora customer snapshot — lightweight CRM sidebar for inbox context panel */
+/** Aurora customer snapshot — continuous information panel */
 export const AURORA_SNAPSHOT_CARD =
-  "rounded-2xl border border-border/15 bg-background p-4";
+  "bg-background";
 
 export const AURORA_SNAPSHOT_SECTION_GAP = "space-y-4";
 
 export const AURORA_SNAPSHOT_SUBSECTION_TITLE =
-  "text-[13px] font-semibold leading-tight tracking-tight text-foreground/90";
+  "text-[13px] font-semibold leading-none text-foreground/85";
 
 export const AURORA_SNAPSHOT_DIVIDER = "hidden";
 
 export const AURORA_SNAPSHOT_HEADER_NAME =
-  "truncate text-[15px] font-semibold leading-tight text-foreground";
+  "truncate text-[15px] font-semibold leading-none text-foreground";
 
 export const AURORA_SNAPSHOT_HEADER_CHANNEL =
-  "truncate text-xs leading-none text-muted-foreground/70";
+  "truncate text-xs leading-5 text-muted-foreground/70";
 
 export const AURORA_SNAPSHOT_HEADER_META =
-  "truncate text-xs leading-none text-muted-foreground/55";
+  "truncate text-xs leading-5 text-muted-foreground/55";
 
 export const AURORA_SNAPSHOT_LEAD_BADGE =
-  "inline-flex items-center rounded-full bg-muted/25 px-2 py-0.5 text-xs font-medium text-muted-foreground";
+  "inline-flex items-center rounded-full bg-muted/20 px-2 py-0.5 text-xs leading-5 font-medium text-muted-foreground";
 
 export const AURORA_SNAPSHOT_JOURNEY_STEP =
-  "relative flex items-center gap-2.5 py-1";
+  "relative flex items-center gap-2 py-1";
 
 export const AURORA_SNAPSHOT_JOURNEY_DOT =
-  "relative z-[1] h-2.5 w-2.5 shrink-0 rounded-full";
+  "relative z-[1] h-3 w-3 shrink-0 rounded-full";
 
 export const AURORA_SNAPSHOT_JOURNEY_CONNECTOR =
-  "absolute left-[5px] top-[18px] bottom-0 w-px bg-border/25";
+  "absolute left-[5px] top-6 bottom-0 w-px bg-border/15";
 
 export const AURORA_SNAPSHOT_JOURNEY_LABEL =
-  "text-xs font-normal text-muted-foreground/65";
+  "text-xs leading-5 font-normal text-muted-foreground/60";
 
 export const AURORA_SNAPSHOT_JOURNEY_LABEL_PENDING =
-  "text-xs font-normal text-muted-foreground/45";
+  "text-xs leading-5 font-normal text-muted-foreground/40";
 
-export const AURORA_SNAPSHOT_ROW = "space-y-0";
+export const AURORA_SNAPSHOT_ROW = "space-y-1";
 
-export const AURORA_SNAPSHOT_ROW_LABEL = "text-xs leading-none text-muted-foreground/60";
+export const AURORA_SNAPSHOT_ROW_LABEL = "text-xs leading-5 text-muted-foreground/60";
 
 export const AURORA_SNAPSHOT_ROW_VALUE =
-  "truncate text-sm font-medium leading-tight text-foreground";
+  "truncate text-sm font-medium leading-6 text-foreground";
 
-export const AURORA_SNAPSHOT_AI_SURFACE =
-  "rounded-md bg-muted/8 px-0 py-1";
+export const AURORA_SNAPSHOT_AI_SURFACE = "py-0";
 
 export const AURORA_SNAPSHOT_AI_BULLET =
-  "text-sm leading-snug text-foreground/75";
+  "text-sm leading-6 text-foreground/70";
 
 export const AURORA_SNAPSHOT_ACTIVITY_LIST =
   "relative mt-2 border-l border-border/15 pl-3";
@@ -470,16 +469,16 @@ export const AURORA_SNAPSHOT_ACTIVITY_ROW =
   "relative pb-3 last:pb-0";
 
 export const AURORA_SNAPSHOT_ACTIVITY_NODE =
-  "absolute -left-[calc(0.75rem+1px)] top-[7px] h-1.5 w-1.5 rounded-full bg-border/45";
+  "absolute -left-[calc(0.75rem+1px)] top-2 h-1.5 w-1.5 rounded-full bg-border/40";
 
 export const AURORA_SNAPSHOT_ACTIVITY_TITLE =
-  "min-w-0 text-sm font-normal leading-snug text-foreground/90";
+  "min-w-0 text-sm font-normal leading-6 text-foreground/85";
 
 export const AURORA_SNAPSHOT_ACTIVITY_TIME =
-  "shrink-0 text-xs tabular-nums text-muted-foreground/55";
+  "shrink-0 text-[11px] leading-none tabular-nums text-muted-foreground/50";
 
 export const AURORA_SNAPSHOT_LINK_BUTTON =
-  "inline-flex h-8 items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+  "inline-flex h-8 items-center gap-1 text-sm font-medium leading-none text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
 
 /** @deprecated Use AURORA_SNAPSHOT_AI_SURFACE */
 export const AURORA_SNAPSHOT_AI_CARD = AURORA_SNAPSHOT_AI_SURFACE;

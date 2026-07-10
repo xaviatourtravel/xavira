@@ -35,7 +35,7 @@ export function CustomerSnapshotAiInsightSection({
             </li>
           ))}
         </ul>
-        <button type="button" className={cn(AURORA_SNAPSHOT_LINK_BUTTON, "mt-2")}>
+        <button type="button" className={cn(AURORA_SNAPSHOT_LINK_BUTTON, "mt-3")}>
           <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
           {labels.openCopilot}
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />

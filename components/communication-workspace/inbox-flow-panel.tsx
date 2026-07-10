@@ -70,18 +70,18 @@ export function InboxFlowPanel({
     <aside
       className={cn(
         AURORA_INBOX_FLOW_WIDTH,
-        "hidden min-h-0 shrink-0 flex-col overflow-hidden border-r border-border/25 bg-background lg:flex",
+        "hidden min-h-0 shrink-0 flex-col overflow-hidden border-r border-border/15 bg-background lg:flex",
         className,
       )}
       aria-label={ti("inboxFlowTitle")}
     >
-      <header className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "px-3")}>
-        <h2 className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+      <header className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "py-3")}>
+        <h2 className="truncate text-xl font-semibold leading-none tracking-tight text-foreground">
           {ti("inboxFlowTitle")}
         </h2>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1.5">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
         <section className={AURORA_INBOX_FLOW_SECTION}>
           <div className="space-y-0.5">
             <FlowPlaceholderItem
@@ -114,7 +114,7 @@ export function InboxFlowPanel({
         <section
           className={cn(
             AURORA_INBOX_FLOW_SECTION,
-            "mt-3 border-t border-border/15 pt-2.5",
+            "mt-4 border-t border-border/15 pt-4",
           )}
         >
           <h3 className={AURORA_INBOX_FLOW_SECTION_TITLE}>{ti("inboxFlowChannels")}</h3>

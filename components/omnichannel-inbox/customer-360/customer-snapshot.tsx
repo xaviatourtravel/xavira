@@ -21,8 +21,8 @@ import { CustomerSnapshotRecentActivity } from "./customer-snapshot-recent-activ
 import { buildMockCustomerSnapshot } from "./mock-customer-snapshot";
 import type { CustomerSnapshotLabels } from "./types";
 
-const SECTION_ICON_CLASS = "h-3.5 w-3.5 shrink-0 text-muted-foreground/55";
-const SECTION_TITLE_CLASS = "text-[13px] font-semibold tracking-tight text-foreground";
+const SECTION_ICON_CLASS = "h-4 w-4 shrink-0 text-muted-foreground/50";
+const SECTION_TITLE_CLASS = "text-[13px] font-semibold leading-none text-foreground";
 
 type CustomerSnapshotProps = {
   conversation: OmnichannelConversationDetail;
@@ -76,16 +76,16 @@ export function CustomerSnapshot({ conversation, className }: CustomerSnapshotPr
   return (
     <section
       aria-labelledby="customer-snapshot-heading"
-      className={cn(AURORA_SNAPSHOT_CARD, "rounded-none border-0 p-0", className)}
+      className={cn(AURORA_SNAPSHOT_CARD, "p-0", className)}
     >
-      <div className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "gap-2 px-4")}>
+      <div className={cn(AURORA_WORKSPACE_COLUMN_HEADER, "gap-2 py-3")}>
         <User className={SECTION_ICON_CLASS} aria-hidden strokeWidth={1.75} />
         <h3 id="customer-snapshot-heading" className={SECTION_TITLE_CLASS}>
           {labels.title}
         </h3>
       </div>
 
-      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "px-4 pb-4 pt-3")}>
+      <div className={cn(AURORA_SNAPSHOT_SECTION_GAP, "px-4 pb-4")}>
         <CustomerSnapshotHeaderSection header={snapshot.header} labels={labels} />
         <CustomerSnapshotJourney stages={snapshot.journey} labels={labels} />
         <CustomerSnapshotBooking booking={snapshot.booking} labels={labels} />

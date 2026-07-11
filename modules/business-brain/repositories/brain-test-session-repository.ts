@@ -37,6 +37,7 @@ export async function listBrainTestSessions(
     .from("brain_test_sessions")
     .select("*")
     .eq("workspace_id", workspaceId)
+    .or("status.eq.saved,status.is.null")
     .order("created_at", { ascending: false });
 
   if (error) {

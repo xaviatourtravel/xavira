@@ -1,5 +1,8 @@
 import type { WhatsAppConversationTurn } from "@/modules/business-brain/types/prompt";
 import type { WhatsappMessageRow } from "@/types/whatsapp-inbox";
+import { getGreetingDecision } from "@/modules/ai/conversation-state/greeting-decision";
+import { inferGreetingSentFromHistory } from "@/modules/ai/conversation-state/backfill";
+import type { ConversationAiStateSnapshot } from "@/modules/ai/conversation-state/types";
 import {
   findWhatsappMessagesByConversationId,
   type WhatsappSupabaseClient,
@@ -42,31 +45,43 @@ function getLatestMessageTimestamp(messages: WhatsappMessageRow[]) {
 }
 
 /**
- * Return true only when a greeting opener is appropriate:
- * - no prior AI/human outgoing message, or
- * - 12+ hours since last activity and the customer greets again.
+ * Return true only when a greeting opener is appropriate.
+ * Delegates to deterministic getGreetingDecision using history-inferred state.
  */
 export function shouldUseGreeting(
   conversationHistory: WhatsappMessageRow[],
   latestCustomerMessage: string,
   nowMs = Date.now(),
 ) {
+  void nowMs;
+
   const hasBusinessOutgoing = conversationHistory.some(isBusinessOutgoingMessage);
+  const snapshot: ConversationAiStateSnapshot = {
+    greetingSent: inferGreetingSentFromHistory(conversationHistory),
+    businessIntroductionSent: false,
+    customerName: null,
+    currentIntent: null,
+    currentPhase: hasBusinessOutgoing ? "ENGAGED" : "NEW",
+    qualificationStage: null,
+    collectedInformation: {},
+    questionsAsked: [],
+    selectedEntity: null,
+    catalogContext: null,
+    handoffRequested: false,
+    handoffReason: null,
+    handoffAt: null,
+    aiPaused: false,
+    lastAiReplyAt: null,
+    lastCustomerMessageAt: null,
+    stateVersion: 1,
+  };
 
-  if (!hasBusinessOutgoing) {
-    return true;
-  }
-
-  const latestActivityAt = getLatestMessageTimestamp(conversationHistory);
-  if (latestActivityAt <= 0) {
-    return false;
-  }
-
-  const inactiveMs = nowMs - latestActivityAt;
-  return (
-    inactiveMs >= WHATSAPP_GREETING_INACTIVITY_MS &&
-    isCustomerGreetingMessage(latestCustomerMessage)
-  );
+  return getGreetingDecision({
+    conversationState: snapshot,
+    hasPriorBusinessReplies: hasBusinessOutgoing,
+    incomingMessage: latestCustomerMessage,
+    aiState: "AI_ACTIVE",
+  }).allowed;
 }
 
 export async function loadWhatsappConversationHistoryForAi(

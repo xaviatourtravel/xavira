@@ -123,13 +123,14 @@
   --marketing-font-family: Inter, Geist, system-ui, sans-serif;
 
   /* Motion — preparation for WEB-004 */
-  --marketing-duration-instant: 80ms;
-  --marketing-duration-fast: 140ms;
-  --marketing-duration-normal: 240ms;
-  --marketing-duration-slow: 500ms;
-  --marketing-duration-reveal: 500ms;
-  --marketing-duration-hero: 800ms;
-  --marketing-duration-stagger: 75ms;
+  --marketing-duration-instant: 120ms;
+  --marketing-duration-fast: 200ms;
+  --marketing-duration-normal: 420ms;
+  --marketing-duration-slow: 520ms;
+  --marketing-duration-reveal: 420ms;
+  --marketing-duration-hero: 900ms;
+  --marketing-duration-stagger: 70ms;
+  --marketing-duration-scene: 720ms;
   --marketing-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --marketing-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
   --marketing-ease-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -338,6 +339,57 @@
 .marketing-site .marketing-navbar-shell[data-scrolled="true"] {
   background: color-mix(in srgb, var(--marketing-elevated-surface) 98%, transparent);
   box-shadow: var(--marketing-shadow-soft);
+  border-bottom-color: var(--marketing-border-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Card hover — pointer devices only */
+@media (hover: hover) and (pointer: fine) {
+  .marketing-site .marketing-card-hover {
+    transition:
+      transform var(--marketing-duration-fast) var(--marketing-ease-standard),
+      box-shadow var(--marketing-duration-fast) var(--marketing-ease-standard),
+      border-color var(--marketing-duration-fast) var(--marketing-ease-standard);
+  }
+
+  .marketing-site .marketing-card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--marketing-shadow-soft);
+    border-color: var(--marketing-border-strong);
+  }
+
+  .marketing-site .marketing-card-hover:hover .marketing-scene-frame {
+    transform: translateY(-2px);
+    transition: transform var(--marketing-duration-fast) var(--marketing-ease-standard);
+  }
+
+  .marketing-site .marketing-pricing-card {
+    transition:
+      transform var(--marketing-duration-fast) var(--marketing-ease-standard),
+      box-shadow var(--marketing-duration-fast) var(--marketing-ease-standard),
+      border-color var(--marketing-duration-fast) var(--marketing-ease-standard);
+  }
+
+  .marketing-site .marketing-pricing-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--marketing-border-strong);
+  }
+}
+
+.marketing-site .marketing-btn-arrow {
+  transition: transform var(--marketing-duration-fast) var(--marketing-ease-standard);
+}
+
+.marketing-site a:hover .marketing-btn-arrow,
+.marketing-site button:hover .marketing-btn-arrow {
+  transform: translateX(3px);
+}
+
+.marketing-site .marketing-locale-btn {
+  transition:
+    background-color var(--marketing-duration-fast) var(--marketing-ease-standard),
+    color var(--marketing-duration-fast) var(--marketing-ease-standard);
 }
 
 .marketing-site .marketing-hero-headline {
@@ -526,8 +578,23 @@
   .marketing-site *::before,
   .marketing-site *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  }
+
+  .marketing-site [data-motion-reveal],
+  .marketing-site [data-motion-scene] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .marketing-site .marketing-card-hover:hover,
+  .marketing-site .marketing-pricing-card:hover {
+    transform: none !important;
+  }
+
+  .marketing-site .marketing-btn-arrow,
+  .marketing-site .marketing-locale-btn,
+  .marketing-site details summary span {
+    transition: none !important;
   }
 }

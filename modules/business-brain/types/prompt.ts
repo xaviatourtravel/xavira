@@ -43,10 +43,22 @@ export type WhatsAppSalesLlmOutputContract = {
   confidence: number;
   suggestedActions: string[];
   usedSources: string[];
+  missingInformation: string[];
+  suggestedNextStep: string | null;
+  intent: string;
   /** @deprecated Prefer `actions`. Kept for backward-compatible parsing. */
   documentActions: WhatsAppDocumentAction[];
   /** Recommended actions for the Action Engine (LLM never executes these). */
   actions: AIAction[];
+  /** Answer-first structured fields (optional, backward compatible). */
+  directAnswer?: string | null;
+  supportingExplanation?: string | null;
+  followUpQuestion?: string | null;
+  followUpQuestionKey?: string | null;
+  requestType?: string | null;
+  answerability?: string | null;
+  responseAction?: string | null;
+  attachmentIds?: string[];
 };
 
 export type WhatsAppSalesPromptBundle = {

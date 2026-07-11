@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionReveal, MotionStagger, MotionStaggerItem } from "@/components/marketing/motion";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
 import { marketingContainerClass } from "@/components/marketing/design-system/tokens/spacing";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
@@ -11,12 +12,14 @@ export function TrustRelevanceStrip() {
   return (
     <section aria-label="Industry relevance" className={marketingColorClasses.trustStrip}>
       <div className={marketingContainerClass}>
-        <p className="text-center text-sm font-medium text-[var(--marketing-muted)] sm:text-base">
-          {content.trust.statement}
-        </p>
-        <ul className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+        <MotionReveal delay={0} duration={360} viewport="small">
+          <p className="text-center text-sm font-medium text-[var(--marketing-muted)] sm:text-base">
+            {content.trust.statement}
+          </p>
+        </MotionReveal>
+        <MotionStagger className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3" stagger="compact" viewport="small">
           {content.trust.industries.map((industry) => (
-            <li key={industry}>
+            <MotionStaggerItem key={industry}>
               <span
                 className={cn(
                   "marketing-industry-label inline-flex px-4 py-2 text-xs font-medium sm:text-sm",
@@ -24,9 +27,9 @@ export function TrustRelevanceStrip() {
               >
                 {industry}
               </span>
-            </li>
+            </MotionStaggerItem>
           ))}
-        </ul>
+        </MotionStagger>
       </div>
     </section>
   );

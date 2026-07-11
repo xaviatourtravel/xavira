@@ -7,10 +7,24 @@ import type { RetrievalSummary } from "@/modules/ai/types/context-retrieval";
 import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
 import type { ConversationMemoryMap } from "@/modules/ai/types/memory";
 import { toConversationMemoryPromptItems } from "@/modules/ai/types/memory";
+import {
+  compileAiPrompt,
+  isPromptCompilerV2Enabled,
+  type CompiledPromptMetadata,
+} from "@/modules/ai/prompt-compiler";
+import {
+  isAnswerFirstV1Enabled,
+  mergeLlmOutputWithPlan,
+} from "@/modules/ai/response-planner";
 import { parseWhatsAppSalesLlmResponse } from "@/modules/business-brain/lib/parse-whatsapp-sales-llm-response";
 import { resolveAiSourceLabels } from "@/modules/business-brain/lib/resolve-ai-source-labels";
 import { buildWhatsAppSalesPrompt } from "@/modules/business-brain/services/prompt-builder";
-import type { BusinessBrainContext } from "@/modules/business-brain/types/context";
+import type {
+  BusinessBrainContext,
+  BusinessBrainContextMeta,
+} from "@/modules/business-brain/types/context";
+import type { ConversationStatePromptContext } from "@/modules/ai/conversation-state/types";
+import type { ResponsePlan } from "@/modules/ai/response-planner/types";
 import type { AIAction } from "@/modules/ai/action-engine/types";
 import type {
   WhatsAppConversationTurn,
@@ -26,8 +40,15 @@ export type GenerateWhatsAppReplyInput = {
   customerMessage: string;
   conversationHistory: WhatsAppConversationTurn[];
   retrievedContext: RetrievedBusinessBrainContext;
+  fullBusinessBrainContext?: BusinessBrainContext;
+  businessBrainMeta?: BusinessBrainContextMeta;
   conversationMemory?: ConversationMemoryMap;
   leadQualification?: LeadQualificationSnapshot | null;
+  intent?: string;
+  hasPriorBusinessReplies?: boolean;
+  isNewConversation?: boolean;
+  conversationStateContext?: ConversationStatePromptContext | null;
+  responsePlan?: ResponsePlan | null;
   contextSource?: string;
   runtimeContext?: BuildRuntimeContextInput;
   /** @deprecated Use runtimeContext.timezone */
@@ -42,6 +63,9 @@ export type GenerateWhatsAppReplyResult = {
   confidence: number;
   suggestedActions: string[];
   usedSources: string[];
+  missingInformation: string[];
+  suggestedNextStep: string | null;
+  llmIntent: string;
   /** Human-readable labels for internal AI event logs. */
   sourceLabels: string[];
   documentActions: WhatsAppDocumentAction[];
@@ -49,6 +73,8 @@ export type GenerateWhatsAppReplyResult = {
   businessBrainContext: BusinessBrainContext | null;
   retrievedContext: RetrievedBusinessBrainContext | null;
   retrievalSummary?: RetrievalSummary;
+  promptMetadata?: CompiledPromptMetadata;
+  promptCompilerV2: boolean;
   generationTimeMs: number;
   inputTokens: number;
   outputTokens: number;
@@ -62,6 +88,7 @@ function buildFallbackResult(
   error?: string,
   contextSource?: string,
   retrievedContext?: RetrievedBusinessBrainContext,
+  promptCompilerV2 = isPromptCompilerV2Enabled(),
 ): GenerateWhatsAppReplyResult {
   return {
     success: false,
@@ -71,6 +98,9 @@ function buildFallbackResult(
     confidence: 0,
     suggestedActions: [],
     usedSources: [],
+    missingInformation: [],
+    suggestedNextStep: null,
+    llmIntent: "",
     sourceLabels: [],
     documentActions: [],
     actions: [],
@@ -79,6 +109,7 @@ function buildFallbackResult(
       : null,
     retrievedContext: retrievedContext ?? null,
     retrievalSummary: retrievedContext?.retrievalSummary,
+    promptCompilerV2,
     generationTimeMs,
     inputTokens: 0,
     outputTokens: 0,
@@ -94,6 +125,7 @@ export const aiLLMReplyService = {
   ): Promise<GenerateWhatsAppReplyResult> {
     const startedAt = Date.now();
     const llm = createLLMAdapter();
+    const promptCompilerV2 = isPromptCompilerV2Enabled();
 
     if (!llm) {
       return buildFallbackResult(
@@ -101,6 +133,7 @@ export const aiLLMReplyService = {
         "OPENAI_API_KEY is not configured",
         input.contextSource,
         input.retrievedContext,
+        promptCompilerV2,
       );
     }
 
@@ -113,23 +146,55 @@ export const aiLLMReplyService = {
           businessName: input.retrievedContext.companyDNA?.companyName ?? undefined,
         };
       const runtimeContext = buildRuntimeContext(runtimeContextInput);
+      const memoryItems = input.conversationMemory
+        ? toConversationMemoryPromptItems(input.conversationMemory)
+        : undefined;
 
-      const promptBundle = buildWhatsAppSalesPrompt({
-        workspaceId: input.workspaceId,
-        workspaceName: input.workspaceName,
-        customerMessage: input.customerMessage,
-        conversationHistory: input.conversationHistory,
-        retrievedContext: input.retrievedContext,
-        conversationMemory: input.conversationMemory
-          ? toConversationMemoryPromptItems(input.conversationMemory)
-          : undefined,
-        leadQualification: input.leadQualification,
-        timezone: runtimeContext.timezone,
-        locale: runtimeContext.locale,
-        currentUser: runtimeContext.currentUser,
-        businessName: runtimeContext.businessName,
-        environment: runtimeContext.environment,
-      });
+      const promptBundle = promptCompilerV2
+        ? compileAiPrompt({
+            workspaceId: input.workspaceId,
+            workspaceName: input.workspaceName,
+            customerMessage: input.customerMessage,
+            conversationHistory: input.conversationHistory,
+            retrievedContext: input.retrievedContext,
+            fullBusinessBrainContext:
+              input.fullBusinessBrainContext ??
+              toPromptBusinessBrainContext(input.retrievedContext),
+            businessBrainMeta: input.businessBrainMeta ?? {
+              workspaceId: input.workspaceId,
+              businessBrainId: null,
+              source: input.contextSource === "playground_simulator" ? "draft" : "published",
+              publishedVersionId: null,
+              publishedVersionNumber: null,
+              builtAt: new Date().toISOString(),
+            },
+            conversationMemory: memoryItems,
+            leadQualification: input.leadQualification,
+            intent: input.intent ?? "UNKNOWN",
+            hasPriorBusinessReplies: input.hasPriorBusinessReplies ?? false,
+            isNewConversation: input.isNewConversation ?? input.conversationHistory.length === 0,
+            conversationStateContext: input.conversationStateContext,
+            responsePlan: input.responsePlan,
+            timezone: runtimeContext.timezone,
+            locale: runtimeContext.locale,
+            currentUser: runtimeContext.currentUser,
+            businessName: runtimeContext.businessName,
+            environment: runtimeContext.environment,
+          })
+        : buildWhatsAppSalesPrompt({
+            workspaceId: input.workspaceId,
+            workspaceName: input.workspaceName,
+            customerMessage: input.customerMessage,
+            conversationHistory: input.conversationHistory,
+            retrievedContext: input.retrievedContext,
+            conversationMemory: memoryItems,
+            leadQualification: input.leadQualification,
+            timezone: runtimeContext.timezone,
+            locale: runtimeContext.locale,
+            currentUser: runtimeContext.currentUser,
+            businessName: runtimeContext.businessName,
+            environment: runtimeContext.environment,
+          });
 
       const llmResult = await llm.generateJSON({
         systemPrompt: promptBundle.systemPrompt,
@@ -152,7 +217,9 @@ export const aiLLMReplyService = {
             llmResult.error ?? "LLM request failed",
             input.contextSource,
             promptBundle.sanitizedContext,
+            promptCompilerV2,
           ),
+          promptMetadata: "metadata" in promptBundle ? promptBundle.metadata : undefined,
         };
       }
 
@@ -164,29 +231,42 @@ export const aiLLMReplyService = {
             "Invalid LLM JSON response",
             input.contextSource,
             promptBundle.sanitizedContext,
+            promptCompilerV2,
           ),
+          promptMetadata: "metadata" in promptBundle ? promptBundle.metadata : undefined,
         };
       }
 
+      const merged = mergeLlmOutputWithPlan(
+        contract,
+        input.responsePlan ?? null,
+        isAnswerFirstV1Enabled(),
+      );
+
       const sourceLabels = resolveAiSourceLabels(
         promptBusinessBrainContext,
-        contract.usedSources,
+        merged.usedSources,
       );
 
       return {
         success: true,
-        reply: contract.reply,
-        handoffRequired: contract.handoffRequired,
-        handoffReason: contract.handoffReason,
-        confidence: contract.confidence,
-        suggestedActions: contract.suggestedActions,
-        usedSources: contract.usedSources,
+        reply: merged.replyText,
+        handoffRequired: merged.handoffRequired,
+        handoffReason: merged.handoffReason,
+        confidence: merged.confidence,
+        suggestedActions: merged.suggestedActions,
+        usedSources: merged.usedSources,
+        missingInformation: merged.missingInformation,
+        suggestedNextStep: merged.suggestedNextStep,
+        llmIntent: merged.intent,
         sourceLabels,
-        documentActions: contract.documentActions,
-        actions: contract.actions,
+        documentActions: merged.documentActions,
+        actions: merged.actions,
         businessBrainContext: promptBusinessBrainContext,
         retrievedContext: promptBundle.sanitizedContext,
         retrievalSummary: promptBundle.sanitizedContext.retrievalSummary,
+        promptMetadata: "metadata" in promptBundle ? promptBundle.metadata : undefined,
+        promptCompilerV2,
         generationTimeMs,
         inputTokens: 0,
         outputTokens: 0,
@@ -199,6 +279,7 @@ export const aiLLMReplyService = {
         error instanceof Error ? error.message : String(error),
         input.contextSource,
         input.retrievedContext,
+        promptCompilerV2,
       );
     }
   },

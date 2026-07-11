@@ -9,6 +9,16 @@ import { leadQualificationService } from "@/modules/ai/services/lead-qualificati
 import { memoryService } from "@/modules/ai/services/memory-service";
 import { validateAIResponse } from "@/modules/ai/services/ai-safety-validator";
 import { improveReplyQuality } from "@/modules/ai/services/ai-reply-quality-guard";
+import {
+  applyValidatedReply,
+  buildResponsePlan,
+  buildPlaygroundPlanningInput,
+  buildPlaygroundStatePromptContext,
+  isAnswerFirstV1Enabled,
+  toPlaygroundSessionState,
+  updatePlaygroundSessionAfterReply,
+} from "@/modules/ai/response-planner";
+import type { PlanValidationResult, ResponsePlan } from "@/modules/ai/response-planner/types";
 import type { ConversationMemoryKey, ConversationMemoryMap } from "@/modules/ai/types/memory";
 import {
   toConversationMemoryPromptItems,
@@ -25,7 +35,10 @@ import {
   playgroundTestInputSchema,
   type PlaygroundSaveExampleInput,
 } from "@/modules/business-brain/schemas/playground";
-import { buildBusinessBrainContextBody } from "@/modules/business-brain/services/context-builder";
+import {
+  buildBusinessBrainContext,
+  buildBusinessBrainContextBody,
+} from "@/modules/business-brain/services/context-builder";
 import { EMPTY_BUSINESS_BRAIN_CONTEXT } from "@/modules/business-brain/types/context";
 import type { WhatsAppConversationTurn } from "@/modules/business-brain/types/prompt";
 import type {
@@ -34,6 +47,8 @@ import type {
   PlaygroundSavedExample,
   PlaygroundTestResult,
 } from "@/modules/business-brain/types/playground";
+import type { SimulatorChatMessage } from "@/modules/business-brain/types/playground-simulator";
+import type { PlaygroundPersistedConversationState } from "@/modules/business-brain/types/playground-session-state";
 import { aiHandoffService } from "@/lib/whatsapp-inbox/ai/handoff-service";
 import {
   aiLLMReplyService,
@@ -41,9 +56,34 @@ import {
 } from "@/lib/whatsapp-inbox/ai/llm-reply-service";
 import { aiReplyService } from "@/lib/whatsapp-inbox/ai/reply-service";
 import { sanitizeAiReplyBranding } from "@/lib/whatsapp-inbox/ai/workspace-profile";
+import {
+  getOrCreateActivePlaygroundSession,
+  resetActivePlaygroundSession,
+  updateActivePlaygroundSession,
+} from "@/modules/business-brain/services/playground-session-persistence";
+import { EMPTY_PLAYGROUND_CONVERSATION_STATE } from "@/modules/business-brain/types/playground-session-state";
 
 const exampleStore = new Map<string, PlaygroundSavedExample[]>();
-const memoryStore = new Map<string, ConversationMemoryMap>();
+
+export async function loadActivePlaygroundSession(
+  organizationId: string,
+  userId: string,
+  sessionId?: string | null,
+) {
+  return getOrCreateActivePlaygroundSession({
+    workspaceId: organizationId,
+    userId,
+    sessionId,
+  });
+}
+
+export async function resetPlaygroundConversation(
+  organizationId: string,
+  userId: string,
+  sessionId?: string,
+) {
+  await resetActivePlaygroundSession(organizationId, userId, sessionId);
+}
 
 export class PlaygroundLlmNotConfiguredError extends Error {
   constructor() {
@@ -131,10 +171,36 @@ export async function getAvailableContext(
 
 type PlaygroundTestResultBody = Omit<PlaygroundTestResult, "aiScore">;
 
+type PlaygroundPlanEvaluation = {
+  responsePlan: ResponsePlan | null;
+  rawPlanValidation: PlanValidationResult | null;
+  planValidation: PlanValidationResult | null;
+  rawReply: string | null;
+};
+
+function resolvePlanDocumentActions(
+  responsePlan: ResponsePlan | null,
+): PlaygroundPreviewResult["documentActions"] {
+  if (!responsePlan?.attachmentAction) {
+    return [];
+  }
+
+  return [
+    {
+      documentId: responsePlan.attachmentAction.documentId,
+      documentName: responsePlan.attachmentAction.documentName,
+      action: "SEND_DOCUMENT" as const,
+      reason: "Answer-first response plan (simulated delivery)",
+      confidence: 1,
+    },
+  ];
+}
+
 function finalizePlaygroundTestResult(
   body: PlaygroundTestResultBody,
   customerMessage: string,
   conversationHistory: WhatsAppConversationTurn[],
+  planEvaluation?: PlaygroundPlanEvaluation,
 ): PlaygroundTestResult {
   return {
     ...body,
@@ -142,14 +208,68 @@ function finalizePlaygroundTestResult(
       result: body,
       customerMessage,
       conversationHistory,
+      responsePlan: planEvaluation?.responsePlan ?? null,
+      planValidation: planEvaluation?.planValidation ?? null,
+      rawPlanValidation: planEvaluation?.rawPlanValidation ?? null,
+      rawReply: planEvaluation?.rawReply ?? null,
     }),
   };
 }
 
+function withSessionId(
+  result: PlaygroundTestResult,
+  sessionId: string,
+): PlaygroundTestResult & { sessionId: string } {
+  return { ...result, sessionId };
+}
+
+function appendConversationTurn(
+  existing: SimulatorChatMessage[],
+  customerMessage: string,
+  aiReply: string,
+  aiScore?: PlaygroundTestResult["aiScore"],
+): SimulatorChatMessage[] {
+  const turnId = Date.now();
+  return [
+    ...existing,
+    {
+      id: `cust-${turnId}`,
+      role: "customer" as const,
+      text: customerMessage,
+    },
+    {
+      id: `ai-${turnId}`,
+      role: "ai" as const,
+      text: aiReply,
+      aiScore,
+    },
+  ];
+}
+
+async function persistPlaygroundTurn(input: {
+  workspaceId: string;
+  sessionId: string;
+  userId: string;
+  conversation: SimulatorChatMessage[];
+  conversationState: PlaygroundPersistedConversationState;
+  testResult: PlaygroundTestResult;
+}) {
+  await updateActivePlaygroundSession({
+    workspaceId: input.workspaceId,
+    sessionId: input.sessionId,
+    userId: input.userId,
+    conversation: input.conversation,
+    conversationState: input.conversationState,
+    inspector: input.testResult as unknown as Record<string, unknown>,
+    score: input.testResult.aiScore.breakdown.overall,
+  });
+}
+
 export async function runTest(
   organizationId: string,
+  userId: string,
   input: unknown,
-): Promise<PlaygroundTestResult> {
+): Promise<PlaygroundTestResult & { sessionId: string }> {
   const parsed = playgroundTestInputSchema.parse(input);
 
   if (!isPlaygroundLlmConfigured()) {
@@ -162,25 +282,39 @@ export async function runTest(
     (turn) => turn.sender === "ai" || turn.sender === "human",
   );
 
-  const [organizationSettings, businessBrainContext] = await Promise.all([
+  const [organizationSettings, businessBrainContextResult] = await Promise.all([
     resolveOrganizationAiSettings(organizationId),
-    buildBusinessBrainContextBody(organizationId, {
+    buildBusinessBrainContext(organizationId, {
       includeDraft: true,
       customerMessage: parsed.customerMessage,
     }),
   ]);
+  const { meta: businessBrainMeta, ...businessBrainContext } = businessBrainContextResult;
   const workspaceName = organizationSettings.name;
   const workspaceTimezone = organizationSettings.timezone;
 
-  const sessionMemory = memoryStore.get(organizationId) ?? {};
+  const activeSession = await getOrCreateActivePlaygroundSession({
+    workspaceId: organizationId,
+    userId,
+    sessionId: parsed.sessionId ?? null,
+  });
+
+  const sessionState = toPlaygroundSessionState({
+    workspaceId: organizationId,
+    sessionId: activeSession.id,
+    state: activeSession.conversationState,
+  });
+
+  let conversationMemory = sessionState.customerMemory;
+
   const initialExtraction = extractMemoryFromMessage({
     messageText: parsed.customerMessage,
-    conversationId: "playground",
+    conversationId: activeSession.id,
     workspaceId: organizationId,
   }).memories;
 
-  let conversationMemory = memoryService.mergeExtractedMemory(
-    sessionMemory,
+  conversationMemory = memoryService.mergeExtractedMemory(
+    conversationMemory,
     mapExtractedMemories(initialExtraction),
   );
 
@@ -195,15 +329,13 @@ export async function runTest(
   });
 
   if (aiHandoffService.requiresHandoff(intentResult)) {
-    memoryStore.set(organizationId, conversationMemory);
-
     const handoffReply = sanitizeAiReplyBranding(
       aiReplyService.getHandoffReply(),
       parsed.customerMessage,
       workspaceName,
     );
 
-    return finalizePlaygroundTestResult(
+    const testResult = finalizePlaygroundTestResult(
       {
         preview: buildPreviewResult({
           reply: handoffReply,
@@ -231,6 +363,29 @@ export async function runTest(
       parsed.customerMessage,
       priorHistory,
     );
+
+    const updatedConversation = appendConversationTurn(
+      activeSession.conversation,
+      parsed.customerMessage,
+      handoffReply,
+      testResult.aiScore,
+    );
+
+    await persistPlaygroundTurn({
+      workspaceId: organizationId,
+      sessionId: activeSession.id,
+      userId,
+      conversation: updatedConversation,
+      conversationState: {
+        ...activeSession.conversationState,
+        handoffRequested: true,
+        currentIntent: intentResult.intent,
+        customerMemory: conversationMemory,
+      },
+      testResult,
+    });
+
+    return withSessionId(testResult, activeSession.id);
   }
 
   const retrievedContext = retrieveRelevantContext({
@@ -243,7 +398,7 @@ export async function runTest(
   const enrichedExtraction = extractMemoryFromMessage(
     {
       messageText: parsed.customerMessage,
-      conversationId: "playground",
+      conversationId: activeSession.id,
       workspaceId: organizationId,
     },
     {
@@ -257,12 +412,36 @@ export async function runTest(
     conversationMemory,
     mapExtractedMemories(enrichedExtraction),
   );
-  memoryStore.set(organizationId, conversationMemory);
 
   const promptMemoryItems = toConversationMemoryPromptItems(conversationMemory);
   const refreshedLeadQualification = leadQualificationService.snapshotFromPromptItems(
     promptMemoryItems,
   );
+
+  const conversationStateContext = buildPlaygroundStatePromptContext({
+    session: sessionState,
+    hasPriorBusinessReplies,
+    incomingMessage: parsed.customerMessage,
+    qualification: refreshedLeadQualification,
+  });
+
+  let responsePlan: ResponsePlan | null = null;
+  if (isAnswerFirstV1Enabled()) {
+    responsePlan = buildResponsePlan(
+      buildPlaygroundPlanningInput({
+        workspaceId: organizationId,
+        session: sessionState,
+        latestMessage: parsed.customerMessage,
+        recentHistory: priorHistory,
+        intent: intentResult.intent,
+        conversationStateContext,
+        publishedBusinessBrain: businessBrainContext,
+        retrievedContext,
+        memory: conversationMemory,
+        qualification: refreshedLeadQualification,
+      }),
+    );
+  }
 
   const llmResult = await aiLLMReplyService.generateWhatsAppReply({
     workspaceId: organizationId,
@@ -270,8 +449,15 @@ export async function runTest(
     customerMessage: parsed.customerMessage,
     conversationHistory: priorHistory,
     retrievedContext,
+    fullBusinessBrainContext: businessBrainContext,
+    businessBrainMeta,
     conversationMemory,
     leadQualification: refreshedLeadQualification,
+    intent: intentResult.intent,
+    hasPriorBusinessReplies,
+    isNewConversation: priorHistory.length === 0,
+    conversationStateContext,
+    responsePlan,
     contextSource: "playground_simulator",
     runtimeContext: {
       timezone: workspaceTimezone,
@@ -318,7 +504,7 @@ export async function runTest(
       llmResult.documentActions,
     );
 
-    return finalizePlaygroundTestResult(
+    const testResult = finalizePlaygroundTestResult(
       {
         preview: buildPreviewResult({
           reply: handoffReply,
@@ -343,6 +529,29 @@ export async function runTest(
       parsed.customerMessage,
       priorHistory,
     );
+
+    const updatedConversation = appendConversationTurn(
+      activeSession.conversation,
+      parsed.customerMessage,
+      handoffReply,
+      testResult.aiScore,
+    );
+
+    await persistPlaygroundTurn({
+      workspaceId: organizationId,
+      sessionId: activeSession.id,
+      userId,
+      conversation: updatedConversation,
+      conversationState: {
+        ...activeSession.conversationState,
+        handoffRequested: true,
+        currentIntent: intentResult.intent,
+        customerMemory: conversationMemory,
+      },
+      testResult,
+    });
+
+    return withSessionId(testResult, activeSession.id);
   }
 
   const validatedReplyText =
@@ -356,19 +565,73 @@ export async function runTest(
     businessBrainContext: businessBrainContextForValidation,
   });
 
-  const finalReplyText = qualityResult.reply.trim() || WHATSAPP_AI_LLM_FALLBACK_REPLY;
-  const documentActions = resolveDocumentActionDisplays(
-    businessBrainContextForValidation,
-    llmResult.documentActions,
-  );
+  let finalReplyText = qualityResult.reply.trim() || WHATSAPP_AI_LLM_FALLBACK_REPLY;
+  const rawReplyText = finalReplyText;
+  let rawPlanValidation: PlanValidationResult | null = null;
+  let planValidation: PlanValidationResult | null = null;
 
-  return finalizePlaygroundTestResult(
+  if (isAnswerFirstV1Enabled() && responsePlan) {
+    const validated = applyValidatedReply({
+      rawReply: finalReplyText,
+      plan: responsePlan,
+      answerFirstEnabled: true,
+    });
+    rawPlanValidation = validated.rawValidation;
+    planValidation = validated.finalValidation;
+    finalReplyText = validated.finalReply;
+  }
+
+  let simulatedAttachments = [...sessionState.simulatedAttachments];
+  const planDocumentActions = resolvePlanDocumentActions(responsePlan);
+  if (responsePlan?.attachmentAction && planDocumentActions.length > 0) {
+    const doc = businessBrainContext.documents.find(
+      (item) => item.id === responsePlan.attachmentAction?.documentId,
+    );
+    if (doc) {
+      simulatedAttachments = [
+        {
+          documentId: doc.id,
+          documentName: doc.name,
+          documentType: doc.documentType,
+          simulated: true as const,
+          deliveredAt: new Date().toISOString(),
+        },
+      ];
+    }
+  }
+
+  const documentActions =
+    planDocumentActions.length > 0
+      ? planDocumentActions
+      : resolveDocumentActionDisplays(
+          businessBrainContextForValidation,
+          llmResult.documentActions,
+        );
+
+  const effectiveHandoffRequired =
+    responsePlan?.handoffRequired ?? llmResult.handoffRequired;
+  const effectiveHandoffReason =
+    responsePlan?.handoffReason ?? llmResult.handoffReason;
+
+  const updatedSession = isAnswerFirstV1Enabled()
+    ? updatePlaygroundSessionAfterReply({
+        session: sessionState,
+        intent: intentResult.intent,
+        replyText: finalReplyText,
+        responsePlan,
+        usePlanQuestionKeys: true,
+        customerMemory: conversationMemory,
+        simulatedAttachments,
+      })
+    : sessionState;
+
+  const testBody = finalizePlaygroundTestResult(
     {
       preview: buildPreviewResult({
         reply: finalReplyText,
         confidence: llmResult.confidence,
-        handoffRequired: llmResult.handoffRequired,
-        handoffReason: llmResult.handoffReason,
+        handoffRequired: effectiveHandoffRequired,
+        handoffReason: effectiveHandoffReason,
         suggestedActions: llmResult.suggestedActions,
         usedSources: llmResult.usedSources,
         businessBrainContext: businessBrainContextForValidation,
@@ -385,7 +648,36 @@ export async function runTest(
     },
     parsed.customerMessage,
     priorHistory,
+    { responsePlan, rawPlanValidation, planValidation, rawReply: rawReplyText },
   );
+
+  const updatedConversation = appendConversationTurn(
+    activeSession.conversation,
+    parsed.customerMessage,
+    finalReplyText,
+    testBody.aiScore,
+  );
+
+  await persistPlaygroundTurn({
+    workspaceId: organizationId,
+    sessionId: activeSession.id,
+    userId,
+    conversation: updatedConversation,
+    conversationState: {
+      greetingSent: updatedSession.greetingSent,
+      collectedInformation: updatedSession.collectedInformation,
+      questionsAsked: updatedSession.questionsAsked,
+      selectedEntity: updatedSession.selectedEntity,
+      catalogContext: updatedSession.catalogContext,
+      currentIntent: updatedSession.currentIntent,
+      handoffRequested: updatedSession.handoffRequested,
+      customerMemory: updatedSession.customerMemory,
+      simulatedAttachments: updatedSession.simulatedAttachments,
+    },
+    testResult: testBody,
+  });
+
+  return { ...testBody, sessionId: activeSession.id };
 }
 
 export async function saveExample(
@@ -409,7 +701,16 @@ export function listSavedExamples(organizationId: string): PlaygroundSavedExampl
   return exampleStore.get(organizationId) ?? [];
 }
 
-export function getPlaygroundMemory(organizationId: string) {
-  const memory = memoryStore.get(organizationId) ?? {};
-  return promptItemsToPlaygroundMemoryDisplay(toConversationMemoryPromptItems(memory));
+export async function getPlaygroundMemory(
+  organizationId: string,
+  userId: string,
+) {
+  const session = await getOrCreateActivePlaygroundSession({
+    workspaceId: organizationId,
+    userId,
+    sessionId: null,
+  });
+  return promptItemsToPlaygroundMemoryDisplay(
+    toConversationMemoryPromptItems(session.conversationState.customerMemory),
+  );
 }

@@ -1,7 +1,13 @@
 "use client";
 
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
-import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
+import {
+  MotionScene,
+  MotionSectionGroup,
+  MotionSectionItem,
+  MotionStagger,
+  MotionStaggerItem,
+} from "@/components/marketing/motion";
 import {
   AuroraAssistScene,
   OperationsWorkspaceScene,
@@ -9,6 +15,7 @@ import {
   UnifiedInboxScene,
 } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
+import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
 import { cn } from "@/lib/utils";
 
 const FEATURED_IDS = ["communication", "operations", "aurora"] as const;
@@ -18,24 +25,22 @@ function FeaturedModuleScene({ moduleId }: { moduleId: (typeof FEATURED_IDS)[num
   const cropClass =
     "mt-auto flex h-[200px] min-h-[200px] flex-col overflow-hidden rounded-[var(--marketing-radius-lg)] border border-[var(--marketing-border-strong)] [&_.marketing-scene-frame]:border-0 [&_.marketing-scene-frame]:shadow-none [&_.marketing-dark-band-glow]:hidden";
 
-  if (moduleId === "communication") {
-    return (
-      <div className={cropClass} aria-hidden>
-        <UnifiedInboxScene compact className="scale-[1.02] origin-top" />
-      </div>
-    );
-  }
-  if (moduleId === "operations") {
-    return (
-      <div className={cropClass} aria-hidden>
-        <OperationsWorkspaceScene compact dark className="[&_.marketing-scene-canvas]:border-0" />
-      </div>
-    );
-  }
   return (
-    <div className={cropClass} aria-hidden>
-      <AuroraAssistScene compact />
-    </div>
+    <MotionScene>
+      {moduleId === "communication" ? (
+        <div className={cropClass} aria-hidden>
+          <UnifiedInboxScene compact className="scale-[1.02] origin-top" />
+        </div>
+      ) : moduleId === "operations" ? (
+        <div className={cropClass} aria-hidden>
+          <OperationsWorkspaceScene compact dark className="[&_.marketing-scene-canvas]:border-0" />
+        </div>
+      ) : (
+        <div className={cropClass} aria-hidden>
+          <AuroraAssistScene compact />
+        </div>
+      )}
+    </MotionScene>
   );
 }
 
@@ -107,46 +112,59 @@ export function HomeProductModulesSection() {
         )}
       />
 
-      <MarketingSectionHeader
-        title={content.productModules.title}
-        description={content.productModules.description}
-        className="relative [&_h2]:text-[var(--marketing-background)] [&_p]:text-[var(--marketing-muted-foreground)]"
-      />
-
-      <div className="relative mt-14 grid gap-6 lg:grid-cols-3">
-        {featured.map((module) => (
-          <article
-            key={module.id}
-            className="flex flex-col rounded-[var(--marketing-radius-xl)] border border-[var(--marketing-border-strong)] bg-[var(--marketing-foreground)]/50 p-6 sm:p-7 lg:p-8"
-          >
-            <h3 className="text-xl font-semibold text-[var(--marketing-background)]">
-              {module.title}
-            </h3>
-            <p className="mt-3 text-base leading-relaxed text-[var(--marketing-muted-foreground)]">
-              {module.outcome}
-            </p>
-            <ul className="mt-5 space-y-2">
-              {module.capabilities.map((capability) => (
-                <li key={capability} className="text-sm text-[var(--marketing-muted-foreground)]">
-                  · {capability}
-                </li>
-              ))}
-            </ul>
-            <FeaturedModuleScene moduleId={module.id as (typeof FEATURED_IDS)[number]} />
-          </article>
-        ))}
-      </div>
-
-      <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {supporting.map((module) => (
-          <SupportingModuleBlock
-            key={module.id}
-            title={module.title}
-            outcome={module.outcome}
-            metrics={SUPPORTING_METRICS[module.id as (typeof SUPPORTING_IDS)[number]]}
+      <MotionSectionGroup className="relative" viewport="large">
+        <MotionSectionItem>
+          <MarketingSectionHeader
+            title={content.productModules.title}
+            description={content.productModules.description}
+            className="[&_h2]:text-[var(--marketing-background)] [&_p]:text-[var(--marketing-muted-foreground)]"
           />
+        </MotionSectionItem>
+      </MotionSectionGroup>
+
+      <MotionStagger
+        className="relative mt-14 grid gap-6 lg:grid-cols-3"
+        stagger="featured"
+        viewport="large"
+      >
+        {featured.map((module) => (
+          <MotionStaggerItem key={module.id}>
+            <article className="flex flex-col rounded-[var(--marketing-radius-xl)] border border-[var(--marketing-border-strong)] bg-[var(--marketing-foreground)]/50 p-6 sm:p-7 lg:p-8">
+              <h3 className="text-xl font-semibold text-[var(--marketing-background)]">
+                {module.title}
+              </h3>
+              <p className="mt-3 text-base leading-relaxed text-[var(--marketing-muted-foreground)]">
+                {module.outcome}
+              </p>
+              <ul className="mt-5 space-y-2">
+                {module.capabilities.map((capability) => (
+                  <li key={capability} className="text-sm text-[var(--marketing-muted-foreground)]">
+                    · {capability}
+                  </li>
+                ))}
+              </ul>
+              <FeaturedModuleScene moduleId={module.id as (typeof FEATURED_IDS)[number]} />
+            </article>
+          </MotionStaggerItem>
         ))}
-      </div>
+      </MotionStagger>
+
+      <MotionStagger
+        className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        stagger="compact"
+        viewport="large"
+        delayChildren={280}
+      >
+        {supporting.map((module) => (
+          <MotionStaggerItem key={module.id}>
+            <SupportingModuleBlock
+              title={module.title}
+              outcome={module.outcome}
+              metrics={SUPPORTING_METRICS[module.id as (typeof SUPPORTING_IDS)[number]]}
+            />
+          </MotionStaggerItem>
+        ))}
+      </MotionStagger>
     </MarketingSection>
   );
 }

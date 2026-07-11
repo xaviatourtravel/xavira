@@ -29,6 +29,7 @@ export const playgroundCustomerContextSchema = z.object({
 export const playgroundTestInputSchema = z.object({
   customerMessage: z.string().trim().min(1, "Customer message is required."),
   conversationHistory: z.array(playgroundConversationTurnSchema).default([]),
+  sessionId: z.string().uuid().nullable().optional(),
   context: playgroundCustomerContextSchema.default(DEFAULT_PLAYGROUND_CONTEXT),
   memoryTest: playgroundMemoryTestSchema.default(DEFAULT_PLAYGROUND_MEMORY_TEST),
 });

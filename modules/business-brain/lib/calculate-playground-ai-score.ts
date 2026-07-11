@@ -1,12 +1,21 @@
 import type { RetrievalSummary } from "@/modules/ai/types/context-retrieval";
+import { containsBannedInterrogationPhrase, passesHospitalityTone } from "@/modules/ai/base-brain/hospitality-voice-policy";
+import { detectInterrogation, detectWrongEntity, isQuestionOnlyResponse } from "@/modules/ai/response-planner/interrogation-policy";
 import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
+import type {
+  PlanValidationResult,
+  ResponsePlan,
+} from "@/modules/ai/response-planner/types";
 import { buildPlaygroundInspectorView, formatPlaygroundConfidencePercent } from "@/modules/business-brain/lib/build-playground-inspector-view";
 import type {
   PlaygroundAvailableContext,
   PlaygroundPreviewResult,
   PlaygroundTestResult,
 } from "@/modules/business-brain/types/playground";
-import type { PlaygroundAiScore } from "@/modules/business-brain/types/playground-ai-score";
+import type {
+  PlaygroundAiScore,
+  PlaygroundGroundingDiagnostics,
+} from "@/modules/business-brain/types/playground-ai-score";
 import {
   labelPlaygroundAiScoreBreakdown,
   playgroundAiScoreLabel,
@@ -87,6 +96,92 @@ function isKnowledgeIntent(intent: string): boolean {
     "BROCHURE_REQUEST",
     "ITINERARY_REQUEST",
   ].includes(intent);
+}
+
+function calculateHospitalityScore(reply: string): number {
+  let score = 85;
+  if (containsBannedInterrogationPhrase(reply)) {
+    score -= 45;
+  }
+  if (FRIENDLY_TONE_PATTERNS.some((pattern) => pattern.test(reply))) {
+    score += 8;
+  }
+  return clampScore(score);
+}
+
+function calculateUsefulnessScore(args: {
+  reply: string;
+  responsePlan: ResponsePlan | null;
+}): number {
+  if (!args.responsePlan) return 70;
+  let score = 75;
+
+  if ((args.responsePlan.catalogResults?.length ?? 0) > 0) {
+    const mentionedCatalog = args.responsePlan.catalogResults.some((item) =>
+      args.reply.toLowerCase().includes(item.displayName.toLowerCase().slice(0, 8)),
+    );
+    score += mentionedCatalog ? 15 : -25;
+  }
+
+  if (args.responsePlan.directAnswerRequired && args.responsePlan.directAnswerTemplate) {
+    const tokens = args.responsePlan.directAnswerTemplate
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((token) => token.length >= 5);
+    if (tokens.some((token) => args.reply.toLowerCase().includes(token))) {
+      score += 10;
+    }
+  }
+
+  if (args.responsePlan.requestType === "GREETING" && /ada yang bisa kami bantu/i.test(args.reply)) {
+    score += 10;
+  }
+
+  return clampScore(score);
+}
+
+function calculateCatalogCoverageScore(responsePlan: ResponsePlan | null): number {
+  if (!responsePlan) return 70;
+  if (responsePlan.requestType !== "CATALOG_DISCOVERY" && responsePlan.requestType !== "DESTINATION_DISCOVERY") {
+    return 80;
+  }
+  if (responsePlan.catalogResults.length === 0) return 45;
+  return clampScore(70 + Math.min(25, responsePlan.catalogResults.length * 5));
+}
+
+function calculateInterrogationAvoidanceScore(args: {
+  reply: string;
+  responsePlan: ResponsePlan | null;
+}): number {
+  if (!args.responsePlan) return 75;
+  let score = 85;
+
+  if (detectInterrogation(args.reply, args.responsePlan)) {
+    score -= 40;
+  }
+
+  if (
+    (args.responsePlan.catalogResults?.length ?? 0) > 0 &&
+    isQuestionOnlyResponse(args.reply)
+  ) {
+    score -= 35;
+  }
+
+  return clampScore(score);
+}
+
+function calculateCorrectProductResolutionScore(args: {
+  responsePlan: ResponsePlan | null;
+  customerMessage: string;
+}): number {
+  if (!args.responsePlan) return 75;
+  if (detectWrongEntity(args.responsePlan, args.customerMessage)) {
+    return 20;
+  }
+  if (args.responsePlan.destinationMatchType === "no_match" && args.responsePlan.selectedEntity) {
+    return 25;
+  }
+  return 85;
 }
 
 function calculateKnowledgeScore(args: {
@@ -277,16 +372,246 @@ function calculateNaturalnessScore(args: {
   return clampScore(score);
 }
 
+function calculateGroundednessScore(args: {
+  reply: string;
+  responsePlan: ResponsePlan | null;
+  planValidation: PlanValidationResult | null;
+  preview: PlaygroundPreviewResult;
+}): number {
+  if (!args.responsePlan || !args.planValidation) {
+    return 70;
+  }
+
+  let score = 85;
+
+  if (args.planValidation.unsupportedClaimDetected) {
+    score -= 55;
+  }
+
+  if (args.responsePlan.directAnswerRequired && !args.planValidation.directAnswerPresent) {
+    score -= 30;
+  }
+
+  if (args.responsePlan.handoffRequired && !args.planValidation.handoffPreserved) {
+    score -= 35;
+  }
+
+  if (args.responsePlan.attachmentAction && !args.planValidation.attachmentPreserved) {
+    score -= 25;
+  }
+
+  if (args.responsePlan.groundedSourceCount > 0 && args.preview.sourceLabels.length === 0) {
+    score -= 15;
+  } else if (args.responsePlan.groundedSourceCount > 0) {
+    score += Math.min(10, args.responsePlan.groundedSourceCount * 3);
+  }
+
+  if (args.planValidation.answerFirstPassed) {
+    score += 8;
+  }
+
+  return clampScore(score);
+}
+
+function calculateAnswerRelevanceScore(args: {
+  reply: string;
+  customerMessage: string;
+  responsePlan: ResponsePlan | null;
+  planValidation: PlanValidationResult | null;
+}): number {
+  if (!args.responsePlan || !args.planValidation) {
+    const customerTokens = new Set(tokenize(args.customerMessage));
+    const replyTokens = tokenize(args.reply);
+    const overlap = replyTokens.filter((token) => customerTokens.has(token)).length;
+    return clampScore(65 + Math.min(20, overlap * 5));
+  }
+
+  let score = 80;
+
+  if (args.responsePlan.directAnswerRequired && !args.planValidation.directAnswerPresent) {
+    score -= 40;
+  }
+
+  if (args.planValidation.violations.includes("follow_up_before_answer")) {
+    score -= 35;
+  }
+
+  if (args.planValidation.violations.includes("too_many_follow_up_questions")) {
+    score -= 20;
+  }
+
+  if (
+    args.responsePlan.responseAction === "ASK_ONE_CLARIFYING_QUESTION" &&
+    args.reply.includes("?")
+  ) {
+    score += 8;
+  }
+
+  if (args.responsePlan.handoffRequired && args.planValidation.handoffPreserved) {
+    score += 12;
+  }
+
+  if (args.planValidation.answerFirstPassed) {
+    score += 10;
+  }
+
+  return clampScore(score);
+}
+
+function buildGroundingDiagnostics(args: {
+  responsePlan: ResponsePlan | null;
+  rawPlanValidation: PlanValidationResult | null;
+  planValidation: PlanValidationResult | null;
+  preview: PlaygroundPreviewResult;
+  rawReply?: string | null;
+  customerMessage?: string;
+}): PlaygroundGroundingDiagnostics | undefined {
+  if (!args.responsePlan) {
+    return undefined;
+  }
+
+  return {
+    requestType: args.responsePlan.requestType,
+    selectedEntity: args.responsePlan.selectedEntity?.displayName ?? null,
+    selectedEntitySource: args.responsePlan.selectedEntity?.selectionSource ?? null,
+    interpretedPeriod: args.responsePlan.interpretedPeriod,
+    answerability: args.responsePlan.answerability,
+    responseAction: args.responsePlan.responseAction,
+    directAnswerRequired: args.responsePlan.directAnswerRequired,
+    directAnswerPresent: args.planValidation?.directAnswerPresent ?? false,
+    answerFirstPassed: args.planValidation?.answerFirstPassed ?? false,
+    verifiedFactCount: args.responsePlan.verifiedFacts.length,
+    groundedSourceCount: args.responsePlan.groundedSourceCount,
+    unsupportedClaimDetected:
+      args.rawPlanValidation?.unsupportedClaimDetected ??
+      args.planValidation?.unsupportedClaimDetected ??
+      false,
+    unsupportedClaimType:
+      args.rawPlanValidation?.unsupportedClaimType ??
+      args.planValidation?.unsupportedClaimType ??
+      null,
+    handoffRequired: args.responsePlan.handoffRequired,
+    handoffPreserved: args.planValidation?.handoffPreserved ?? true,
+    attachmentRequired: Boolean(args.responsePlan.attachmentAction),
+    attachmentPreserved: args.planValidation?.attachmentPreserved ?? true,
+    followUpQuestionKey: args.responsePlan.followUpQuestionKey,
+    deterministicFallbackUsed: args.planValidation?.usedDeterministicFallback ?? false,
+    rawModelReplyPreview: args.rawReply?.slice(0, 120) ?? null,
+    finalReplyPreview: args.preview.aiReply.slice(0, 120),
+    greetingAllowed: args.responsePlan.greetingAllowed,
+    greetingType: args.responsePlan.greetingType,
+    companyNameUsed: args.responsePlan.companyNameUsed,
+    catalogQueryType: args.responsePlan.catalogQueryType,
+    catalogQueryValue: args.responsePlan.catalogQueryValue,
+    catalogResultCount: args.responsePlan.catalogResults.length,
+    catalogEntityIds: args.responsePlan.catalogResults.map((item) => item.entityId),
+    selectionConfidence: args.responsePlan.selectionConfidence,
+    destinationMatchType: args.responsePlan.destinationMatchType,
+    priceFieldsFound: args.responsePlan.priceFieldsFound,
+    hospitalityPassed: passesHospitalityTone(args.preview.aiReply),
+    interrogationDetected: detectInterrogation(args.preview.aiReply, args.responsePlan),
+    wrongEntityDetected: detectWrongEntity(args.responsePlan, args.customerMessage ?? ""),
+  };
+}
+
+function applyHardScoreCaps(args: {
+  breakdown: PlaygroundAiScore["breakdown"];
+  responsePlan: ResponsePlan | null;
+  rawPlanValidation: PlanValidationResult | null;
+  planValidation: PlanValidationResult | null;
+  reply: string;
+  customerMessage: string;
+}): PlaygroundAiScore["breakdown"] {
+  if (!args.responsePlan) {
+    return args.breakdown;
+  }
+
+  let { overall, answerRelevance, modelGeneration, tone } = args.breakdown;
+
+  const rawValidation = args.rawPlanValidation ?? args.planValidation;
+  if (rawValidation?.unsupportedClaimDetected) {
+    modelGeneration = Math.min(modelGeneration, 40);
+    overall = Math.min(overall, 40);
+  }
+
+  if (args.responsePlan.handoffRequired && rawValidation && !rawValidation.handoffPreserved) {
+    modelGeneration = Math.min(modelGeneration, 50);
+    overall = Math.min(overall, 50);
+  }
+
+  if (
+    args.responsePlan.directAnswerRequired &&
+    rawValidation &&
+    !rawValidation.directAnswerPresent
+  ) {
+    modelGeneration = Math.min(modelGeneration, 60);
+    overall = Math.min(overall, 60);
+  }
+
+  if (rawValidation?.violations.includes("follow_up_before_answer")) {
+    answerRelevance = Math.min(answerRelevance, 50);
+  }
+
+  if (detectWrongEntity(args.responsePlan, args.customerMessage)) {
+    overall = Math.min(overall, 30);
+  }
+
+  if (
+    (args.responsePlan.catalogResults?.length ?? 0) > 0 &&
+    containsBannedInterrogationPhrase(args.reply)
+  ) {
+    overall = Math.min(overall, 50);
+  }
+
+  if (
+    (args.responsePlan.catalogResults?.length ?? 0) > 0 &&
+    ["CATALOG_DISCOVERY", "DESTINATION_DISCOVERY"].includes(args.responsePlan.requestType) &&
+    !args.responsePlan.catalogResults.some((item) =>
+      args.reply.toLowerCase().includes(item.displayName.toLowerCase().slice(0, 10)),
+    )
+  ) {
+    overall = Math.min(overall, 50);
+  }
+
+  if (
+    (args.responsePlan.catalogResults?.length ?? 0) > 0 &&
+    isQuestionOnlyResponse(args.reply)
+  ) {
+    overall = Math.min(overall, 55);
+  }
+
+  if (containsBannedInterrogationPhrase(args.reply)) {
+    tone = Math.min(tone, 50);
+    overall = Math.min(overall, 55);
+  }
+
+  return {
+    ...args.breakdown,
+    overall,
+    answerRelevance,
+    modelGeneration,
+    tone,
+  };
+}
+
 export type CalculatePlaygroundAiScoreInput = {
   result: Omit<PlaygroundTestResult, "aiScore">;
   customerMessage: string;
   conversationHistory: WhatsAppConversationTurn[];
+  responsePlan?: ResponsePlan | null;
+  planValidation?: PlanValidationResult | null;
+  rawPlanValidation?: PlanValidationResult | null;
+  rawReply?: string | null;
 };
 
 export function calculatePlaygroundAiScore(
   input: CalculatePlaygroundAiScoreInput,
 ): PlaygroundAiScore {
   const { result, customerMessage, conversationHistory } = input;
+  const responsePlan = input.responsePlan ?? null;
+  const planValidation = input.planValidation ?? null;
+  const rawPlanValidation = input.rawPlanValidation ?? null;
+  const rawReply = input.rawReply ?? null;
   const reply = result.preview.aiReply;
   const hasPriorReplies = hasPriorBusinessReplies(conversationHistory);
   const inspectorView = buildPlaygroundInspectorView(result);
@@ -312,20 +637,85 @@ export function calculatePlaygroundAiScore(
       leadQualification: result.leadQualification,
     }),
     naturalness: calculateNaturalnessScore({ reply, hasPriorReplies }),
+    groundedness: calculateGroundednessScore({
+      reply,
+      responsePlan,
+      planValidation,
+      preview: result.preview,
+    }),
+    answerRelevance: calculateAnswerRelevanceScore({
+      reply,
+      customerMessage,
+      responsePlan,
+      planValidation,
+    }),
+    modelGeneration: calculateGroundednessScore({
+      reply: rawReply ?? reply,
+      responsePlan,
+      planValidation: rawPlanValidation ?? planValidation,
+      preview: result.preview,
+    }),
+    finalDeliverySafety: calculateGroundednessScore({
+      reply,
+      responsePlan,
+      planValidation,
+      preview: result.preview,
+    }),
     overall: 0,
   };
 
+  const usePlanScoring = Boolean(responsePlan && planValidation);
+
+  const hospitalityScore = calculateHospitalityScore(reply);
+  const usefulnessScore = calculateUsefulnessScore({ reply, responsePlan });
+  const catalogCoverageScore = calculateCatalogCoverageScore(responsePlan);
+  const interrogationScore = calculateInterrogationAvoidanceScore({ reply, responsePlan });
+  const productResolutionScore = calculateCorrectProductResolutionScore({
+    responsePlan,
+    customerMessage,
+  });
+
   breakdown.overall = clampScore(
-    breakdown.tone * 0.15 +
-      breakdown.knowledge * 0.25 +
-      breakdown.ruleCompliance * 0.25 +
-      breakdown.completeness * 0.2 +
-      breakdown.naturalness * 0.15,
+    usePlanScoring
+      ? breakdown.finalDeliverySafety * 0.25 +
+          breakdown.answerRelevance * 0.15 +
+          breakdown.modelGeneration * 0.1 +
+          breakdown.ruleCompliance * 0.1 +
+          breakdown.completeness * 0.08 +
+          hospitalityScore * 0.1 +
+          usefulnessScore * 0.12 +
+          catalogCoverageScore * 0.05 +
+          interrogationScore * 0.05 +
+          productResolutionScore * 0.1
+      : breakdown.tone * 0.15 +
+          breakdown.knowledge * 0.25 +
+          breakdown.ruleCompliance * 0.25 +
+          breakdown.completeness * 0.2 +
+          breakdown.naturalness * 0.15,
   );
 
-  return {
+  const cappedBreakdown = applyHardScoreCaps({
     breakdown,
-    overallLabel: playgroundAiScoreLabel(breakdown.overall),
-    dimensionLabels: labelPlaygroundAiScoreBreakdown(breakdown),
+    responsePlan,
+    rawPlanValidation,
+    planValidation,
+    reply,
+    customerMessage,
+  });
+
+  return {
+    breakdown: cappedBreakdown,
+    overallLabel: playgroundAiScoreLabel(cappedBreakdown.overall),
+    finalDeliveryLabel: playgroundAiScoreLabel(cappedBreakdown.finalDeliverySafety),
+    modelGenerationLabel: playgroundAiScoreLabel(cappedBreakdown.modelGeneration),
+    dimensionLabels: labelPlaygroundAiScoreBreakdown(cappedBreakdown),
+    groundingDiagnostics: buildGroundingDiagnostics({
+      responsePlan,
+      rawPlanValidation,
+      planValidation,
+      preview: result.preview,
+      rawReply,
+      customerMessage,
+    }),
   };
 }

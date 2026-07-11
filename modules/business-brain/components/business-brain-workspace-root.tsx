@@ -103,6 +103,8 @@ function WorkspacePanels({ data }: { data: BusinessBrainWorkspaceData }) {
           initialAvailableContext={data.playground.availableContext}
           initialSavedExamples={data.playground.savedExamples}
           initialSavedTestSessions={data.playground.savedTestSessions}
+          initialActiveSessionId={data.playground.activeSessionId}
+          initialActiveSession={data.playground.activeSession}
           canEdit={data.playground.canEdit}
           llmConfigured={data.playground.llmConfigured}
           health={data.overview.health}

@@ -3,6 +3,12 @@
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
 import { MarketingEyebrow, MarketingH3 } from "@/components/marketing/design-system/typography";
 import {
+  MotionReveal,
+  MotionScene,
+  MotionSectionGroup,
+  MotionSectionItem,
+} from "@/components/marketing/motion";
+import {
   AuroraAssistScene,
   CustomerTimelineScene,
   OperationsWorkspaceScene,
@@ -23,9 +29,11 @@ function ProblemVisual({ variant }: { variant: ProblemVisualVariant }) {
   const Scene = SCENES[variant];
 
   return (
-    <div className={cn("min-h-[280px] sm:min-h-[340px] lg:min-h-[400px]")}>
-      <Scene compact />
-    </div>
+    <MotionScene>
+      <div className={cn("min-h-[280px] sm:min-h-[340px] lg:min-h-[400px]")}>
+        <Scene compact />
+      </div>
+    </MotionScene>
   );
 }
 
@@ -53,28 +61,33 @@ export function ProblemSolutionRow({
         reverse && "lg:[&>*:first-child]:order-2",
       )}
     >
-      <div className="min-w-0 lg:py-4">
-        <MarketingEyebrow className="text-[var(--marketing-error)]/80">
-          Problem
-        </MarketingEyebrow>
-        <MarketingH3 as="h3" className="mt-3">
-          {problem}
-        </MarketingH3>
-        <p className="mt-4 text-base leading-relaxed text-[var(--marketing-muted)] sm:text-lg">
-          {problemDetail}
-        </p>
-
-        <div className={cn("mt-8 p-5 sm:p-6", marketingColorClasses.solutionCallout)}>
-          <p className="text-base font-semibold text-[var(--marketing-primary-muted-foreground)]">
-            {solution}
+      <MotionSectionGroup className="min-w-0 lg:py-4" viewport="large">
+        <MotionSectionItem>
+          <MarketingEyebrow className="text-[var(--marketing-error)]/80">
+            Problem
+          </MarketingEyebrow>
+          <MarketingH3 as="h3" className="mt-3">
+            {problem}
+          </MarketingH3>
+          <p className="mt-4 text-base leading-relaxed text-[var(--marketing-muted)] sm:text-lg">
+            {problemDetail}
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--marketing-muted)] sm:text-base">
-            {solutionDetail}
-          </p>
-        </div>
-      </div>
+        </MotionSectionItem>
+        <MotionSectionItem>
+          <div className={cn("mt-8 p-5 sm:p-6", marketingColorClasses.solutionCallout)}>
+            <p className="text-base font-semibold text-[var(--marketing-primary-muted-foreground)]">
+              {solution}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--marketing-muted)] sm:text-base">
+              {solutionDetail}
+            </p>
+          </div>
+        </MotionSectionItem>
+      </MotionSectionGroup>
 
-      <ProblemVisual variant={visualVariant} />
+      <MotionReveal direction={reverse ? "left" : "right"} viewport="large" delay={80}>
+        <ProblemVisual variant={visualVariant} />
+      </MotionReveal>
     </div>
   );
 }

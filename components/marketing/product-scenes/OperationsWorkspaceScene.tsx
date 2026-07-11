@@ -1,5 +1,6 @@
 "use client";
 
+import { SceneMotionLayer } from "@/components/marketing/motion/SceneMotionLayer";
 import { SceneAvatar, SceneBadge } from "@/components/marketing/product-scenes/primitives/SceneAvatar";
 import { ScenePanel } from "@/components/marketing/product-scenes/primitives/ScenePanel";
 import { SceneWindow } from "@/components/marketing/product-scenes/primitives/SceneWindow";
@@ -20,58 +21,67 @@ export function OperationsWorkspaceScene({ className, compact, dark }: { classNa
   const surface = dark ? sceneStyles.darkSurface : sceneStyles.secondarySurface;
   const activeSurface = dark ? sceneStyles.darkSurface : sceneStyles.activeSurface;
 
+  const summary = [
+    { title: locale === "id" ? "Pipeline" : "Pipeline", value: "Proposal" },
+    { title: locale === "id" ? "Owner" : "Owner", value: "Sales team" },
+    { title: locale === "id" ? "Payment" : "Payment", value: locale === "id" ? "Pending review" : "Pending review" },
+  ];
+
   return (
     <SceneWindow className={className} label="Operations workspace" glow={!dark}>
       <div className={cn(sceneStyles.canvas, "m-2 p-3 sm:m-3 sm:p-4", compact && "p-2.5", dark && "border-0 bg-transparent")}>
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <SceneAvatar name={SCENE_CUSTOMER} size="sm" />
-            <div>
-              <p className={cn(textClass, "text-sm")}>{SCENE_CUSTOMER}</p>
-              <p className={labelClass}>{locale === "id" ? "Operasi terhubung" : "Connected operation"}</p>
+        <SceneMotionLayer delay={0}>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <SceneAvatar name={SCENE_CUSTOMER} size="sm" />
+              <div>
+                <p className={cn(textClass, "text-sm")}>{SCENE_CUSTOMER}</p>
+                <p className={labelClass}>{locale === "id" ? "Operasi terhubung" : "Connected operation"}</p>
+              </div>
             </div>
+            <SceneBadge tone="warning">{locale === "id" ? "In progress" : "In progress"}</SceneBadge>
           </div>
-          <SceneBadge tone="warning">{locale === "id" ? "In progress" : "In progress"}</SceneBadge>
-        </div>
+        </SceneMotionLayer>
 
         <div className="grid gap-2 sm:grid-cols-3">
-          {[
-            { title: locale === "id" ? "Pipeline" : "Pipeline", value: "Proposal" },
-            { title: locale === "id" ? "Owner" : "Owner", value: "Sales team" },
-            { title: locale === "id" ? "Payment" : "Payment", value: locale === "id" ? "Pending review" : "Pending review" },
-          ].map((item) => (
-            <div key={item.title} className={cn(surface, "px-2.5 py-2")}>
-              <p className={labelClass}>{item.title}</p>
-              <p className={cn(textClass, "mt-0.5 text-sm")}>{item.value}</p>
-            </div>
+          {summary.map((item, index) => (
+            <SceneMotionLayer key={item.title} delay={120 + index * 80}>
+              <div className={cn(surface, "px-2.5 py-2")}>
+                <p className={labelClass}>{item.title}</p>
+                <p className={cn(textClass, "mt-0.5 text-sm")}>{item.value}</p>
+              </div>
+            </SceneMotionLayer>
           ))}
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {OPS_COLUMNS.map((column) => (
-            <ScenePanel
-              key={column.title}
-              padding="compact"
-              title={column.title}
-              className={column.active ? activeSurface : surface}
-            >
-              <p className={cn(labelClass, "font-medium")}>{column.status}</p>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--marketing-border-default)]">
-                <div
-                  className={cn(
-                    "h-full rounded-full",
-                    column.active ? "bg-[var(--marketing-primary)]" : "bg-[var(--marketing-border-strong)]",
-                  )}
-                  style={{ width: `${column.progress}%` }}
-                />
-              </div>
-            </ScenePanel>
+          {OPS_COLUMNS.map((column, index) => (
+            <SceneMotionLayer key={column.title} delay={360 + index * 100}>
+              <ScenePanel
+                padding="compact"
+                title={column.title}
+                className={column.active ? activeSurface : surface}
+              >
+                <p className={cn(labelClass, "font-medium")}>{column.status}</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--marketing-border-default)]">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      column.active ? "bg-[var(--marketing-primary)]" : "bg-[var(--marketing-border-strong)]",
+                    )}
+                    style={{ width: `${column.progress}%` }}
+                  />
+                </div>
+              </ScenePanel>
+            </SceneMotionLayer>
           ))}
         </div>
 
-        <p className={cn(labelClass, "mt-3")}>
-          {locale === "id" ? "Tim melihat status yang sama" : "Team sees the same status"}
-        </p>
+        <SceneMotionLayer delay={680}>
+          <p className={cn(labelClass, "mt-3")}>
+            {locale === "id" ? "Tim melihat status yang sama" : "Team sees the same status"}
+          </p>
+        </SceneMotionLayer>
       </div>
     </SceneWindow>
   );

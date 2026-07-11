@@ -36,7 +36,13 @@ export function parseWhatsAppSalesLlmResponse(
   }
 
   const record = data as Record<string, unknown>;
-  if (typeof record.reply !== "string" || !record.reply.trim()) {
+  const replyText =
+    typeof record.reply === "string"
+      ? record.reply
+      : typeof record.replyText === "string"
+        ? record.replyText
+        : "";
+  if (!replyText.trim()) {
     return null;
   }
 
@@ -72,14 +78,40 @@ export function parseWhatsAppSalesLlmResponse(
       : documentActionsFromActions;
 
   return {
-    reply: record.reply.trim(),
+    reply: replyText.trim(),
     handoffRequired: record.handoffRequired === true,
     handoffReason:
       typeof record.handoffReason === "string" ? record.handoffReason.trim() || null : null,
     confidence: normalizeConfidence(record.confidence),
     suggestedActions: asStringArray(record.suggestedActions),
     usedSources: asStringArray(record.usedSources),
+    missingInformation: asStringArray(record.missingInformation),
+    suggestedNextStep:
+      typeof record.suggestedNextStep === "string"
+        ? record.suggestedNextStep.trim() || null
+        : null,
+    intent: typeof record.intent === "string" ? record.intent.trim() : "",
     documentActions,
     actions,
+    directAnswer:
+      typeof record.directAnswer === "string" ? record.directAnswer.trim() || null : null,
+    supportingExplanation:
+      typeof record.supportingExplanation === "string"
+        ? record.supportingExplanation.trim() || null
+        : null,
+    followUpQuestion:
+      typeof record.followUpQuestion === "string"
+        ? record.followUpQuestion.trim() || null
+        : null,
+    followUpQuestionKey:
+      typeof record.followUpQuestionKey === "string"
+        ? record.followUpQuestionKey.trim() || null
+        : null,
+    requestType: typeof record.requestType === "string" ? record.requestType.trim() || null : null,
+    answerability:
+      typeof record.answerability === "string" ? record.answerability.trim() || null : null,
+    responseAction:
+      typeof record.responseAction === "string" ? record.responseAction.trim() || null : null,
+    attachmentIds: asStringArray(record.attachmentIds),
   };
 }

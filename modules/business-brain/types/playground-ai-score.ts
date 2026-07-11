@@ -7,12 +7,59 @@ export type PlaygroundAiScoreBreakdown = {
   ruleCompliance: number;
   completeness: number;
   naturalness: number;
+  groundedness: number;
+  answerRelevance: number;
+  modelGeneration: number;
+  finalDeliverySafety: number;
+};
+
+export type PlaygroundGroundingDiagnostics = {
+  requestType: string | null;
+  selectedEntity: string | null;
+  selectedEntitySource: string | null;
+  interpretedPeriod: string | null;
+  answerability: string | null;
+  responseAction: string | null;
+  directAnswerRequired: boolean;
+  directAnswerPresent: boolean;
+  answerFirstPassed: boolean;
+  verifiedFactCount: number;
+  groundedSourceCount: number;
+  unsupportedClaimDetected: boolean;
+  unsupportedClaimType: string | null;
+  handoffRequired: boolean;
+  handoffPreserved: boolean;
+  attachmentRequired: boolean;
+  attachmentPreserved: boolean;
+  followUpQuestionKey: string | null;
+  deterministicFallbackUsed: boolean;
+  rawModelReplyPreview: string | null;
+  finalReplyPreview: string | null;
+  greetingAllowed?: boolean;
+  greetingType?: string | null;
+  companyNameUsed?: string | null;
+  catalogQueryType?: string | null;
+  catalogQueryValue?: string | null;
+  catalogResultCount?: number;
+  catalogEntityIds?: string[];
+  selectionConfidence?: number | null;
+  destinationMatchType?: string | null;
+  priceFieldsFound?: number;
+  hospitalityPassed?: boolean;
+  interrogationDetected?: boolean;
+  wrongEntityDetected?: boolean;
 };
 
 export type PlaygroundAiScore = {
   breakdown: PlaygroundAiScoreBreakdown;
   overallLabel: PlaygroundAiScoreLabel;
-  dimensionLabels: Record<keyof Omit<PlaygroundAiScoreBreakdown, "overall">, PlaygroundAiScoreLabel>;
+  finalDeliveryLabel: PlaygroundAiScoreLabel;
+  modelGenerationLabel: PlaygroundAiScoreLabel;
+  dimensionLabels: Record<
+    keyof Omit<PlaygroundAiScoreBreakdown, "overall" | "modelGeneration" | "finalDeliverySafety">,
+    PlaygroundAiScoreLabel
+  >;
+  groundingDiagnostics?: PlaygroundGroundingDiagnostics;
 };
 
 export function playgroundAiScoreLabel(score: number): PlaygroundAiScoreLabel {
@@ -40,5 +87,7 @@ export function labelPlaygroundAiScoreBreakdown(
     ruleCompliance: playgroundAiScoreLabel(breakdown.ruleCompliance),
     completeness: playgroundAiScoreLabel(breakdown.completeness),
     naturalness: playgroundAiScoreLabel(breakdown.naturalness),
+    groundedness: playgroundAiScoreLabel(breakdown.groundedness),
+    answerRelevance: playgroundAiScoreLabel(breakdown.answerRelevance),
   };
 }

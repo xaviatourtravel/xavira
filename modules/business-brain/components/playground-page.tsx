@@ -3,7 +3,10 @@
 import { useCallback, useState } from "react";
 
 import { saveBrainTestSessionAction } from "@/modules/business-brain/actions/brain-test-session-actions";
-import { runPlaygroundTestAction } from "@/modules/business-brain/actions/playground-actions";
+import {
+  resetPlaygroundConversationAction,
+  runPlaygroundTestAction,
+} from "@/modules/business-brain/actions/playground-actions";
 import {
   BusinessBrainContentShell,
 } from "@/modules/business-brain/components/business-brain-content-shell";
@@ -33,6 +36,12 @@ type PlaygroundPageClientProps = {
   initialAvailableContext: PlaygroundAvailableContext;
   initialSavedExamples: PlaygroundSavedExample[];
   initialSavedTestSessions: BrainTestSessionRecord[];
+  initialActiveSessionId: string | null;
+  initialActiveSession: {
+    id: string;
+    conversation: SimulatorChatMessage[];
+    inspector: PlaygroundTestResult | null;
+  } | null;
   canEdit: boolean;
   llmConfigured: boolean;
   health: BusinessBrainHealth;
@@ -69,17 +78,27 @@ export function PlaygroundPageClient({
   health,
   knowledgeCoverage,
   initialSavedTestSessions,
+  initialActiveSessionId,
+  initialActiveSession,
 }: PlaygroundPageClientProps) {
   const { tStrict } = useTranslation();
-  const [messages, setMessages] = useState<SimulatorChatMessage[]>([]);
+  const [messages, setMessages] = useState<SimulatorChatMessage[]>(
+    initialActiveSession?.conversation ?? [],
+  );
   const [draftMessage, setDraftMessage] = useState("");
-  const [testResult, setTestResult] = useState<PlaygroundTestResult | null>(null);
+  const [testResult, setTestResult] = useState<PlaygroundTestResult | null>(
+    initialActiveSession?.inspector ?? null,
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("simulator");
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>(
+    initialActiveSession?.conversation.length ? "inspector" : "simulator",
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSessions, setSavedSessions] = useState(initialSavedTestSessions);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(
+    initialActiveSession?.id ?? initialActiveSessionId,
+  );
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
 
   const hasAiReply = messages.some((message) => message.role === "ai");
@@ -111,6 +130,7 @@ export function PlaygroundPageClient({
       const response = await runPlaygroundTestAction({
         customerMessage: trimmedMessage,
         conversationHistory: toConversationHistory(priorMessages),
+        sessionId: activeSessionId,
       });
 
       if (!response.ok || !response.result) {
@@ -130,6 +150,10 @@ export function PlaygroundPageClient({
         aiScore: response.result.aiScore,
       };
 
+      if ("sessionId" in response.result && response.result.sessionId) {
+        setActiveSessionId(response.result.sessionId);
+      }
+
       const fullMessages = [...withCustomer, aiEntry];
       setMessages(fullMessages);
       setTestResult(response.result);
@@ -140,7 +164,7 @@ export function PlaygroundPageClient({
         result: response.result,
       };
     },
-    [tStrict],
+    [tStrict, activeSessionId],
   );
 
   const runSingleTurn = useCallback(
@@ -198,6 +222,7 @@ export function PlaygroundPageClient({
       setActiveScenarioId(scenarioId);
       setErrorMessage(null);
       setDraftMessage("");
+      void resetPlaygroundConversationAction();
       setMessages([]);
       setTestResult(null);
       setMobilePanel("simulator");
@@ -229,6 +254,7 @@ export function PlaygroundPageClient({
       return;
     }
 
+    void resetPlaygroundConversationAction(activeSessionId ?? undefined);
     setMessages([]);
     setTestResult(null);
     setDraftMessage("");

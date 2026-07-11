@@ -1,6 +1,11 @@
 "use client";
 
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
+import {
+  MotionScene,
+  MotionSectionGroup,
+  MotionSectionItem,
+} from "@/components/marketing/motion";
 import { PlatformCoreScene } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 
@@ -9,12 +14,18 @@ export function HomePlatformCoreSection() {
 
   return (
     <MarketingSection id="platform" rhythm="compact">
-      <MarketingSectionHeader
-        title={content.platformCore.title}
-        description={content.platformCore.description}
-      />
+      <MotionSectionGroup viewport="large">
+        <MotionSectionItem>
+          <MarketingSectionHeader
+            title={content.platformCore.title}
+            description={content.platformCore.description}
+          />
+        </MotionSectionItem>
+      </MotionSectionGroup>
 
-      <PlatformCoreScene modules={content.platformCore.modules} className="mt-12 lg:mt-14" />
+      <MotionScene className="mt-12 lg:mt-14">
+        <PlatformCoreScene modules={content.platformCore.modules} />
+      </MotionScene>
     </MarketingSection>
   );
 }

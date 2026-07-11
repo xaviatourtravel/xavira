@@ -2,6 +2,7 @@
 
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
 import { ProblemSolutionRow } from "@/components/marketing/problems/ProblemSolutionRow";
+import { MotionSectionGroup, MotionSectionItem } from "@/components/marketing/motion";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 
 const VISUAL_VARIANTS = ["inbox", "crm", "operations", "automation"] as const;
@@ -11,7 +12,11 @@ export function HomeProblemsSection() {
 
   return (
     <MarketingSection tone="muted" rhythm="large">
-      <MarketingSectionHeader title={content.problems.title} />
+      <MotionSectionGroup>
+        <MotionSectionItem>
+          <MarketingSectionHeader title={content.problems.title} />
+        </MotionSectionItem>
+      </MotionSectionGroup>
 
       <div className="mt-14 space-y-20 lg:space-y-24">
         {content.problems.items.map((item, index) => (

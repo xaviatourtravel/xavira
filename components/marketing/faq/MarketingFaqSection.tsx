@@ -2,6 +2,7 @@
 
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
+import { MotionSectionGroup, MotionSectionItem } from "@/components/marketing/motion";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +11,11 @@ export function MarketingFaqSection() {
 
   return (
     <MarketingSection id="faq" tone="muted" rhythm="compact">
-      <MarketingSectionHeader title={content.faq.title} />
+      <MotionSectionGroup minimal viewport="small">
+        <MotionSectionItem>
+          <MarketingSectionHeader title={content.faq.title} />
+        </MotionSectionItem>
+      </MotionSectionGroup>
 
       <div
         className={cn(
@@ -29,7 +34,7 @@ export function MarketingFaqSection() {
             >
               {item.question}
               <span
-                className="shrink-0 text-xl text-[var(--marketing-muted-foreground)] transition-transform group-open:rotate-45"
+                className="shrink-0 text-xl text-[var(--marketing-muted-foreground)] transition-transform duration-[var(--marketing-duration-fast)] ease-[var(--marketing-ease-standard)] group-open:rotate-45"
                 aria-hidden
               >
                 +

@@ -73,6 +73,8 @@ export type TestAiDictionary = {
   ruleCompliance: string;
   completeness: string;
   naturalness: string;
+  groundedness: string;
+  answerRelevance: string;
   scoreExcellent: string;
   scoreGood: string;
   scoreNeedsImprovement: string;
@@ -290,6 +292,8 @@ const testAiId: TestAiDictionary = {
   ruleCompliance: "Kepatuhan Rules",
   completeness: "Kelengkapan",
   naturalness: "Naturalitas",
+  groundedness: "Grounding",
+  answerRelevance: "Relevansi Jawaban",
   scoreExcellent: "Sangat Baik",
   scoreGood: "Baik",
   scoreNeedsImprovement: "Perlu Perbaikan",
@@ -358,6 +362,8 @@ const testAiEn: TestAiDictionary = {
   ruleCompliance: "Rule Compliance",
   completeness: "Completeness",
   naturalness: "Naturalness",
+  groundedness: "Groundedness",
+  answerRelevance: "Answer Relevance",
   scoreExcellent: "Excellent",
   scoreGood: "Good",
   scoreNeedsImprovement: "Needs Improvement",

@@ -61,6 +61,9 @@ const OUTPUT_CONTRACT_EXAMPLE: WhatsAppSalesLlmOutputContract = {
   confidence: 0.92,
   suggestedActions: [],
   usedSources: ["Product: Yunnan", "Knowledge: China Muslim Tour FAQ"],
+  missingInformation: [],
+  suggestedNextStep: null,
+  intent: "PACKAGE_INQUIRY",
   documentActions: [],
   actions: [
     {

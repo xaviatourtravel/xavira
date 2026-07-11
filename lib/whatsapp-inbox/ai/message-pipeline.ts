@@ -3,6 +3,24 @@ import { improveReplyQuality } from "@/modules/ai/services/ai-reply-quality-guar
 import { memoryService } from "@/modules/ai/services/memory-service";
 import { leadQualificationService } from "@/modules/ai/services/lead-qualification-service";
 import { retrieveRelevantContext } from "@/modules/ai/services/context-retrieval-engine";
+import { assessBusinessBrainCompleteness } from "@/modules/ai/prompt-compiler";
+import { isPromptCompilerV2Enabled } from "@/modules/ai/prompt-compiler/feature-flag";
+import {
+  buildLivePlanningInput,
+  buildResponsePlan,
+  buildPlanObservabilityMetadata,
+  applyValidatedReply,
+  executePlanDocumentDelivery,
+  DOCUMENT_DELIVERY_FAILURE_REPLY_ID,
+  isAnswerFirstV1Enabled,
+} from "@/modules/ai/response-planner";
+import type { ResponsePlan, PlanValidationResult } from "@/modules/ai/response-planner/types";
+import {
+  conversationStateService,
+  applyGreetingGuard,
+  isConversationStateV1Enabled,
+} from "@/modules/ai/conversation-state";
+import type { ConversationAiStateRecord } from "@/modules/ai/conversation-state";
 import { validateAIResponse } from "@/modules/ai/services/ai-safety-validator";
 import { normalizeAiConfidenceScore } from "@/modules/business-brain/lib/resolve-ai-source-labels";
 import { buildBusinessBrainContext } from "@/modules/business-brain/services/context-builder";
@@ -176,16 +194,18 @@ async function triggerLlmHandoff(
     reason: string;
     messageText: string;
     companyName: string;
+    handoffText?: string;
     batchMessageIds?: string[];
     transparency?: {
       usedSources: string[];
       confidence: number;
       handoffRequired: boolean;
     };
+    observability?: Record<string, unknown>;
   },
 ) {
   const handoffText = sanitizeAiReplyBranding(
-    aiReplyService.getHandoffReply(),
+    args.handoffText ?? aiReplyService.getHandoffReply(),
     args.messageText,
     args.companyName,
   );
@@ -204,6 +224,7 @@ async function triggerLlmHandoff(
       usedSources: args.transparency?.usedSources ?? [],
       confidence: args.transparency?.confidence ?? normalizeAiConfidenceScore(args.confidence),
       handoffRequired: args.transparency?.handoffRequired ?? true,
+      ...args.observability,
     },
   });
 
@@ -419,6 +440,22 @@ export async function processWhatsappAiMessagePipeline(
   });
 
   if (aiHandoffService.requiresHandoff(classification)) {
+    if (isConversationStateV1Enabled()) {
+      const earlyState = await conversationStateService.loadOrInitialize(supabase, {
+        workspaceId,
+        conversationId,
+        customerId: conversation.customer_id,
+        customerName: conversation.contact_name,
+        aiState: conversation.ai_state,
+        historyMessages,
+      });
+      await conversationStateService.updateAfterHandoff(supabase, {
+        state: earlyState,
+        handoffReason: classification.reason ?? "Intent requires human",
+        succeeded: false,
+      });
+    }
+
     await triggerLlmHandoff(supabase, {
       workspaceId,
       conversation,
@@ -433,6 +470,53 @@ export async function processWhatsappAiMessagePipeline(
     return;
   }
 
+  const hasPriorBusinessReplies = historyMessages.some(
+    (message) =>
+      message.direction === "outgoing" &&
+      (message.sender_type === "ai" || message.sender_type === "human"),
+  );
+  const isNewConversation = conversationHistory.length === 0;
+
+  let conversationAiState: ConversationAiStateRecord | null = null;
+  let conversationStatePromptContext = null;
+
+  if (isConversationStateV1Enabled()) {
+    conversationAiState = await conversationStateService.loadOrInitialize(supabase, {
+      workspaceId,
+      conversationId,
+      customerId: conversation.customer_id,
+      customerName: conversation.contact_name,
+      aiState: conversation.ai_state,
+      historyMessages,
+    });
+
+    conversationAiState = await conversationStateService.touchInboundMessage(
+      supabase,
+      conversationAiState,
+    );
+
+    conversationAiState = conversationStateService.mergeMemoryIntoState(
+      conversationAiState,
+      conversationMemory,
+      incomingMessageId,
+    );
+
+    conversationStatePromptContext = conversationStateService.buildPromptContext({
+      state: conversationAiState,
+      hasPriorBusinessReplies,
+      incomingMessage: messageText,
+      aiState: conversation.ai_state,
+      qualification: leadQualification,
+    });
+  }
+
+  const greetingObservability = conversationStatePromptContext
+    ? conversationStateService.buildObservabilityMetadata({
+        state: conversationAiState!,
+        promptContext: conversationStatePromptContext,
+      })
+    : {};
+
   await insertAiEvent(supabase, {
     workspaceId,
     conversationId,
@@ -444,6 +528,11 @@ export async function processWhatsappAiMessagePipeline(
       batchMessageIds,
       debounced: incomingMessages.length > 1,
       historyTurns: conversationHistory.length,
+      hasPriorBusinessReplies,
+      isNewConversation,
+      promptCompilerV2: isPromptCompilerV2Enabled(),
+      conversationStateV1: isConversationStateV1Enabled(),
+      ...greetingObservability,
     },
   });
 
@@ -468,6 +557,8 @@ export async function processWhatsappAiMessagePipeline(
     businessBrainContext: fullBusinessBrainContext,
   });
 
+  const businessBrainCompleteness = assessBusinessBrainCompleteness(fullBusinessBrainContext);
+
   await insertAiEvent(supabase, {
     workspaceId,
     conversationId,
@@ -486,12 +577,17 @@ export async function processWhatsappAiMessagePipeline(
       publishedVersionNumber: businessBrainMeta.publishedVersionNumber,
       businessBrainSource: businessBrainMeta.source,
       includeDraft: false,
+      businessBrainCompleteness,
       retrievedProductIds: retrievedContext.relevantProducts.map((item) => item.id),
       retrievedKnowledgeIds: retrievedContext.relevantArticles.map((item) => item.id),
       retrievedDocumentIds: retrievedContext.relevantDocuments.map((item) => item.id),
       appliedBehaviorIds: retrievedContext.relevantBehaviors.map((item) => item.id),
+      conversationHistoryCount: conversationHistory.length,
       batchMessageIds,
       debounced: incomingMessages.length > 1,
+      promptCompilerV2: isPromptCompilerV2Enabled(),
+      conversationStateV1: isConversationStateV1Enabled(),
+      ...greetingObservability,
     },
   });
 
@@ -512,14 +608,43 @@ export async function processWhatsappAiMessagePipeline(
     memory: conversationMemory,
   });
 
+  let responsePlan: ResponsePlan | null = null;
+  let planObservability: Record<string, unknown> = {};
+
+  if (isAnswerFirstV1Enabled()) {
+    const planningInput = buildLivePlanningInput({
+      workspaceId,
+      latestMessage: messageText,
+      recentHistory: conversationHistory,
+      intent: classification.intent,
+      conversationState: conversationAiState,
+      conversationStateContext: conversationStatePromptContext,
+      selectedEntity: conversationAiState?.selectedEntity ?? null,
+      publishedBusinessBrain: fullBusinessBrainContext,
+      retrievedContext,
+      memory: conversationMemory,
+      qualification: leadQualification,
+      timezone: workspaceProfile?.timezone,
+    });
+    responsePlan = buildResponsePlan(planningInput);
+    planObservability = buildPlanObservabilityMetadata(responsePlan);
+  }
+
   const llmResult = await aiLLMReplyService.generateWhatsAppReply({
     workspaceId,
     workspaceName: companyName,
     customerMessage: messageText,
     conversationHistory,
     retrievedContext,
+    fullBusinessBrainContext,
+    businessBrainMeta,
     conversationMemory,
     leadQualification,
+    intent: classification.intent,
+    hasPriorBusinessReplies,
+    isNewConversation,
+    conversationStateContext: conversationStatePromptContext,
+    responsePlan,
     contextSource: businessBrainMeta.source,
     runtimeContext: {
       timezone: workspaceProfile?.timezone,
@@ -533,6 +658,26 @@ export async function processWhatsappAiMessagePipeline(
     },
   });
 
+  const promptObservability = llmResult.promptMetadata
+    ? {
+        baseBrainVersion: llmResult.promptMetadata.baseBrainVersion,
+        promptCompilerVersion: llmResult.promptMetadata.promptCompilerVersion,
+        publishedVersionId: llmResult.promptMetadata.publishedVersionId,
+        publishedVersionNumber: llmResult.promptMetadata.publishedVersionNumber,
+        businessBrainSource: llmResult.promptMetadata.businessBrainSource,
+        includeDraft: llmResult.promptMetadata.includeDraft,
+        tenantRuleIds: llmResult.promptMetadata.tenantRuleIds,
+        businessBrainCompleteness: llmResult.promptMetadata.businessBrainCompleteness,
+        fallbackStrategy: llmResult.promptMetadata.fallbackStrategy,
+        conversationHistoryCount: llmResult.promptMetadata.conversationHistoryCount,
+        systemPromptLength: llmResult.promptMetadata.systemPromptLength,
+        userPromptLength: llmResult.promptMetadata.userPromptLength,
+      }
+    : {
+        promptCompilerV2: llmResult.promptCompilerV2,
+        businessBrainCompleteness,
+      };
+
   logPipeline("llm reply generated", {
     conversationId,
     incomingMessageId,
@@ -544,7 +689,44 @@ export async function processWhatsappAiMessagePipeline(
     error: llmResult.error,
   });
 
-  if (llmResult.handoffRequired) {
+  if (llmResult.handoffRequired || (isAnswerFirstV1Enabled() && responsePlan?.handoffRequired)) {
+    let handoffReplyText = sanitizeAiReplyBranding(
+      isAnswerFirstV1Enabled() && responsePlan?.directAnswerTemplate
+        ? responsePlan.directAnswerTemplate
+        : llmResult.reply.trim() || aiReplyService.getHandoffReply(),
+      messageText,
+      companyName,
+    );
+
+    if (isAnswerFirstV1Enabled() && responsePlan) {
+      const validatedHandoff = applyValidatedReply({
+        rawReply: handoffReplyText,
+        plan: responsePlan,
+        answerFirstEnabled: true,
+      });
+      handoffReplyText = validatedHandoff.finalReply;
+      if (validatedHandoff.finalValidation) {
+        planObservability = {
+          ...planObservability,
+          ...buildPlanObservabilityMetadata(responsePlan, {
+            answerFirstPassed: validatedHandoff.finalValidation.answerFirstPassed,
+            unsupportedClaimDetected: validatedHandoff.finalValidation.unsupportedClaimDetected,
+            unsupportedClaimType: validatedHandoff.finalValidation.unsupportedClaimType,
+            deterministicFallbackUsed: validatedHandoff.finalValidation.usedDeterministicFallback,
+          }),
+          handoffPath: "plan_validated",
+        };
+      }
+    }
+
+    if (isConversationStateV1Enabled() && conversationAiState) {
+      conversationAiState = await conversationStateService.updateAfterHandoff(supabase, {
+        state: conversationAiState,
+        handoffReason: llmResult.handoffReason ?? "LLM handoff",
+        succeeded: false,
+      });
+    }
+
     await triggerLlmHandoff(supabase, {
       workspaceId,
       conversation,
@@ -552,14 +734,25 @@ export async function processWhatsappAiMessagePipeline(
       intent: classification.intent,
       confidence: classification.confidence,
       reason:
-        llmResult.handoffReason ?? "LLM menandai percakapan perlu bantuan tim",
+        responsePlan?.handoffReason ??
+        llmResult.handoffReason ??
+        "LLM menandai percakapan perlu bantuan tim",
       messageText,
       companyName,
+      handoffText: handoffReplyText,
       batchMessageIds,
       transparency: {
         usedSources: llmResult.sourceLabels,
         confidence: normalizeAiConfidenceScore(llmResult.confidence),
         handoffRequired: true,
+      },
+      observability: {
+        ...promptObservability,
+        ...greetingObservability,
+        handoffReason: llmResult.handoffReason,
+        llmIntent: llmResult.llmIntent,
+        missingInformation: llmResult.missingInformation,
+        suggestedNextStep: llmResult.suggestedNextStep,
       },
     });
     return;
@@ -641,6 +834,7 @@ export async function processWhatsappAiMessagePipeline(
         usedFallback: true,
         generationTimeMs: llmResult.generationTimeMs,
         contextSource: llmResult.contextSource ?? null,
+        ...promptObservability,
       },
     });
 
@@ -654,11 +848,6 @@ export async function processWhatsappAiMessagePipeline(
   }
 
   const customer = resolveWhatsappContactDisplay(conversation);
-  const hasPriorBusinessReplies = historyMessages.some(
-    (message) =>
-      message.direction === "outgoing" &&
-      (message.sender_type === "ai" || message.sender_type === "human"),
-  );
 
   const safetyValidation = validateAIResponse({
     reply: llmResult.reply,
@@ -766,7 +955,77 @@ export async function processWhatsappAiMessagePipeline(
       llmResult.businessBrainContext ?? EMPTY_BUSINESS_BRAIN_CONTEXT,
   });
 
-  const finalReplyText = qualityResult.reply;
+  let finalReplyText = qualityResult.reply;
+  let planValidation: PlanValidationResult | null = null;
+  let rawPlanValidation: PlanValidationResult | null = null;
+
+  if (isAnswerFirstV1Enabled() && responsePlan) {
+    const validated = applyValidatedReply({
+      rawReply: finalReplyText,
+      plan: responsePlan,
+      answerFirstEnabled: true,
+    });
+    rawPlanValidation = validated.rawValidation;
+    planValidation = validated.finalValidation;
+    finalReplyText = validated.finalReply;
+    if (validated.finalValidation) {
+      planObservability = {
+        ...planObservability,
+        ...buildPlanObservabilityMetadata(responsePlan, {
+          answerFirstPassed: validated.finalValidation.answerFirstPassed,
+          unsupportedClaimDetected:
+            validated.rawValidation?.unsupportedClaimDetected ??
+            validated.finalValidation.unsupportedClaimDetected,
+          unsupportedClaimType:
+            validated.rawValidation?.unsupportedClaimType ??
+            validated.finalValidation.unsupportedClaimType,
+          deterministicFallbackUsed: validated.finalValidation.usedDeterministicFallback,
+        }),
+        rawModelValidationFailed: Boolean(rawPlanValidation && !rawPlanValidation.passed),
+        finalValidationPassed: planValidation?.passed ?? false,
+      };
+    }
+  }
+
+  let greetingGuardObservability: Record<string, unknown> = {};
+
+  if (isConversationStateV1Enabled() && conversationStatePromptContext) {
+    const greetingGuardResult = applyGreetingGuard({
+      reply: finalReplyText,
+      greetingAllowed: conversationStatePromptContext.greetingAllowed,
+      fallbackReply: sanitizeAiReplyBranding(
+        WHATSAPP_AI_LLM_FALLBACK_REPLY,
+        messageText,
+        companyName,
+      ),
+    });
+
+    finalReplyText = greetingGuardResult.reply;
+    greetingGuardObservability = {
+      greetingDetectedInGeneratedReply: greetingGuardResult.greetingDetected,
+      greetingRemoved: greetingGuardResult.greetingRemoved,
+      greetingGuardUsedFallback: greetingGuardResult.usedFallback,
+      greetingGuardChanges: greetingGuardResult.changes,
+    };
+
+    if (greetingGuardResult.greetingRemoved) {
+      await insertAiEvent(supabase, {
+        workspaceId,
+        conversationId,
+        messageId: incomingMessageId,
+        eventType: "AI_RESPONSE_SANITIZED",
+        intent: classification.intent,
+        confidence: classification.confidence,
+        metadata: {
+          batchMessageIds,
+          sanitizedReason: "greeting_guard",
+          greetingAllowed: conversationStatePromptContext.greetingAllowed,
+          greetingReason: conversationStatePromptContext.greetingReason,
+          ...greetingGuardObservability,
+        },
+      });
+    }
+  }
 
   if (qualityResult.changed) {
     await insertAiEvent(supabase, {
@@ -856,6 +1115,12 @@ export async function processWhatsappAiMessagePipeline(
       documentActions: llmResult.documentActions,
       actions: llmResult.actions,
       contextSource: llmResult.contextSource ?? null,
+      llmIntent: llmResult.llmIntent,
+      missingInformation: llmResult.missingInformation,
+      suggestedNextStep: llmResult.suggestedNextStep,
+      ...promptObservability,
+      ...planObservability,
+      ...greetingGuardObservability,
     },
   });
 
@@ -867,11 +1132,136 @@ export async function processWhatsappAiMessagePipeline(
     generationTimeMs: llmResult.generationTimeMs,
   });
 
+  let planDocumentDelivered = false;
+  if (
+    isAnswerFirstV1Enabled() &&
+    responsePlan?.attachmentAction &&
+    responsePlan.responseAction === "SEND_DOCUMENT_THEN_ASK"
+  ) {
+    const docResult = await executePlanDocumentDelivery({
+      supabase,
+      workspaceId,
+      conversation,
+      attachmentAction: responsePlan.attachmentAction,
+      incomingMessageId,
+      productId: responsePlan.selectedEntity?.entityId ?? null,
+    });
+
+    planDocumentDelivered = docResult.success;
+    planObservability = {
+      ...planObservability,
+      planDocumentDelivered,
+      documentDeliveryError: docResult.errorCategory,
+    };
+
+    if (!docResult.success) {
+      const failureText = sanitizeAiReplyBranding(
+        DOCUMENT_DELIVERY_FAILURE_REPLY_ID,
+        messageText,
+        companyName,
+      );
+
+      await sendAiWhatsappMessage(supabase, {
+        workspaceId,
+        conversation,
+        text: failureText,
+        incomingMessageId,
+        rawPayload: {
+          source: "ai_auto_reply",
+          aiAction: "document_delivery_failed",
+          documentId: responsePlan.attachmentAction.documentId,
+        },
+      });
+
+      if (isConversationStateV1Enabled() && conversationAiState) {
+        conversationAiState = await conversationStateService.updateAfterHandoff(supabase, {
+          state: conversationAiState,
+          handoffReason: "Document delivery failed",
+          succeeded: false,
+        });
+      }
+
+      await triggerLlmHandoff(supabase, {
+        workspaceId,
+        conversation,
+        incomingMessageId,
+        intent: classification.intent,
+        confidence: classification.confidence,
+        reason: "Document delivery failed",
+        messageText,
+        companyName,
+        handoffText: failureText,
+        batchMessageIds,
+        observability: {
+          ...planObservability,
+          documentDeliveryFailed: true,
+        },
+      });
+      return;
+    }
+  }
+
+  let stateUpdateObservability: Record<string, unknown> = {};
+  if (isConversationStateV1Enabled() && conversationAiState && conversationStatePromptContext) {
+    const stateUpdate = await conversationStateService.updateAfterSuccessfulReply(supabase, {
+      state: conversationAiState,
+      intent: classification.intent,
+      replyText: finalReplyText,
+      greetingAllowed: conversationStatePromptContext.greetingAllowed,
+      greetingWasSent: conversationStatePromptContext.greetingAllowed,
+      collectedInformation: conversationAiState.collectedInformation,
+      selectedEntity: responsePlan?.selectedEntity ?? conversationAiState.selectedEntity,
+      responsePlan,
+      usePlanQuestionKeys: isAnswerFirstV1Enabled(),
+      messageId: sentMessage.id,
+    });
+
+    conversationAiState = stateUpdate.state;
+    stateUpdateObservability = conversationStateService.buildObservabilityMetadata({
+      state: stateUpdate.state,
+      promptContext: conversationStatePromptContext,
+      greetingDetectedInGeneratedReply:
+        typeof greetingGuardObservability.greetingDetectedInGeneratedReply === "boolean"
+          ? greetingGuardObservability.greetingDetectedInGeneratedReply
+          : false,
+      greetingRemoved:
+        typeof greetingGuardObservability.greetingRemoved === "boolean"
+          ? greetingGuardObservability.greetingRemoved
+          : false,
+      transitionFrom: stateUpdate.transitionFrom,
+      transitionTo: stateUpdate.transitionTo,
+    });
+  }
+
+  if (Object.keys(stateUpdateObservability).length > 0) {
+    logPipeline("AI_STATE_UPDATED", {
+      conversationId,
+      incomingMessageId,
+      ...stateUpdateObservability,
+    });
+  }
+
+  const filteredActions = planDocumentDelivered && responsePlan?.attachmentAction
+    ? llmResult.actions.filter(
+        (action) =>
+          !(
+            action.type === "SEND_DOCUMENT" &&
+            action.payload.documentId === responsePlan.attachmentAction?.documentId
+          ),
+      )
+    : llmResult.actions;
+
+  const filteredDocumentActions = planDocumentDelivered && responsePlan?.attachmentAction
+    ? llmResult.documentActions.filter(
+        (item) => item.documentId !== responsePlan.attachmentAction?.documentId,
+      )
+    : llmResult.documentActions;
+
   // Text reply is already sent. Action Engine validates and executes side effects.
   await actionEngine.processActions(
     actionEngine.recommendActionsFromLlm({
-      actions: llmResult.actions,
-      documentActions: llmResult.documentActions,
+      actions: filteredActions,
+      documentActions: filteredDocumentActions,
       suggestedActions: llmResult.suggestedActions,
       confidence: llmResult.confidence,
       handoffRequired: false,

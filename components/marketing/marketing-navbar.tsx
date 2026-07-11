@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, m } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
@@ -12,6 +13,12 @@ import { marketingContainerClass } from "@/components/marketing/design-system/to
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { marketingHomeAnchors, marketingRoutes } from "@/lib/marketing/routes";
+import {
+  mobileMenuVariants,
+  mobileOverlayVariants,
+  motionTransition,
+} from "@/components/marketing/motion";
+import { marketingMotionDurations } from "@/components/marketing/motion/motion-tokens";
 import { cn } from "@/lib/utils";
 
 function NavLink({
@@ -62,18 +69,31 @@ export function MarketingNavbar() {
   }, []);
 
   const mobilePanel =
-    open && typeof document !== "undefined"
-      ? createPortal(
+    typeof document !== "undefined" ? (
+      <AnimatePresence>
+        {open ? (
           <>
-            <button
+            <m.button
               type="button"
+              key="overlay"
               aria-label={locale === "en" ? "Close menu" : "Tutup menu"}
               className="fixed inset-0 z-[80] bg-black/40 lg:hidden"
               onClick={() => setOpen(false)}
+              variants={mobileOverlayVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={motionTransition(marketingMotionDurations.fast)}
             />
-            <div
+            <m.div
+              key="panel"
               id="mobile-nav-panel"
               className="fixed inset-x-0 bottom-0 z-[81] max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--marketing-border-default)] bg-[var(--marketing-elevated-surface)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--marketing-shadow-soft)] lg:hidden"
+              variants={mobileMenuVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={motionTransition(marketingMotionDurations.normal)}
             >
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-[var(--marketing-foreground)]">Menu</p>
@@ -93,7 +113,7 @@ export function MarketingNavbar() {
                     type="button"
                     onClick={() => setLocale("id")}
                     className={cn(
-                      "min-h-[44px] rounded-l-md px-3 py-2 text-xs font-medium",
+                      "marketing-locale-btn min-h-[44px] rounded-l-md px-3 py-2 text-xs font-medium",
                       locale === "id"
                         ? "bg-[var(--marketing-foreground)] text-[var(--marketing-background)]"
                         : "text-[var(--marketing-muted)]",
@@ -105,7 +125,7 @@ export function MarketingNavbar() {
                     type="button"
                     onClick={() => setLocale("en")}
                     className={cn(
-                      "min-h-[44px] rounded-r-md px-3 py-2 text-xs font-medium",
+                      "marketing-locale-btn min-h-[44px] rounded-r-md px-3 py-2 text-xs font-medium",
                       locale === "en"
                         ? "bg-[var(--marketing-foreground)] text-[var(--marketing-background)]"
                         : "text-[var(--marketing-muted)]",
@@ -154,10 +174,15 @@ export function MarketingNavbar() {
                   {content.nav.startFree}
                 </Link>
               </div>
-            </div>
-          </>,
-          document.body,
-        )
+            </m.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+    ) : null;
+
+  const mobilePortal =
+    mobilePanel && typeof document !== "undefined"
+      ? createPortal(mobilePanel, document.body)
       : null;
 
   return (
@@ -197,7 +222,7 @@ export function MarketingNavbar() {
                 type="button"
                 onClick={() => setLocale("id")}
                 className={cn(
-                  "rounded-l-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  "marketing-locale-btn rounded-l-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                   locale === "id"
                     ? "bg-[var(--marketing-foreground)] text-[var(--marketing-background)]"
                     : "text-[var(--marketing-muted)] hover:text-[var(--marketing-foreground)]",
@@ -210,7 +235,7 @@ export function MarketingNavbar() {
                 type="button"
                 onClick={() => setLocale("en")}
                 className={cn(
-                  "rounded-r-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  "marketing-locale-btn rounded-r-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                   locale === "en"
                     ? "bg-[var(--marketing-foreground)] text-[var(--marketing-background)]"
                     : "text-[var(--marketing-muted)] hover:text-[var(--marketing-foreground)]",
@@ -247,7 +272,7 @@ export function MarketingNavbar() {
         </div>
       </header>
 
-      {mobilePanel}
+      {mobilePortal}
     </>
   );
 }

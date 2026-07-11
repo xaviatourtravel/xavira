@@ -25,6 +25,7 @@ import type {
 import type {
   PlaygroundAvailableContext,
   PlaygroundSavedExample,
+  PlaygroundTestResult,
 } from "@/modules/business-brain/types/playground";
 import type { BrainTestSessionRecord } from "@/modules/business-brain/types/brain-test-session";
 import type { BusinessBrainOverviewSummary } from "@/modules/business-brain/types";
@@ -63,6 +64,12 @@ export type BusinessBrainWorkspaceData = {
     availableContext: PlaygroundAvailableContext;
     savedExamples: PlaygroundSavedExample[];
     savedTestSessions: BrainTestSessionRecord[];
+    activeSessionId: string | null;
+    activeSession: {
+      id: string;
+      conversation: import("@/modules/business-brain/types/playground-simulator").SimulatorChatMessage[];
+      inspector: PlaygroundTestResult | null;
+    } | null;
     canEdit: boolean;
     llmConfigured: boolean;
   };
@@ -140,6 +147,8 @@ export async function loadBusinessBrainWorkspaceData(): Promise<BusinessBrainWor
       availableContext: playgroundResult.availableContext,
       savedExamples: playgroundResult.savedExamples,
       savedTestSessions: playgroundResult.savedTestSessions,
+      activeSessionId: playgroundResult.activeSessionId,
+      activeSession: playgroundResult.activeSession ?? null,
       canEdit: playgroundResult.canEdit,
       llmConfigured: playgroundResult.llmConfigured,
     },

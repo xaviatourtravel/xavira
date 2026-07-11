@@ -6,12 +6,15 @@ import {
   getAvailableContext,
   isPlaygroundLlmConfigured,
   listSavedExamples,
+  loadActivePlaygroundSession,
   PlaygroundLlmFailedError,
   PlaygroundLlmNotConfiguredError,
+  resetPlaygroundConversation,
   runTest,
   saveExample,
 } from "@/modules/business-brain/services/business-brain-playground-service";
 import { getBrainTestSessions } from "@/modules/business-brain/services/brain-test-session-service";
+import type { PlaygroundTestResult } from "@/modules/business-brain/types/playground";
 
 function requireOrgId(profile: { organization_id: string | null }) {
   if (!profile.organization_id) {
@@ -23,16 +26,38 @@ function requireOrgId(profile: { organization_id: string | null }) {
 export async function loadPlaygroundAction() {
   const { profile } = await requireProfile();
   const organizationId = requireOrgId(profile);
-  const [availableContext, savedExamples, savedTestSessions] = await Promise.all([
-    getAvailableContext(organizationId),
-    Promise.resolve(listSavedExamples(organizationId)),
-    getBrainTestSessions(organizationId),
+  const [activeSession, result] = await Promise.all([
+    loadActivePlaygroundSession(organizationId, profile.id, null).catch(() => null),
+    (async () => {
+      const [availableContext, savedExamples, savedTestSessions] = await Promise.all([
+        getAvailableContext(organizationId),
+        Promise.resolve(listSavedExamples(organizationId)),
+        getBrainTestSessions(organizationId),
+      ]);
+      return { availableContext, savedExamples, savedTestSessions };
+    })(),
   ]);
 
+  const activeInspector =
+    activeSession?.inspector &&
+    typeof activeSession.inspector === "object" &&
+    "preview" in activeSession.inspector
+      ? (activeSession.inspector as PlaygroundTestResult)
+      : null;
+
   return {
-    availableContext,
-    savedExamples,
-    savedTestSessions,
+    availableContext: result.availableContext,
+    savedExamples: result.savedExamples,
+    savedTestSessions: result.savedTestSessions,
+    activeSessionId: activeSession?.id ?? null,
+    activeSession:
+      activeSession && activeSession.conversation.length > 0
+        ? {
+            id: activeSession.id,
+            conversation: activeSession.conversation,
+            inspector: activeInspector,
+          }
+        : null,
     canEdit: true,
     llmConfigured: isPlaygroundLlmConfigured(),
   };
@@ -43,7 +68,7 @@ export async function runPlaygroundTestAction(input: unknown) {
   const organizationId = requireOrgId(profile);
 
   try {
-    const result = await runTest(organizationId, input);
+    const result = await runTest(organizationId, profile.id, input);
     return { ok: true as const, result };
   } catch (error) {
     if (error instanceof PlaygroundLlmNotConfiguredError) {
@@ -68,6 +93,13 @@ export async function runPlaygroundTestAction(input: unknown) {
       error: error instanceof Error ? error.message : "Failed to run playground test.",
     };
   }
+}
+
+export async function resetPlaygroundConversationAction(sessionId?: string) {
+  const { profile } = await requireProfile();
+  const organizationId = requireOrgId(profile);
+  await resetPlaygroundConversation(organizationId, profile.id, sessionId);
+  return { ok: true as const };
 }
 
 export async function savePlaygroundExampleAction(input: unknown) {

@@ -5,6 +5,12 @@ import Link from "next/link";
 import { marketingColorClasses } from "@/components/marketing/design-system/tokens/colors";
 import { MarketingSection, MarketingSectionHeader } from "@/components/marketing/design-system/sections";
 import { MarketingH3 } from "@/components/marketing/design-system/typography";
+import {
+  MotionSectionGroup,
+  MotionSectionItem,
+  MotionStagger,
+  MotionStaggerItem,
+} from "@/components/marketing/motion";
 import { IndustryScene } from "@/components/marketing/product-scenes";
 import { useMarketingContent } from "@/components/marketing/marketing-locale-provider";
 import { marketingRoutes } from "@/lib/marketing/routes";
@@ -17,38 +23,40 @@ export function HomeIndustriesSection() {
 
   return (
     <MarketingSection id="industries" rhythm="large">
-      <MarketingSectionHeader
-        title={content.industries.title}
-        description={content.industries.description}
-      />
+      <MotionSectionGroup>
+        <MotionSectionItem>
+          <MarketingSectionHeader
+            title={content.industries.title}
+            description={content.industries.description}
+          />
+        </MotionSectionItem>
+      </MotionSectionGroup>
 
-      <div className="mt-14 grid gap-5 lg:grid-cols-3 lg:gap-6">
+      <MotionStagger className="mt-14 grid gap-5 lg:grid-cols-3 lg:gap-6" stagger="compact">
         {firstRow.map((industry) => (
-          <article
-            key={industry.id}
-            className="flex h-full flex-col rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-elevated-surface)] p-6 shadow-[var(--marketing-shadow-soft)] ring-1 ring-[var(--marketing-border-default)] sm:p-7"
-          >
-            <IndustryCardContent industry={industry} />
-            <div className="mt-5 flex-1">
-              <IndustryScene industryId={industry.id} size="large" />
-            </div>
-          </article>
+          <MotionStaggerItem key={industry.id}>
+            <article className="marketing-card-hover flex h-full flex-col rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-elevated-surface)] p-6 shadow-[var(--marketing-shadow-soft)] ring-1 ring-[var(--marketing-border-default)] sm:p-7">
+              <IndustryCardContent industry={industry} />
+              <div className="mt-5 flex-1">
+                <IndustryScene industryId={industry.id} size="large" />
+              </div>
+            </article>
+          </MotionStaggerItem>
         ))}
-      </div>
+      </MotionStagger>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:gap-6">
+      <MotionStagger className="mt-5 grid gap-5 lg:grid-cols-2 lg:gap-6" stagger="compact" delayChildren={60}>
         {secondRow.map((industry) => (
-          <article
-            key={industry.id}
-            className="grid h-full gap-5 rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-elevated-surface)] p-6 shadow-[var(--marketing-shadow-soft)] ring-1 ring-[var(--marketing-border-default)] sm:p-7 lg:grid-cols-2 lg:items-stretch"
-          >
-            <IndustryCardContent industry={industry} />
-            <div className="min-h-[200px]">
-              <IndustryScene industryId={industry.id} size="large" className="h-full" />
-            </div>
-          </article>
+          <MotionStaggerItem key={industry.id}>
+            <article className="marketing-card-hover grid h-full gap-5 rounded-[var(--marketing-radius-xl)] bg-[var(--marketing-elevated-surface)] p-6 shadow-[var(--marketing-shadow-soft)] ring-1 ring-[var(--marketing-border-default)] sm:p-7 lg:grid-cols-2 lg:items-stretch">
+              <IndustryCardContent industry={industry} />
+              <div className="min-h-[200px]">
+                <IndustryScene industryId={industry.id} size="large" className="h-full" />
+              </div>
+            </article>
+          </MotionStaggerItem>
         ))}
-      </div>
+      </MotionStagger>
 
       <div className="mt-12 text-center">
         <Link href={marketingRoutes.solutions} className={marketingColorClasses.link}>
@@ -78,19 +86,17 @@ function IndustryCardContent({
           className={cn(
             "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium",
             industry.status === "available"
-              ? marketingColorClasses.statusAvailable
-              : "bg-[var(--marketing-surface-muted)] text-[var(--marketing-muted)] ring-1 ring-[var(--marketing-border-default)]",
+              ? "bg-[var(--marketing-primary-muted)] text-[var(--marketing-primary-muted-foreground)]"
+              : "bg-[var(--marketing-surface-muted)] text-[var(--marketing-muted-foreground)]",
           )}
         >
-          {industry.status === "available" ? "Available" : "Coming Soon"}
+          {industry.status === "available" ? "Available" : "Coming soon"}
         </span>
       </div>
-
-      <p className="mt-3 text-base leading-relaxed text-[var(--marketing-muted)]">
+      <p className="mt-3 text-sm leading-relaxed text-[var(--marketing-muted)] sm:text-base">
         {industry.description}
       </p>
-
-      <p className="mt-3 text-sm font-medium text-[var(--marketing-muted-foreground)]">
+      <p className="mt-3 text-xs font-medium text-[var(--marketing-muted-foreground)]">
         {industry.workflow}
       </p>
     </div>

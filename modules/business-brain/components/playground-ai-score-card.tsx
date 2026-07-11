@@ -22,6 +22,8 @@ const DIMENSIONS = [
   { key: "ruleCompliance", labelKey: "testAi.ruleCompliance" },
   { key: "completeness", labelKey: "testAi.completeness" },
   { key: "naturalness", labelKey: "testAi.naturalness" },
+  { key: "groundedness", labelKey: "testAi.groundedness" },
+  { key: "answerRelevance", labelKey: "testAi.answerRelevance" },
 ] as const;
 
 function useLocalizedScoreLabel(label: PlaygroundAiScoreLabel): string {
@@ -98,6 +100,66 @@ export function PlaygroundAiScoreCard({ score }: PlaygroundAiScoreCardProps) {
             </div>
           ))}
         </div>
+
+        {typeof breakdown.modelGeneration === "number" ? (
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border/70 pt-3 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Model generation</span>
+              <span
+                className={cn(
+                  "font-semibold tabular-nums",
+                  dimensionScoreClass(breakdown.modelGeneration),
+                )}
+              >
+                {breakdown.modelGeneration}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Final delivery</span>
+              <span
+                className={cn(
+                  "font-semibold tabular-nums",
+                  dimensionScoreClass(breakdown.finalDeliverySafety),
+                )}
+              >
+                {breakdown.finalDeliverySafety}
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {score.groundingDiagnostics ? (
+          <div className="mt-3 space-y-1 border-t border-border/70 pt-3 text-[11px] text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">Request:</span>{" "}
+              {score.groundingDiagnostics.requestType ?? "—"}
+            </p>
+            {score.groundingDiagnostics.selectedEntity ? (
+              <p>
+                <span className="font-medium text-foreground">Product:</span>{" "}
+                {score.groundingDiagnostics.selectedEntity}
+              </p>
+            ) : null}
+            <p>
+              <span className="font-medium text-foreground">Answerability:</span>{" "}
+              {score.groundingDiagnostics.answerability ?? "—"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Action:</span>{" "}
+              {score.groundingDiagnostics.responseAction ?? "—"}
+            </p>
+            {score.groundingDiagnostics.unsupportedClaimDetected ? (
+              <p className="text-destructive">
+                Unsupported claim: {score.groundingDiagnostics.unsupportedClaimType ?? "unknown"}
+              </p>
+            ) : null}
+            {score.groundingDiagnostics.answerFirstPassed ? (
+              <p className="text-emerald-600 dark:text-emerald-400">Answer-first passed</p>
+            ) : score.groundingDiagnostics.directAnswerRequired ? (
+              <p className="text-amber-600 dark:text-amber-400">Direct answer missing</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

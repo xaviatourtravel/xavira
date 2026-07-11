@@ -26,7 +26,6 @@ import {
   getProductDocumentUrlAction,
   importProductFaqsAction,
   linkProductFaqAction,
-  publishBrainProductAction,
   unlinkProductFaqAction,
   updateBrainProductAction,
 } from "@/modules/business-brain/actions/product-actions";
@@ -304,23 +303,6 @@ export function ProductEditor({
     });
   };
 
-  const handlePublish = () => {
-    startTransition(async () => {
-      const saveResult = await updateBrainProductAction(product.id, values);
-      if (!saveResult.ok) {
-        setErrorMessage(saveResult.error);
-        return;
-      }
-      const result = await publishBrainProductAction(product.id);
-      if (!result.ok || !result.product) {
-        setErrorMessage(result.ok ? bb("productNotFound") : result.error);
-        return;
-      }
-      syncProduct(result.product);
-      setStatusMessage(bb("productPublished"));
-    });
-  };
-
   const handleArchive = () => {
     startTransition(async () => {
       const result = await archiveBrainProductAction(product.id);
@@ -464,9 +446,6 @@ export function ProductEditor({
                 <Save className="h-4 w-4" />
                 {bb("saveDraft")}
               </DsButton>
-              <DsButton type="button" onClick={handlePublish} loading={isPending}>
-                {bb("publish")}
-              </DsButton>
               <DsButton type="button" variant="outline" onClick={handleArchive} loading={isPending}>
                 <Archive className="h-4 w-4" />
                 {bb("archive")}
@@ -478,6 +457,9 @@ export function ProductEditor({
 
       {statusMessage ? (
         <p className="text-sm text-emerald-600 dark:text-emerald-400">{statusMessage}</p>
+      ) : null}
+      {canEdit ? (
+        <p className="text-xs text-muted-foreground">{bb("globalPublishRequired")}</p>
       ) : null}
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 

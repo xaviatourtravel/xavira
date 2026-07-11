@@ -6,6 +6,7 @@ import {
   HANDOVER_ASSIGN_ROLES,
   HANDOVER_TRIGGER_INTENTS,
 } from "@/modules/business-brain/types/behaviors";
+import { isEntityActiveForLiveContext } from "@/modules/business-brain/lib/brain-snapshot-canonical";
 import type {
   BehaviorContext,
   BusinessBrainContext,
@@ -262,17 +263,15 @@ export function mapSnapshotToBusinessBrainContext(snapshot: BrainSnapshot): Busi
   const products = snapshot.products
     .map((item) => mapProductFromRecord(item))
     .filter((item): item is ProductContext => !!item)
-    .filter((item) => item.status === "published");
+    .filter((item) => isEntityActiveForLiveContext({ status: item.status }));
 
   const knowledge = snapshot.knowledge
     .map((item) => mapKnowledgeFromRecord(item))
-    .filter((item): item is KnowledgeContext => !!item)
-    .filter((item) => item.status === "published");
+    .filter((item): item is KnowledgeContext => !!item);
 
   const documents = snapshot.documents
     .map((item) => mapDocumentFromRecord(item))
-    .filter((item): item is DocumentContext => !!item)
-    .filter((item) => item.status === "published");
+    .filter((item): item is DocumentContext => !!item);
 
   const behaviorRows = snapshot.behaviors.map(
     (item) => item as unknown as BrainBehaviorRow,

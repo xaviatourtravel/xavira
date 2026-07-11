@@ -21,7 +21,6 @@ import {
 } from "@/modules/business-brain/lib/bb-ui-labels";
 import {
   deleteBrainDocumentAction,
-  publishBrainDocumentAction,
   updateBrainDocumentAction,
 } from "@/modules/business-brain/actions/document-actions";
 import {
@@ -270,23 +269,6 @@ export function DocumentDetailsPanel({
     });
   };
 
-  const handlePublish = () => {
-    startTransition(async () => {
-      const saveResult = await updateBrainDocumentAction(document.id, values);
-      if (!saveResult.ok) {
-        setErrorMessage(saveResult.error);
-        return;
-      }
-      const result = await publishBrainDocumentAction(document.id);
-      if (!result.ok || !result.document) {
-        setErrorMessage(result.ok ? bb("documentNotFound") : result.error);
-        return;
-      }
-      syncDocument(result.document);
-      setStatusMessage(bb("documentPublished"));
-    });
-  };
-
   const handleDelete = () => {
     if (!window.confirm(bb("deleteDocumentConfirm"))) return;
 
@@ -335,9 +317,6 @@ export function DocumentDetailsPanel({
               <Save className="h-4 w-4" />
               {bb("saveDraft")}
             </DsButton>
-            <DsButton type="button" onClick={handlePublish} loading={isPending}>
-              {bb("publish")}
-            </DsButton>
             <DsButton type="button" variant="outline" onClick={handleDelete} loading={isPending}>
               <Trash2 className="h-4 w-4" />
               {bb("delete")}
@@ -348,6 +327,9 @@ export function DocumentDetailsPanel({
 
       {statusMessage ? (
         <p className="text-sm text-emerald-600 dark:text-emerald-400">{statusMessage}</p>
+      ) : null}
+      {canEdit ? (
+        <p className="text-xs text-muted-foreground">{bb("globalPublishRequired")}</p>
       ) : null}
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 

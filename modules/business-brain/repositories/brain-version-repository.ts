@@ -108,3 +108,52 @@ export async function supersedePublishedVersions(
     throw new Error(error.message);
   }
 }
+
+export type AtomicPublishResult = {
+  versionId: string;
+  versionNumber: number;
+  publishedAt: string;
+};
+
+export async function publishBusinessBrainAtomic(input: {
+  businessBrainId: string;
+  snapshot: Json;
+  publishedBy: string;
+}): Promise<AtomicPublishResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("publish_business_brain_atomic", {
+    p_business_brain_id: input.businessBrainId,
+    p_snapshot: input.snapshot,
+    p_published_by: input.publishedBy,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Atomic publish returned an invalid response.");
+  }
+
+  const record = data as Record<string, unknown>;
+  const versionId = typeof record.version_id === "string" ? record.version_id : null;
+  const versionNumber =
+    typeof record.version_number === "number" ? record.version_number : null;
+  const publishedAt = typeof record.published_at === "string" ? record.published_at : null;
+
+  if (!versionId || versionNumber === null || !publishedAt) {
+    throw new Error("Atomic publish returned incomplete version data.");
+  }
+
+  return {
+    versionId,
+    versionNumber,
+    publishedAt,
+  };
+}
+
+export async function findBrainVersionRowById(
+  versionId: string,
+): Promise<BrainVersionRow | null> {
+  return findBrainVersionById(versionId);
+}

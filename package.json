@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --import tsx --test modules/business-brain/lib/parse-currency.test.ts modules/business-brain/lib/parse-departure-date.test.ts modules/business-brain/lib/parse-product-import-text.test.ts modules/business-brain/lib/parse-faq-import-text.test.ts modules/business-brain/lib/validate-product-document-file.test.ts lib/leads/source-tracking.test.ts lib/ai/temporal-context.test.ts modules/ai/runtime/build-runtime-context.test.ts modules/ai/context/build-ai-context.test.ts",
+    "test": "node --import tsx --test modules/business-brain/lib/parse-currency.test.ts modules/business-brain/lib/parse-departure-date.test.ts modules/business-brain/lib/parse-product-import-text.test.ts modules/business-brain/lib/parse-faq-import-text.test.ts modules/business-brain/lib/validate-product-document-file.test.ts modules/business-brain/lib/brain-snapshot.test.ts lib/leads/source-tracking.test.ts lib/ai/temporal-context.test.ts modules/ai/runtime/build-runtime-context.test.ts modules/ai/context/build-ai-context.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^0.511.0",
     "mammoth": "^1.12.0",
     "next": "^15.3.3",

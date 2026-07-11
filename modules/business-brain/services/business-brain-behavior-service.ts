@@ -2,6 +2,7 @@ import type { Json } from "@/types/database";
 import {
   ensureBusinessBrain,
   findBusinessBrainByOrganizationId,
+  touchBusinessBrainDraftForOrganization,
 } from "@/modules/business-brain/repositories/business-brain-repository";
 import {
   deleteBrainBehavior,
@@ -135,6 +136,7 @@ export async function create(
     config: parsed.type === "HANDOVER_RULE" ? parsed.config : {},
   });
 
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return mapBrainBehaviorRow(row);
 }
 
@@ -153,6 +155,7 @@ export async function update(
     config: (parsed.config ?? behavior.config) as Json,
   });
 
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return mapBrainBehaviorRow(row);
 }
 
@@ -169,6 +172,7 @@ export async function updateReplyStyle(
     enabled: parsed.enabled,
   });
 
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return mapBrainBehaviorRow(row);
 }
 
@@ -185,6 +189,7 @@ export async function updateQualificationRules(
     enabled: parsed.enabled,
   });
 
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return mapBrainBehaviorRow(row);
 }
 
@@ -197,6 +202,7 @@ export async function deleteBehavior(
     throw new Error("Cannot delete system behavior configuration.");
   }
   await deleteBrainBehavior(behaviorId);
+  await touchBusinessBrainDraftForOrganization(organizationId);
 }
 
 export async function enable(

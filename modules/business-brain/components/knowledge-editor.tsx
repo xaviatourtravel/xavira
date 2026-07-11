@@ -11,7 +11,6 @@ import {
 } from "@/components/design-system/form-controls";
 import {
   deleteBrainArticleAction,
-  publishBrainArticleAction,
   updateBrainArticleAction,
 } from "@/modules/business-brain/actions/knowledge-actions";
 import { SimpleRichTextEditor } from "@/modules/business-brain/components/simple-rich-text-editor";
@@ -182,23 +181,6 @@ export function KnowledgeEditor({
     });
   };
 
-  const handlePublish = () => {
-    startTransition(async () => {
-      const saveResult = await updateBrainArticleAction(article.id, values);
-      if (!saveResult.ok) {
-        setErrorMessage(saveResult.error);
-        return;
-      }
-      const result = await publishBrainArticleAction(article.id);
-      if (!result.ok || !result.article) {
-        setErrorMessage(result.ok ? bb("articleNotFound") : result.error);
-        return;
-      }
-      syncArticle(result.article);
-      setStatusMessage(bb("articlePublished"));
-    });
-  };
-
   const handleDelete = () => {
     if (!window.confirm(bb("deleteArticleConfirm"))) return;
 
@@ -257,9 +239,6 @@ export function KnowledgeEditor({
                 <Save className="h-4 w-4" />
                 {bb("saveDraft")}
               </DsButton>
-              <DsButton type="button" onClick={handlePublish} loading={isPending}>
-                {bb("publish")}
-              </DsButton>
               <DsButton type="button" variant="outline" onClick={handleDelete} loading={isPending}>
                 <Trash2 className="h-4 w-4" />
                 {bb("delete")}
@@ -271,6 +250,9 @@ export function KnowledgeEditor({
 
       {statusMessage ? (
         <p className="text-sm text-emerald-600 dark:text-emerald-400">{statusMessage}</p>
+      ) : null}
+      {canEdit ? (
+        <p className="text-xs text-muted-foreground">{bb("globalPublishRequired")}</p>
       ) : null}
       {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
 

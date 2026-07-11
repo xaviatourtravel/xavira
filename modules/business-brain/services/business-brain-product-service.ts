@@ -2,6 +2,7 @@ import { calculateProductKnowledgeScore } from "@/modules/business-brain/lib/pro
 import {
   ensureBusinessBrain,
   findBusinessBrainByOrganizationId,
+  touchBusinessBrainDraftForOrganization,
 } from "@/modules/business-brain/repositories/business-brain-repository";
 import {
   countProductDocumentsByProductIds,
@@ -98,6 +99,7 @@ export async function create(
 ): Promise<BrainProductDetail> {
   const businessBrainId = await getBusinessBrainIdForOrg(organizationId);
   const row = await createBrainProduct(businessBrainId);
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return (await getProduct(organizationId, row.id))!;
 }
 
@@ -113,6 +115,7 @@ export async function update(
     aiNotes: parsed.aiNotes,
   };
   await updateBrainProduct(productId, values);
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return (await getProduct(organizationId, productId))!;
 }
 
@@ -133,5 +136,6 @@ export async function archive(
 ): Promise<BrainProductDetail> {
   await assertProductInOrg(organizationId, productId);
   await updateBrainProductStatus(productId, "archived");
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return (await getProduct(organizationId, productId))!;
 }

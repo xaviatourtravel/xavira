@@ -58,9 +58,14 @@ export async function publishBusinessBrainAction() {
     revalidatePublish();
     return { ok: true as const, result };
   } catch (error) {
+    const message =
+      error instanceof Error && error.message.includes("belum berhasil diterbitkan")
+        ? error.message
+        : "Business Brain belum berhasil diterbitkan. Tidak ada perubahan yang diaktifkan. Silakan coba lagi.";
+
     return {
       ok: false as const,
-      error: error instanceof Error ? error.message : "Failed to publish Business Brain.",
+      error: message,
     };
   }
 }

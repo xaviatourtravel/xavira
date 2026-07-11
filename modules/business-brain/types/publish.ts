@@ -22,12 +22,21 @@ export const BRAIN_PUBLISH_SECTION_LABELS: Record<BrainPublishSection, string> =
   behaviors: "Rules",
 };
 
+export type BrainEntityChangeType = "added" | "edited" | "removed";
+
+export type BrainSectionChangeDetail = {
+  entityId: string;
+  displayName: string;
+  changeType: BrainEntityChangeType;
+};
+
 export type BrainSectionChangeSummary = {
   section: BrainPublishSection;
   label: string;
   added: number;
   edited: number;
   removed: number;
+  changes: BrainSectionChangeDetail[];
 };
 
 export type BrainPublishUserRef = {
@@ -42,6 +51,7 @@ export type BrainPublishStatusView = {
   draftChangesCount: number;
   draftUpdatedAt: string | null;
   currentVersionNumber: number | null;
+  currentVersionId: string | null;
 };
 
 export type BrainDraftSummary = {
@@ -70,4 +80,6 @@ export type BrainSnapshot = {
 export type BrainPublishResult = {
   version: BrainVersionListItem;
   status: BrainPublishStatusView;
+  draftSummary: BrainDraftSummary;
+  versions: BrainVersionListItem[];
 };

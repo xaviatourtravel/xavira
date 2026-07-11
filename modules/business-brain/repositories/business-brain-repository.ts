@@ -86,6 +86,15 @@ export async function touchBusinessBrainDraftUpdatedAt(
   }
 }
 
+export async function touchBusinessBrainDraftForOrganization(
+  organizationId: string,
+): Promise<void> {
+  const brain = await findBusinessBrainByOrganizationId(organizationId);
+  if (brain) {
+    await touchBusinessBrainDraftUpdatedAt(brain.id);
+  }
+}
+
 export async function updateBusinessBrainPublishState(input: {
   businessBrainId: string;
   status: BrainPublishStatus;

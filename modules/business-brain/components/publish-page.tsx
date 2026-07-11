@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Eye, Rocket, Upload } from "lucide-react";
+import { ChevronDown, Eye, Rocket, Upload } from "lucide-react";
 
 import { DsButton } from "@/components/design-system/button";
 import { publishBusinessBrainAction } from "@/modules/business-brain/actions/publish-actions";
@@ -16,6 +16,7 @@ import { ExpandableList } from "@/modules/business-brain/components/expandable-l
 import { BusinessBrainSectionHeader } from "@/modules/business-brain/components/business-brain-workspace";
 import type {
   BrainDraftSummary,
+  BrainEntityChangeType,
   BrainPublishStatusView,
   BrainSectionChangeSummary,
   BrainVersionListItem,
@@ -72,8 +73,82 @@ function ChangeCountCell({ value }: { value: number }) {
   );
 }
 
+function changeTypeLabel(
+  changeType: BrainEntityChangeType,
+  tStrict: ReturnType<typeof useTranslation>["tStrict"],
+) {
+  switch (changeType) {
+    case "added":
+      return tStrict("businessBrain.itemsAdded");
+    case "edited":
+      return tStrict("businessBrain.itemsEdited");
+    case "removed":
+      return tStrict("businessBrain.itemsRemoved");
+    default:
+      return changeType;
+  }
+}
+
+function SectionChangeDetails({
+  section,
+}: {
+  section: BrainSectionChangeSummary;
+}) {
+  const { tStrict } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+
+  if (section.changes.length === 0) {
+    return null;
+  }
+
+  const summaryParts = [
+    section.added > 0 ? `${section.added} ${tStrict("businessBrain.itemsAdded").toLowerCase()}` : null,
+    section.edited > 0 ? `${section.edited} ${tStrict("businessBrain.itemsEdited").toLowerCase()}` : null,
+    section.removed > 0 ? `${section.removed} ${tStrict("businessBrain.itemsRemoved").toLowerCase()}` : null,
+  ].filter(Boolean);
+
+  return (
+    <div className="rounded-lg border border-border/70 bg-background">
+      <button
+        type="button"
+        onClick={() => setExpanded((current) => !current)}
+        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
+      >
+        <div>
+          <p className="text-sm font-medium text-foreground">{section.label}</p>
+          <p className="text-xs text-muted-foreground">{summaryParts.join(" · ")}</p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
+      {expanded ? (
+        <ul className="border-t border-border/70 px-3 py-2 text-sm">
+          {section.changes.map((change) => (
+            <li
+              key={`${section.section}-${change.entityId}-${change.changeType}`}
+              className="flex items-start justify-between gap-3 py-1.5"
+            >
+              <span className="text-foreground">{change.displayName}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {changeTypeLabel(change.changeType, tStrict)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function ChangeSummaryTable({ sections }: { sections: BrainSectionChangeSummary[] }) {
   const { tStrict } = useTranslation();
+  const sectionsWithChanges = sections.filter(
+    (section) => section.added + section.edited + section.removed > 0,
+  );
 
   if (sections.length === 0) {
     return (
@@ -84,33 +159,45 @@ function ChangeSummaryTable({ sections }: { sections: BrainSectionChangeSummary[
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
-      <table className="min-w-full text-sm">
-        <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.section")}</th>
-            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.added")}</th>
-            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.edited")}</th>
-            <th className="px-4 py-3 font-medium">{tStrict("businessBrain.removed")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sections.map((section) => (
-            <tr key={section.section} className="border-t border-border">
-              <td className="px-4 py-3 font-medium text-foreground">{section.label}</td>
-              <td className="px-4 py-3">
-                <ChangeCountCell value={section.added} />
-              </td>
-              <td className="px-4 py-3">
-                <ChangeCountCell value={section.edited} />
-              </td>
-              <td className="px-4 py-3">
-                <ChangeCountCell value={section.removed} />
-              </td>
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">{tStrict("businessBrain.changeCountHelper")}</p>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="min-w-full text-sm">
+          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3 font-medium">{tStrict("businessBrain.section")}</th>
+              <th className="px-4 py-3 font-medium">{tStrict("businessBrain.itemsAdded")}</th>
+              <th className="px-4 py-3 font-medium">{tStrict("businessBrain.itemsEdited")}</th>
+              <th className="px-4 py-3 font-medium">{tStrict("businessBrain.itemsRemoved")}</th>
             </tr>
+          </thead>
+          <tbody>
+            {sections.map((section) => (
+              <tr key={section.section} className="border-t border-border">
+                <td className="px-4 py-3 font-medium text-foreground">{section.label}</td>
+                <td className="px-4 py-3">
+                  <ChangeCountCell value={section.added} />
+                </td>
+                <td className="px-4 py-3">
+                  <ChangeCountCell value={section.edited} />
+                </td>
+                <td className="px-4 py-3">
+                  <ChangeCountCell value={section.removed} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {sectionsWithChanges.length > 0 ? (
+        <div className="space-y-2">
+          {sectionsWithChanges.map((section) => (
+            <SectionChangeDetails key={section.section} section={section} />
           ))}
-        </tbody>
-      </table>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -132,32 +219,37 @@ export function PublishPageClient({
 
   const canPublishNow =
     canPublish &&
+    !isPublishing &&
     (status.status === "draft" || draftSummary.hasUnpublishedChanges);
 
   const handlePublish = () => {
+    if (!canPublishNow) {
+      return;
+    }
+
     setErrorMessage(null);
     setSuccessMessage(null);
 
     startPublishTransition(async () => {
       const result = await publishBusinessBrainAction();
       if (!result.ok || !result.result) {
-        setErrorMessage(result.ok ? tStrict("businessBrain.publishFailed") : result.error);
+        setErrorMessage(
+          result.ok
+            ? tStrict("businessBrain.publishFailed")
+            : result.error,
+        );
         return;
       }
 
       setStatus(result.result.status);
-      setDraftSummary({
-        sections: draftSummary.sections.map((section) => ({
-          ...section,
-          added: 0,
-          edited: 0,
-          removed: 0,
-        })),
-        totalChanges: 0,
-        hasUnpublishedChanges: false,
-      });
-      setVersions((current) => [result.result.version, ...current]);
-      setSuccessMessage(`Business Brain v${result.result.version.versionNumber} published.`);
+      setDraftSummary(result.result.draftSummary);
+      setVersions(result.result.versions);
+      setSuccessMessage(
+        tStrict("businessBrain.publishSuccess").replace(
+          "{version}",
+          String(result.result.version.versionNumber),
+        ),
+      );
       router.refresh();
     });
   };
@@ -214,31 +306,30 @@ export function PublishPageClient({
                 </div>
                 <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {tStrict("businessBrain.lastPublishedAt")}
+                    {tStrict("businessBrain.liveAiActiveVersion")}
                   </p>
                   <p className="mt-1.5 text-sm font-medium text-foreground">
+                    {status.currentVersionNumber ? `v${status.currentVersionNumber}` : "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {formatDateTime(status.lastPublishedAt)}
+                    {status.lastPublishedBy ? ` · ${status.lastPublishedBy.name}` : ""}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {tStrict("businessBrain.lastPublishedBy")}
-                  </p>
-                  <p className="mt-1.5 text-sm font-medium text-foreground">
-                    {status.lastPublishedBy?.name ?? "—"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {tStrict("businessBrain.draftChangesCount")}
+                    {tStrict("businessBrain.unpublishedChanges")}
                   </p>
                   <p className="mt-1.5 text-sm font-medium text-foreground">
                     {draftSummary.totalChanges}
-                    {status.currentVersionNumber ? (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        (live v{status.currentVersionNumber})
-                      </span>
-                    ) : null}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {tStrict("businessBrain.draftUpdatedAt")}
+                  </p>
+                  <p className="mt-1.5 text-sm font-medium text-foreground">
+                    {formatDateTime(status.draftUpdatedAt)}
                   </p>
                 </div>
               </div>

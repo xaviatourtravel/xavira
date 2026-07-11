@@ -21,6 +21,8 @@ export const bbUiEn = {
   retryLoading: "Retry loading",
   save: "Save",
   saveDraft: "Save Draft",
+  globalPublishRequired:
+    "Save drafts here. Activate live AI through Publish Business Brain.",
   updated: "Updated",
   on: "On",
   off: "Off",
@@ -596,6 +598,8 @@ export const bbUiId: BusinessBrainUiDictionary = {
   retryLoading: "Coba muat ulang",
   save: "Simpan",
   saveDraft: "Simpan Draft",
+  globalPublishRequired:
+    "Simpan draft di sini. Aktifkan ke AI live lewat Terbitkan Business Brain.",
   updated: "Diperbarui",
   on: "Aktif",
   off: "Nonaktif",

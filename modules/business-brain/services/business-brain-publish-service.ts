@@ -11,16 +11,14 @@ import { listBrainArticles } from "@/modules/business-brain/repositories/brain-a
 import { listBrainDocuments } from "@/modules/business-brain/repositories/brain-document-repository";
 import { listBrainProducts } from "@/modules/business-brain/repositories/brain-product-repository";
 import {
-  getMaxVersionNumber,
-  insertBrainVersion,
+  findBrainVersionById,
   listBrainVersions,
-  supersedePublishedVersions,
+  publishBusinessBrainAtomic,
 } from "@/modules/business-brain/repositories/brain-version-repository";
 import {
   coerceBrainPublishStatus,
   ensureBusinessBrain,
   findBusinessBrainByOrganizationId,
-  updateBusinessBrainPublishState,
 } from "@/modules/business-brain/repositories/business-brain-repository";
 import { findCompanyDnaByBusinessBrainId } from "@/modules/business-brain/repositories/company-dna-repository";
 import type {
@@ -30,6 +28,9 @@ import type {
   BrainPublishUserRef,
   BrainVersionListItem,
 } from "@/modules/business-brain/types/publish";
+
+const PUBLISH_FAILED_MESSAGE =
+  "Business Brain belum berhasil diterbitkan. Tidak ada perubahan yang diaktifkan. Silakan coba lagi.";
 
 async function loadCurrentSnapshot(businessBrainId: string) {
   const [companyDna, products, knowledge, documents, behaviors] = await Promise.all([
@@ -57,13 +58,12 @@ async function loadPublishedSnapshot(
     return null;
   }
 
-  const versions = await listBrainVersions(businessBrainId);
-  const published = versions.find((version) => version.id === publishedVersionId);
-  if (!published) {
+  const version = await findBrainVersionById(publishedVersionId);
+  if (!version || version.business_brain_id !== businessBrainId) {
     return null;
   }
 
-  return parseBrainSnapshot(published.snapshot);
+  return parseBrainSnapshot(version.snapshot);
 }
 
 async function resolvePublishUsers(userIds: string[]): Promise<Map<string, BrainPublishUserRef>> {
@@ -126,6 +126,7 @@ async function buildPublishStatusView(
     draftChangesCount: draftSummary.totalChanges,
     draftUpdatedAt: brain.draft_updated_at,
     currentVersionNumber: activeVersion?.version_number ?? null,
+    currentVersionId: brain.published_version_id,
   };
 }
 
@@ -141,6 +142,7 @@ export async function getPublishStatus(
       draftChangesCount: 0,
       draftUpdatedAt: null,
       currentVersionNumber: null,
+      currentVersionId: null,
     };
   }
 
@@ -184,30 +186,59 @@ export async function publish(
     throw new Error("No unpublished changes to publish.");
   }
 
-  const nextVersionNumber = (await getMaxVersionNumber(brain.id)) + 1;
-  const versionRow = await insertBrainVersion({
-    businessBrainId: brain.id,
-    versionNumber: nextVersionNumber,
-    snapshot: currentSnapshot as unknown as Json,
-    publishedBy: publishedByUserId,
-  });
+  let atomicResult;
+  try {
+    atomicResult = await publishBusinessBrainAtomic({
+      businessBrainId: brain.id,
+      snapshot: currentSnapshot as unknown as Json,
+      publishedBy: publishedByUserId,
+    });
+  } catch (error) {
+    console.error("[BusinessBrain] publish_failed", {
+      organizationId,
+      businessBrainId: brain.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error(PUBLISH_FAILED_MESSAGE);
+  }
 
-  await supersedePublishedVersions(brain.id, versionRow.id);
+  const updatedBrain = await findBusinessBrainByOrganizationId(organizationId);
+  if (!updatedBrain || updatedBrain.published_version_id !== atomicResult.versionId) {
+    console.error("[BusinessBrain] publish_pointer_mismatch", {
+      organizationId,
+      businessBrainId: brain.id,
+      expectedVersionId: atomicResult.versionId,
+      actualVersionId: updatedBrain?.published_version_id ?? null,
+    });
+    throw new Error(PUBLISH_FAILED_MESSAGE);
+  }
 
-  const updatedBrain = await updateBusinessBrainPublishState({
-    businessBrainId: brain.id,
-    status: "published",
-    publishedVersionId: versionRow.id,
-    publishedBy: publishedByUserId,
-    publishedAt: versionRow.published_at,
-  });
+  const publishedSnapshotAfterPublish = await loadPublishedSnapshot(
+    brain.id,
+    atomicResult.versionId,
+  );
+  const refreshedSummary = summarizeDraftChanges(
+    currentSnapshot,
+    publishedSnapshotAfterPublish,
+  );
 
-  const users = await resolvePublishUsers([publishedByUserId]);
-  const refreshedSummary = summarizeDraftChanges(currentSnapshot, currentSnapshot);
+  const versionRow = await findBrainVersionById(atomicResult.versionId);
+  if (!versionRow) {
+    throw new Error(PUBLISH_FAILED_MESSAGE);
+  }
+
+  const versions = await listBrainVersions(brain.id);
+  const users = await resolvePublishUsers(
+    versions
+      .map((version) => version.published_by)
+      .filter((id): id is string => !!id),
+  );
 
   return {
     version: mapVersionRow(versionRow, users),
     status: await buildPublishStatusView(updatedBrain, refreshedSummary),
+    draftSummary: refreshedSummary,
+    versions: versions.map((version) => mapVersionRow(version, users)),
   };
 }
 

@@ -184,6 +184,7 @@ export type Dictionary = {
     lastPublishedAt: string;
     lastPublishedBy: string;
     draftChangesCount: string;
+    draftUpdatedAt: string;
     changeSummary: string;
     changeSummaryDescription: string;
     preview: string;
@@ -207,6 +208,14 @@ export type Dictionary = {
     publishFailed: string;
     adminOnlyPublish: string;
     changeSummaryEmpty: string;
+    liveAiActiveVersion: string;
+    unpublishedChanges: string;
+    changeCountHelper: string;
+    itemsAdded: string;
+    itemsEdited: string;
+    itemsRemoved: string;
+    publishSuccess: string;
+    globalPublishRequired: string;
     knowledgeCoverage: string;
     weakestCoverage: string;
     permissionsReadOnly: string;
@@ -469,6 +478,7 @@ const id: Dictionary = {
     lastPublishedAt: "Terakhir Diterbitkan",
     lastPublishedBy: "Diterbitkan Oleh",
     draftChangesCount: "Jumlah Perubahan Draft",
+    draftUpdatedAt: "Draft Diperbarui",
     changeSummary: "Ringkasan Perubahan",
     changeSummaryDescription: "Edit yang belum diterbitkan dibanding versi terakhir.",
     preview: "Pratinjau",
@@ -495,6 +505,15 @@ const id: Dictionary = {
     adminOnlyPublish: "Hanya admin dan owner yang dapat menerbitkan perubahan.",
     changeSummaryEmpty:
       "Belum ada data. Tambahkan Identitas, Produk, atau Pengetahuan sebelum menerbitkan.",
+    liveAiActiveVersion: "Versi Aktif AI Live",
+    unpublishedChanges: "Perubahan Belum Diterbitkan",
+    changeCountHelper: "Angka menunjukkan jumlah item Business Brain, bukan jumlah field.",
+    itemsAdded: "Item ditambah",
+    itemsEdited: "Item diedit",
+    itemsRemoved: "Item dihapus",
+    publishSuccess: "Business Brain v{version} berhasil diterbitkan.",
+    globalPublishRequired:
+      "Simpan draft di sini. Aktifkan ke AI live lewat Terbitkan Business Brain.",
     knowledgeCoverage: "Cakupan Pengetahuan",
     weakestCoverage: "Cakupan Terlemah",
     permissionsReadOnly: "Hanya owner dan admin workspace yang dapat mengubah izin AI.",
@@ -619,6 +638,7 @@ const en: Dictionary = {
     lastPublishedAt: "Last Published At",
     lastPublishedBy: "Last Published By",
     draftChangesCount: "Draft Changes Count",
+    draftUpdatedAt: "Draft Updated",
     changeSummary: "Change Summary",
     changeSummaryDescription: "Unpublished edits compared to the last published version.",
     preview: "Preview",
@@ -644,6 +664,15 @@ const en: Dictionary = {
     adminOnlyPublish: "Only admins and owners can publish changes.",
     changeSummaryEmpty:
       "Nothing here yet. Add Identity, Products, or Knowledge before publishing.",
+    liveAiActiveVersion: "Live AI Active Version",
+    unpublishedChanges: "Unpublished Changes",
+    changeCountHelper: "Counts represent Business Brain items, not individual fields.",
+    itemsAdded: "Items added",
+    itemsEdited: "Items edited",
+    itemsRemoved: "Items removed",
+    publishSuccess: "Business Brain v{version} published successfully.",
+    globalPublishRequired:
+      "Save drafts here. Activate live AI through Publish Business Brain.",
     knowledgeCoverage: "Knowledge Coverage",
     weakestCoverage: "Weakest Coverage",
     permissionsReadOnly: "Only workspace owners and admins can change AI permissions.",

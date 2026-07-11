@@ -1,6 +1,7 @@
 import {
   ensureBusinessBrain,
   findBusinessBrainByOrganizationId,
+  touchBusinessBrainDraftForOrganization,
 } from "@/modules/business-brain/repositories/business-brain-repository";
 import {
   createBrainArticle,
@@ -116,6 +117,7 @@ export async function getArticle(
 export async function create(organizationId: string): Promise<BrainArticleDetail> {
   const businessBrainId = await getBusinessBrainIdForOrg(organizationId);
   const row = await createBrainArticle(businessBrainId);
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return (await getArticle(organizationId, row.id))!;
 }
 
@@ -143,6 +145,7 @@ export async function update(
 
   await updateBrainArticle(articleId, values);
   await replaceArticleProductLinks(articleId, values.relatedProductIds);
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return (await getArticle(organizationId, articleId))!;
 }
 
@@ -152,6 +155,7 @@ export async function deleteArticle(
 ): Promise<void> {
   await assertArticleInOrg(organizationId, articleId);
   await deleteBrainArticle(articleId);
+  await touchBusinessBrainDraftForOrganization(organizationId);
 }
 
 export async function publish(

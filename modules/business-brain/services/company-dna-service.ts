@@ -5,6 +5,7 @@ import {
 import {
   ensureBusinessBrain,
   findBusinessBrainByOrganizationId,
+  touchBusinessBrainDraftForOrganization,
 } from "@/modules/business-brain/repositories/business-brain-repository";
 import {
   findCompanyDnaByBusinessBrainId,
@@ -74,6 +75,7 @@ export async function saveDraft(
   const parsed = companyDnaFormSchema.parse(input);
   const businessBrain = await ensureBusinessBrain(organizationId);
   const row = await upsertCompanyDna(businessBrain.id, parsed);
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return toRecord(mapCompanyDnaRow(row));
 }
 

@@ -2,6 +2,7 @@ import { createBusinessBrainDocumentSignedUrl } from "@/modules/business-brain/l
 import {
   ensureBusinessBrain,
   findBusinessBrainByOrganizationId,
+  touchBusinessBrainDraftForOrganization,
 } from "@/modules/business-brain/repositories/business-brain-repository";
 import {
   countDocumentProductsByDocumentIds,
@@ -150,6 +151,7 @@ export async function upload(input: {
     tags: input.tags,
   });
 
+  await touchBusinessBrainDraftForOrganization(input.organizationId);
   return (await buildDocumentDetail(row))!;
 }
 
@@ -169,6 +171,7 @@ export async function uploadUrl(input: {
     documentType: "url",
   });
 
+  await touchBusinessBrainDraftForOrganization(input.organizationId);
   return (await buildDocumentDetail(row))!;
 }
 
@@ -196,6 +199,7 @@ export async function update(
     replaceDocumentArticleLinks(documentId, parsed.relatedArticleIds),
   ]);
 
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return (await getDocument(organizationId, documentId))!;
 }
 
@@ -230,5 +234,6 @@ export async function deleteDocument(
   const document = await assertDocumentInOrg(organizationId, documentId);
   const storagePath = document.storage_path;
   await deleteBrainDocument(documentId);
+  await touchBusinessBrainDraftForOrganization(organizationId);
   return { storagePath };
 }

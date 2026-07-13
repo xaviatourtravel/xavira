@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 import { logProductUploadError, logProductUploadStep } from "@/modules/business-brain/lib/product-upload-debug";
 import type {
@@ -89,6 +90,48 @@ export async function insertProductDocument(input: {
   if (error) {
     logProductUploadError(error);
     throw error;
+  }
+
+  return mapDocumentRow(data);
+}
+
+export async function insertProductDocumentWithServiceRole(input: {
+  productId: string;
+  documentType: ProductDocumentType;
+  fileName?: string | null;
+  filePath?: string | null;
+  fileUrl?: string | null;
+  mimeType?: string | null;
+}): Promise<ProductDocumentRecord> {
+  const admin = createAdminClient();
+  const row = {
+    product_id: input.productId,
+    document_type: input.documentType,
+    file_name: input.fileName ?? null,
+    file_path: input.filePath ?? null,
+    file_url: input.fileUrl ?? null,
+    mime_type: input.mimeType ?? null,
+  };
+
+  logProductUploadStep("Database insert request (service role)", row);
+
+  const { data, error } = await admin.from("product_documents").insert(row).select("*").single();
+
+  logProductUploadStep("Database response (service role)", {
+    data,
+    error: error
+      ? {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        }
+      : null,
+  });
+
+  if (error) {
+    logProductUploadError(error);
+    throw new Error(error.message);
   }
 
   return mapDocumentRow(data);

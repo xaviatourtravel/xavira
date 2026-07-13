@@ -2,6 +2,10 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 import { logProductUploadError, logProductUploadStep } from "@/modules/business-brain/lib/product-upload-debug";
+import {
+  isProductDocumentUniqueViolation,
+  ProductDocumentInsertError,
+} from "@/modules/business-brain/lib/product-document-insert-errors";
 import type {
   ProductDocumentRecord,
   ProductDocumentType,
@@ -131,6 +135,12 @@ export async function insertProductDocumentWithServiceRole(input: {
 
   if (error) {
     logProductUploadError(error);
+    if (isProductDocumentUniqueViolation(error)) {
+      throw new ProductDocumentInsertError(
+        "DUPLICATE_UPLOAD_FINALIZATION",
+        "This upload has already been finalized.",
+      );
+    }
     throw new Error(error.message);
   }
 

@@ -13,14 +13,17 @@ import { findItineraryDocuments } from "@/modules/ai/response-planner/resolve-gr
 import {
   buildCatalogDirectAnswer,
   buildMultiProductPriceTemplate,
-  buildNoExactDestinationTemplate,
+  buildSelectedProductScheduleMissingTemplate,
+  buildSelectedProductScheduleTemplate,
 } from "@/modules/ai/response-planner/hospitality-templates";
 import {
-  findAlternativeCountryResults,
+  buildCatalogContext,
   formatCatalogList,
   MAX_CATALOG_RESULTS,
+  resolveCatalogDisplayLabels,
 } from "@/modules/ai/response-planner/resolve-catalog";
 import { buildGreetingTemplate } from "@/modules/ai/response-planner/resolve-greeting";
+import { buildSelectedProductSummary } from "@/modules/ai/response-planner/product-summary";
 import type { ProductContext } from "@/modules/business-brain/types/context";
 import type { DocumentContext } from "@/modules/business-brain/types/context";
 import type { GreetingType } from "@/modules/ai/conversation-state/types";
@@ -81,8 +84,14 @@ export function resolveAnswerability(input: {
     return "NEEDS_DISAMBIGUATION";
   }
 
-  if (input.requestType === "PRODUCT_INFORMATION" && input.product) {
-    return input.product.description?.trim() ? "ANSWERABLE" : "PARTIALLY_ANSWERABLE";
+  if (input.requestType === "PRODUCT_INFORMATION" || input.requestType === "PRODUCT_SELECTION") {
+    if (input.product) return "ANSWERABLE";
+    return "NEEDS_DISAMBIGUATION";
+  }
+
+  if (input.requestType === "GEOGRAPHIC_CONFIRMATION") {
+    if (input.product) return "ANSWERABLE";
+    return "NEEDS_DISAMBIGUATION";
   }
 
   return "NOT_ANSWERABLE";
@@ -103,6 +112,8 @@ export function resolveNextAction(input: {
   documents: DocumentContext[];
   answeredQuestionKeys: QuestionSemanticKey[];
   catalogResults?: CatalogResult[];
+  exactCatalogResults?: CatalogResult[];
+  alternativeCatalogResults?: CatalogResult[];
   catalogQueryType?: CatalogContext["queryType"] | null;
   catalogQueryValue?: string | null;
   totalCatalogMatches?: number;
@@ -111,6 +122,8 @@ export function resolveNextAction(input: {
   companyName?: string | null;
   timezone?: string | null;
   products?: ProductContext[];
+  interpretedPeriod?: string | null;
+  geographicConfirmationAnswer?: string | null;
 }): {
   responseAction: ResponseAction;
   attachmentAction: AttachmentAction | null;
@@ -123,7 +136,39 @@ export function resolveNextAction(input: {
   catalogContext: CatalogContext | null;
 } {
   const catalogResults = input.catalogResults ?? [];
+  const exactCatalogResults = input.exactCatalogResults ?? catalogResults.filter((item) => item.matchType === "exact");
+  const alternativeCatalogResults =
+    input.alternativeCatalogResults ?? catalogResults.filter((item) => item.matchType === "same_country_alternative");
   const now = new Date();
+
+  if (input.requestType === "GEOGRAPHIC_CONFIRMATION") {
+    if (input.geographicConfirmationAnswer) {
+      const includesOffer = /saya bisa bantu/i.test(input.geographicConfirmationAnswer);
+      return {
+        responseAction: "ANSWER_DIRECTLY",
+        attachmentAction: null,
+        followUpQuestion: includesOffer ? null : "Saya bisa bantu carikan paket yang sesuai jika Kakak mau.",
+        followUpQuestionKey: includesOffer ? null : "requested_service",
+        handoffRequired: false,
+        handoffReason: null,
+        directAnswerRequired: true,
+        directAnswerTemplate: input.geographicConfirmationAnswer,
+        catalogContext: null,
+      };
+    }
+
+    return {
+      responseAction: "ASK_ONE_CLARIFYING_QUESTION",
+      attachmentAction: null,
+      followUpQuestion: "Produk atau paket mana yang ingin ditanyakan?",
+      followUpQuestionKey: "requested_service",
+      handoffRequired: false,
+      handoffReason: null,
+      directAnswerRequired: false,
+      directAnswerTemplate: null,
+      catalogContext: null,
+    };
+  }
 
   if (input.requestType === "GREETING" && input.greetingAllowed) {
     return {
@@ -167,6 +212,8 @@ export function resolveNextAction(input: {
       queryType: input.catalogQueryType ?? "general",
       queryValue: input.catalogQueryValue ?? null,
       results: catalogResults,
+      exactResults: exactCatalogResults,
+      alternativeResults: alternativeCatalogResults,
       moreAvailable,
     });
 
@@ -179,45 +226,78 @@ export function resolveNextAction(input: {
       handoffReason: null,
       directAnswerRequired: true,
       directAnswerTemplate: answer.template,
-      catalogContext: {
+      catalogContext: buildCatalogContext({
         queryType: input.catalogQueryType ?? "general",
         queryValue: input.catalogQueryValue ?? null,
-        entityIds: catalogResults.map((item) => item.entityId),
-        establishedAt: now.toISOString(),
-      },
+        exactResults: exactCatalogResults,
+        alternativeResults: alternativeCatalogResults,
+        now,
+      }),
     };
   }
 
   if (
     input.requestType === "DESTINATION_DISCOVERY" &&
     catalogResults.length === 0 &&
-    input.catalogQueryValue &&
-    input.products
+    alternativeCatalogResults.length > 0 &&
+    input.catalogQueryValue
   ) {
-    const alternatives = findAlternativeCountryResults(input.products, input.catalogQueryValue);
-    if (alternatives.length > 0) {
-      const alternativeList = formatCatalogList(alternatives);
-      return {
-        responseAction: "LIST_MATCHING_PRODUCTS_THEN_ASK",
-        attachmentAction: null,
-        followUpQuestion: "Kakak tertarik melihat salah satunya?",
-        followUpQuestionKey: "requested_service",
-        handoffRequired: false,
-        handoffReason: null,
-        directAnswerRequired: true,
-        directAnswerTemplate: buildNoExactDestinationTemplate(
-          input.catalogQueryValue,
-          "China",
-          alternativeList,
-        ),
-        catalogContext: {
-          queryType: "destination",
-          queryValue: input.catalogQueryValue,
-          entityIds: alternatives.map((item) => item.entityId),
-          establishedAt: now.toISOString(),
-        },
-      };
-    }
+    const labels = resolveCatalogDisplayLabels({
+      queryType: "destination",
+      queryValue: input.catalogQueryValue ?? null,
+      hasExact: false,
+      hasAlternatives: true,
+    });
+    const answer = buildCatalogDirectAnswer({
+      requestType: input.requestType,
+      queryType: "destination",
+      queryValue: input.catalogQueryValue ?? null,
+      results: alternativeCatalogResults,
+      exactResults: [],
+      alternativeResults: alternativeCatalogResults,
+      moreAvailable: false,
+    });
+
+    return {
+      responseAction: "LIST_MATCHING_PRODUCTS_THEN_ASK",
+      attachmentAction: null,
+      followUpQuestion: answer.followUp,
+      followUpQuestionKey: "requested_service",
+      handoffRequired: false,
+      handoffReason: null,
+      directAnswerRequired: true,
+      directAnswerTemplate: answer.template,
+      catalogContext: buildCatalogContext({
+        queryType: "destination",
+        queryValue: input.catalogQueryValue ?? null,
+        exactResults: [],
+        alternativeResults: alternativeCatalogResults,
+        now,
+      }),
+    };
+  }
+
+  if (
+    (input.requestType === "CATALOG_DISCOVERY" || input.requestType === "DESTINATION_DISCOVERY") &&
+    catalogResults.length === 0
+  ) {
+    const labels = resolveCatalogDisplayLabels({
+      queryType: input.catalogQueryType ?? "destination",
+      queryValue: input.catalogQueryValue ?? null,
+      hasExact: false,
+      hasAlternatives: false,
+    });
+    return {
+      responseAction: "HANDOFF_TO_HUMAN",
+      attachmentAction: null,
+      followUpQuestion: null,
+      followUpQuestionKey: null,
+      handoffRequired: true,
+      handoffReason: "No matching catalog products found.",
+      directAnswerRequired: true,
+      directAnswerTemplate: `Maaf Kak, saat ini saya belum menemukan paket aktif untuk ${labels.countryLabel} pada data kami. Saya teruskan ke tim sales agar bisa dibantu lebih lanjut.`,
+      catalogContext: null,
+    };
   }
 
   if (input.requestType === "HUMAN_REQUEST" || input.requestType === "COMPLAINT") {
@@ -251,12 +331,13 @@ export function resolveNextAction(input: {
       handoffReason: null,
       directAnswerRequired: true,
       directAnswerTemplate: answer.template,
-      catalogContext: {
+      catalogContext: buildCatalogContext({
         queryType: "general",
         queryValue: null,
-        entityIds: catalogResults.map((item) => item.entityId),
-        establishedAt: now.toISOString(),
-      },
+        exactResults: catalogResults,
+        alternativeResults: [],
+        now,
+      }),
     };
   }
 
@@ -274,6 +355,25 @@ export function resolveNextAction(input: {
     };
   }
 
+  if (
+    (input.requestType === "PRODUCT_INFORMATION" || input.requestType === "PRODUCT_SELECTION") &&
+    input.product &&
+    input.selectedEntity
+  ) {
+    const summary = buildSelectedProductSummary(input.product);
+    return {
+      responseAction: "ANSWER_THEN_ASK",
+      attachmentAction: null,
+      followUpQuestion: "Kakak rencananya ingin berangkat kapan?",
+      followUpQuestionKey: "preferred_date",
+      handoffRequired: false,
+      handoffReason: null,
+      directAnswerRequired: true,
+      directAnswerTemplate: summary,
+      catalogContext: null,
+    };
+  }
+
   if (input.requestType === "PRICE" && input.answerability === "ANSWERABLE" && !input.selectedEntity && catalogResults.length > 0) {
     const priced = catalogResults.filter((item) => item.priceLabel);
     if (priced.length > 0) {
@@ -287,18 +387,19 @@ export function resolveNextAction(input: {
         directAnswerRequired: true,
         directAnswerTemplate: buildMultiProductPriceTemplate(priced),
         catalogContext: input.catalogQueryType
-          ? {
+          ? buildCatalogContext({
               queryType: input.catalogQueryType,
               queryValue: input.catalogQueryValue ?? null,
-              entityIds: catalogResults.map((item) => item.entityId),
-              establishedAt: now.toISOString(),
-            }
+              exactResults: catalogResults,
+              alternativeResults: [],
+              now,
+            })
           : null,
       };
     }
   }
 
-  if (input.answerability === "NEEDS_DISAMBIGUATION") {
+  if (input.answerability === "NEEDS_DISAMBIGUATION" && !input.selectedEntity) {
     const question =
       input.requestType === "PRICE"
         ? "Saya bantu cek harganya, ya. Produk atau paket mana yang ingin dicek?"
@@ -387,15 +488,24 @@ export function resolveNextAction(input: {
       .map((fact) => fact.value)
       .join(", ");
     const name = input.selectedEntity?.displayName ?? "produk ini";
+    const periodLabel = input.interpretedPeriod ?? "periode tersebut";
+    const priceFact = input.verifiedFacts.find((fact) => fact.field === "price");
     return {
-      responseAction: "ANSWER_THEN_ASK",
+      responseAction: "ANSWER_DIRECTLY",
       attachmentAction: null,
-      followUpQuestion: "Tanggal mana yang paling sesuai?",
-      followUpQuestionKey: "preferred_date",
+      followUpQuestion: null,
+      followUpQuestionKey: null,
       handoffRequired: false,
       handoffReason: null,
       directAnswerRequired: true,
-      directAnswerTemplate: `Untuk ${name}, jadwal yang tersedia adalah ${dates}.`,
+      directAnswerTemplate: buildSelectedProductScheduleTemplate({
+        productName: name,
+        periodLabel,
+        verifiedDates: dates,
+        verifiedPrice: priceFact?.value ?? input.product?.pricing[0]
+          ? `Rp${input.product!.pricing[0].price.toLocaleString("id-ID")}`
+          : null,
+      }),
       catalogContext: null,
     };
   }
@@ -405,6 +515,7 @@ export function resolveNextAction(input: {
     input.answerability === "REQUIRES_HUMAN_CONFIRMATION"
   ) {
     const name = input.selectedEntity?.displayName ?? "produk ini";
+    const periodLabel = input.interpretedPeriod ?? "periode tersebut";
     return {
       responseAction: "HANDOFF_TO_HUMAN",
       attachmentAction: null,
@@ -412,8 +523,11 @@ export function resolveNextAction(input: {
       followUpQuestionKey: null,
       handoffRequired: true,
       handoffReason: "No active verified schedule found.",
-      directAnswerRequired: false,
-      directAnswerTemplate: `Saya belum menemukan jadwal aktif untuk ${name}. Saya teruskan ke tim sales untuk konfirmasi.`,
+      directAnswerRequired: true,
+      directAnswerTemplate: buildSelectedProductScheduleMissingTemplate({
+        productName: name,
+        periodLabel,
+      }),
       catalogContext: null,
     };
   }

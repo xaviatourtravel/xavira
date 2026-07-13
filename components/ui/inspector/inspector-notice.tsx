@@ -30,11 +30,26 @@ export function InspectorNotice({
 
 export function InspectorProgress({
   value,
+  indeterminate = false,
   className,
 }: {
   value: number;
+  indeterminate?: boolean;
   className?: string;
 }) {
+  if (indeterminate) {
+    return (
+      <div
+        className={cn("h-1 overflow-hidden rounded-full bg-muted", className)}
+        role="progressbar"
+        aria-busy="true"
+        aria-valuetext="Uploading"
+      >
+        <div className="h-full w-1/3 animate-pulse rounded-full bg-emerald-500 dark:bg-emerald-400" />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn("h-1 overflow-hidden rounded-full bg-muted", className)}

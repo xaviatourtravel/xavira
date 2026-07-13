@@ -21,6 +21,7 @@ import {
   inferServerUploadErrorCode,
   type ProductDocumentUploadServerErrorCode,
 } from "@/modules/business-brain/lib/product-document-upload-errors";
+import { resolveProductDocumentInsertError } from "@/modules/business-brain/lib/product-document-insert-errors";
 import {
   beginProductUploadDebug,
   endProductUploadDebug,
@@ -474,6 +475,7 @@ export async function prepareProductDocumentUploadAction(input: {
       storagePath,
       mimeType: validation.mimeType,
       declaredSize: input.declaredSize,
+      note: "Prepare only issues a signed upload token; no Storage object exists until the browser upload completes.",
     });
 
     return {
@@ -549,17 +551,21 @@ export async function finalizeProductDocumentUploadAction(input: {
         mimeType: verification.mimeType,
       });
     } catch (error) {
-      try {
-        await removeBrainProductFile(input.storagePath);
-        logProductUploadStep("Rolled back storage object after DB failure", {
-          filePath: input.storagePath,
-        });
-      } catch (rollbackError) {
-        logProductUploadError(rollbackError);
+      const errorCode = resolveProductDocumentInsertError(error);
+
+      if (errorCode !== "DUPLICATE_UPLOAD_FINALIZATION") {
+        try {
+          await removeBrainProductFile(input.storagePath);
+          logProductUploadStep("Rolled back storage object after DB failure", {
+            filePath: input.storagePath,
+          });
+        } catch (rollbackError) {
+          logProductUploadError(rollbackError);
+        }
       }
 
       const message = error instanceof Error ? error.message : "Failed to save document.";
-      return uploadFailure(inferServerUploadErrorCode(message), message);
+      return uploadFailure(errorCode, message);
     }
 
     const product = await getProduct(organizationId, productId);

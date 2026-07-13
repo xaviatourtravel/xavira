@@ -2,7 +2,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { uploadProductDocumentAction } from "@/modules/business-brain/actions/product-actions";
+import {
+  finalizeProductDocumentUploadAction,
+  prepareProductDocumentUploadAction,
+  uploadProductDocumentAction,
+} from "@/modules/business-brain/actions/product-actions";
+import { uploadProductDocumentToSignedUrl } from "@/modules/business-brain/lib/product-document-direct-upload-client";
 import {
   beginProductUploadDebug,
   describeSelectedFile,
@@ -46,6 +51,10 @@ function isBusyStatus(status: ProductDocumentUploadStatus): boolean {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function mapProgressDuringUpload(uploadPercent: number): number {
+  return 20 + Math.round(uploadPercent * 0.55);
 }
 
 type UseProductDocumentUploadOptions = {
@@ -128,60 +137,139 @@ export function useProductDocumentUpload({
 
         updateSlot(documentType, {
           status: "uploading",
-          progress: 30,
+          progress: 15,
           fileName: file.name,
           errorCode: null,
         });
-        await delay(120);
-
-        updateSlot(documentType, { progress: 70 });
-
-        const formData = new FormData();
-        formData.set("productId", productId);
-        formData.set("documentType", documentType);
-        formData.set("file", file);
 
         logProductUploadStep(
-          "Request payload",
+          "Prepare request payload",
           describeUploadPayload({ productId, documentType, file }),
         );
 
-        let result;
+        let prepareResult;
         try {
-          result = await uploadProductDocumentAction(formData);
-          logProductUploadStep("server response", result);
+          prepareResult = await prepareProductDocumentUploadAction({
+            productId,
+            documentType,
+            originalFilename: file.name,
+            declaredMimeType: file.type,
+            declaredSize: file.size,
+          });
+          logProductUploadStep("prepare response", prepareResult);
         } catch (error) {
           logProductUploadError(error);
           updateSlot(documentType, {
             status: "error",
-            progress: 70,
+            progress: 15,
             fileName: file.name,
-            errorCode: classifyProductUploadError(
-              error instanceof Error ? error.message : "network",
-            ),
+            errorCode: "network",
           });
           return;
         }
 
-        if (!result.ok || !result.product) {
+        if (!prepareResult.ok) {
           updateSlot(documentType, {
             status: "error",
-            progress: 70,
+            progress: 15,
             fileName: file.name,
-            errorCode: classifyProductUploadError(result.error),
+            errorCode: classifyProductUploadError(prepareResult.error, prepareResult.errorCode),
+          });
+          return;
+        }
+
+        updateSlot(documentType, { progress: 20 });
+
+        let directUploadResult;
+        try {
+          directUploadResult = await uploadProductDocumentToSignedUrl({
+            storagePath: prepareResult.storagePath,
+            token: prepareResult.token,
+            file,
+            mimeType: prepareResult.mimeType,
+            onProgress: (percent) => {
+              updateSlot(documentType, {
+                status: "uploading",
+                progress: mapProgressDuringUpload(percent),
+                fileName: file.name,
+                errorCode: null,
+              });
+            },
+          });
+          logProductUploadStep("direct storage response", directUploadResult);
+        } catch (error) {
+          logProductUploadError(error);
+          updateSlot(documentType, {
+            status: "error",
+            progress: mapProgressDuringUpload(0),
+            fileName: file.name,
+            errorCode: "network",
+          });
+          return;
+        }
+
+        if (!directUploadResult.ok) {
+          updateSlot(documentType, {
+            status: "error",
+            progress: mapProgressDuringUpload(0),
+            fileName: file.name,
+            errorCode: classifyProductUploadError(directUploadResult.message, "DIRECT_UPLOAD_FAILED"),
           });
           return;
         }
 
         updateSlot(documentType, {
           status: "processing",
-          progress: 90,
+          progress: 85,
           fileName: file.name,
           errorCode: null,
         });
         await delay(80);
 
-        onSuccess(result.product);
+        let finalizeResult;
+        try {
+          finalizeResult = await finalizeProductDocumentUploadAction({
+            productId,
+            documentType,
+            storagePath: prepareResult.storagePath,
+            originalFilename: file.name,
+          });
+          logProductUploadStep("finalize response", finalizeResult);
+        } catch (error) {
+          logProductUploadError(error);
+          updateSlot(documentType, {
+            status: "error",
+            progress: 85,
+            fileName: file.name,
+            errorCode: "network",
+          });
+          return;
+        }
+
+        if (!finalizeResult.ok) {
+          updateSlot(documentType, {
+            status: "error",
+            progress: 85,
+            fileName: file.name,
+            errorCode: classifyProductUploadError(
+              finalizeResult.error,
+              finalizeResult.errorCode,
+            ),
+          });
+          return;
+        }
+
+        if (!finalizeResult.product) {
+          updateSlot(documentType, {
+            status: "error",
+            progress: 85,
+            fileName: file.name,
+            errorCode: "unknown",
+          });
+          return;
+        }
+
+        onSuccess(finalizeResult.product);
 
         updateSlot(documentType, {
           status: "success",

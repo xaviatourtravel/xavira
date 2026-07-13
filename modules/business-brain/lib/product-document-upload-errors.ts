@@ -10,7 +10,15 @@ export type ProductDocumentUploadServerErrorCode =
   | "STORAGE_UPLOAD_FAILED"
   | "DATABASE_SAVE_FAILED"
   | "FILE_ACCESS_FAILED"
-  | "UNKNOWN_UPLOAD_ERROR";
+  | "UNKNOWN_UPLOAD_ERROR"
+  | "UPLOAD_PREPARATION_FAILED"
+  | "SIGNED_UPLOAD_FAILED"
+  | "DIRECT_UPLOAD_FAILED"
+  | "UPLOAD_FINALIZATION_FAILED"
+  | "UPLOADED_OBJECT_NOT_FOUND"
+  | "UPLOADED_OBJECT_INVALID"
+  | "UPLOAD_PATH_MISMATCH"
+  | "DUPLICATE_UPLOAD_FINALIZATION";
 
 /** Client-facing upload error buckets mapped to BB UI copy. */
 export type ProductDocumentUploadUiErrorCode =
@@ -20,6 +28,7 @@ export type ProductDocumentUploadUiErrorCode =
   | "storage"
   | "permission"
   | "network"
+  | "direct_upload"
   | "unknown";
 
 export function mapServerUploadErrorToUi(
@@ -29,6 +38,7 @@ export function mapServerUploadErrorToUi(
     case "EMPTY_FILE":
     case "INVALID_FILE_TYPE":
     case "INVALID_DOCUMENT_CATEGORY":
+    case "UPLOADED_OBJECT_INVALID":
       return "unsupported";
     case "FILE_TOO_LARGE":
       return "too_large";
@@ -37,7 +47,15 @@ export function mapServerUploadErrorToUi(
     case "STORAGE_UPLOAD_FAILED":
     case "FILE_ACCESS_FAILED":
       return "storage";
+    case "UPLOAD_PREPARATION_FAILED":
+    case "SIGNED_UPLOAD_FAILED":
+    case "DIRECT_UPLOAD_FAILED":
+    case "UPLOADED_OBJECT_NOT_FOUND":
+      return "direct_upload";
     case "DATABASE_SAVE_FAILED":
+    case "UPLOAD_FINALIZATION_FAILED":
+    case "UPLOAD_PATH_MISMATCH":
+    case "DUPLICATE_UPLOAD_FINALIZATION":
     case "PRODUCT_NOT_FOUND":
     case "WORKSPACE_NOT_FOUND":
     case "UNKNOWN_UPLOAD_ERROR":
@@ -63,8 +81,28 @@ export function inferServerUploadErrorCode(message: string): ProductDocumentUplo
     return "PRODUCT_NOT_FOUND";
   }
 
-  if (/exceeds|too large|body exceeded|413|size limit|file_too_large/.test(normalized)) {
+  if (/exceeds|too large|body exceeded|413|size limit|file_too_large|upload size limit/.test(normalized)) {
     return "FILE_TOO_LARGE";
+  }
+
+  if (/path mismatch|invalid storage path/.test(normalized)) {
+    return "UPLOAD_PATH_MISMATCH";
+  }
+
+  if (/duplicate finalization|already finalized|already exists/.test(normalized)) {
+    return "DUPLICATE_UPLOAD_FINALIZATION";
+  }
+
+  if (/signed upload|signed url/.test(normalized)) {
+    return "SIGNED_UPLOAD_FAILED";
+  }
+
+  if (/object not found|not found in storage/.test(normalized)) {
+    return "UPLOADED_OBJECT_NOT_FOUND";
+  }
+
+  if (/finalization failed|finalize/.test(normalized)) {
+    return "UPLOAD_FINALIZATION_FAILED";
   }
 
   if (
@@ -85,7 +123,7 @@ export function inferServerUploadErrorCode(message: string): ProductDocumentUplo
     return "UNKNOWN_UPLOAD_ERROR";
   }
 
-  if (/pdf|corrupt|cannot be read|unreadable/.test(normalized)) {
+  if (/pdf|corrupt|cannot be read|unreadable|invalid or unreadable/.test(normalized)) {
     return "INVALID_FILE_TYPE";
   }
 

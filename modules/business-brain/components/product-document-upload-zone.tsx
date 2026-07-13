@@ -18,6 +18,7 @@ const ERROR_KEYS: Record<ProductDocumentUploadErrorCode, BbUiKey> = {
   storage: "productUploadErrorStorage",
   permission: "productUploadErrorPermission",
   network: "productUploadErrorNetwork",
+  direct_upload: "productUploadErrorDirectUpload",
   unknown: "productUploadErrorUnknown",
 };
 

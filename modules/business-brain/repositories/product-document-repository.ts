@@ -137,6 +137,23 @@ export async function insertProductDocumentWithServiceRole(input: {
   return mapDocumentRow(data);
 }
 
+export async function findProductDocumentByFilePath(
+  filePath: string,
+): Promise<ProductDocumentRow | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("product_documents")
+    .select("*")
+    .eq("file_path", filePath)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
 export async function deleteProductDocument(documentId: string): Promise<ProductDocumentRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase

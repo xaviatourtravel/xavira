@@ -21,6 +21,7 @@ export type ProductDocumentUploadErrorCode =
   | "storage"
   | "permission"
   | "network"
+  | "direct_upload"
   | "unknown";
 
 const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);

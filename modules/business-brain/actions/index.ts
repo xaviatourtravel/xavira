@@ -23,6 +23,8 @@ export {
   loadBrainProductsAction,
   loadProductFaqOptionsAction,
   publishBrainProductAction,
+  prepareProductDocumentUploadAction,
+  finalizeProductDocumentUploadAction,
   unlinkProductFaqAction,
   updateBrainProductAction,
   uploadProductDocumentAction,

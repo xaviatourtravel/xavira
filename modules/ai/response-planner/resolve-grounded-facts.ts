@@ -76,6 +76,7 @@ export function resolveGroundedFacts(input: {
   requestFields: string[];
   latestMessage?: string;
   referenceDate?: Date;
+  timezone?: string | null;
 }): VerifiedFact[] {
   const facts: VerifiedFact[] = [];
   if (!input.product) return facts;
@@ -86,7 +87,7 @@ export function resolveGroundedFacts(input: {
 
   if (input.requestFields.includes("schedule") || input.requestFields.includes("availability")) {
     const periodConstraint = input.latestMessage
-      ? extractSchedulePeriodFromMessage(input.latestMessage, input.referenceDate)
+      ? extractSchedulePeriodFromMessage(input.latestMessage, input.referenceDate, input.timezone)
       : null;
     const departureResult = extractVerifiedDepartureFacts(input.product, {
       periodConstraint,
@@ -123,6 +124,7 @@ export function resolveGroundedFacts(input: {
 export function resolveSchedulePeriodLabel(
   latestMessage: string,
   referenceDate?: Date,
+  timezone?: string | null,
 ): string | null {
-  return extractSchedulePeriodFromMessage(latestMessage, referenceDate)?.label ?? null;
+  return extractSchedulePeriodFromMessage(latestMessage, referenceDate, timezone)?.label ?? null;
 }

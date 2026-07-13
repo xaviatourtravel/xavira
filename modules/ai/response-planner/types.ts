@@ -12,7 +12,9 @@ export const REQUEST_TYPES = [
   "GENERAL_SERVICE_INQUIRY",
   "CATALOG_DISCOVERY",
   "DESTINATION_DISCOVERY",
+  "PRODUCT_SELECTION",
   "PRODUCT_INFORMATION",
+  "GEOGRAPHIC_CONFIRMATION",
   "PRODUCT_COMPARISON",
   "PRICE",
   "ITINERARY_OR_DOCUMENT",
@@ -62,6 +64,8 @@ export type SelectedEntitySource =
   | "collected_information"
   | "destination_match";
 
+export type CatalogMatchType = "exact" | "same_country_alternative";
+
 export type CatalogResult = {
   entityId: string;
   displayName: string;
@@ -70,15 +74,45 @@ export type CatalogResult = {
   startingPrice: number | null;
   currency: import("@/modules/business-brain/types/products").ProductCurrency | null;
   priceLabel: string | null;
+  priceSourceField: string | null;
+  priceBasis: string | null;
   departureDates: string[];
   sourceIds: string[];
+  matchType: CatalogMatchType;
+  geographicMatchType: string | null;
 };
 
 export type CatalogContext = {
   queryType: "country" | "destination" | "category" | "general";
   queryValue: string | null;
   entityIds: string[];
+  exactEntityIds: string[];
+  alternativeEntityIds: string[];
   establishedAt: string;
+};
+
+export type GeographicDiagnostics = {
+  geographicQueryType: CatalogContext["queryType"] | null;
+  geographicQueryValue: string | null;
+  exactMatchEntityIds: string[];
+  alternativeEntityIds: string[];
+  excludedEntityIds: string[];
+  exclusionReasons: Record<string, string>;
+  countryMatchType: string | null;
+  destinationMatchType: string | null;
+  catalogContradictionDetected: boolean;
+  selectedEntityId: string | null;
+  selectedEntityValid: boolean;
+  requestedPeriodType: string | null;
+  requestedPeriodStart: string | null;
+  requestedPeriodEnd: string | null;
+  requestedPeriodMonth: number | null;
+  requestedPeriodYear: number | null;
+  requestedPeriodTimezone: string | null;
+  matchingDepartureDates: string[];
+  excludedDepartureDates: string[];
+  scheduleGrounded: boolean;
+  priceSourceField: string | null;
 };
 
 export type SelectedEntity = {
@@ -101,6 +135,17 @@ export type AttachmentAction = {
   documentName: string;
   productId: string | null;
   required: boolean;
+};
+
+export type PlanTurnMetadata = {
+  turnId: string;
+  latestMessageTextHash: string;
+  previousTurnId: string | null;
+  planCreatedAt: string;
+  previousSelectedEntity: SelectedEntity | null;
+  selectionOverrideReason: import("@/modules/ai/response-planner/resolve-selection-override").SelectionOverrideReason;
+  latestMessageIntent: RequestType;
+  runtimeVersions: import("@/modules/ai/runtime/runtime-versions").RuntimeVersions;
 };
 
 export type ResponsePlan = {
@@ -133,6 +178,8 @@ export type ResponsePlan = {
   selectionConfidence: number | null;
   destinationMatchType: string | null;
   priceFieldsFound: number;
+  geographicDiagnostics: GeographicDiagnostics | null;
+  turn: PlanTurnMetadata;
 };
 
 export type PlanningMode = "live" | "playground";
@@ -161,6 +208,7 @@ export type NormalizedPlanningInput = {
   };
   includeDraft: boolean;
   timezone?: string | null;
+  turn?: PlanTurnMetadata | null;
 };
 
 export type PlanValidationResult = {
@@ -174,6 +222,8 @@ export type PlanValidationResult = {
   violations: string[];
   fallbackReply: string | null;
   usedDeterministicFallback: boolean;
+  catalogContradictionDetected: boolean;
+  geographicViolationDetected: boolean;
 };
 
 export type PlanObservabilityMetadata = {
@@ -206,4 +256,5 @@ export type PlanObservabilityMetadata = {
   hospitalityPassed: boolean;
   interrogationDetected: boolean;
   wrongEntityDetected: boolean;
+  geographicDiagnostics?: GeographicDiagnostics | null;
 };

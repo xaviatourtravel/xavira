@@ -37,6 +37,8 @@ function parseConversationState(value: unknown): PlaygroundPersistedConversation
     selectedEntity: record.selectedEntity ?? null,
     catalogContext: record.catalogContext ?? null,
     currentIntent: record.currentIntent ?? null,
+    lastRequestType: record.lastRequestType ?? null,
+    lastTurnId: record.lastTurnId ?? null,
     handoffRequested: Boolean(record.handoffRequested),
     customerMemory: record.customerMemory ?? {},
     simulatedAttachments: Array.isArray(record.simulatedAttachments)

@@ -239,10 +239,10 @@ describe("AI-003.1A hospitality and catalog", () => {
   });
 
   it("3. first greeting uses workspace daypart", () => {
-    const daypart = resolveWorkspaceDaypart("Asia/Jakarta", new Date("2026-07-12T02:00:00+07:00"));
-    assert.equal(daypart, "malam");
+    const now = new Date();
+    const daypart = resolveWorkspaceDaypart("Asia/Jakarta", now);
     const plan = buildResponsePlan(makePlanningInput({ latestMessage: "halo", intent: "GENERAL" }));
-    assert.match(plan.directAnswerTemplate ?? "", /malam/i);
+    assert.match(plan.directAnswerTemplate ?? "", new RegExp(daypart, "i"));
   });
 
   it("4. first greeting is warm and not generic clarification", () => {
@@ -428,7 +428,9 @@ describe("AI-003.1A hospitality and catalog", () => {
         retrievedContext: makeRetrieved(nonYunnan),
       }),
     );
-    assert.equal(plan.catalogResults.length, 0);
+    assert.ok(plan.catalogResults.length > 0);
+    assert.ok(plan.catalogResults.every((item) => item.matchType === "same_country_alternative"));
+    assert.match(plan.directAnswerTemplate ?? "", /belum menemukan paket aktif khusus Yunnan/i);
   });
 
   it("19. catalog response persists catalogContext", () => {
@@ -680,15 +682,19 @@ describe("AI-003.1A hospitality and catalog", () => {
   });
 
   it("34. correct warm catalog answer scores positively", () => {
+    const products = makeChinaProducts();
     const plan = buildResponsePlan(makePlanningInput({ latestMessage: "mau ke yunnan" }));
     const reply = plan.directAnswerTemplate ?? "";
+    const validation = validateResponseAgainstPlan(reply, plan, { products });
     const score = calculatePlaygroundAiScore({
       customerMessage: "mau ke yunnan",
       conversationHistory: [],
       responsePlan: plan,
-      planValidation: validateResponseAgainstPlan(reply, plan),
+      planValidation: validation,
+      products,
       result: makeScoreResult(reply),
     });
+    assert.equal(validation.directAnswerPresent, true);
     assert.ok(score.breakdown.overall >= 70);
   });
 

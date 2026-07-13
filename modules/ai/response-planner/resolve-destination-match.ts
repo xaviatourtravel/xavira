@@ -1,19 +1,29 @@
 import type { ProductContext } from "@/modules/business-brain/types/context";
 import {
-  normalizeText,
-  resolveCountryAliases,
-  resolveCountryFromProduct,
-  resolveDestinationAliases,
-  toProductSummary,
-  type ProductSummary,
-} from "@/modules/ai/response-planner/product-summary";
+  canonicalizeCountryQuery,
+  cleanGeographicQuery,
+  extractGeographyFromProduct,
+  geographyIncludesDestination,
+  inferCountryFromDestination,
+  productMatchesCountry,
+  type GeographicMatchType,
+} from "@/modules/ai/response-planner/product-geography";
+import {
+  filterProductsForCountryScope,
+  filterProductsForDestinationScope,
+  isProductEligibleForCountryQuery,
+  isProductEligibleForDestinationQuery,
+  isSameCountryDestinationAlternative,
+} from "@/modules/ai/response-planner/geographic-eligibility";
+import { toProductSummary, type ProductSummary } from "@/modules/ai/response-planner/product-summary";
 
 export type DestinationMatchType =
-  | "exact_destination_field"
-  | "exact_product_name"
-  | "exact_route_city"
+  | "exact_country"
+  | "exact_destination"
+  | "exact_city"
+  | "exact_route"
   | "verified_alias"
-  | "strong_token_intersection"
+  | "same_country_alternative"
   | "no_match";
 
 export type DestinationMatchResult = {
@@ -25,38 +35,25 @@ export type DestinationMatchResult = {
 };
 
 const MIN_AUTO_SELECT_CONFIDENCE = 6;
-const MIN_WEAK_MATCH_CONFIDENCE = 3;
 
 function normalizeQuery(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenize(value: string): string[] {
-  return normalizeQuery(value)
-    .split(" ")
-    .filter((token) => token.length > 2);
+  return cleanGeographicQuery(value);
 }
 
 export function extractDestinationQuery(message: string): string | null {
   const text = message.trim();
   const patterns = [
-    /\b(?:trip|mau|ingin|pergi|berangkat|visit|tour)\s+(?:ke\s+)([\p{L}\p{N}\s'-]{2,40})/iu,
+    /\b(?:trip|mau|ingin|pergi|berangkat|visit|tour|pengen|jalan(?:\s+jalan)?)\s+(?:ke\s+)?([\p{L}\p{N}\s'-]{2,60})/iu,
     /\bke\s+([\p{L}\p{N}\s'-]{2,40})/iu,
-    /\bpaket\s+([\p{L}\p{N}\s'-]{2,40})/iu,
+    /\bpaket\s+(?:ke\s+)?([\p{L}\p{N}\s'-]{2,40})/iu,
+    /\b(?:ada\s+)?paket(?:nya)?\s+(?:ke\s+)?([\p{L}\p{N}\s'-]{2,40})/iu,
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match?.[1]) {
-      const candidate = normalizeQuery(match[1])
-        .replace(/\b(layanan|service|tanya|nanya|info|informasi|apa|aja)\b/g, "")
-        .trim();
-      if (candidate.length >= 2 && !/^(layanan|service|tanya|nanya)$/i.test(candidate)) {
+      const candidate = cleanGeographicQuery(match[1]);
+      if (candidate.length >= 2) {
         return candidate;
       }
     }
@@ -84,112 +81,74 @@ const COUNTRY_QUERY_ALIASES = new Set([
   "australia",
   "mesir",
   "egypt",
+  "brunei",
+  "hongkong",
+  "hong kong",
 ]);
 
 export function isCountryQuery(value: string): boolean {
-  return COUNTRY_QUERY_ALIASES.has(normalizeQuery(value));
+  const cleaned = cleanGeographicQuery(value);
+  return Boolean(canonicalizeCountryQuery(cleaned)) || COUNTRY_QUERY_ALIASES.has(cleaned);
 }
 
 export function extractCountryQuery(message: string): string | null {
-  const text = normalizeQuery(message);
+  const text = message.toLowerCase();
   const countryPatterns = [
-    /\b(?:trip|mau|ingin|pergi|berangkat|ke|paket)\s+(?:ke\s+)?(china|cina|tiongkok|jepang|japan|korea|turki|turkey|eropa|europe|singapura|singapore|malaysia|thailand|vietnam|australia|mesir|egypt)\b/i,
-    /\b(china|cina|tiongkok|jepang|japan|korea|turki|turkey|eropa|europe|singapura|singapore|malaysia|thailand|vietnam|australia|mesir|egypt)\b/i,
+    /\b(?:trip|mau|ingin|pergi|berangkat|pengen|jalan(?:\s+jalan)?|ke|paket)\s+(?:ke\s+)?(china|cina|tiongkok|jepang|japan|korea|turki|turkey|eropa|europe|singapura|singapore|malaysia|thailand|vietnam|australia|mesir|egypt|brunei|hong\s*kong|hongkong)\b/i,
+    /\b(china|cina|tiongkok|jepang|japan|korea|turki|turkey|eropa|europe|singapura|singapore|malaysia|thailand|vietnam|australia|mesir|egypt|brunei|hong\s*kong|hongkong)\b/i,
   ];
 
   for (const pattern of countryPatterns) {
     const match = text.match(pattern);
     if (match?.[1]) {
-      return normalizeQuery(match[1]);
+      const cleaned = cleanGeographicQuery(match[1]);
+      return canonicalizeCountryQuery(cleaned) ?? cleaned;
     }
   }
 
   return null;
 }
 
-function buildMatchHaystack(product: ProductContext, summary: ProductSummary): string {
-  return normalizeQuery(
-    [product.name, product.destination, product.category, ...product.highlights, summary.route ?? "", product.aiNotes]
-      .join(" "),
-  );
+function mapGeographicMatchType(matchType: GeographicMatchType): DestinationMatchType {
+  if (matchType === "no_match") return "no_match";
+  return matchType;
 }
 
 function scoreDestinationMatch(product: ProductContext, query: string): DestinationMatchResult {
   const summary = toProductSummary(product);
   const normalizedQuery = normalizeQuery(query);
-  const queryTokens = tokenize(query);
-  const aliases = resolveDestinationAliases(normalizedQuery);
+  const geography = extractGeographyFromProduct(product);
+  let matchType = geographyIncludesDestination(geography, normalizedQuery);
 
-  const destinationField = normalizeQuery(product.destination);
-  const productName = normalizeQuery(product.name);
-  const routeText = normalizeQuery(summary.route ?? "");
-  const highlightsText = normalizeQuery(product.highlights.join(" "));
-  const structuredHaystack = buildMatchHaystack(product, summary);
+  if (matchType === "no_match" && isProductEligibleForDestinationQuery(product, normalizedQuery)) {
+    matchType = "verified_alias";
+  }
 
-  if (destinationField && (destinationField === normalizedQuery || aliases.some((alias) => destinationField.includes(alias)))) {
+  if (matchType === "no_match") {
     return {
       product,
       summary,
-      matchType: "exact_destination_field",
-      confidence: 10,
-      matchedValue: product.destination,
+      matchType: "no_match",
+      confidence: 0,
+      matchedValue: null,
     };
   }
 
-  if (productName.includes(normalizedQuery) || aliases.some((alias) => productName.includes(alias))) {
-    return {
-      product,
-      summary,
-      matchType: "exact_product_name",
-      confidence: 9,
-      matchedValue: product.name,
-    };
-  }
-
-  if (
-    (routeText && aliases.some((alias) => routeText.includes(alias))) ||
-    (highlightsText && aliases.some((alias) => highlightsText.includes(alias)))
-  ) {
-    return {
-      product,
-      summary,
-      matchType: "exact_route_city",
-      confidence: 8,
-      matchedValue: summary.route ?? product.destination,
-    };
-  }
-
-  const searchable = structuredHaystack;
-  if (aliases.some((alias) => searchable.includes(alias))) {
-    return {
-      product,
-      summary,
-      matchType: "verified_alias",
-      confidence: 7,
-      matchedValue: normalizedQuery,
-    };
-  }
-
-  const tokenHits = queryTokens.filter((token) => structuredHaystack.includes(token)).length;
-  if (tokenHits >= 2 || (tokenHits === 1 && queryTokens.length === 1)) {
-    const confidence = tokenHits * 2;
-    if (confidence >= MIN_WEAK_MATCH_CONFIDENCE) {
-      return {
-        product,
-        summary,
-        matchType: "strong_token_intersection",
-        confidence,
-        matchedValue: normalizedQuery,
-      };
-    }
-  }
+  const confidenceMap: Record<Exclude<GeographicMatchType, "no_match">, number> = {
+    exact_destination: 10,
+    exact_city: 9,
+    exact_route: 8,
+    verified_alias: 7,
+    exact_country: 8,
+    same_country_alternative: 5,
+  };
 
   return {
     product,
     summary,
-    matchType: "no_match",
-    confidence: 0,
-    matchedValue: null,
+    matchType: mapGeographicMatchType(matchType),
+    confidence: confidenceMap[matchType],
+    matchedValue: normalizedQuery,
   };
 }
 
@@ -197,7 +156,9 @@ export function matchProductsByDestination(
   products: ProductContext[],
   query: string,
 ): DestinationMatchResult[] {
-  return products
+  const { eligible } = filterProductsForDestinationScope(products, query, "exact");
+
+  return eligible
     .map((product) => scoreDestinationMatch(product, query))
     .filter((result) => result.matchType !== "no_match")
     .sort((a, b) => b.confidence - a.confidence);
@@ -207,50 +168,48 @@ export function matchProductsByCountry(
   products: ProductContext[],
   countryQuery: string,
 ): DestinationMatchResult[] {
-  const normalizedCountry = normalizeQuery(countryQuery);
-  const countryAliases = resolveCountryAliases(normalizedCountry);
+  const canonical = canonicalizeCountryQuery(cleanGeographicQuery(countryQuery));
+  if (!canonical) return [];
 
-  return products
+  const { eligible } = filterProductsForCountryScope(products, countryQuery);
+
+  return eligible
     .map((product) => {
       const summary = toProductSummary(product);
-      const country = normalizeQuery(summary.country ?? "");
-      const searchable = summary.searchableText;
-
-      if (!country && !searchable.includes(normalizedCountry)) {
-        return {
-          product,
-          summary,
-          matchType: "no_match" as const,
-          confidence: 0,
-          matchedValue: null,
-        };
-      }
-
-      const matchesCountry =
-        countryAliases.some((alias) => country.includes(alias) || searchable.includes(alias)) ||
-        searchable.includes(normalizedCountry);
-
-      if (!matchesCountry) {
-        return {
-          product,
-          summary,
-          matchType: "no_match" as const,
-          confidence: 0,
-          matchedValue: null,
-        };
-      }
-
       return {
         product,
         summary,
-        matchType: "exact_destination_field" as const,
+        matchType: "exact_country" as const,
         confidence: 8,
-        matchedValue: summary.country,
+        matchedValue: canonical,
       };
     })
-    .filter((result) => result.matchType !== "no_match")
     .sort((a, b) => b.confidence - a.confidence);
 }
+
+export function findSameCountryAlternatives(
+  products: ProductContext[],
+  destinationQuery: string,
+  excludeIds: Set<string>,
+): DestinationMatchResult[] {
+  const { eligible } = filterProductsForDestinationScope(products, destinationQuery, "same_country_alternative");
+
+  return eligible
+    .filter((product) => !excludeIds.has(product.id) && isSameCountryDestinationAlternative(product, destinationQuery))
+    .map((product) => {
+      const summary = toProductSummary(product);
+      const country = inferCountryFromDestination(destinationQuery);
+      return {
+        product,
+        summary,
+        matchType: "same_country_alternative" as const,
+        confidence: 5,
+        matchedValue: country,
+      };
+    });
+}
+
+export { isProductEligibleForCountryQuery, isProductEligibleForDestinationQuery };
 
 export function shouldAutoSelectEntity(result: DestinationMatchResult | null): boolean {
   if (!result) return false;
@@ -268,4 +227,4 @@ export function isWeakSingleRetrievalMatch(
   return match.confidence < MIN_AUTO_SELECT_CONFIDENCE;
 }
 
-export { MIN_AUTO_SELECT_CONFIDENCE, MIN_WEAK_MATCH_CONFIDENCE };
+export { MIN_AUTO_SELECT_CONFIDENCE };

@@ -11,6 +11,8 @@ import {
   matchProductsByDestination,
   shouldAutoSelectEntity,
 } from "@/modules/ai/response-planner/resolve-destination-match";
+import { findProductTitleMatch } from "@/modules/ai/response-planner/resolve-product-title-match";
+import { resolveSelectionOverride } from "@/modules/ai/response-planner/resolve-selection-override";
 
 function tokenize(text: string): string[] {
   return text
@@ -38,6 +40,15 @@ function findExplicitProductInMessage(
   message: string,
   products: ProductContext[],
 ): { product: ProductContext; source: SelectedEntitySource; confidence: number } | null {
+  const titleMatch = findProductTitleMatch(message, products);
+  if (titleMatch) {
+    return {
+      product: titleMatch.product,
+      source: "explicit_latest_message",
+      confidence: titleMatch.confidence,
+    };
+  }
+
   const normalized = message.toLowerCase();
   const explicitNameMatch = products.find((product) =>
     normalized.includes(product.name.toLowerCase()),
@@ -150,13 +161,24 @@ export function resolveSelectedEntity(input: {
   includeDraft: boolean;
   requestType?: RequestType;
   now?: Date;
-}): { entity: SelectedEntity | null; confidence: number | null; destinationMatchType: string | null } {
+}): {
+  entity: SelectedEntity | null;
+  confidence: number | null;
+  destinationMatchType: string | null;
+  selectionOverrideReason: import("@/modules/ai/response-planner/resolve-selection-override").SelectionOverrideReason;
+} {
   const products = getActiveProducts(input.businessBrain, input.retrieved, input.includeDraft);
   const nowIso = (input.now ?? new Date()).toISOString();
   const catalogLikeRequest =
     input.requestType === "CATALOG_DISCOVERY" ||
     input.requestType === "DESTINATION_DISCOVERY" ||
     input.requestType === "GREETING";
+
+  const selectionOverride = resolveSelectionOverride({
+    latestMessage: input.latestMessage,
+    storedSelectedEntity: input.storedSelectedEntity,
+    products,
+  });
 
   const explicit = findExplicitProductInMessage(input.latestMessage, products);
   if (explicit && !(catalogLikeRequest && explicit.source === "destination_match" && explicit.confidence < 9)) {
@@ -173,16 +195,33 @@ export function resolveSelectedEntity(input: {
       },
       confidence: explicit.confidence,
       destinationMatchType: destinationMatch?.matchType ?? null,
+      selectionOverrideReason: selectionOverride.reason,
     };
   }
 
-  if (input.storedSelectedEntity) {
+  if (selectionOverride.overrideProduct) {
+    return {
+      entity: {
+        entityId: selectionOverride.overrideProduct.id,
+        entityType: "product",
+        displayName: selectionOverride.overrideProduct.name,
+        selectionSource: "explicit_latest_message",
+        selectedAt: nowIso,
+      },
+      confidence: 8,
+      destinationMatchType: null,
+      selectionOverrideReason: selectionOverride.reason,
+    };
+  }
+
+  if (input.storedSelectedEntity && !selectionOverride.shouldOverrideStored) {
     const stillValid = products.some((product) => product.id === input.storedSelectedEntity!.entityId);
     if (stillValid) {
       return {
         entity: input.storedSelectedEntity,
         confidence: null,
         destinationMatchType: null,
+        selectionOverrideReason: null,
       };
     }
   }
@@ -205,6 +244,7 @@ export function resolveSelectedEntity(input: {
         },
         confidence: 7,
         destinationMatchType: "exact_product_name",
+        selectionOverrideReason: null,
       };
     }
   }
@@ -221,6 +261,7 @@ export function resolveSelectedEntity(input: {
       },
       confidence: 6,
       destinationMatchType: null,
+      selectionOverrideReason: null,
     };
   }
 
@@ -245,10 +286,11 @@ export function resolveSelectedEntity(input: {
           },
           confidence: destinationMatch.confidence,
           destinationMatchType: destinationMatch.matchType,
+          selectionOverrideReason: null,
         };
       }
     }
   }
 
-  return { entity: null, confidence: null, destinationMatchType: null };
+  return { entity: null, confidence: null, destinationMatchType: null, selectionOverrideReason: null };
 }

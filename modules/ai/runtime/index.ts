@@ -14,3 +14,11 @@ export {
   resolveOrganizationTimezone,
   resolveRuntimeContextInput,
 } from "@/modules/ai/runtime/resolve-runtime-context-input";
+
+export {
+  RUNTIME_VERSIONS,
+  RESPONSE_PLANNER_VERSION,
+  GEOGRAPHIC_ELIGIBILITY_VERSION,
+  CATALOG_VALIDATOR_VERSION,
+  PLAYGROUND_SCORER_VERSION,
+} from "@/modules/ai/runtime/runtime-versions";

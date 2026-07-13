@@ -964,6 +964,7 @@ export async function processWhatsappAiMessagePipeline(
       rawReply: finalReplyText,
       plan: responsePlan,
       answerFirstEnabled: true,
+      products: (llmResult.businessBrainContext ?? EMPTY_BUSINESS_BRAIN_CONTEXT).products,
     });
     rawPlanValidation = validated.rawValidation;
     planValidation = validated.finalValidation;

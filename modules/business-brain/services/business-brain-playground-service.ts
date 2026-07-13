@@ -18,6 +18,7 @@ import {
   toPlaygroundSessionState,
   updatePlaygroundSessionAfterReply,
 } from "@/modules/ai/response-planner";
+import { createTurnContext } from "@/modules/ai/response-planner/turn-context";
 import type { PlanValidationResult, ResponsePlan } from "@/modules/ai/response-planner/types";
 import type { ConversationMemoryKey, ConversationMemoryMap } from "@/modules/ai/types/memory";
 import {
@@ -25,6 +26,7 @@ import {
   promptItemsToPlaygroundMemoryDisplay,
 } from "@/modules/ai/types/memory";
 import { toPromptBusinessBrainContext } from "@/modules/ai/types/context-retrieval";
+import type { ProductContext } from "@/modules/business-brain/types/context";
 import { mapBusinessBrainContextToPlayground } from "@/modules/business-brain/lib/map-context-to-playground";
 import { mapUsedContextToPlayground } from "@/modules/business-brain/lib/map-playground-used-context";
 import { calculatePlaygroundAiScore } from "@/modules/business-brain/lib/calculate-playground-ai-score";
@@ -176,6 +178,11 @@ type PlaygroundPlanEvaluation = {
   rawPlanValidation: PlanValidationResult | null;
   planValidation: PlanValidationResult | null;
   rawReply: string | null;
+  products?: ProductContext[];
+  turnId?: string | null;
+  deterministicFallbackUsed?: boolean;
+  unplannedEntityIdsDetected?: string[];
+  catalogEntityIdsDelivered?: string[];
 };
 
 function resolvePlanDocumentActions(
@@ -212,6 +219,11 @@ function finalizePlaygroundTestResult(
       planValidation: planEvaluation?.planValidation ?? null,
       rawPlanValidation: planEvaluation?.rawPlanValidation ?? null,
       rawReply: planEvaluation?.rawReply ?? null,
+      products: planEvaluation?.products,
+      turnId: planEvaluation?.turnId ?? planEvaluation?.responsePlan?.turn.turnId ?? null,
+      deterministicFallbackUsed: planEvaluation?.deterministicFallbackUsed,
+      unplannedEntityIdsDetected: planEvaluation?.unplannedEntityIdsDetected,
+      catalogEntityIdsDelivered: planEvaluation?.catalogEntityIdsDelivered,
     }),
   };
 }
@@ -426,6 +438,11 @@ export async function runTest(
   });
 
   let responsePlan: ResponsePlan | null = null;
+  const turnContext = createTurnContext({
+    sessionId: activeSession.id,
+    latestMessage: parsed.customerMessage,
+    previousTurnId: sessionState.lastTurnId,
+  });
   if (isAnswerFirstV1Enabled()) {
     responsePlan = buildResponsePlan(
       buildPlaygroundPlanningInput({
@@ -439,6 +456,17 @@ export async function runTest(
         retrievedContext,
         memory: conversationMemory,
         qualification: refreshedLeadQualification,
+        timezone: workspaceTimezone,
+        turn: {
+          turnId: turnContext.turnId,
+          latestMessageTextHash: turnContext.latestMessageTextHash,
+          previousTurnId: turnContext.previousTurnId,
+          planCreatedAt: turnContext.planCreatedAt,
+          previousSelectedEntity: sessionState.selectedEntity,
+          selectionOverrideReason: null,
+          latestMessageIntent: "UNKNOWN",
+          runtimeVersions: turnContext.runtimeVersions,
+        },
       }),
     );
   }
@@ -569,16 +597,23 @@ export async function runTest(
   const rawReplyText = finalReplyText;
   let rawPlanValidation: PlanValidationResult | null = null;
   let planValidation: PlanValidationResult | null = null;
+  let deterministicFallbackUsed = false;
+  let unplannedEntityIdsDetected: string[] = [];
+  let catalogEntityIdsDelivered: string[] = [];
 
   if (isAnswerFirstV1Enabled() && responsePlan) {
     const validated = applyValidatedReply({
       rawReply: finalReplyText,
       plan: responsePlan,
       answerFirstEnabled: true,
+      products: businessBrainContext.products,
     });
     rawPlanValidation = validated.rawValidation;
     planValidation = validated.finalValidation;
     finalReplyText = validated.finalReply;
+    deterministicFallbackUsed = validated.deterministicFallbackUsed;
+    unplannedEntityIdsDetected = validated.unplannedEntityIdsDetected;
+    catalogEntityIdsDelivered = validated.catalogEntityIdsDelivered;
   }
 
   let simulatedAttachments = [...sessionState.simulatedAttachments];
@@ -648,7 +683,7 @@ export async function runTest(
     },
     parsed.customerMessage,
     priorHistory,
-    { responsePlan, rawPlanValidation, planValidation, rawReply: rawReplyText },
+    { responsePlan, rawPlanValidation, planValidation, rawReply: rawReplyText, products: businessBrainContext.products, turnId: responsePlan?.turn.turnId ?? turnContext.turnId, deterministicFallbackUsed, unplannedEntityIdsDetected, catalogEntityIdsDelivered },
   );
 
   const updatedConversation = appendConversationTurn(
@@ -670,6 +705,8 @@ export async function runTest(
       selectedEntity: updatedSession.selectedEntity,
       catalogContext: updatedSession.catalogContext,
       currentIntent: updatedSession.currentIntent,
+      lastRequestType: updatedSession.lastRequestType,
+      lastTurnId: updatedSession.lastTurnId,
       handoffRequested: updatedSession.handoffRequested,
       customerMemory: updatedSession.customerMemory,
       simulatedAttachments: updatedSession.simulatedAttachments,

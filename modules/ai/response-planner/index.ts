@@ -14,6 +14,11 @@ export {
 } from "@/modules/ai/response-planner/feature-flag";
 export { mergeLlmOutputWithPlan, applyValidatedReply } from "@/modules/ai/response-planner/merge-plan-output";
 export {
+  assemblePlannerAuthoritativeReply,
+  requiresPlannerAuthoritativeDelivery,
+} from "@/modules/ai/response-planner/assemble-planner-authoritative-reply";
+export { createTurnContext, hashMessageText } from "@/modules/ai/response-planner/turn-context";
+export {
   executePlanDocumentDelivery,
   validatePlanDocumentForLive,
   DOCUMENT_DELIVERY_FAILURE_REPLY_ID,

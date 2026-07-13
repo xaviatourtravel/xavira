@@ -103,10 +103,13 @@ export function updatePlaygroundSessionAfterReply(input: {
   customerMemory?: ConversationMemoryMap;
   simulatedAttachments?: PlaygroundSessionState["simulatedAttachments"];
 }): PlaygroundSessionState {
+  const planRequestType = input.responsePlan?.requestType ?? null;
   return {
     ...input.session,
-    currentIntent: input.intent,
-    selectedEntity: input.responsePlan?.selectedEntity ?? input.session.selectedEntity,
+    currentIntent: planRequestType ?? input.intent,
+    lastRequestType: planRequestType,
+    lastTurnId: input.responsePlan?.turn.turnId ?? input.session.lastTurnId,
+    selectedEntity: input.responsePlan?.selectedEntity ?? null,
     catalogContext: input.responsePlan?.catalogContext ?? input.session.catalogContext,
     questionsAsked:
       input.usePlanQuestionKeys && input.responsePlan?.followUpQuestionKey
@@ -134,6 +137,7 @@ export function buildPlaygroundPlanningInput(input: {
   memory: ConversationMemoryMap;
   qualification: LeadQualificationSnapshot | null;
   timezone?: string | null;
+  turn?: import("@/modules/ai/response-planner/types").PlanTurnMetadata | null;
 }): NormalizedPlanningInput {
   return {
     workspaceId: input.workspaceId,
@@ -159,6 +163,7 @@ export function buildPlaygroundPlanningInput(input: {
     },
     includeDraft: true,
     timezone: input.timezone,
+    turn: input.turn ?? null,
   };
 }
 

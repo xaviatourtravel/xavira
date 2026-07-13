@@ -131,13 +131,38 @@ export function PlaygroundAiScoreCard({ score }: PlaygroundAiScoreCardProps) {
         {score.groundingDiagnostics ? (
           <div className="mt-3 space-y-1 border-t border-border/70 pt-3 text-[11px] text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">Request:</span>{" "}
-              {score.groundingDiagnostics.requestType ?? "—"}
+              <span className="font-medium text-foreground">Turn:</span>{" "}
+              {score.groundingDiagnostics.turnId ?? "—"}
             </p>
+            <p>
+              <span className="font-medium text-foreground">Request:</span>{" "}
+              {score.groundingDiagnostics.requestType ??
+                score.groundingDiagnostics.latestMessageIntent ??
+                "—"}
+            </p>
+            {score.groundingDiagnostics.responsePlannerVersion ? (
+              <p>
+                <span className="font-medium text-foreground">Runtime:</span> planner{" "}
+                {score.groundingDiagnostics.responsePlannerVersion}, geo{" "}
+                {score.groundingDiagnostics.geographicEligibilityVersion}
+              </p>
+            ) : null}
+            {score.groundingDiagnostics.previousSelectedEntity ? (
+              <p>
+                <span className="font-medium text-foreground">Previous product:</span>{" "}
+                {score.groundingDiagnostics.previousSelectedEntity}
+              </p>
+            ) : null}
             {score.groundingDiagnostics.selectedEntity ? (
               <p>
                 <span className="font-medium text-foreground">Product:</span>{" "}
                 {score.groundingDiagnostics.selectedEntity}
+              </p>
+            ) : null}
+            {score.groundingDiagnostics.selectionOverrideReason ? (
+              <p>
+                <span className="font-medium text-foreground">Selection override:</span>{" "}
+                {score.groundingDiagnostics.selectionOverrideReason}
               </p>
             ) : null}
             <p>
@@ -148,6 +173,30 @@ export function PlaygroundAiScoreCard({ score }: PlaygroundAiScoreCardProps) {
               <span className="font-medium text-foreground">Action:</span>{" "}
               {score.groundingDiagnostics.responseAction ?? "—"}
             </p>
+            {score.groundingDiagnostics.catalogEntityIdsDelivered?.length ? (
+              <p>
+                <span className="font-medium text-foreground">Catalog delivered:</span>{" "}
+                {score.groundingDiagnostics.catalogEntityIdsDelivered.join(", ")}
+              </p>
+            ) : null}
+            {score.groundingDiagnostics.unplannedEntityIdsDetected?.length ? (
+              <p className="text-destructive">
+                Unplanned entities:{" "}
+                {score.groundingDiagnostics.unplannedEntityIdsDetected.join(", ")}
+              </p>
+            ) : null}
+            {score.groundingDiagnostics.matchingDepartureDates?.length ? (
+              <p>
+                <span className="font-medium text-foreground">Matching dates:</span>{" "}
+                {score.groundingDiagnostics.matchingDepartureDates.join(", ")}
+              </p>
+            ) : null}
+            {score.groundingDiagnostics.staleTurnDetected ? (
+              <p className="text-destructive">Stale turn detected</p>
+            ) : null}
+            {score.groundingDiagnostics.deterministicFallbackUsed ? (
+              <p className="text-amber-600 dark:text-amber-400">Deterministic fallback used</p>
+            ) : null}
             {score.groundingDiagnostics.unsupportedClaimDetected ? (
               <p className="text-destructive">
                 Unsupported claim: {score.groundingDiagnostics.unsupportedClaimType ?? "unknown"}

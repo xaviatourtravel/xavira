@@ -1,51 +1,33 @@
 import type { ProductContext } from "@/modules/business-brain/types/context";
 import type { ProductCurrency } from "@/modules/business-brain/types/products";
+import {
+  extractGeographyFromProduct,
+  getCountryDisplayName,
+} from "@/modules/ai/response-planner/product-geography";
 
 export type ProductSummary = {
   entityId: string;
   displayName: string;
   destination: string;
   country: string | null;
+  primaryCountry: string | null;
   route: string | null;
   duration: string | null;
   category: string;
   startingPrice: number | null;
   currency: ProductCurrency | null;
   priceLabel: string | null;
+  priceSourceField: string | null;
+  priceBasis: string | null;
   departureDates: string[];
   status: string;
   sourceIds: string[];
   searchableText: string;
+  geographicMatchType: string | null;
+  highlights: string[];
 };
 
 const DURATION_PATTERN = /\b(\d{1,2}d\d{1,2}n|\d{1,2}\s*hari(?:\s*\/?\s*\d{1,2}\s*malam)?)\b/i;
-
-const COUNTRY_ALIASES: Record<string, string[]> = {
-  china: ["china", "cina", "tiongkok", "prc"],
-  japan: ["japan", "jepang"],
-  korea: ["korea", "korean", "selatan"],
-  turkey: ["turkey", "turki"],
-  europe: ["europe", "eropa"],
-  singapore: ["singapore", "singapura"],
-  malaysia: ["malaysia"],
-  thailand: ["thailand", "thai"],
-  vietnam: ["vietnam"],
-  australia: ["australia"],
-  "saudi arabia": ["saudi", "arab saudi"],
-  egypt: ["egypt", "mesir"],
-};
-
-const DESTINATION_ALIASES: Record<string, string[]> = {
-  yunnan: ["yunnan", "kunming", "dali", "lijiang"],
-  chongqing: ["chongqing", "chungking"],
-  zhangjiajie: ["zhangjiajie", "zhang jia jie"],
-  xian: ["xian", "xi'an", "xi an"],
-  tokyo: ["tokyo"],
-  osaka: ["osaka"],
-  kyoto: ["kyoto"],
-  bali: ["bali"],
-  lombok: ["lombok"],
-};
 
 export function normalizeText(value: string): string {
   return value
@@ -70,6 +52,10 @@ function extractDuration(product: ProductContext): string | null {
 }
 
 function extractRoute(product: ProductContext): string | null {
+  const geography = extractGeographyFromProduct(product);
+  if (geography.routes.length >= 2) {
+    return geography.routes.slice(0, 5).join(", ");
+  }
   const name = product.name;
   const dashParts = name.split(/[–—-]/).map((part) => part.trim()).filter(Boolean);
   if (dashParts.length >= 2) {
@@ -78,71 +64,17 @@ function extractRoute(product: ProductContext): string | null {
   if (product.highlights.length >= 2) {
     return product.highlights.slice(0, 3).join(" – ");
   }
-  return null;
+  return product.destination.trim() || null;
 }
-
-const DESTINATION_TO_COUNTRY: Record<string, string> = {
-  yunnan: "china",
-  kunming: "china",
-  dali: "china",
-  lijiang: "china",
-  chongqing: "china",
-  zhangjiajie: "china",
-  xian: "china",
-  tokyo: "japan",
-  osaka: "japan",
-  kyoto: "japan",
-  bali: "indonesia",
-  lombok: "indonesia",
-};
 
 export function resolveCountryFromProduct(product: ProductContext): string | null {
-  const haystack = normalizeText(
-    [product.destination, product.name, product.description, ...product.highlights, product.aiNotes].join(" "),
-  );
-
-  for (const [destination, country] of Object.entries(DESTINATION_TO_COUNTRY)) {
-    if (haystack.includes(destination)) {
-      return country;
-    }
-  }
-
-  for (const [country, aliases] of Object.entries(COUNTRY_ALIASES)) {
-    if (aliases.some((alias) => haystack.includes(normalizeText(alias)))) {
-      return country;
-    }
-  }
-
-  if (product.destination.trim()) {
-    return normalizeText(product.destination);
-  }
-
-  return null;
+  const geography = extractGeographyFromProduct(product);
+  return geography.primaryCountry;
 }
 
-export function resolveCountryAliases(country: string): string[] {
-  const normalized = normalizeText(country);
-  const aliases = new Set<string>([normalized]);
-  for (const [canonical, values] of Object.entries(COUNTRY_ALIASES)) {
-    if (canonical === normalized || values.some((alias) => normalized.includes(normalizeText(alias)))) {
-      aliases.add(canonical);
-      values.forEach((alias) => aliases.add(normalizeText(alias)));
-    }
-  }
-  return [...aliases];
-}
-export function resolveDestinationAliases(destination: string): string[] {
-  const normalized = normalizeText(destination);
-  const aliases = new Set<string>([normalized]);
-
-  for (const [canonical, values] of Object.entries(DESTINATION_ALIASES)) {
-    if (values.some((alias) => normalized.includes(normalizeText(alias)) || normalizeText(alias).includes(normalized))) {
-      aliases.add(canonical);
-      values.forEach((alias) => aliases.add(normalizeText(alias)));
-    }
-  }
-
-  return [...aliases];
+export function resolveCountryDisplayFromProduct(product: ProductContext): string | null {
+  const country = resolveCountryFromProduct(product);
+  return country ? getCountryDisplayName(country) : null;
 }
 
 export function formatProductPriceLabel(
@@ -163,6 +95,8 @@ export function toProductSummary(product: ProductContext): ProductSummary {
 
   const startingPrice = lowestPrice?.price ?? null;
   const currency = lowestPrice?.currency ?? null;
+  const geography = extractGeographyFromProduct(product);
+  const primaryCountry = geography.primaryCountry;
 
   const departureDates = product.departures
     .filter((item) => item.departureDate?.trim() && item.status !== "full")
@@ -174,10 +108,9 @@ export function toProductSummary(product: ProductContext): ProductSummary {
       product.name,
       product.destination,
       product.category,
-      product.description,
       ...product.highlights,
       product.aiNotes,
-      resolveCountryFromProduct(product) ?? "",
+      primaryCountry ?? "",
     ].join(" "),
   );
 
@@ -185,18 +118,48 @@ export function toProductSummary(product: ProductContext): ProductSummary {
     entityId: product.id,
     displayName: product.name,
     destination: product.destination.trim(),
-    country: resolveCountryFromProduct(product),
+    country: primaryCountry ? getCountryDisplayName(primaryCountry) : null,
+    primaryCountry,
     route: extractRoute(product),
     duration: extractDuration(product),
     category: product.category,
     startingPrice,
     currency,
     priceLabel: formatProductPriceLabel(startingPrice, currency),
+    priceSourceField: lowestPrice ? "pricing" : null,
+    priceBasis: lowestPrice?.packageName ?? null,
     departureDates,
     status: product.status,
     sourceIds: [product.id],
     searchableText,
+    geographicMatchType: null,
+    highlights: product.highlights,
   };
+}
+
+export function buildSelectedProductSummary(product: ProductContext): string {
+  const summary = toProductSummary(product);
+  const parts: string[] = [`Tentu, Kak. ${summary.displayName}`];
+
+  if (summary.duration) {
+    parts.push(`adalah perjalanan ${summary.duration}`);
+  }
+
+  if (summary.route) {
+    parts.push(`dengan rute ${summary.route}`);
+  } else if (summary.destination) {
+    parts.push(`ke ${summary.destination}`);
+  }
+
+  if (summary.priceLabel) {
+    parts.push(`Harga ${summary.priceLabel} per orang`);
+  }
+
+  if (summary.departureDates.length > 0) {
+    parts.push(`Keberangkatan berikutnya tersedia pada ${summary.departureDates.join(", ")}`);
+  }
+
+  return `${parts.join(". ").replace(/\.\./g, ".")}.`;
 }
 
 export function toProductSummaries(products: ProductContext[]): ProductSummary[] {

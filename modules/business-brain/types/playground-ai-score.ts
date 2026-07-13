@@ -48,6 +48,36 @@ export type PlaygroundGroundingDiagnostics = {
   hospitalityPassed?: boolean;
   interrogationDetected?: boolean;
   wrongEntityDetected?: boolean;
+  geographicDiagnostics?: import("@/modules/ai/response-planner/types").GeographicDiagnostics | null;
+  catalogContradictionDetected?: boolean;
+  geographicViolationDetected?: boolean;
+  requestedPeriodType?: string | null;
+  requestedPeriodStart?: string | null;
+  requestedPeriodEnd?: string | null;
+  requestedPeriodMonth?: number | null;
+  requestedPeriodYear?: number | null;
+  requestedPeriodTimezone?: string | null;
+  matchingDepartureDates?: string[];
+  scheduleGrounded?: boolean;
+  turnId?: string | null;
+  responsePlannerVersion?: string | null;
+  geographicEligibilityVersion?: string | null;
+  catalogValidatorVersion?: string | null;
+  playgroundScorerVersion?: string | null;
+  promptCompilerVersion?: string | null;
+  latestMessageIntent?: string | null;
+  previousSelectedEntity?: string | null;
+  currentSelectedEntity?: string | null;
+  selectionOverrideReason?: string | null;
+  geographicQueryType?: string | null;
+  geographicQueryValue?: string | null;
+  exactMatchEntityIds?: string[];
+  alternativeEntityIds?: string[];
+  excludedEntityIds?: string[];
+  catalogEntityIdsDelivered?: string[];
+  unplannedEntityIdsDetected?: string[];
+  requestedPeriod?: string | null;
+  staleTurnDetected?: boolean;
 };
 
 export type PlaygroundAiScore = {

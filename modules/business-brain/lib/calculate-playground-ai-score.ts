@@ -1,6 +1,14 @@
 import type { RetrievalSummary } from "@/modules/ai/types/context-retrieval";
 import { containsBannedInterrogationPhrase, passesHospitalityTone } from "@/modules/ai/base-brain/hospitality-voice-policy";
 import { detectInterrogation, detectWrongEntity, isQuestionOnlyResponse } from "@/modules/ai/response-planner/interrogation-policy";
+import {
+  isProductEligibleForCountryQuery,
+} from "@/modules/ai/response-planner/geographic-eligibility";
+import { canonicalizeCountryQuery } from "@/modules/ai/response-planner/product-geography";
+import { detectWrongMonthInReply } from "@/modules/ai/response-planner/validate-catalog-consistency";
+import { hashMessageText } from "@/modules/ai/response-planner/turn-context";
+import { PLAYGROUND_SCORER_VERSION } from "@/modules/ai/runtime/runtime-versions";
+import type { ProductContext } from "@/modules/business-brain/types/context";
 import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
 import type {
   PlanValidationResult,
@@ -121,6 +129,10 @@ function calculateUsefulnessScore(args: {
       args.reply.toLowerCase().includes(item.displayName.toLowerCase().slice(0, 8)),
     );
     score += mentionedCatalog ? 15 : -25;
+  }
+
+  if (args.responsePlan.directAnswerTemplate && args.responsePlan.directAnswerTemplate.trim() === args.reply.trim()) {
+    score += 15;
   }
 
   if (args.responsePlan.directAnswerRequired && args.responsePlan.directAnswerTemplate) {
@@ -465,10 +477,24 @@ function buildGroundingDiagnostics(args: {
   preview: PlaygroundPreviewResult;
   rawReply?: string | null;
   customerMessage?: string;
+  turnId?: string | null;
+  deterministicFallbackUsed?: boolean;
+  unplannedEntityIdsDetected?: string[];
+  catalogEntityIdsDelivered?: string[];
 }): PlaygroundGroundingDiagnostics | undefined {
   if (!args.responsePlan) {
     return undefined;
   }
+
+  const geo = args.responsePlan.geographicDiagnostics;
+  const staleTurnDetected = Boolean(
+    args.turnId && args.responsePlan.turn.turnId !== args.turnId,
+  ) || Boolean(
+    args.turnId &&
+      args.responsePlan.turn.turnId === args.turnId &&
+      args.customerMessage &&
+      hashMessageText(args.customerMessage) !== args.responsePlan.turn.latestMessageTextHash,
+  );
 
   return {
     requestType: args.responsePlan.requestType,
@@ -495,7 +521,10 @@ function buildGroundingDiagnostics(args: {
     attachmentRequired: Boolean(args.responsePlan.attachmentAction),
     attachmentPreserved: args.planValidation?.attachmentPreserved ?? true,
     followUpQuestionKey: args.responsePlan.followUpQuestionKey,
-    deterministicFallbackUsed: args.planValidation?.usedDeterministicFallback ?? false,
+    deterministicFallbackUsed:
+      args.deterministicFallbackUsed ??
+      args.planValidation?.usedDeterministicFallback ??
+      false,
     rawModelReplyPreview: args.rawReply?.slice(0, 120) ?? null,
     finalReplyPreview: args.preview.aiReply.slice(0, 120),
     greetingAllowed: args.responsePlan.greetingAllowed,
@@ -511,7 +540,60 @@ function buildGroundingDiagnostics(args: {
     hospitalityPassed: passesHospitalityTone(args.preview.aiReply),
     interrogationDetected: detectInterrogation(args.preview.aiReply, args.responsePlan),
     wrongEntityDetected: detectWrongEntity(args.responsePlan, args.customerMessage ?? ""),
+    geographicDiagnostics: args.responsePlan.geographicDiagnostics,
+    catalogContradictionDetected:
+      args.planValidation?.catalogContradictionDetected ??
+      args.rawPlanValidation?.catalogContradictionDetected ??
+      false,
+    geographicViolationDetected:
+      args.planValidation?.geographicViolationDetected ??
+      args.rawPlanValidation?.geographicViolationDetected ??
+      false,
+    requestedPeriodType: args.responsePlan.geographicDiagnostics?.requestedPeriodType ?? null,
+    requestedPeriodStart: args.responsePlan.geographicDiagnostics?.requestedPeriodStart ?? null,
+    requestedPeriodEnd: args.responsePlan.geographicDiagnostics?.requestedPeriodEnd ?? null,
+    requestedPeriodMonth: args.responsePlan.geographicDiagnostics?.requestedPeriodMonth ?? null,
+    requestedPeriodYear: args.responsePlan.geographicDiagnostics?.requestedPeriodYear ?? null,
+    requestedPeriodTimezone: args.responsePlan.geographicDiagnostics?.requestedPeriodTimezone ?? null,
+    matchingDepartureDates: geo?.matchingDepartureDates ?? [],
+    scheduleGrounded: geo?.scheduleGrounded ?? false,
+    turnId: args.responsePlan.turn.turnId,
+    responsePlannerVersion: args.responsePlan.turn.runtimeVersions.responsePlannerVersion,
+    geographicEligibilityVersion: args.responsePlan.turn.runtimeVersions.geographicEligibilityVersion,
+    catalogValidatorVersion: args.responsePlan.turn.runtimeVersions.catalogValidatorVersion,
+    playgroundScorerVersion: PLAYGROUND_SCORER_VERSION,
+    promptCompilerVersion: args.responsePlan.turn.runtimeVersions.promptCompilerVersion,
+    latestMessageIntent: args.responsePlan.turn.latestMessageIntent,
+    previousSelectedEntity: args.responsePlan.turn.previousSelectedEntity?.displayName ?? null,
+    currentSelectedEntity: args.responsePlan.selectedEntity?.displayName ?? null,
+    selectionOverrideReason: args.responsePlan.turn.selectionOverrideReason,
+    geographicQueryType: args.responsePlan.catalogQueryType,
+    geographicQueryValue: args.responsePlan.catalogQueryValue,
+    exactMatchEntityIds: geo?.exactMatchEntityIds ?? [],
+    alternativeEntityIds: geo?.alternativeEntityIds ?? [],
+    excludedEntityIds: geo?.excludedEntityIds ?? [],
+    catalogEntityIdsDelivered:
+      args.catalogEntityIdsDelivered ??
+      args.responsePlan.catalogResults.map((item) => item.entityId),
+    unplannedEntityIdsDetected: args.unplannedEntityIdsDetected ?? [],
+    requestedPeriod: args.responsePlan.interpretedPeriod,
+    staleTurnDetected,
   };
+}
+
+function detectWrongCountryInPlan(
+  responsePlan: ResponsePlan,
+  products: ProductContext[],
+): boolean {
+  if (responsePlan.catalogQueryType !== "country" || !responsePlan.catalogQueryValue) {
+    return false;
+  }
+  const canonical = canonicalizeCountryQuery(responsePlan.catalogQueryValue);
+  if (!canonical) return false;
+  return responsePlan.catalogResults.some((result) => {
+    const product = products.find((item) => item.id === result.entityId);
+    return product ? !isProductEligibleForCountryQuery(product, canonical) : false;
+  });
 }
 
 function applyHardScoreCaps(args: {
@@ -520,7 +602,12 @@ function applyHardScoreCaps(args: {
   rawPlanValidation: PlanValidationResult | null;
   planValidation: PlanValidationResult | null;
   reply: string;
+  rawReply?: string | null;
   customerMessage: string;
+  products?: ProductContext[];
+  staleTurnDetected?: boolean;
+  unplannedEntityIdsDetected?: string[];
+  selectionOverrideReason?: string | null;
 }): PlaygroundAiScore["breakdown"] {
   if (!args.responsePlan) {
     return args.breakdown;
@@ -585,6 +672,81 @@ function applyHardScoreCaps(args: {
     overall = Math.min(overall, 55);
   }
 
+  if (rawValidation?.catalogContradictionDetected) {
+    overall = Math.min(overall, 40);
+    modelGeneration = Math.min(modelGeneration, 40);
+  }
+
+  if (rawValidation?.geographicViolationDetected) {
+    overall = Math.min(overall, 30);
+    answerRelevance = Math.min(answerRelevance, 30);
+  }
+
+  if (
+    args.responsePlan &&
+    args.products?.length &&
+    detectWrongCountryInPlan(args.responsePlan, args.products)
+  ) {
+    overall = Math.min(overall, 30);
+    answerRelevance = Math.min(answerRelevance, 30);
+  }
+
+  if (detectWrongMonthInReply(args.reply, args.responsePlan)) {
+    overall = Math.min(overall, 30);
+    answerRelevance = Math.min(answerRelevance, 30);
+  }
+
+  if (
+    args.responsePlan?.requestType === "SCHEDULE_OR_DEPARTURE" &&
+    args.responsePlan.interpretedPeriod &&
+    !args.responsePlan.selectedEntity
+  ) {
+    answerRelevance = Math.min(answerRelevance, 40);
+  }
+
+  if (args.staleTurnDetected) {
+    overall = Math.min(overall, 20);
+    modelGeneration = Math.min(modelGeneration, 20);
+  }
+
+  if (
+    args.selectionOverrideReason &&
+    args.responsePlan?.selectedEntity?.entityId === args.responsePlan.turn.previousSelectedEntity?.entityId
+  ) {
+    answerRelevance = Math.min(answerRelevance, 30);
+    overall = Math.min(overall, 30);
+  }
+
+  if ((args.unplannedEntityIdsDetected?.length ?? 0) > 0) {
+    overall = Math.min(overall, 30);
+    answerRelevance = Math.min(answerRelevance, 30);
+    modelGeneration = Math.min(modelGeneration, 30);
+  }
+
+  if (
+    args.responsePlan?.requestType === "SCHEDULE_OR_DEPARTURE" &&
+    !args.responsePlan.geographicDiagnostics?.scheduleGrounded &&
+    /\b(beberapa|several|ada)\b[^.?!]{0,30}\b(jadwal|keberangkatan|schedule)\b/i.test(args.reply)
+  ) {
+    overall = Math.min(overall, 40);
+    modelGeneration = Math.min(modelGeneration, 40);
+  }
+
+  if (
+    args.responsePlan?.requestType === "SCHEDULE_OR_DEPARTURE" &&
+    !args.responsePlan.geographicDiagnostics?.scheduleGrounded
+  ) {
+    overall = Math.min(overall, 30);
+  }
+
+  if (
+    args.responsePlan?.requestType === "GEOGRAPHIC_CONFIRMATION" &&
+    /tim kami akan membantu agar penjelasannya lebih nyaman/i.test(args.rawReply ?? args.reply)
+  ) {
+    overall = Math.min(overall, 50);
+    modelGeneration = Math.min(modelGeneration, 50);
+  }
+
   return {
     ...args.breakdown,
     overall,
@@ -602,6 +764,11 @@ export type CalculatePlaygroundAiScoreInput = {
   planValidation?: PlanValidationResult | null;
   rawPlanValidation?: PlanValidationResult | null;
   rawReply?: string | null;
+  products?: ProductContext[];
+  turnId?: string | null;
+  deterministicFallbackUsed?: boolean;
+  unplannedEntityIdsDetected?: string[];
+  catalogEntityIdsDelivered?: string[];
 };
 
 export function calculatePlaygroundAiScore(
@@ -694,13 +861,27 @@ export function calculatePlaygroundAiScore(
           breakdown.naturalness * 0.15,
   );
 
+  const staleTurnDetected = Boolean(
+    input.turnId && responsePlan && responsePlan.turn.turnId !== input.turnId,
+  ) || Boolean(
+    input.turnId &&
+      responsePlan &&
+      responsePlan.turn.turnId === input.turnId &&
+      hashMessageText(customerMessage) !== responsePlan.turn.latestMessageTextHash,
+  );
+
   const cappedBreakdown = applyHardScoreCaps({
     breakdown,
     responsePlan,
     rawPlanValidation,
     planValidation,
     reply,
+    rawReply,
     customerMessage,
+    products: input.products,
+    staleTurnDetected,
+    unplannedEntityIdsDetected: input.unplannedEntityIdsDetected,
+    selectionOverrideReason: responsePlan?.turn.selectionOverrideReason ?? null,
   });
 
   return {
@@ -716,6 +897,10 @@ export function calculatePlaygroundAiScore(
       preview: result.preview,
       rawReply,
       customerMessage,
+      turnId: input.turnId ?? responsePlan?.turn.turnId ?? null,
+      deterministicFallbackUsed: input.deterministicFallbackUsed,
+      unplannedEntityIdsDetected: input.unplannedEntityIdsDetected,
+      catalogEntityIdsDelivered: input.catalogEntityIdsDelivered,
     }),
   };
 }

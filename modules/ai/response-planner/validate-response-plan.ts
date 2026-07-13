@@ -1,6 +1,12 @@
 import type { ResponsePlan, PlanValidationResult } from "@/modules/ai/response-planner/types";
 import { containsBannedInterrogationPhrase } from "@/modules/ai/base-brain/hospitality-voice-policy";
 import { detectInterrogation, isQuestionOnlyResponse } from "@/modules/ai/response-planner/interrogation-policy";
+import {
+  buildCatalogConsistencyFallback,
+  detectScheduleContradiction,
+  validateCatalogConsistency,
+} from "@/modules/ai/response-planner/validate-catalog-consistency";
+import type { ProductContext } from "@/modules/business-brain/types/context";
 
 const UNSUPPORTED_AVAILABILITY_PATTERNS = [
   /\bada\s+kak\b/i,
@@ -36,12 +42,42 @@ function containsUnsupportedPrice(reply: string, plan: ResponsePlan): boolean {
 
 function hasDirectAnswer(reply: string, plan: ResponsePlan): boolean {
   if (!plan.directAnswerRequired) return true;
+
+  if (
+    plan.selectedEntity &&
+    (plan.requestType === "PRODUCT_SELECTION" || plan.requestType === "PRODUCT_INFORMATION")
+  ) {
+    const nameMarker = plan.selectedEntity.displayName.toLowerCase().slice(0, Math.min(24, plan.selectedEntity.displayName.length));
+    const replyLower = reply.toLowerCase();
+    if (nameMarker.length >= 6 && replyLower.includes(nameMarker)) {
+      return true;
+    }
+    if (
+      /\b(perorang|per orang|harga|hari|malam|keberangkatan|rute|perjalanan)\b/i.test(reply) &&
+      reply.trim().length >= 40
+    ) {
+      return true;
+    }
+  }
+
   if (plan.directAnswerTemplate) {
     const keyTokens = plan.directAnswerTemplate
       .toLowerCase()
       .split(/[^a-z0-9]+/i)
       .filter((token) => token.length >= 4);
-    return keyTokens.some((token) => reply.toLowerCase().includes(token));
+    if (keyTokens.some((token) => reply.toLowerCase().includes(token))) {
+      return true;
+    }
+    if (plan.selectedEntity) {
+      const productTokens = plan.selectedEntity.displayName
+        .toLowerCase()
+        .split(/[^a-z0-9]+/i)
+        .filter((token) => token.length >= 4);
+      if (productTokens.some((token) => reply.toLowerCase().includes(token))) {
+        return true;
+      }
+    }
+    return false;
   }
   return reply.trim().length > 20;
 }
@@ -53,6 +89,7 @@ function countQuestions(reply: string): number {
 export function validateResponseAgainstPlan(
   reply: string,
   plan: ResponsePlan,
+  options?: { products?: ProductContext[] },
 ): PlanValidationResult {
   const violations: string[] = [];
   const trimmed = reply.trim();
@@ -68,6 +105,19 @@ export function validateResponseAgainstPlan(
 
   if (unsupportedClaimDetected) {
     violations.push(`unsupported_${unsupportedClaimType}`);
+  }
+
+  if (detectScheduleContradiction(trimmed, plan)) {
+    violations.push("unsupported_availability");
+  }
+
+  const catalogConsistency = validateCatalogConsistency({
+    reply: trimmed,
+    plan,
+    products: options?.products,
+  });
+  if (!catalogConsistency.passed) {
+    violations.push(...catalogConsistency.violations);
   }
 
   if (plan.handoffRequired && !/\b(tim|sales|human|konfirmasi|confirmation)\b/i.test(trimmed)) {
@@ -127,10 +177,10 @@ export function validateResponseAgainstPlan(
   let fallbackReply: string | null = null;
   if (!passed) {
     fallbackReply =
+      catalogConsistency.fallbackReply ??
       plan.directAnswerTemplate ??
-      (plan.handoffRequired
-        ? plan.directAnswerTemplate
-        : plan.followUpQuestion) ??
+      buildCatalogConsistencyFallback(plan) ??
+      (plan.handoffRequired ? plan.directAnswerTemplate : plan.followUpQuestion) ??
       trimmed;
   }
 
@@ -143,7 +193,9 @@ export function validateResponseAgainstPlan(
     attachmentPreserved: !plan.attachmentAction || Boolean(plan.attachmentAction.documentId),
     answerFirstPassed,
     violations,
-    fallbackReply: !passed ? fallbackReply ?? plan.directAnswerTemplate ?? plan.followUpQuestion : null,
+    fallbackReply: !passed ? fallbackReply : null,
     usedDeterministicFallback: !passed,
+    catalogContradictionDetected: catalogConsistency.contradictionDetected,
+    geographicViolationDetected: catalogConsistency.geographicViolationDetected,
   };
 }

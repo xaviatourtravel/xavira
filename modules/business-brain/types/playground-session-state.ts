@@ -19,6 +19,8 @@ export type PlaygroundPersistedConversationState = {
   selectedEntity: SelectedEntity | null;
   catalogContext: CatalogContext | null;
   currentIntent: string | null;
+  lastRequestType: string | null;
+  lastTurnId: string | null;
   handoffRequested: boolean;
   customerMemory: ConversationMemoryMap;
   simulatedAttachments: PlaygroundSimulatedAttachment[];
@@ -31,6 +33,8 @@ export const EMPTY_PLAYGROUND_CONVERSATION_STATE: PlaygroundPersistedConversatio
   selectedEntity: null,
   catalogContext: null,
   currentIntent: null,
+  lastRequestType: null,
+  lastTurnId: null,
   handoffRequested: false,
   customerMemory: {},
   simulatedAttachments: [],

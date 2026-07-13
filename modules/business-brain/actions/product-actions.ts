@@ -5,12 +5,16 @@ import { revalidatePath } from "next/cache";
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
 import { createBrainProductFileSignedUrl, removeBrainProductFile, uploadBrainProductFile } from "@/modules/business-brain/lib/product-storage";
+import { validateProductDocumentUploadServer } from "@/modules/business-brain/lib/validate-product-document-server";
+import {
+  inferServerUploadErrorCode,
+  type ProductDocumentUploadServerErrorCode,
+} from "@/modules/business-brain/lib/product-document-upload-errors";
 import {
   beginProductUploadDebug,
   endProductUploadDebug,
   logProductUploadError,
   logProductUploadStep,
-  resolveProductUploadMimeType,
 } from "@/modules/business-brain/lib/product-upload-debug";
 import {
   createProductFaqSchema,

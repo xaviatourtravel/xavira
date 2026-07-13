@@ -34,6 +34,7 @@ export type ProductDocumentUploadStatus =
 export type ProductDocumentUploadSlotState = {
   status: ProductDocumentUploadStatus;
   progress: number;
+  progressIndeterminate?: boolean;
   fileName: string | null;
   errorCode: ProductDocumentUploadErrorCode | null;
 };
@@ -41,6 +42,7 @@ export type ProductDocumentUploadSlotState = {
 const IDLE_SLOT: ProductDocumentUploadSlotState = {
   status: "idle",
   progress: 0,
+  progressIndeterminate: false,
   fileName: null,
   errorCode: null,
 };
@@ -51,10 +53,6 @@ function isBusyStatus(status: ProductDocumentUploadStatus): boolean {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function mapProgressDuringUpload(uploadPercent: number): number {
-  return 20 + Math.round(uploadPercent * 0.55);
 }
 
 type UseProductDocumentUploadOptions = {
@@ -137,7 +135,8 @@ export function useProductDocumentUpload({
 
         updateSlot(documentType, {
           status: "uploading",
-          progress: 15,
+          progress: 0,
+          progressIndeterminate: true,
           fileName: file.name,
           errorCode: null,
         });
@@ -171,14 +170,13 @@ export function useProductDocumentUpload({
         if (!prepareResult.ok) {
           updateSlot(documentType, {
             status: "error",
-            progress: 15,
+            progress: 0,
+            progressIndeterminate: false,
             fileName: file.name,
             errorCode: classifyProductUploadError(prepareResult.error, prepareResult.errorCode),
           });
           return;
         }
-
-        updateSlot(documentType, { progress: 20 });
 
         let directUploadResult;
         try {
@@ -187,21 +185,14 @@ export function useProductDocumentUpload({
             token: prepareResult.token,
             file,
             mimeType: prepareResult.mimeType,
-            onProgress: (percent) => {
-              updateSlot(documentType, {
-                status: "uploading",
-                progress: mapProgressDuringUpload(percent),
-                fileName: file.name,
-                errorCode: null,
-              });
-            },
           });
           logProductUploadStep("direct storage response", directUploadResult);
         } catch (error) {
           logProductUploadError(error);
           updateSlot(documentType, {
             status: "error",
-            progress: mapProgressDuringUpload(0),
+            progress: 0,
+            progressIndeterminate: false,
             fileName: file.name,
             errorCode: "network",
           });
@@ -211,7 +202,8 @@ export function useProductDocumentUpload({
         if (!directUploadResult.ok) {
           updateSlot(documentType, {
             status: "error",
-            progress: mapProgressDuringUpload(0),
+            progress: 0,
+            progressIndeterminate: false,
             fileName: file.name,
             errorCode: classifyProductUploadError(directUploadResult.message, "DIRECT_UPLOAD_FAILED"),
           });
@@ -221,6 +213,7 @@ export function useProductDocumentUpload({
         updateSlot(documentType, {
           status: "processing",
           progress: 85,
+          progressIndeterminate: false,
           fileName: file.name,
           errorCode: null,
         });

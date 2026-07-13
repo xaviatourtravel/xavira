@@ -74,6 +74,9 @@ export async function uploadBrainProductFile({
 export async function createBrainProductSignedUploadUrl(
   filePath: string,
 ): Promise<{ token: string; signedUrl: string }> {
+  // Issuing a signed upload URL reserves a path but does not create a Storage object.
+  // An orphan object can appear only after the browser upload succeeds and finalize is
+  // abandoned or fails before cleanup removes the uploaded bytes.
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from(BRAIN_PRODUCT_BUCKET)

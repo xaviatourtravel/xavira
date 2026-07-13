@@ -262,12 +262,22 @@ export function useProductDocumentUpload({
           return;
         }
 
-        if (!result.ok || !result.product) {
+        if (!result.ok) {
           updateSlot(documentType, {
             status: "error",
             progress: 70,
             fileName: trimmed,
-            errorCode: classifyProductUploadError(result.error),
+            errorCode: classifyProductUploadError(result.error, result.errorCode),
+          });
+          return;
+        }
+
+        if (!result.product) {
+          updateSlot(documentType, {
+            status: "error",
+            progress: 70,
+            fileName: trimmed,
+            errorCode: "unknown",
           });
           return;
         }

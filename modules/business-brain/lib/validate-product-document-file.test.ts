@@ -58,6 +58,10 @@ describe("classifyProductUploadError", () => {
 
   it("maps storage errors", () => {
     assert.equal(classifyProductUploadError("Bucket not found"), "storage");
+    assert.equal(
+      classifyProductUploadError("mime type application/vnd.adobe.pdf is not supported"),
+      "storage",
+    );
   });
 
   it("maps network errors", () => {

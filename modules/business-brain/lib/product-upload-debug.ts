@@ -1,3 +1,5 @@
+import { canonicalProductDocumentMimeType } from "@/modules/business-brain/lib/product-document-upload-config";
+
 const GROUP_LABEL = "Product Document Upload";
 
 export function beginProductUploadDebug() {
@@ -47,26 +49,7 @@ export function describeUploadPayload(input: {
 
 /** Supabase bucket only allows specific MIME types; infer from extension when browser omits type. */
 export function resolveProductUploadMimeType(file: File): string {
-  if (file.type) return file.type;
-
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  switch (extension) {
-    case "pdf":
-      return "application/pdf";
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "png":
-      return "image/png";
-    case "webp":
-      return "image/webp";
-    case "mp4":
-      return "video/mp4";
-    case "mov":
-      return "video/quicktime";
-    default:
-      return "application/octet-stream";
-  }
+  return canonicalProductDocumentMimeType(file.name, file.type) ?? "application/octet-stream";
 }
 
 export function describeUnexpectedUploadError(error: unknown): string {

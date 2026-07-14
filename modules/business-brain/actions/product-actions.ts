@@ -2,15 +2,31 @@
 
 import { revalidatePath } from "next/cache";
 
+import { randomUUID } from "crypto";
+
 import { isAdminOrOwner } from "@/lib/auth/permissions";
 import { requireProfile } from "@/lib/auth/session";
-import { createBrainProductFileSignedUrl, removeBrainProductFile, uploadBrainProductFile } from "@/modules/business-brain/lib/product-storage";
+import {
+  BRAIN_PRODUCT_BUCKET,
+  createBrainProductSignedUploadUrl,
+  createBrainProductFileSignedUrl,
+  removeBrainProductFile,
+} from "@/modules/business-brain/lib/product-storage";
+import {
+  validateProductDocumentPrepareMetadata,
+  verifyStoredProductDocumentObject,
+} from "@/modules/business-brain/lib/product-document-finalize";
+import { buildProductDocumentStoragePath } from "@/modules/business-brain/lib/product-document-upload-path";
+import {
+  inferServerUploadErrorCode,
+  type ProductDocumentUploadServerErrorCode,
+} from "@/modules/business-brain/lib/product-document-upload-errors";
+import { resolveProductDocumentInsertError } from "@/modules/business-brain/lib/product-document-insert-errors";
 import {
   beginProductUploadDebug,
   endProductUploadDebug,
   logProductUploadError,
   logProductUploadStep,
-  resolveProductUploadMimeType,
 } from "@/modules/business-brain/lib/product-upload-debug";
 import {
   createProductFaqSchema,
@@ -20,8 +36,9 @@ import { normalizeFaqQuestion } from "@/modules/business-brain/lib/parse-faq-imp
 import type { FaqImportApplyItem, FaqImportApplyResult } from "@/modules/business-brain/types/faq-import";
 import {
   deleteProductDocument,
+  findProductDocumentByFilePath,
   findProductDocumentById,
-  insertProductDocument,
+  insertProductDocumentWithServiceRole,
 } from "@/modules/business-brain/repositories/product-document-repository";
 import {
   deleteProductFaqLink,
@@ -349,7 +366,224 @@ export async function importProductFaqsAction(
   }
 }
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+type UploadProductDocumentFailure = {
+  ok: false;
+  error: string;
+  errorCode: ProductDocumentUploadServerErrorCode;
+};
+
+function uploadFailure(
+  errorCode: ProductDocumentUploadServerErrorCode,
+  error: string,
+): UploadProductDocumentFailure {
+  logProductUploadStep("Returned JSON", { ok: false, errorCode, error });
+  return { ok: false as const, error, errorCode };
+}
+
+async function requireAuthorizedProductContext(productId: string) {
+  const { profile } = await requireProfile();
+  if (!isAdminOrOwner(profile)) {
+    return {
+      ok: false as const,
+      failure: uploadFailure("UNAUTHORIZED", "Permission denied."),
+    };
+  }
+
+  if (!productId) {
+    return {
+      ok: false as const,
+      failure: uploadFailure("PRODUCT_NOT_FOUND", "Product is required."),
+    };
+  }
+
+  try {
+    const organizationId = requireOrgId(profile);
+    await getProduct(organizationId, productId);
+    return { ok: true as const, profile, organizationId, productId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Product not found.";
+    const errorCode =
+      message.toLowerCase().includes("organization") ? "WORKSPACE_NOT_FOUND" : "PRODUCT_NOT_FOUND";
+    return {
+      ok: false as const,
+      failure: uploadFailure(errorCode, message),
+    };
+  }
+}
+
+function isValidDocumentType(
+  documentType: string,
+): documentType is "itinerary" | "brochure" | "gallery" | "video" {
+  return (
+    documentType === "itinerary" ||
+    documentType === "brochure" ||
+    documentType === "gallery" ||
+    documentType === "video"
+  );
+}
+
+export async function prepareProductDocumentUploadAction(input: {
+  productId: string;
+  documentType: string;
+  originalFilename: string;
+  declaredMimeType: string;
+  declaredSize: number;
+}) {
+  beginProductUploadDebug();
+
+  try {
+    const context = await requireAuthorizedProductContext(input.productId);
+    if (!context.ok) {
+      return context.failure;
+    }
+
+    const { organizationId, productId } = context;
+
+    if (!isValidDocumentType(input.documentType)) {
+      return uploadFailure("INVALID_DOCUMENT_CATEGORY", "Invalid document type.");
+    }
+
+    const validation = validateProductDocumentPrepareMetadata({
+      originalFilename: input.originalFilename,
+      declaredMimeType: input.declaredMimeType,
+      declaredSize: input.declaredSize,
+      documentType: input.documentType,
+    });
+
+    if (!validation.ok) {
+      return uploadFailure(validation.code, validation.message);
+    }
+
+    const uploadId = randomUUID();
+    const storagePath = buildProductDocumentStoragePath(
+      organizationId,
+      productId,
+      uploadId,
+      input.originalFilename,
+    );
+
+    let signedUpload;
+    try {
+      signedUpload = await createBrainProductSignedUploadUrl(storagePath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to prepare upload.";
+      return uploadFailure("SIGNED_UPLOAD_FAILED", message);
+    }
+
+    logProductUploadStep("Prepared direct upload", {
+      bucket: BRAIN_PRODUCT_BUCKET,
+      storagePath,
+      mimeType: validation.mimeType,
+      declaredSize: input.declaredSize,
+      note: "Prepare only issues a signed upload token; no Storage object exists until the browser upload completes.",
+    });
+
+    return {
+      ok: true as const,
+      bucket: BRAIN_PRODUCT_BUCKET,
+      storagePath,
+      token: signedUpload.token,
+      mimeType: validation.mimeType,
+    };
+  } catch (error) {
+    logProductUploadError(error);
+    const message = error instanceof Error ? error.message : "Failed to prepare upload.";
+    return uploadFailure("UPLOAD_PREPARATION_FAILED", message);
+  } finally {
+    endProductUploadDebug();
+  }
+}
+
+export async function finalizeProductDocumentUploadAction(input: {
+  productId: string;
+  documentType: string;
+  storagePath: string;
+  originalFilename: string;
+}) {
+  beginProductUploadDebug();
+
+  try {
+    const context = await requireAuthorizedProductContext(input.productId);
+    if (!context.ok) {
+      return context.failure;
+    }
+
+    const { organizationId, productId } = context;
+
+    if (!isValidDocumentType(input.documentType)) {
+      return uploadFailure("INVALID_DOCUMENT_CATEGORY", "Invalid document type.");
+    }
+
+    const existing = await findProductDocumentByFilePath(input.storagePath);
+    if (existing) {
+      return uploadFailure(
+        "DUPLICATE_UPLOAD_FINALIZATION",
+        "This upload has already been finalized.",
+      );
+    }
+
+    const verification = await verifyStoredProductDocumentObject({
+      storagePath: input.storagePath,
+      organizationId,
+      productId,
+      documentType: input.documentType,
+      originalFilename: input.originalFilename,
+    });
+
+    if (!verification.ok) {
+      try {
+        await removeBrainProductFile(input.storagePath);
+        logProductUploadStep("Rolled back invalid uploaded object", {
+          filePath: input.storagePath,
+        });
+      } catch (rollbackError) {
+        logProductUploadError(rollbackError);
+      }
+      return uploadFailure(verification.code, verification.message);
+    }
+
+    try {
+      await insertProductDocumentWithServiceRole({
+        productId,
+        documentType: input.documentType,
+        fileName: input.originalFilename,
+        filePath: input.storagePath,
+        mimeType: verification.mimeType,
+      });
+    } catch (error) {
+      const errorCode = resolveProductDocumentInsertError(error);
+
+      if (errorCode !== "DUPLICATE_UPLOAD_FINALIZATION") {
+        try {
+          await removeBrainProductFile(input.storagePath);
+          logProductUploadStep("Rolled back storage object after DB failure", {
+            filePath: input.storagePath,
+          });
+        } catch (rollbackError) {
+          logProductUploadError(rollbackError);
+        }
+      }
+
+      const message = error instanceof Error ? error.message : "Failed to save document.";
+      return uploadFailure(errorCode, message);
+    }
+
+    const product = await getProduct(organizationId, productId);
+    revalidateProducts();
+    logProductUploadStep("Finalized direct upload", {
+      storagePath: input.storagePath,
+      productId: product?.id,
+      documentCount: product?.documents.length,
+    });
+    return { ok: true as const, product };
+  } catch (error) {
+    logProductUploadError(error);
+    const message = error instanceof Error ? error.message : "Failed to finalize upload.";
+    return uploadFailure("UPLOAD_FINALIZATION_FAILED", message);
+  } finally {
+    endProductUploadDebug();
+  }
+}
 
 export async function uploadProductDocumentAction(formData: FormData) {
   beginProductUploadDebug();
@@ -357,8 +591,7 @@ export async function uploadProductDocumentAction(formData: FormData) {
   try {
     const { profile } = await requireProfile();
     if (!isAdminOrOwner(profile)) {
-      logProductUploadStep("Returned JSON", { ok: false, error: "Permission denied." });
-      return { ok: false as const, error: "Permission denied." };
+      return uploadFailure("UNAUTHORIZED", "Permission denied.");
     }
 
     const productId = String(formData.get("productId") ?? "");
@@ -381,8 +614,7 @@ export async function uploadProductDocumentAction(formData: FormData) {
     });
 
     if (!productId) {
-      logProductUploadStep("Returned JSON", { ok: false, error: "Product is required." });
-      return { ok: false as const, error: "Product is required." };
+      return uploadFailure("PRODUCT_NOT_FOUND", "Product is required.");
     }
 
     if (
@@ -391,15 +623,22 @@ export async function uploadProductDocumentAction(formData: FormData) {
       documentType !== "gallery" &&
       documentType !== "video"
     ) {
-      logProductUploadStep("Returned JSON", { ok: false, error: "Invalid document type." });
-      return { ok: false as const, error: "Invalid document type." };
+      return uploadFailure("INVALID_DOCUMENT_CATEGORY", "Invalid document type.");
     }
 
-    const organizationId = requireOrgId(profile);
-    await getProduct(organizationId, productId);
+    let organizationId: string;
+    try {
+      organizationId = requireOrgId(profile);
+      await getProduct(organizationId, productId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Product not found.";
+      const errorCode =
+        message.toLowerCase().includes("organization") ? "WORKSPACE_NOT_FOUND" : "PRODUCT_NOT_FOUND";
+      return uploadFailure(errorCode, message);
+    }
 
     if (documentType === "video" && fileUrl) {
-      const document = await insertProductDocument({
+      const document = await insertProductDocumentWithServiceRole({
         productId,
         documentType: "video",
         fileUrl,
@@ -414,66 +653,17 @@ export async function uploadProductDocumentAction(formData: FormData) {
     }
 
     if (file instanceof File && file.size > 0) {
-      if (file.size > MAX_FILE_BYTES) {
-        logProductUploadStep("Returned JSON", { ok: false, error: "File exceeds 50MB limit." });
-        return { ok: false as const, error: "File exceeds 50MB limit." };
-      }
-
-      const mimeType = resolveProductUploadMimeType(file);
-      logProductUploadStep("Selected file", {
-        name: file.name,
-        size: file.size,
-        browserType: file.type || "(empty)",
-        resolvedMimeType: mimeType,
-      });
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-      logProductUploadStep("Upload result", {
-        bufferByteLength: buffer.byteLength,
-        bucket: "brain-product-files",
-      });
-
-      const uploaded = await uploadBrainProductFile({
-        organizationId,
-        productId,
-        buffer,
-        fileName: file.name,
-        mimeType,
-      });
-
-      const document = await insertProductDocument({
-        productId,
-        documentType: documentType as "itinerary" | "brochure" | "gallery" | "video",
-        fileName: file.name,
-        filePath: uploaded.filePath,
-        mimeType,
-      });
-
-      logProductUploadStep("Upload result", {
-        filePath: uploaded.filePath,
-        documentId: document.id,
-      });
-
-      const product = await getProduct(organizationId, productId);
-      revalidateProducts();
-      logProductUploadStep("Returned JSON", {
-        ok: true,
-        productId: product?.id,
-        documentCount: product?.documents.length,
-      });
-      return { ok: true as const, product };
+      return uploadFailure(
+        "UPLOAD_PREPARATION_FAILED",
+        "File uploads must use the direct Storage upload flow.",
+      );
     }
 
-    logProductUploadStep("Returned JSON", { ok: false, error: "File or video URL is required." });
-    return { ok: false as const, error: "File or video URL is required." };
+    return uploadFailure("EMPTY_FILE", "File or video URL is required.");
   } catch (error) {
     logProductUploadError(error);
     const message = error instanceof Error ? error.message : "Failed to upload document.";
-    logProductUploadStep("Returned JSON", { ok: false, error: message });
-    return {
-      ok: false as const,
-      error: message,
-    };
+    return uploadFailure(inferServerUploadErrorCode(message), message);
   } finally {
     endProductUploadDebug();
   }

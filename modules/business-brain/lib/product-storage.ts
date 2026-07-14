@@ -6,17 +6,15 @@ import {
   logProductUploadError,
   logProductUploadStep,
 } from "@/modules/business-brain/lib/product-upload-debug";
+import {
+  buildProductDocumentStoragePath,
+  isPdfBuffer,
+  sanitizeProductDocumentFileName,
+} from "@/modules/business-brain/lib/product-document-upload-path";
 
 export const BRAIN_PRODUCT_BUCKET = "brain-product-files";
 
-function sanitizeFileName(fileName: string): string {
-  const normalized = fileName
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  return normalized || "document";
-}
+export { sanitizeProductDocumentFileName, buildProductDocumentStoragePath };
 
 export async function uploadBrainProductFile({
   organizationId,
@@ -32,7 +30,12 @@ export async function uploadBrainProductFile({
   mimeType: string;
 }): Promise<{ filePath: string }> {
   const admin = createAdminClient();
-  const filePath = `${organizationId}/${productId}/${randomUUID()}-${sanitizeFileName(fileName)}`;
+  const filePath = buildProductDocumentStoragePath(
+    organizationId,
+    productId,
+    randomUUID(),
+    fileName,
+  );
 
   logProductUploadStep("Supabase upload request", {
     bucket: BRAIN_PRODUCT_BUCKET,
@@ -66,6 +69,79 @@ export async function uploadBrainProductFile({
   }
 
   return { filePath };
+}
+
+export async function createBrainProductSignedUploadUrl(
+  filePath: string,
+): Promise<{ token: string; signedUrl: string }> {
+  // Issuing a signed upload URL reserves a path but does not create a Storage object.
+  // An orphan object can appear only after the browser upload succeeds and finalize is
+  // abandoned or fails before cleanup removes the uploaded bytes.
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from(BRAIN_PRODUCT_BUCKET)
+    .createSignedUploadUrl(filePath, { upsert: false });
+
+  if (error || !data?.token) {
+    logProductUploadError(error);
+    throw new Error(error?.message ?? "Failed to create signed upload URL.");
+  }
+
+  return {
+    token: data.token,
+    signedUrl: data.signedUrl,
+  };
+}
+
+export type BrainProductStoredObjectInfo = {
+  size: number;
+  mimeType: string | null;
+};
+
+export async function getBrainProductStoredObjectInfo(
+  filePath: string,
+): Promise<BrainProductStoredObjectInfo | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage.from(BRAIN_PRODUCT_BUCKET).info(filePath);
+
+  if (error) {
+    logProductUploadError(error);
+    return null;
+  }
+
+  return {
+    size: data.size ?? 0,
+    mimeType: data.contentType ?? data.metadata?.mimetype ?? null,
+  };
+}
+
+export async function readBrainProductFileHeader(
+  filePath: string,
+  byteCount = 5,
+): Promise<Buffer | null> {
+  const signedUrl = await createBrainProductFileSignedUrl(filePath, 60);
+  if (!signedUrl) {
+    return null;
+  }
+
+  const response = await fetch(signedUrl, {
+    headers: {
+      Range: `bytes=0-${byteCount - 1}`,
+    },
+  });
+
+  if (!response.ok && response.status !== 206) {
+    return null;
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+export async function verifyBrainProductPdfHeader(filePath: string): Promise<boolean> {
+  const header = await readBrainProductFileHeader(filePath);
+  if (!header) return false;
+  return isPdfBuffer(header);
 }
 
 export async function createBrainProductFileSignedUrl(

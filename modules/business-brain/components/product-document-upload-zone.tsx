@@ -3,7 +3,6 @@
 import { AlertCircle, CheckCircle2, Upload } from "lucide-react";
 
 import { InspectorProgress } from "@/components/ui/inspector/inspector-notice";
-import { formatTranslation } from "@/lib/i18n/dictionary";
 import type { BbUiKey } from "@/lib/i18n/bb-ui-dictionary";
 import { useBbTranslation } from "@/modules/business-brain/hooks/use-bb-translation";
 import type { ProductDocumentUploadSlotState } from "@/modules/business-brain/hooks/use-product-document-upload";
@@ -18,6 +17,7 @@ const ERROR_KEYS: Record<ProductDocumentUploadErrorCode, BbUiKey> = {
   storage: "productUploadErrorStorage",
   permission: "productUploadErrorPermission",
   network: "productUploadErrorNetwork",
+  direct_upload: "productUploadErrorDirectUpload",
   unknown: "productUploadErrorUnknown",
 };
 
@@ -40,7 +40,7 @@ function statusMessage(
     case "validating":
       return bb("productUploadCheckingFile");
     case "uploading":
-      return `${state.progress}%`;
+      return bb("productUploadTransferringToStorage");
     case "processing":
       return bb("productUploadProcessingFile");
     case "success":
@@ -103,7 +103,11 @@ export function ProductDocumentUploadZone({
       {showProgress ? (
         <div className="space-y-1">
           {uploadState.status !== "error" ? (
-            <InspectorProgress value={uploadState.progress} className={compact ? "h-1.5" : "h-2"} />
+            <InspectorProgress
+              value={uploadState.progress}
+              indeterminate={uploadState.progressIndeterminate === true}
+              className={compact ? "h-1.5" : "h-2"}
+            />
           ) : null}
           {message ? (
             <p
@@ -122,11 +126,7 @@ export function ProductDocumentUploadZone({
               {uploadState.status === "error" ? (
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
               ) : null}
-              {uploadState.status === "uploading"
-                ? formatTranslation(bb("productUploadPercent"), {
-                    percent: String(uploadState.progress),
-                  })
-                : message}
+              {message}
             </p>
           ) : null}
         </div>

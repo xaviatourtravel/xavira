@@ -1,7 +1,18 @@
+import {
+  canonicalProductDocumentMimeType,
+  getFileExtension,
+  isPdfExtension,
+  PRODUCT_DOCUMENT_CATEGORY_MAX_BYTES,
+  PRODUCT_DOCUMENT_MAX_BYTES,
+} from "@/modules/business-brain/lib/product-document-upload-config";
+import {
+  inferServerUploadErrorCode,
+  mapServerUploadErrorToUi,
+  type ProductDocumentUploadServerErrorCode,
+} from "@/modules/business-brain/lib/product-document-upload-errors";
 import type { ProductDocumentType } from "@/modules/business-brain/types/products";
-import { resolveProductUploadMimeType } from "@/modules/business-brain/lib/product-upload-debug";
 
-export const PRODUCT_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024;
+export { PRODUCT_DOCUMENT_MAX_BYTES };
 
 export type ProductDocumentUploadErrorCode =
   | "unsupported"
@@ -10,28 +21,27 @@ export type ProductDocumentUploadErrorCode =
   | "storage"
   | "permission"
   | "network"
+  | "direct_upload"
   | "unknown";
 
 const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime"]);
 
-export function getFileExtension(fileName: string): string {
-  return fileName.split(".").pop()?.toLowerCase() ?? "";
-}
+export { getFileExtension };
 
 export function isPdfFile(file: File): boolean {
-  const mime = resolveProductUploadMimeType(file);
-  return mime === "application/pdf" || getFileExtension(file.name) === "pdf";
+  const mime = canonicalProductDocumentMimeType(file.name, file.type);
+  return mime === "application/pdf" || isPdfExtension(file.name);
 }
 
 function isImageFile(file: File): boolean {
-  const mime = resolveProductUploadMimeType(file);
-  return IMAGE_MIME_TYPES.has(mime);
+  const mime = canonicalProductDocumentMimeType(file.name, file.type);
+  return mime !== null && IMAGE_MIME_TYPES.has(mime);
 }
 
 function isVideoFile(file: File): boolean {
-  const mime = resolveProductUploadMimeType(file);
-  return VIDEO_MIME_TYPES.has(mime);
+  const mime = canonicalProductDocumentMimeType(file.name, file.type);
+  return mime !== null && VIDEO_MIME_TYPES.has(mime);
 }
 
 export async function validatePdfReadable(file: File): Promise<boolean> {
@@ -56,11 +66,15 @@ export async function validateProductDocumentFile(
     return { ok: false, code: "unsupported" };
   }
 
-  if (file.size > PRODUCT_DOCUMENT_MAX_BYTES) {
+  const maxBytes = PRODUCT_DOCUMENT_CATEGORY_MAX_BYTES[documentType];
+  if (file.size > maxBytes) {
     return { ok: false, code: "too_large" };
   }
 
-  const mimeType = resolveProductUploadMimeType(file);
+  const mimeType = canonicalProductDocumentMimeType(file.name, file.type);
+  if (!mimeType) {
+    return { ok: false, code: "unsupported" };
+  }
 
   if (documentType === "gallery") {
     if (!isImageFile(file)) {
@@ -95,34 +109,26 @@ export async function validateProductDocumentFile(
   return { ok: false, code: "unsupported" };
 }
 
-export function classifyProductUploadError(message: string | null | undefined): ProductDocumentUploadErrorCode {
+export function classifyProductUploadError(
+  message: string | null | undefined,
+  serverCode?: ProductDocumentUploadServerErrorCode | null,
+): ProductDocumentUploadErrorCode {
+  if (serverCode) {
+    return mapServerUploadErrorToUi(serverCode);
+  }
+
   const normalized = message?.trim().toLowerCase() ?? "";
-
-  if (!normalized) return "unknown";
-
-  if (/permission denied|not authorized|forbidden/.test(normalized)) {
-    return "permission";
-  }
-
-  if (/exceeds 50mb|too large|body exceeded|413|size limit/.test(normalized)) {
-    return "too_large";
-  }
-
-  if (/bucket not found|storage|mime type|not allowed|object not found/.test(normalized)) {
-    return "storage";
-  }
-
   if (/network|fetch failed|failed to fetch|timeout|connection|unexpected response/.test(normalized)) {
     return "network";
   }
 
-  if (/pdf|corrupt|cannot be read|unreadable/.test(normalized)) {
+  if (/bucket not found|mime type|mimetype|not allowed|object not found|storage/.test(normalized)) {
+    return "storage";
+  }
+
+  if (/pdf|corrupt|cannot be read|unreadable|invalid or unreadable/.test(normalized)) {
     return "corrupted_pdf";
   }
 
-  if (/unsupported|invalid document|file or video/.test(normalized)) {
-    return "unsupported";
-  }
-
-  return "unknown";
+  return mapServerUploadErrorToUi(inferServerUploadErrorCode(message ?? ""));
 }

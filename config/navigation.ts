@@ -107,7 +107,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     badgeKey: "finance",
     items: [
       { title: "Pembayaran", href: "/revenue" },
-      { title: "Invoice", href: "/revenue?view=invoices" },
+      { title: "Invoice", href: "/finance/invoices", permission: "invoices.view" },
     ],
   },
   {

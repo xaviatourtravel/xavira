@@ -2402,6 +2402,373 @@ export type Database = {
           },
         ]
       }
+      invoice_brand_settings: {
+        Row: {
+          accent_color: string
+          address: string | null
+          created_at: string
+          default_template_key: string
+          email: string | null
+          footer_text: string | null
+          id: string
+          invoice_prefix: string | null
+          legal_name: string | null
+          logo_url: string | null
+          organization_id: string
+          payment_accounts_json: Json
+          phone: string | null
+          primary_color: string
+          secondary_color: string
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          accent_color?: string
+          address?: string | null
+          created_at?: string
+          default_template_key?: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          legal_name?: string | null
+          logo_url?: string | null
+          organization_id: string
+          payment_accounts_json?: Json
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          accent_color?: string
+          address?: string | null
+          created_at?: string
+          default_template_key?: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          legal_name?: string | null
+          logo_url?: string | null
+          organization_id?: string
+          payment_accounts_json?: Json
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_brand_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          invoice_id: string
+          metadata: Json
+          organization_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          invoice_id: string
+          metadata?: Json
+          organization_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          invoice_id?: string
+          metadata?: Json
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_events_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          detail: string | null
+          discount_minor: number
+          id: string
+          invoice_id: string
+          line_total_minor: number
+          quantity: number
+          sort_order: number
+          unit: string
+          unit_price_minor: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          detail?: string | null
+          discount_minor?: number
+          id?: string
+          invoice_id: string
+          line_total_minor?: number
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          detail?: string | null
+          discount_minor?: number
+          id?: string
+          invoice_id?: string
+          line_total_minor?: number
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_sequences: {
+        Row: {
+          created_at: string
+          id: string
+          last_number: number
+          organization_id: string
+          prefix: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_number?: number
+          organization_id: string
+          prefix?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_number?: number
+          organization_id?: string
+          prefix?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_sequences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          additional_fees_minor: number
+          amount_paid_minor: number
+          balance_due_minor: number
+          booking_id: string | null
+          booking_snapshot: Json | null
+          company_snapshot: Json
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          customer_snapshot: Json
+          discount_minor: number
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          issue_date: string | null
+          issued_at: string | null
+          lifecycle_status: string
+          manual_recipient_address: string | null
+          manual_recipient_company: string | null
+          manual_recipient_email: string | null
+          manual_recipient_name: string | null
+          manual_recipient_phone: string | null
+          manual_recipient_tax_id: string | null
+          notes: string | null
+          organization_id: string
+          payment_instructions: string | null
+          payment_status: string
+          pdf_storage_path: string | null
+          recipient_source: string
+          sent_at: string | null
+          subtotal_minor: number
+          tax_minor: number
+          tax_rate_bps: number
+          template_key: string
+          template_version: number
+          terms: string | null
+          theme_snapshot: Json
+          total_minor: number
+          updated_at: string
+          updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Insert: {
+          additional_fees_minor?: number
+          amount_paid_minor?: number
+          balance_due_minor?: number
+          booking_id?: string | null
+          booking_snapshot?: Json | null
+          company_snapshot?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_snapshot?: Json
+          discount_minor?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string | null
+          issued_at?: string | null
+          lifecycle_status?: string
+          manual_recipient_address?: string | null
+          manual_recipient_company?: string | null
+          manual_recipient_email?: string | null
+          manual_recipient_name?: string | null
+          manual_recipient_phone?: string | null
+          manual_recipient_tax_id?: string | null
+          notes?: string | null
+          organization_id: string
+          payment_instructions?: string | null
+          payment_status?: string
+          pdf_storage_path?: string | null
+          recipient_source?: string
+          sent_at?: string | null
+          subtotal_minor?: number
+          tax_minor?: number
+          tax_rate_bps?: number
+          template_key?: string
+          template_version?: number
+          terms?: string | null
+          theme_snapshot?: Json
+          total_minor?: number
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+        }
+        Update: {
+          additional_fees_minor?: number
+          amount_paid_minor?: number
+          balance_due_minor?: number
+          booking_id?: string | null
+          booking_snapshot?: Json | null
+          company_snapshot?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_snapshot?: Json
+          discount_minor?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string | null
+          issued_at?: string | null
+          lifecycle_status?: string
+          manual_recipient_address?: string | null
+          manual_recipient_company?: string | null
+          manual_recipient_email?: string | null
+          manual_recipient_name?: string | null
+          manual_recipient_phone?: string | null
+          manual_recipient_tax_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          payment_instructions?: string | null
+          payment_status?: string
+          pdf_storage_path?: string | null
+          recipient_source?: string
+          sent_at?: string | null
+          subtotal_minor?: number
+          tax_minor?: number
+          tax_rate_bps?: number
+          template_key?: string
+          template_version?: number
+          terms?: string | null
+          theme_snapshot?: Json
+          total_minor?: number
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_documents: {
         Row: {
           content: string | null
@@ -3139,6 +3506,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_invoices: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       get_my_organization_id: { Args: never; Returns: string }
       get_my_role: {
         Args: never
@@ -3146,6 +3517,26 @@ export type Database = {
       }
       is_org_admin_or_owner: { Args: never; Returns: boolean }
       is_org_owner: { Args: never; Returns: boolean }
+      issue_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      build_invoice_customer_snapshot_from_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: Json
+      }
+      mark_invoice_sent: {
+        Args: { p_invoice_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      record_invoice_duplicated: {
+        Args: { p_new_invoice_id: string; p_source_invoice_id: string }
+        Returns: undefined
+      }
+      void_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
     }
     Enums: {
       activity_type:

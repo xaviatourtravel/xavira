@@ -9,7 +9,10 @@ import {
 } from "@/modules/finance/actions/invoice-actions";
 import { InvoiceDraftEditor } from "@/modules/finance/components/invoice-draft-editor";
 import { canCreateInvoices } from "@/modules/finance/lib/invoice-access";
-import { loadInvoiceEditorOptions } from "@/modules/finance/services/invoice-service";
+import {
+  getOrganizationInvoiceBrandSettings,
+  loadInvoiceEditorOptions,
+} from "@/modules/finance/services/invoice-service";
 import { redirect } from "next/navigation";
 
 type PageProps = {
@@ -33,6 +36,7 @@ export default async function NewInvoicePage({ searchParams }: PageProps) {
     profile,
     params.customer_id ?? null,
   );
+  const brandSettings = await getOrganizationInvoiceBrandSettings(profile);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 md:px-6">
@@ -52,6 +56,12 @@ export default async function NewInvoicePage({ searchParams }: PageProps) {
         action={createInvoiceDraftAndRedirectAction}
         customers={options.customers}
         bookings={options.bookings}
+        workspaceBrand={{
+          templateKey: brandSettings.brand.defaultTemplateKey,
+          primaryColor: brandSettings.workspace.primaryColor,
+          secondaryColor: brandSettings.workspace.secondaryColor,
+          accentColor: brandSettings.workspace.accentColor,
+        }}
         errorMessage={params.error ?? null}
         initial={{
           customerId: params.customer_id,

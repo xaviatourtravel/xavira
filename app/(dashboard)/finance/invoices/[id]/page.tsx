@@ -16,6 +16,7 @@ import {
   InvoiceLifecycleBadge,
   InvoicePaymentBadge,
 } from "@/modules/finance/components/invoice-status-badges";
+import { InvoicePdfPreview } from "@/modules/finance/components/invoice-pdf-preview";
 import {
   canEditInvoices,
   canIssueInvoices,
@@ -123,10 +124,37 @@ export default async function InvoiceDetailPage({
           {query.error}
         </p>
       ) : null}
-      {query.issued ? (
+
+      {query.issued === "1" ? (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          {t("financeUi.invoiceNumber")}: {invoice.invoiceNumber}
+          {t("financeUi.issueSucceeded")}
         </p>
+      ) : null}
+
+      {(isDraft || isIssuedLike) ? (
+        <section className="space-y-3 rounded-2xl border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold tracking-wide text-muted-foreground">
+              {t("financeUi.pdfSection")}
+            </h2>
+            {isIssuedLike ? (
+              <p className="text-xs text-muted-foreground">
+                {invoice.pdfStatus === "ready"
+                  ? t("financeUi.pdfStatusReady")
+                  : invoice.pdfStatus === "failed"
+                    ? t("financeUi.pdfStatusFailed")
+                    : invoice.pdfStatus === "generating"
+                      ? t("financeUi.pdfStatusGenerating")
+                      : t("financeUi.pdfStatusPending")}
+              </p>
+            ) : null}
+          </div>
+          <InvoicePdfPreview
+            invoiceId={invoice.id}
+            mode={isDraft ? "draft" : "issued"}
+            downloadEnabled={isIssuedLike}
+          />
+        </section>
       ) : null}
 
       {!isDraft ? (

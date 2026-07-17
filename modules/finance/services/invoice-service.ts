@@ -10,11 +10,18 @@ import {
   isCommerciallyLockedLifecycle,
   requireOrganizationId,
 } from "@/modules/finance/lib/invoice-access";
+import { enabledPaymentAccountsForDocuments, coercePaymentAccounts } from "@/modules/finance/lib/invoice-payment-accounts";
+import { getSafeInvoiceTheme } from "@/modules/finance/lib/invoice-theme-colors";
 import { buildBookingPrefill } from "@/modules/finance/lib/invoice-prefill";
+import {
+  getInvoiceTemplateVersion,
+  normalizeInvoiceTemplateKey,
+} from "@/modules/finance/pdf/invoice-template-registry";
 import type {
   CreateInvoiceDraftInput,
   UpdateInvoiceDraftInput,
 } from "@/modules/finance/schemas/invoices";
+import { createInvoiceDraftSchema } from "@/modules/finance/schemas/invoices";
 import type {
   InvoiceBookingSnapshot,
   InvoiceBrandSettings,
@@ -25,16 +32,28 @@ import type {
   InvoiceThemeSnapshot,
 } from "@/modules/finance/types/invoices";
 import * as repo from "@/modules/finance/repositories/invoice-repository";
+import { tryGenerateInvoicePdfAfterIssue } from "@/modules/finance/services/invoice-pdf-service";
+import { resolveWorkspaceBranding } from "@/modules/organization/branding/lib/branding-settings";
+import * as brandingRepo from "@/modules/organization/branding/repositories/branding-repository";
 
 function asJson(value: unknown): Json {
   return value as Json;
 }
 
-async function resolveBrandAndCompany(organizationId: string): Promise<{
+async function resolveBrandAndCompany(
+  organizationId: string,
+  override?: {
+    templateKey?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+  },
+): Promise<{
   brand: InvoiceBrandSettings;
   companySnapshot: InvoiceCompanySnapshot;
   themeSnapshot: InvoiceThemeSnapshot;
 }> {
+  const orgRow = await brandingRepo.getOrganizationBrandingRow(organizationId);
   const org = await repo.getOrganizationSlug(organizationId);
   const settings = parseOrganizationWorkspaceSettings(org.settings);
 
@@ -47,27 +66,63 @@ async function resolveBrandAndCompany(organizationId: string): Promise<{
     logoUrl: settings.logoUrl,
   });
 
+  const workspace = resolveWorkspaceBranding({
+    organizationId,
+    organizationName: orgRow?.name ?? org.name,
+    organizationPhone: orgRow?.phone ?? org.phone,
+    settings: orgRow?.settings ?? org.settings,
+    legacy: {
+      legalName: brand.legalName,
+      address: brand.address,
+      email: brand.email,
+      phone: brand.phone,
+      website: brand.website,
+      taxId: brand.taxId,
+      primaryColor: brand.primaryColor,
+      secondaryColor: brand.secondaryColor,
+      accentColor: brand.accentColor,
+      logoUrl: brand.logoUrl,
+    },
+  });
+
+  // Precedence: invoice draft override → workspace branding → legacy invoice brand
+  const templateKey = normalizeInvoiceTemplateKey(
+    override?.templateKey ?? brand.defaultTemplateKey,
+  );
+  const colors = getSafeInvoiceTheme({
+    primaryColor:
+      override?.primaryColor ?? workspace.primaryColor ?? brand.primaryColor,
+    secondaryColor:
+      override?.secondaryColor ??
+      workspace.secondaryColor ??
+      brand.secondaryColor,
+    accentColor:
+      override?.accentColor ?? workspace.accentColor ?? brand.accentColor,
+  });
+
   const companySnapshot: InvoiceCompanySnapshot = {
-    legalName: brand.legalName,
-    logoUrl: brand.logoUrl,
-    address: brand.address,
-    email: brand.email,
-    phone: brand.phone,
-    website: brand.website,
-    taxId: brand.taxId,
-    paymentAccounts: brand.paymentAccountsJson,
-    primaryColor: brand.primaryColor,
-    secondaryColor: brand.secondaryColor,
-    accentColor: brand.accentColor,
+    legalName: workspace.legalName || brand.legalName || org.name,
+    logoUrl: workspace.logoStorageRef ?? brand.logoUrl ?? settings.logoUrl,
+    address: workspace.address ?? brand.address,
+    email: workspace.email ?? brand.email,
+    phone: workspace.phone ?? brand.phone,
+    website: workspace.website ?? brand.website,
+    taxId: workspace.taxId ?? brand.taxId,
+    paymentAccounts: enabledPaymentAccountsForDocuments(
+      coercePaymentAccounts(brand.paymentAccountsJson),
+    ),
+    primaryColor: colors.primaryColor,
+    secondaryColor: colors.secondaryColor,
+    accentColor: colors.accentColor,
     footerText: brand.footerText,
   };
 
   const themeSnapshot: InvoiceThemeSnapshot = {
-    templateKey: brand.defaultTemplateKey,
-    templateVersion: 1,
-    primaryColor: brand.primaryColor,
-    secondaryColor: brand.secondaryColor,
-    accentColor: brand.accentColor,
+    templateKey,
+    templateVersion: getInvoiceTemplateVersion(templateKey),
+    primaryColor: colors.primaryColor,
+    secondaryColor: colors.secondaryColor,
+    accentColor: colors.accentColor,
   };
 
   return { brand, companySnapshot, themeSnapshot };
@@ -220,8 +275,13 @@ export async function createDraftInvoice(
   assertInvoicePermission(profile, "invoices.create");
   const organizationId = requireOrganizationId(profile);
   const totals = computeDraftTotals(input);
-  const { brand, companySnapshot, themeSnapshot } =
-    await resolveBrandAndCompany(organizationId);
+  const { companySnapshot, themeSnapshot } =
+    await resolveBrandAndCompany(organizationId, {
+      templateKey: input.templateKey,
+      primaryColor: input.primaryColor,
+      secondaryColor: input.secondaryColor,
+      accentColor: input.accentColor,
+    });
   const recipient = draftRecipientFields(input);
   const customerSnapshot = await buildCustomerSnapshot(organizationId, input);
   const bookingSnapshot =
@@ -259,7 +319,7 @@ export async function createDraftInvoice(
     amountPaidMinor: totals.amountPaidMinor,
     balanceDueMinor: totals.balanceDueMinor,
     paymentStatus: totals.paymentStatus,
-    templateKey: input.templateKey || brand.defaultTemplateKey,
+    templateKey: themeSnapshot.templateKey,
     themeSnapshot: asJson(themeSnapshot),
     companySnapshot: asJson(companySnapshot),
     customerSnapshot: asJson(customerSnapshot),
@@ -295,8 +355,13 @@ export async function updateDraftInvoice(
   }
 
   const totals = computeDraftTotals(input);
-  const { brand, companySnapshot, themeSnapshot } =
-    await resolveBrandAndCompany(organizationId);
+  const { companySnapshot, themeSnapshot } =
+    await resolveBrandAndCompany(organizationId, {
+      templateKey: input.templateKey,
+      primaryColor: input.primaryColor,
+      secondaryColor: input.secondaryColor,
+      accentColor: input.accentColor,
+    });
   const recipient = draftRecipientFields(input);
   const customerSnapshot = await buildCustomerSnapshot(organizationId, input);
   const bookingSnapshot =
@@ -337,7 +402,7 @@ export async function updateDraftInvoice(
     amountPaidMinor: totals.amountPaidMinor,
     balanceDueMinor: totals.balanceDueMinor,
     paymentStatus: totals.paymentStatus,
-    templateKey: input.templateKey || brand.defaultTemplateKey,
+    templateKey: themeSnapshot.templateKey,
     themeSnapshot: asJson(themeSnapshot),
     companySnapshot: asJson(companySnapshot),
     customerSnapshot: asJson(customerSnapshot),
@@ -378,7 +443,10 @@ export async function issueDraftInvoice(
 
   // RPC derives org from locked invoice, rebuilds snapshots, and recalculates totals.
   // App never supplies actor, org, or snapshots.
-  return repo.rpcIssueInvoice(existing.id);
+  const issued = await repo.rpcIssueInvoice(existing.id);
+  // PDF generation is outside the DB transaction; failure leaves invoice issued.
+  await tryGenerateInvoicePdfAfterIssue(profile, issued.id);
+  return (await repo.getInvoiceById(organizationId, issued.id)) ?? issued;
 }
 
 export async function voidIssuedInvoice(
@@ -442,7 +510,7 @@ export async function duplicateInvoiceAsDraft(
     notes: existing.notes,
     paymentInstructions: existing.paymentInstructions,
     terms: existing.terms,
-    templateKey: existing.templateKey,
+    templateKey: normalizeInvoiceTemplateKey(existing.templateKey),
     items: existing.items.map((item) => ({
       description: item.description,
       detail: item.detail,
@@ -461,7 +529,12 @@ export async function duplicateInvoiceAsDraft(
     },
   };
 
-  const draftInput: CreateInvoiceDraftInput =
+  const theme = existing.themeSnapshot as {
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+  };
+  const draftInput = createInvoiceDraftSchema.parse(
     existing.recipientSource === "manual"
       ? {
           recipientSource: "manual",
@@ -473,14 +546,21 @@ export async function duplicateInvoiceAsDraft(
           manualRecipientEmail: existing.manualRecipientEmail,
           manualRecipientAddress: existing.manualRecipientAddress,
           manualRecipientTaxId: existing.manualRecipientTaxId,
+          primaryColor: theme.primaryColor,
+          secondaryColor: theme.secondaryColor,
+          accentColor: theme.accentColor,
           ...shared,
         }
       : {
           recipientSource: "linked_customer",
           customerId: existing.customerId ?? "",
           bookingId: existing.bookingId,
+          primaryColor: theme.primaryColor,
+          secondaryColor: theme.secondaryColor,
+          accentColor: theme.accentColor,
           ...shared,
-        };
+        },
+  );
 
   if (draftInput.recipientSource === "linked_customer") {
     if (!draftInput.customerId) {
@@ -566,4 +646,93 @@ export async function saveOrganizationInvoicePrefix(
     logoUrl: settings.logoUrl ?? null,
   });
   return saved.invoicePrefix;
+}
+
+export async function getOrganizationInvoiceBrandSettings(
+  profile: Profile,
+): Promise<{
+  brand: InvoiceBrandSettings;
+  workspace: {
+    legalName: string | null;
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    logoPreviewUrl: string | null;
+  };
+}> {
+  assertInvoicePermission(profile, "invoices.view");
+  const organizationId = requireOrganizationId(profile);
+  const orgRow = await brandingRepo.getOrganizationBrandingRow(organizationId);
+  const org = await repo.getOrganizationSlug(organizationId);
+  const settings = parseOrganizationWorkspaceSettings(org.settings);
+  const brand = await repo.ensureBrandSettingsDefaults({
+    organizationId,
+    legalName: org.name,
+    email: settings.businessEmail || null,
+    phone: org.phone,
+    website: settings.website || null,
+    logoUrl: settings.logoUrl,
+  });
+
+  const workspace = resolveWorkspaceBranding({
+    organizationId,
+    organizationName: orgRow?.name ?? org.name,
+    organizationPhone: orgRow?.phone ?? org.phone,
+    settings: orgRow?.settings ?? org.settings,
+    legacy: {
+      legalName: brand.legalName,
+      primaryColor: brand.primaryColor,
+      secondaryColor: brand.secondaryColor,
+      accentColor: brand.accentColor,
+      logoUrl: brand.logoUrl,
+    },
+  });
+
+  let logoPreviewUrl: string | null = null;
+  if (workspace.logoPath) {
+    const { createWorkspaceLogoPreviewUrl } = await import(
+      "@/modules/organization/branding/lib/logo-storage"
+    );
+    logoPreviewUrl = await createWorkspaceLogoPreviewUrl(
+      workspace.logoPath,
+      organizationId,
+    );
+  }
+
+  return {
+    brand,
+    workspace: {
+      legalName: workspace.legalName,
+      primaryColor: workspace.primaryColor,
+      secondaryColor: workspace.secondaryColor,
+      accentColor: workspace.accentColor,
+      logoPreviewUrl,
+    },
+  };
+}
+
+export async function saveOrganizationInvoiceBrandSettings(
+  profile: Profile,
+  patch: {
+    defaultTemplateKey?: string;
+    footerText?: string | null;
+    paymentAccountsJson?: unknown;
+    invoicePrefix?: string | null;
+  },
+): Promise<InvoiceBrandSettings> {
+  assertInvoicePermission(profile, "invoices.edit");
+  const organizationId = requireOrganizationId(profile);
+  // Invoice settings own only invoice-specific fields. Identity/colors/logo
+  // live in workspace branding.
+  return repo.upsertBrandSettings({
+    organizationId,
+    patch: {
+      defaultTemplateKey: patch.defaultTemplateKey
+        ? normalizeInvoiceTemplateKey(patch.defaultTemplateKey)
+        : undefined,
+      footerText: patch.footerText,
+      paymentAccountsJson: patch.paymentAccountsJson as never,
+      invoicePrefix: patch.invoicePrefix,
+    },
+  });
 }

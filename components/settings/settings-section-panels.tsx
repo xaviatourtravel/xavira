@@ -16,7 +16,7 @@ import { IntegrationsGrid } from "@/components/settings/integrations-grid";
 import { InviteMemberPanel } from "@/components/settings/invite-member-panel";
 import { TeamInvitesTable } from "@/components/settings/team-invites-table";
 import { TeamMembersTable } from "@/components/settings/team-members-table";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   PERMISSION_LEVEL_LABELS,
   PERMISSION_MATRIX,
@@ -28,6 +28,7 @@ import {
 import type { SettingsWorkspaceData } from "@/lib/settings/queries";
 import { formatTeamRoleLabel } from "@/lib/team/constants";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 type SettingsSectionPanelProps = {
   sectionId: SettingsSectionId;
@@ -165,6 +166,7 @@ function PermissionBadge({ level }: { level: PermissionLevel }) {
 
 function GeneralSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
   const { organization, workspaceSettings, canManage } = data;
+  const { tStrict } = useTranslation();
   const { message, error, isPending, handleSubmit } =
     useSettingsFormAction(saveGeneralSettings);
 
@@ -246,23 +248,27 @@ function GeneralSettingsPanel({ data }: { data: SettingsWorkspaceData }) {
       </SettingsCard>
 
       <SettingsCard
-        title="Brand assets"
-        description="Logo upload will be available in a future release."
+        title={tStrict("orgBrandingUi.settingsCardTitle")}
+        description={tStrict("orgBrandingUi.settingsCardDescription")}
       >
         <div className="flex flex-col gap-4 rounded-xl border border-dashed bg-muted/20 p-6 sm:flex-row sm:items-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl border bg-background text-muted-foreground">
             <ImageIcon className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium">Company logo</p>
+            <p className="text-sm font-medium">
+              {tStrict("orgBrandingUi.pageTitle")}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Upload support is coming soon. Your workspace currently uses the
-              Desklabs default branding.
+              {tStrict("orgBrandingUi.pageSubtitle")}
             </p>
           </div>
-          <Button type="button" variant="outline" disabled>
-            Upload logo
-          </Button>
+          <Link
+            href="/settings/organization/branding"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            {tStrict("orgBrandingUi.settingsCardCta")}
+          </Link>
         </div>
       </SettingsCard>
 

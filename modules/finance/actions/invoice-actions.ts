@@ -7,6 +7,7 @@ import { requireProfile } from "@/lib/auth/session";
 import {
   createInvoiceDraftSchema,
   duplicateInvoiceSchema,
+  invoiceBrandSettingsUpdateSchema,
   invoicePrefixSchema,
   issueInvoiceSchema,
   markInvoiceSentSchema,
@@ -20,6 +21,7 @@ import {
   loadInvoiceEditorOptions,
   markInvoiceSent,
   prefillFromBooking,
+  saveOrganizationInvoiceBrandSettings,
   saveOrganizationInvoicePrefix,
   updateDraftInvoice,
   voidIssuedInvoice,
@@ -180,6 +182,27 @@ export async function saveInvoicePrefixAction(
   }
 }
 
+export async function saveInvoiceBrandSettingsAction(
+  raw: unknown,
+): Promise<{ success: true } | { success: false; message: string }> {
+  try {
+    const { profile } = await requireProfile();
+    const input = invoiceBrandSettingsUpdateSchema.parse(raw);
+    await saveOrganizationInvoiceBrandSettings(profile, input);
+    revalidateInvoices();
+    revalidatePath("/finance/invoices/settings");
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to save brand settings",
+    };
+  }
+}
+
 function parseDraftPayloadFromFormData(formData: FormData, items: unknown[]) {
   const recipientSource =
     String(formData.get("recipient_source") ?? "linked_customer") === "manual"
@@ -207,6 +230,16 @@ function parseDraftPayloadFromFormData(formData: FormData, items: unknown[]) {
       ? String(formData.get("payment_instructions"))
       : null,
     terms: formData.get("terms") ? String(formData.get("terms")) : null,
+    templateKey: String(formData.get("template_key") ?? "calm-standard"),
+    primaryColor: formData.get("primary_color")
+      ? String(formData.get("primary_color"))
+      : undefined,
+    secondaryColor: formData.get("secondary_color")
+      ? String(formData.get("secondary_color"))
+      : undefined,
+    accentColor: formData.get("accent_color")
+      ? String(formData.get("accent_color"))
+      : undefined,
     items,
     totals,
   };

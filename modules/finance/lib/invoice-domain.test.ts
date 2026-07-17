@@ -203,12 +203,12 @@ describe("invoice numbering", () => {
     assert.equal(
       formatInvoiceNumber({
         workspaceCode: resolveInvoiceNumberCode({
-          configuredPrefix: "XAVIA",
+          configuredPrefix: "DESKLABS",
         }),
         year: 2026,
         sequence: 1,
       }),
-      "INV/XAVIA/2026/0001",
+      "INV/DESKLABS/2026/0001",
     );
   });
 

@@ -18,6 +18,12 @@ import {
   type FinanceUiKey,
 } from "@/lib/i18n/finance-dictionary";
 import {
+  orgBrandingUiEn,
+  orgBrandingUiId,
+  type OrgBrandingUiDictionary,
+  type OrgBrandingUiKey,
+} from "@/lib/i18n/org-branding-dictionary";
+import {
   inboxEn,
   inboxId,
   type InboxDictionary,
@@ -228,6 +234,7 @@ export type Dictionary = {
   inbox: InboxDictionary;
   leadsUi: LeadsUiDictionary;
   financeUi: FinanceUiDictionary;
+  orgBrandingUi: OrgBrandingUiDictionary;
   ai: Record<string, never>;
 };
 
@@ -518,6 +525,7 @@ const id: Dictionary = {
   inbox: inboxId,
   leadsUi: leadsUiId,
   financeUi: financeUiId,
+  orgBrandingUi: orgBrandingUiId,
   ai: {},
 };
 
@@ -668,6 +676,7 @@ const en: Dictionary = {
   inbox: inboxEn,
   leadsUi: leadsUiEn,
   financeUi: financeUiEn,
+  orgBrandingUi: orgBrandingUiEn,
   ai: {},
 };
 
@@ -682,6 +691,7 @@ export type TranslationKey =
   | `inbox.${InboxKey}`
   | `leadsUi.${LeadsUiKey}`
   | `financeUi.${FinanceUiKey}`
+  | `orgBrandingUi.${OrgBrandingUiKey}`
   | `ai.${string}`;
 
 export type TranslateFn = (key: TranslationKey | string) => string;

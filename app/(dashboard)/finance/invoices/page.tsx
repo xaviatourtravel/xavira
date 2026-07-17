@@ -6,12 +6,8 @@ import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/dictionary";
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { InvoiceList } from "@/modules/finance/components/invoice-list";
-import { InvoicePrefixSettings } from "@/modules/finance/components/invoice-prefix-settings";
 import { invoiceListFiltersSchema } from "@/modules/finance/schemas/invoices";
-import {
-  getOrganizationInvoicePrefix,
-  listOrganizationInvoices,
-} from "@/modules/finance/services/invoice-service";
+import { listOrganizationInvoices } from "@/modules/finance/services/invoice-service";
 import {
   canCreateInvoices,
   canEditInvoices,
@@ -38,9 +34,6 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
   });
 
   const invoices = await listOrganizationInvoices(profile, filters);
-  const invoicePrefix = canEditInvoices(profile)
-    ? await getOrganizationInvoicePrefix(profile)
-    : null;
 
   const summary = {
     drafts: invoices.filter((row) => row.lifecycleStatus === "draft").length,
@@ -73,12 +66,22 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
           </p>
         </div>
         {canCreateInvoices(profile) ? (
-          <Link
-            href="/finance/invoices/new"
-            className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-          >
-            {t("financeUi.createInvoice")}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {canEditInvoices(profile) ? (
+              <Link
+                href="/finance/invoices/settings"
+                className="inline-flex h-10 items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+              >
+                {t("financeUi.brandSettingsTitle")}
+              </Link>
+            ) : null}
+            <Link
+              href="/finance/invoices/new"
+              className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+            >
+              {t("financeUi.createInvoice")}
+            </Link>
+          </div>
         ) : null}
       </div>
 
@@ -138,10 +141,6 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
       </form>
 
       <InvoiceList rows={invoices} />
-
-      {canEditInvoices(profile) ? (
-        <InvoicePrefixSettings initialPrefix={invoicePrefix} />
-      ) : null}
 
       {invoices.length > 0 ? (
         <p className="text-xs text-muted-foreground">

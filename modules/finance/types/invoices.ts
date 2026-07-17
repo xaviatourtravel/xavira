@@ -58,6 +58,12 @@ export type InvoiceThemeSnapshot = {
   accentColor: string;
 };
 
+export type InvoicePdfStatus =
+  | "not_generated"
+  | "generating"
+  | "ready"
+  | "failed";
+
 export type InvoiceItemRecord = {
   id: string;
   invoiceId: string;
@@ -109,6 +115,14 @@ export type InvoiceRecord = {
   paymentInstructions: string | null;
   terms: string | null;
   pdfStoragePath: string | null;
+  pdfStatus?: InvoicePdfStatus;
+  pdfGeneratedAt?: string | null;
+  pdfErrorCode?: string | null;
+  pdfGenerationToken?: string | null;
+  pdfGenerationClaimedAt?: string | null;
+  /** Private immutable logo object path under invoice-pdfs bucket. */
+  logoAssetPath?: string | null;
+  logoContentHash?: string | null;
   issuedAt: string | null;
   sentAt: string | null;
   voidedAt: string | null;

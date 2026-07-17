@@ -2639,7 +2639,14 @@ export type Database = {
           organization_id: string
           payment_instructions: string | null
           payment_status: string
+          pdf_error_code: string | null
+          pdf_generated_at: string | null
+          pdf_generation_claimed_at: string | null
+          pdf_generation_token: string | null
+          pdf_status: string
           pdf_storage_path: string | null
+          logo_asset_path: string | null
+          logo_content_hash: string | null
           recipient_source: string
           sent_at: string | null
           subtotal_minor: number
@@ -2684,7 +2691,14 @@ export type Database = {
           organization_id: string
           payment_instructions?: string | null
           payment_status?: string
+          pdf_error_code?: string | null
+          pdf_generated_at?: string | null
+          pdf_generation_claimed_at?: string | null
+          pdf_generation_token?: string | null
+          pdf_status?: string
           pdf_storage_path?: string | null
+          logo_asset_path?: string | null
+          logo_content_hash?: string | null
           recipient_source?: string
           sent_at?: string | null
           subtotal_minor?: number
@@ -2729,7 +2743,14 @@ export type Database = {
           organization_id?: string
           payment_instructions?: string | null
           payment_status?: string
+          pdf_error_code?: string | null
+          pdf_generated_at?: string | null
+          pdf_generation_claimed_at?: string | null
+          pdf_generation_token?: string | null
+          pdf_status?: string
           pdf_storage_path?: string | null
+          logo_asset_path?: string | null
+          logo_content_hash?: string | null
           recipient_source?: string
           sent_at?: string | null
           subtotal_minor?: number
@@ -3517,6 +3538,35 @@ export type Database = {
       }
       is_org_admin_or_owner: { Args: never; Returns: boolean }
       is_org_owner: { Args: never; Returns: boolean }
+      can_manage_workspace_branding: { Args: never; Returns: boolean }
+      update_workspace_branding: {
+        Args: {
+          p_display_name: string
+          p_legal_name: string
+          p_tagline: string
+          p_address: string
+          p_email: string
+          p_phone: string
+          p_website: string
+          p_tax_id: string
+          p_primary_color: string
+          p_secondary_color: string
+          p_accent_color: string
+        }
+        Returns: Json
+      }
+      set_workspace_branding_logo: {
+        Args: {
+          p_logo_path: string
+          p_content_hash: string
+          p_mime_type: string
+        }
+        Returns: Json
+      }
+      clear_workspace_branding_logo: {
+        Args: never
+        Returns: Json
+      }
       issue_invoice: {
         Args: { p_invoice_id: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"]
@@ -3524,6 +3574,34 @@ export type Database = {
       build_invoice_customer_snapshot_from_invoice: {
         Args: { p_invoice_id: string }
         Returns: Json
+      }
+      claim_invoice_pdf_generation: {
+        Args: { p_force?: boolean; p_invoice_id: string }
+        Returns: Json
+      }
+      complete_invoice_pdf_generation: {
+        Args: {
+          p_invoice_id: string
+          p_storage_path: string
+          p_token: string
+        }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      fail_invoice_pdf_generation: {
+        Args: {
+          p_error_code: string
+          p_invoice_id: string
+          p_token: string
+        }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      freeze_invoice_logo_asset: {
+        Args: {
+          p_asset_path: string
+          p_content_hash: string
+          p_invoice_id: string
+        }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
       }
       mark_invoice_sent: {
         Args: { p_invoice_id: string }

@@ -8,6 +8,7 @@ import type {
   InvoiceItemRecord,
   InvoiceLifecycleStatus,
   InvoicePaymentStatus,
+  InvoicePdfStatus,
   InvoiceRecipientSource,
   InvoiceRecord,
 } from "@/modules/finance/types/invoices";
@@ -49,6 +50,13 @@ type InvoiceRow = {
   payment_instructions: string | null;
   terms: string | null;
   pdf_storage_path: string | null;
+  pdf_status?: string | null;
+  pdf_generated_at?: string | null;
+  pdf_error_code?: string | null;
+  pdf_generation_token?: string | null;
+  pdf_generation_claimed_at?: string | null;
+  logo_asset_path?: string | null;
+  logo_content_hash?: string | null;
   issued_at: string | null;
   sent_at: string | null;
   voided_at: string | null;
@@ -164,6 +172,13 @@ export function mapInvoice(
     paymentInstructions: row.payment_instructions,
     terms: row.terms,
     pdfStoragePath: row.pdf_storage_path,
+    pdfStatus: (row.pdf_status as InvoicePdfStatus | undefined) ?? "not_generated",
+    pdfGeneratedAt: row.pdf_generated_at ?? null,
+    pdfErrorCode: row.pdf_error_code ?? null,
+    pdfGenerationToken: row.pdf_generation_token ?? null,
+    pdfGenerationClaimedAt: row.pdf_generation_claimed_at ?? null,
+    logoAssetPath: row.logo_asset_path ?? null,
+    logoContentHash: row.logo_content_hash ?? null,
     issuedAt: row.issued_at,
     sentAt: row.sent_at,
     voidedAt: row.voided_at,
@@ -727,6 +742,76 @@ export async function upsertInvoicePrefix(params: {
   return mapBrandSettings(data as BrandSettingsRow);
 }
 
+export async function upsertBrandSettings(params: {
+  organizationId: string;
+  patch: {
+    defaultTemplateKey?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    legalName?: string | null;
+    address?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    website?: string | null;
+    taxId?: string | null;
+    footerText?: string | null;
+    paymentAccountsJson?: Json;
+    invoicePrefix?: string | null;
+    logoUrl?: string | null;
+  };
+}): Promise<InvoiceBrandSettings> {
+  const existing = await getBrandSettings(params.organizationId);
+  const supabase = await createClient();
+  const payload = {
+    default_template_key: params.patch.defaultTemplateKey,
+    primary_color: params.patch.primaryColor,
+    secondary_color: params.patch.secondaryColor,
+    accent_color: params.patch.accentColor,
+    legal_name: params.patch.legalName,
+    address: params.patch.address,
+    email: params.patch.email,
+    phone: params.patch.phone,
+    website: params.patch.website,
+    tax_id: params.patch.taxId,
+    footer_text: params.patch.footerText,
+    payment_accounts_json: params.patch.paymentAccountsJson,
+    invoice_prefix: params.patch.invoicePrefix,
+    logo_url: params.patch.logoUrl,
+  };
+
+  // Drop undefined so we don't wipe columns unintentionally
+  const cleaned = Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined),
+  );
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from("invoice_brand_settings")
+      .update(cleaned)
+      .eq("organization_id", params.organizationId)
+      .select("*")
+      .single();
+    if (error || !data) {
+      throw new Error(error?.message ?? "Failed to update brand settings");
+    }
+    return mapBrandSettings(data as BrandSettingsRow);
+  }
+
+  const { data, error } = await supabase
+    .from("invoice_brand_settings")
+    .insert({
+      organization_id: params.organizationId,
+      ...cleaned,
+    })
+    .select("*")
+    .single();
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to create brand settings");
+  }
+  return mapBrandSettings(data as BrandSettingsRow);
+}
+
 export async function verifyCustomerInOrganization(
   organizationId: string,
   customerId: string,
@@ -929,4 +1014,100 @@ export async function rpcRecordInvoiceDuplicated(params: {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+async function mapRpcInvoice(data: unknown, label: string): Promise<InvoiceRecord> {
+  const row = (Array.isArray(data) ? data[0] : data) as InvoiceRow | null;
+  if (!row) {
+    throw new Error(`${label} returned no row`);
+  }
+  return mapInvoice(row);
+}
+
+export type ClaimInvoicePdfResult = {
+  outcome: "claimed" | "already_ready" | "in_progress";
+  token: string | null;
+  invoice: InvoiceRecord;
+};
+
+export async function rpcClaimInvoicePdfGeneration(params: {
+  invoiceId: string;
+  force?: boolean;
+}): Promise<ClaimInvoicePdfResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("claim_invoice_pdf_generation", {
+    p_invoice_id: params.invoiceId,
+    p_force: params.force ?? false,
+  });
+  if (error) throw new Error(error.message);
+
+  const payload = data as {
+    outcome?: string;
+    token?: string | null;
+    invoice?: InvoiceRow;
+  } | null;
+
+  if (!payload?.outcome || !payload.invoice) {
+    throw new Error("PDF claim returned no row");
+  }
+
+  const outcome = payload.outcome as ClaimInvoicePdfResult["outcome"];
+  if (
+    outcome !== "claimed" &&
+    outcome !== "already_ready" &&
+    outcome !== "in_progress"
+  ) {
+    throw new Error("Unexpected PDF claim outcome");
+  }
+
+  return {
+    outcome,
+    token: payload.token ?? null,
+    invoice: mapInvoice(payload.invoice),
+  };
+}
+
+export async function rpcCompleteInvoicePdfGeneration(params: {
+  invoiceId: string;
+  token: string;
+  storagePath: string;
+}): Promise<InvoiceRecord> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("complete_invoice_pdf_generation", {
+    p_invoice_id: params.invoiceId,
+    p_token: params.token,
+    p_storage_path: params.storagePath,
+  });
+  if (error) throw new Error(error.message);
+  return mapRpcInvoice(data, "PDF complete");
+}
+
+export async function rpcFailInvoicePdfGeneration(params: {
+  invoiceId: string;
+  token: string;
+  errorCode: string;
+}): Promise<InvoiceRecord> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fail_invoice_pdf_generation", {
+    p_invoice_id: params.invoiceId,
+    p_token: params.token,
+    p_error_code: params.errorCode,
+  });
+  if (error) throw new Error(error.message);
+  return mapRpcInvoice(data, "PDF fail");
+}
+
+export async function rpcFreezeInvoiceLogoAsset(params: {
+  invoiceId: string;
+  assetPath: string;
+  contentHash: string;
+}): Promise<InvoiceRecord> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("freeze_invoice_logo_asset", {
+    p_invoice_id: params.invoiceId,
+    p_asset_path: params.assetPath,
+    p_content_hash: params.contentHash,
+  });
+  if (error) throw new Error(error.message);
+  return mapRpcInvoice(data, "Logo freeze");
 }

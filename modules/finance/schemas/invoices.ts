@@ -1,4 +1,34 @@
 import { z } from "zod";
+import { INVOICE_TEMPLATE_KEYS } from "@/modules/finance/pdf/invoice-pdf-types";
+import { isValidHexColor, normalizeHexColor } from "@/modules/finance/lib/invoice-theme-colors";
+import { parsePaymentAccountsStrict } from "@/modules/finance/lib/invoice-payment-accounts";
+
+const hexColorSchema = z
+  .string()
+  .trim()
+  .superRefine((value, ctx) => {
+    const upper = value.startsWith("#") ? value.toUpperCase() : `#${value.toUpperCase()}`;
+    if (
+      /gradient|url\(|rgb\(|hsl\(|var\(/i.test(value) ||
+      !isValidHexColor(upper)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Color must be #RRGGBB",
+      });
+    }
+  })
+  .transform((value) => normalizeHexColor(value));
+
+const invoiceTemplateKeySchema = z
+  .string()
+  .trim()
+  .transform((value) => {
+    const key = value.toLowerCase();
+    return (INVOICE_TEMPLATE_KEYS as readonly string[]).includes(key)
+      ? (key as (typeof INVOICE_TEMPLATE_KEYS)[number])
+      : "calm-standard";
+  });
 
 const minorSchema = z
   .number({ invalid_type_error: "must be an integer minor unit" })
@@ -105,7 +135,10 @@ const draftBaseSchema = z.object({
   notes: z.string().trim().max(5000).nullable().optional(),
   paymentInstructions: z.string().trim().max(5000).nullable().optional(),
   terms: z.string().trim().max(5000).nullable().optional(),
-  templateKey: z.string().trim().min(1).max(60).default("classic"),
+  templateKey: invoiceTemplateKeySchema.default("calm-standard"),
+  primaryColor: hexColorSchema.optional(),
+  secondaryColor: hexColorSchema.optional(),
+  accentColor: hexColorSchema.optional(),
   items: z.array(invoiceItemInputSchema).min(1),
   totals: invoiceTotalsInputSchema.default({}),
 });
@@ -235,6 +268,48 @@ export const invoicePrefixSchema = z
     invoicePrefix:
       value.invoicePrefix == null ? null : value.invoicePrefix.toUpperCase(),
   }));
+
+export const invoiceBrandSettingsUpdateSchema = z.object({
+  defaultTemplateKey: invoiceTemplateKeySchema.optional(),
+  footerText: optionalTrimmed(2000),
+  paymentAccountsJson: z
+    .unknown()
+    .optional()
+    .superRefine((value, ctx) => {
+      if (value === undefined) return;
+      try {
+        parsePaymentAccountsStrict(value);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Payment accounts are invalid",
+        });
+      }
+    })
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      return parsePaymentAccountsStrict(value);
+    }),
+  invoicePrefix: z
+    .string()
+    .trim()
+    .nullable()
+    .optional()
+    .transform((value) => {
+      if (value == null || value === "") return null;
+      if (/[^A-Za-z0-9]/.test(value)) {
+        throw new Error("Invoice prefix may only contain letters and numbers");
+      }
+      const normalized = value.toUpperCase();
+      if (normalized.length < 2 || normalized.length > 10) {
+        throw new Error("Invoice prefix must be 2–10 characters");
+      }
+      return normalized;
+    }),
+});
 
 export const invoiceListFiltersSchema = z.object({
   q: z.string().trim().max(200).optional(),

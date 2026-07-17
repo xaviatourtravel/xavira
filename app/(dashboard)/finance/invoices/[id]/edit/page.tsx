@@ -12,6 +12,7 @@ import { InvoiceDraftEditor } from "@/modules/finance/components/invoice-draft-e
 import { canEditInvoices } from "@/modules/finance/lib/invoice-access";
 import {
   getOrganizationInvoice,
+  getOrganizationInvoiceBrandSettings,
   loadInvoiceEditorOptions,
 } from "@/modules/finance/services/invoice-service";
 
@@ -46,6 +47,13 @@ export default async function EditInvoicePage({
   }
 
   const options = await loadInvoiceEditorOptions(profile, invoice.customerId);
+  const brandSettings = await getOrganizationInvoiceBrandSettings(profile);
+  const theme = invoice.themeSnapshot as {
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    templateKey?: string;
+  };
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 md:px-6">
@@ -65,6 +73,12 @@ export default async function EditInvoicePage({
         action={updateInvoiceDraftAndRedirectAction}
         customers={options.customers}
         bookings={options.bookings}
+        workspaceBrand={{
+          templateKey: brandSettings.brand.defaultTemplateKey,
+          primaryColor: brandSettings.workspace.primaryColor,
+          secondaryColor: brandSettings.workspace.secondaryColor,
+          accentColor: brandSettings.workspace.accentColor,
+        }}
         errorMessage={query.error ?? null}
         initial={{
           invoiceId: invoice.id,
@@ -77,6 +91,12 @@ export default async function EditInvoicePage({
           manualRecipientEmail: invoice.manualRecipientEmail,
           manualRecipientAddress: invoice.manualRecipientAddress,
           manualRecipientTaxId: invoice.manualRecipientTaxId,
+          templateKey: theme.templateKey ?? invoice.templateKey,
+          primaryColor:
+            theme.primaryColor ?? brandSettings.workspace.primaryColor,
+          secondaryColor:
+            theme.secondaryColor ?? brandSettings.workspace.secondaryColor,
+          accentColor: theme.accentColor ?? brandSettings.workspace.accentColor,
           issueDate: invoice.issueDate,
           dueDate: invoice.dueDate,
           notes: invoice.notes,

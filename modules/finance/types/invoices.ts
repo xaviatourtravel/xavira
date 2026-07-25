@@ -1,3 +1,8 @@
+import type {
+  InvoiceDocumentType,
+  InvoiceType,
+} from "@/modules/finance/types/ticketing";
+
 export type InvoiceLifecycleStatus =
   | "draft"
   | "issued"
@@ -80,6 +85,8 @@ export type InvoiceItemRecord = {
 export type InvoiceRecord = {
   id: string;
   organizationId: string;
+  invoiceType: InvoiceType;
+  documentType: InvoiceDocumentType;
   recipientSource: InvoiceRecipientSource;
   customerId: string | null;
   bookingId: string | null;
@@ -105,6 +112,10 @@ export type InvoiceRecord = {
   totalMinor: number;
   amountPaidMinor: number;
   balanceDueMinor: number;
+  /** Customer-facing current payment request label (DP / Pelunasan / Full Payment). */
+  paymentRequestNote?: string | null;
+  /** When true, ticketing PDFs append compact itinerary detail. Default false. */
+  includeItineraryDetail?: boolean;
   templateKey: string;
   templateVersion: number;
   themeSnapshot: InvoiceThemeSnapshot | Record<string, unknown>;

@@ -37,6 +37,8 @@ function baseInvoice(overrides: Partial<InvoiceRecord> = {}): InvoiceRecord {
   return {
     id: "11111111-1111-1111-1111-111111111111",
     organizationId: "22222222-2222-2222-2222-222222222222",
+    invoiceType: "package",
+    documentType: "invoice",
     recipientSource: "manual",
     customerId: null,
     bookingId: null,

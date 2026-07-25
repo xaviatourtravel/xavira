@@ -40,7 +40,86 @@ export const INVOICE_PDF_LABELS = {
   page: "Halaman",
   travelSubtitle: "Invoice perjalanan",
   boutiqueSubtitle: "Invoice layanan",
+  ticketSummary: "Ringkasan tiket",
+  pnr: "Kode booking (PNR)",
+  passengers: "Jumlah penumpang",
+  tripType: "Jenis perjalanan",
+  primaryAirline: "Maskapai utama",
+  flightItinerary: "Rincian penerbangan",
+  departureGroup: "Keberangkatan",
+  returnGroup: "Kepulangan",
+  otherGroup: "Rute lainnya",
+  transit: "Transit",
+  nextDay: "hari",
+  flightClass: "Kelas",
+  passengersUnit: "penumpang",
+  // FIN-002G Desklabs ticketing billing document
+  invoiceTicketTitle: "INVOICE TIKET PESAWAT",
+  proformaTicketTitle: "PROFORMA INVOICE TIKET PESAWAT",
+  billTime: "Waktu tagihan",
+  dueTime: "Waktu jatuh tempo",
+  paymentStatusMeta: "Status pembayaran",
+  billToHeading: "Ditagihkan kepada",
+  currentPaymentRequest: "Permintaan pembayaran saat ini",
+  paymentCode: "Kode",
+  bookingPnrCode: "Kode Booking PNR",
+  billItemName: "Item Tagihan",
+  amountDueNow: "Jumlah yang Harus Dibayar",
+  paymentExpires: "Jatuh Tempo",
+  paymentNote: "Keterangan",
+  transactionDetails: "Rincian transaksi",
+  billItem: "Item Tagihan",
+  billAmount: "Jumlah tagihan",
+  transactionSummary: "Ringkasan transaksi",
+  financialSummary: "Ringkasan keuangan",
+  totalBill: "Total tagihan",
+  paymentsReceived: "Pembayaran diterima",
+  amountOutstanding: "Kekurangan pembayaran",
+  paymentHistory: "Riwayat pembayaran",
+  paymentDate: "Waktu pembayaran",
+  paymentMethod: "Metode",
+  paymentStatusCol: "Status",
+  paymentHistoryNote: "Catatan",
+  paymentAccountDetails: "Informasi pembayaran",
+  paymentAccountIntro:
+    "Untuk pembayaran melalui transfer dapat ditujukan ke:",
+  pnrUnavailable: "Tidak tersedia",
+  dueDateUnset: "Tidak ditentukan",
 } as const;
+
+const TRIP_TYPE_LABELS: Record<string, string> = {
+  one_way: "Sekali jalan",
+  round_trip: "Pulang pergi",
+  multi_city: "Multi kota",
+};
+
+export function formatTripType(tripType: string): string {
+  return TRIP_TYPE_LABELS[tripType] ?? tripType;
+}
+
+/** Customer-facing document title by invoice + document type. */
+export function invoiceDocumentTitle(
+  invoiceType: "package" | "ticketing",
+  documentType: "invoice" | "proforma",
+): string {
+  if (invoiceType === "ticketing") {
+    return documentType === "proforma"
+      ? INVOICE_PDF_LABELS.proformaTicketTitle
+      : INVOICE_PDF_LABELS.invoiceTicketTitle;
+  }
+  return documentType === "proforma" ? "Proforma Invoice" : "Invoice";
+}
+
+const PAYMENT_HISTORY_STATUS_LABELS: Record<string, string> = {
+  pending: "Menunggu",
+  successful: "Sukses",
+  failed: "Gagal",
+  reversed: "Dikembalikan",
+};
+
+export function formatInvoicePaymentHistoryStatus(status: string): string {
+  return PAYMENT_HISTORY_STATUS_LABELS[status] ?? status;
+}
 
 const LIFECYCLE_LABELS: Record<string, string> = {
   draft: "Draft",
@@ -50,10 +129,12 @@ const LIFECYCLE_LABELS: Record<string, string> = {
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
-  unpaid: "Belum dibayar",
+  unpaid: "Menunggu pembayaran",
   partially_paid: "Dibayar sebagian",
   paid: "Lunas",
   overdue: "Terlambat",
+  void: "Dibatalkan",
+  cancelled: "Dibatalkan",
 };
 
 /** Labels that must never appear as English skeleton copy in PDFs. */
@@ -73,7 +154,7 @@ export function formatInvoicePdfLifecycleStatus(status: string): string {
 }
 
 export function formatInvoicePdfPaymentStatus(status: string): string {
-  return PAYMENT_LABELS[status] ?? "Belum dibayar";
+  return PAYMENT_LABELS[status] ?? "Menunggu pembayaran";
 }
 
 /** High-contrast initials: 2–3 characters from company name words. */

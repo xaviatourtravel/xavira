@@ -124,6 +124,10 @@ export const invoiceTotalsInputSchema = z.object({
 });
 
 const draftBaseSchema = z.object({
+  invoiceType: z.enum(["package", "ticketing"]).default("package"),
+  documentType: z.enum(["invoice", "proforma"]).default("invoice"),
+  includeItineraryDetail: z.boolean().optional().default(false),
+  paymentRequestNote: optionalTrimmed(64),
   currency: z
     .string()
     .trim()
@@ -315,6 +319,7 @@ export const invoiceListFiltersSchema = z.object({
   q: z.string().trim().max(200).optional(),
   lifecycleStatus: invoiceLifecycleStatusSchema.optional(),
   paymentStatus: invoiceEffectivePaymentStatusSchema.optional(),
+  invoiceType: z.enum(["package", "ticketing"]).optional(),
   customerId: z.string().uuid().optional(),
 });
 

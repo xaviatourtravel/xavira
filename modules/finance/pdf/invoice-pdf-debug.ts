@@ -13,6 +13,8 @@ export type InvoicePdfStage =
 
 export type InvoicePdfErrorCode =
   | "DATA_NORMALIZATION_FAILED"
+  | "TICKETING_DATA_MISSING"
+  | "TICKETING_DATA_INVALID"
   | "LOGO_PROCESSING_FAILED"
   | "TEMPLATE_RESOLUTION_FAILED"
   | "RENDER_FAILED"
@@ -114,6 +116,12 @@ export function codeForStageError(error: unknown): InvoicePdfErrorCode {
     return error.errorCode;
   }
   if (error instanceof Error) {
+    if (/ticket(ing)?.*(missing|empty|no group|no segment)/i.test(error.message)) {
+      return "TICKETING_DATA_MISSING";
+    }
+    if (/ticket(ing)?.*(invalid|malformed|pax|passenger)/i.test(error.message)) {
+      return "TICKETING_DATA_INVALID";
+    }
     if (/no line items|snapshot|normalize/i.test(error.message)) {
       return "DATA_NORMALIZATION_FAILED";
     }

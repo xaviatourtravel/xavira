@@ -17,6 +17,8 @@ import type { InvoiceListFilters } from "@/modules/finance/schemas/invoices";
 type InvoiceRow = {
   id: string;
   organization_id: string;
+  invoice_type?: string | null;
+  document_type?: string | null;
   recipient_source: string;
   customer_id: string | null;
   booking_id: string | null;
@@ -40,6 +42,8 @@ type InvoiceRow = {
   total_minor: number;
   amount_paid_minor: number;
   balance_due_minor: number;
+  payment_request_note?: string | null;
+  include_itinerary_detail?: boolean | null;
   template_key: string;
   template_version: number;
   theme_snapshot: Json;
@@ -133,6 +137,8 @@ export function mapInvoice(
   return {
     id: row.id,
     organizationId: row.organization_id,
+    invoiceType: (row.invoice_type as InvoiceRecord["invoiceType"]) || "package",
+    documentType: (row.document_type as InvoiceRecord["documentType"]) || "invoice",
     recipientSource: (row.recipient_source as InvoiceRecipientSource) || "linked_customer",
     customerId: row.customer_id,
     bookingId: row.booking_id,
@@ -162,6 +168,8 @@ export function mapInvoice(
     totalMinor: Number(row.total_minor),
     amountPaidMinor: Number(row.amount_paid_minor),
     balanceDueMinor,
+    paymentRequestNote: row.payment_request_note ?? null,
+    includeItineraryDetail: row.include_itinerary_detail === true,
     templateKey: row.template_key,
     templateVersion: row.template_version,
     themeSnapshot: (row.theme_snapshot as Record<string, unknown>) ?? {},
@@ -241,6 +249,9 @@ export async function listInvoices(
   }
   if (filters.paymentStatus && filters.paymentStatus !== "overdue") {
     query = query.eq("payment_status", filters.paymentStatus);
+  }
+  if (filters.invoiceType) {
+    query = query.eq("invoice_type", filters.invoiceType);
   }
   if (filters.customerId) {
     query = query.eq("customer_id", filters.customerId);
@@ -332,6 +343,10 @@ export async function getInvoiceById(
 
 export async function insertInvoiceDraft(params: {
   organizationId: string;
+  invoiceType?: InvoiceRecord["invoiceType"];
+  documentType?: InvoiceRecord["documentType"];
+  includeItineraryDetail?: boolean;
+  paymentRequestNote?: string | null;
   recipientSource: InvoiceRecipientSource;
   customerId: string | null;
   bookingId: string | null;
@@ -378,6 +393,10 @@ export async function insertInvoiceDraft(params: {
     .from("invoices")
     .insert({
       organization_id: params.organizationId,
+      invoice_type: params.invoiceType ?? "package",
+      document_type: params.documentType ?? "invoice",
+      include_itinerary_detail: params.includeItineraryDetail === true,
+      payment_request_note: params.paymentRequestNote ?? null,
       recipient_source: params.recipientSource,
       customer_id: params.customerId,
       booking_id: params.bookingId,
@@ -524,6 +543,9 @@ export async function replaceDraftItems(
 export async function updateInvoiceDraftRow(params: {
   organizationId: string;
   invoiceId: string;
+  documentType?: InvoiceRecord["documentType"];
+  includeItineraryDetail?: boolean;
+  paymentRequestNote?: string | null;
   recipientSource: InvoiceRecipientSource;
   customerId: string | null;
   bookingId: string | null;
@@ -559,6 +581,13 @@ export async function updateInvoiceDraftRow(params: {
   const { data, error } = await supabase
     .from("invoices")
     .update({
+      ...(params.documentType ? { document_type: params.documentType } : {}),
+      ...(typeof params.includeItineraryDetail === "boolean"
+        ? { include_itinerary_detail: params.includeItineraryDetail }
+        : {}),
+      ...(params.paymentRequestNote !== undefined
+        ? { payment_request_note: params.paymentRequestNote }
+        : {}),
       recipient_source: params.recipientSource,
       customer_id: params.customerId,
       booking_id: params.bookingId,
@@ -959,6 +988,26 @@ export async function rpcIssueInvoice(invoiceId: string): Promise<InvoiceRecord>
   const row = (Array.isArray(data) ? data[0] : data) as InvoiceRow | null;
   if (!row) {
     throw new Error("Issue invoice returned no row");
+  }
+  return mapInvoice(row);
+}
+
+/** Atomic duplicate: header + items + ticket rows + event in one Postgres txn. */
+export async function rpcDuplicateInvoiceAsDraft(
+  sourceInvoiceId: string,
+): Promise<InvoiceRecord> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("duplicate_invoice_as_draft", {
+    p_source_invoice_id: sourceInvoiceId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as InvoiceRow | null;
+  if (!row) {
+    throw new Error("Duplicate invoice returned no row");
   }
   return mapInvoice(row);
 }

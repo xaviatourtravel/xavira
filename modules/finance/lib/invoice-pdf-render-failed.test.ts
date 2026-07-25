@@ -17,6 +17,8 @@ function baseInvoice(overrides: Partial<InvoiceRecord> = {}): InvoiceRecord {
   return {
     id: "96880fc2-705d-4e4f-ba34-17b9e3a53c0c",
     organizationId: "22222222-2222-2222-2222-222222222222",
+    invoiceType: "package",
+    documentType: "invoice",
     recipientSource: "manual",
     customerId: null,
     bookingId: null,
@@ -209,13 +211,16 @@ describe("FIN-001.2C error staging and HTTP semantics", () => {
   });
 
   it("service hydrates items after claim before buildInvoicePdfData", () => {
-    assert.match(serviceSrc, /hydrateInvoiceWithItemsForPdf/);
+    assert.match(serviceSrc, /hydrateTicketingInvoiceForPdf|hydrateInvoiceWithItemsForPdf/);
     const fnStart = serviceSrc.indexOf("export async function generateIssuedInvoicePdf");
     assert.ok(fnStart > 0);
     const body = serviceSrc.slice(fnStart);
     const claimIdx = body.indexOf("rpcClaimInvoicePdfGeneration");
-    const hydrateIdx = body.indexOf("hydrateInvoiceWithItemsForPdf");
-    const buildIdx = body.indexOf('buildInvoicePdfData(working, { mode: "issued" })');
+    const hydrateIdx = Math.max(
+      body.indexOf("hydrateTicketingInvoiceForPdf"),
+      body.indexOf("hydrateInvoiceWithItemsForPdf"),
+    );
+    const buildIdx = body.indexOf("buildInvoicePdfData(working");
     assert.ok(claimIdx > 0 && hydrateIdx > claimIdx && buildIdx > hydrateIdx);
   });
 

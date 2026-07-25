@@ -21,7 +21,6 @@ import type {
   CreateInvoiceDraftInput,
   UpdateInvoiceDraftInput,
 } from "@/modules/finance/schemas/invoices";
-import { createInvoiceDraftSchema } from "@/modules/finance/schemas/invoices";
 import type {
   InvoiceBookingSnapshot,
   InvoiceBrandSettings,
@@ -306,6 +305,10 @@ export async function createDraftInvoice(
 
   return repo.insertInvoiceDraft({
     organizationId,
+    invoiceType: input.invoiceType,
+    documentType: input.documentType,
+    includeItineraryDetail: input.includeItineraryDetail === true,
+    paymentRequestNote: input.paymentRequestNote ?? null,
     ...recipient,
     currency: input.currency,
     issueDate: input.issueDate ?? null,
@@ -389,6 +392,9 @@ export async function updateDraftInvoice(
   const updated = await repo.updateInvoiceDraftRow({
     organizationId,
     invoiceId: input.invoiceId,
+    documentType: input.documentType,
+    includeItineraryDetail: input.includeItineraryDetail === true,
+    paymentRequestNote: input.paymentRequestNote ?? null,
     ...recipient,
     currency: input.currency,
     issueDate: input.issueDate ?? null,
@@ -441,8 +447,11 @@ export async function issueDraftInvoice(
     throw new Error("Invoice must have at least one line item before issue");
   }
 
+  // Ticketing validation runs inside the trusted issue_invoice transaction
+  // (locks groups/segments, validates refs + pax pricing). Do not pre-validate
+  // in a separate request — that opens a concurrent-edit race.
   // RPC derives org from locked invoice, rebuilds snapshots, and recalculates totals.
-  // App never supplies actor, org, or snapshots.
+  // App never supplies actor, org, snapshots, or ticketing JSON.
   const issued = await repo.rpcIssueInvoice(existing.id);
   // PDF generation is outside the DB transaction; failure leaves invoice issued.
   await tryGenerateInvoicePdfAfterIssue(profile, issued.id);
@@ -503,91 +512,25 @@ export async function duplicateInvoiceAsDraft(
     throw new Error("Cannot duplicate an invoice without line items");
   }
 
-  const shared = {
-    currency: existing.currency,
-    issueDate: null as string | null,
-    dueDate: null as string | null,
-    notes: existing.notes,
-    paymentInstructions: existing.paymentInstructions,
-    terms: existing.terms,
-    templateKey: normalizeInvoiceTemplateKey(existing.templateKey),
-    items: existing.items.map((item) => ({
-      description: item.description,
-      detail: item.detail,
-      quantity: item.quantity,
-      unit: item.unit,
-      unitPriceMinor: item.unitPriceMinor,
-      discountMinor: item.discountMinor,
-      sortOrder: item.sortOrder,
-    })),
-    totals: {
-      discountMinor: existing.discountMinor,
-      taxRateBps: existing.taxRateBps,
-      taxMinor: existing.taxMinor,
-      additionalFeesMinor: existing.additionalFeesMinor,
-      amountPaidMinor: 0,
-    },
-  };
-
-  const theme = existing.themeSnapshot as {
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
-  };
-  const draftInput = createInvoiceDraftSchema.parse(
-    existing.recipientSource === "manual"
-      ? {
-          recipientSource: "manual",
-          customerId: null,
-          bookingId: null,
-          manualRecipientName: existing.manualRecipientName ?? "",
-          manualRecipientCompany: existing.manualRecipientCompany,
-          manualRecipientPhone: existing.manualRecipientPhone,
-          manualRecipientEmail: existing.manualRecipientEmail,
-          manualRecipientAddress: existing.manualRecipientAddress,
-          manualRecipientTaxId: existing.manualRecipientTaxId,
-          primaryColor: theme.primaryColor,
-          secondaryColor: theme.secondaryColor,
-          accentColor: theme.accentColor,
-          ...shared,
-        }
-      : {
-          recipientSource: "linked_customer",
-          customerId: existing.customerId ?? "",
-          bookingId: existing.bookingId,
-          primaryColor: theme.primaryColor,
-          secondaryColor: theme.secondaryColor,
-          accentColor: theme.accentColor,
-          ...shared,
-        },
-  );
-
-  if (draftInput.recipientSource === "linked_customer") {
-    if (!draftInput.customerId) {
-      throw new Error("Cannot duplicate: linked customer is missing");
-    }
-    if (draftInput.bookingId) {
-      try {
-        await buildBookingSnapshot(
-          organizationId,
-          draftInput.bookingId,
-          draftInput.customerId,
-        );
-      } catch {
-        draftInput.bookingId = null;
-      }
-    }
+  // Atomic Postgres RPC: draft header + items + ticket groups/segments + event.
+  // Partial failure cannot leave an empty ticketing draft or a false event.
+  const draftHeader = await repo.rpcDuplicateInvoiceAsDraft(existing.id);
+  const draft = await repo.getInvoiceById(organizationId, draftHeader.id);
+  if (!draft) {
+    throw new Error("Duplicated draft not found");
   }
-
-  const draft = await createDraftInvoice(profile, draftInput);
-
-  await repo.rpcRecordInvoiceDuplicated({
-    sourceInvoiceId: invoiceId,
-    newInvoiceId: draft.id,
-  });
 
   if (draft.invoiceNumber) {
     throw new Error("Duplicated draft must not reuse an invoice number");
+  }
+  if (draft.lifecycleStatus !== "draft") {
+    throw new Error("Duplicated invoice must remain a draft");
+  }
+  if (draft.invoiceType !== existing.invoiceType) {
+    throw new Error("Duplicated invoice must preserve invoice type");
+  }
+  if (draft.documentType !== existing.documentType) {
+    throw new Error("Duplicated invoice must preserve document type");
   }
 
   return draft;

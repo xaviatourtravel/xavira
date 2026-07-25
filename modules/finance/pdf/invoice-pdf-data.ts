@@ -24,9 +24,14 @@ import type {
 } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   companyInitialsForPdf,
+  formatInvoicePaymentHistoryStatus,
   formatInvoicePdfLifecycleStatus,
   formatInvoicePdfPaymentStatus,
+  invoiceDocumentTitle,
 } from "@/modules/finance/pdf/invoice-pdf-labels";
+import type { InvoiceTicketGroupRecord } from "@/modules/finance/types/ticketing";
+import type { InvoicePaymentRecord } from "@/modules/finance/types/invoice-payments";
+import { derivePaymentRequestNote } from "@/modules/finance/types/invoice-payments";
 import { loadInvoiceLogoForPdf } from "@/modules/finance/pdf/invoice-pdf-logo";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -94,13 +99,21 @@ function normalizeRecipient(
 }
 
 function paymentStatusLabel(invoice: InvoiceRecord): string {
+  if (invoice.lifecycleStatus === "void") {
+    return formatInvoicePdfPaymentStatus("void");
+  }
   const status = invoice.effectivePaymentStatus ?? invoice.paymentStatus;
   return formatInvoicePdfPaymentStatus(status);
 }
 
 export async function buildInvoicePdfData(
   invoice: InvoiceRecord,
-  options: { mode: "draft" | "issued" },
+  options: {
+    mode: "draft" | "issued";
+    ticketing?: InvoiceTicketGroupRecord[];
+    payments?: InvoicePaymentRecord[];
+    includeItineraryDetail?: boolean;
+  },
 ): Promise<InvoicePdfData> {
   if (!invoice.items?.length) {
     throw new Error("Invoice has no line items");
@@ -228,10 +241,45 @@ export async function buildInvoicePdfData(
     recipient.name = readString(customerSnap.name)!;
   }
 
+  const ticketingGroups = options.ticketing ?? null;
+  const payments = options.payments ?? [];
+  const includeItineraryDetail =
+    options.includeItineraryDetail ??
+    invoice.includeItineraryDetail === true;
+
+  const paymentRequestNote = derivePaymentRequestNote({
+    paymentRequestNote: invoice.paymentRequestNote,
+    totalMinor: money.totalMinor,
+    amountPaidMinor: money.amountPaidMinor,
+    balanceDueMinor: money.balanceDueMinor,
+  });
+
   return {
     mode: options.mode,
     invoiceId: invoice.id,
     organizationId: invoice.organizationId,
+    invoiceType: invoice.invoiceType,
+    documentType: invoice.documentType,
+    documentTitle: invoiceDocumentTitle(invoice.invoiceType, invoice.documentType),
+    ticketing:
+      invoice.invoiceType === "ticketing" && ticketingGroups && ticketingGroups.length > 0
+        ? { groups: ticketingGroups }
+        : null,
+    documentOptions: {
+      includeItineraryDetail,
+    },
+    paymentRequestNote,
+    payments: payments.map((payment) => ({
+      paymentCode: payment.paymentCode,
+      amountMinor: payment.amountMinor,
+      paidAt: payment.paidAt,
+      paymentMethod: payment.paymentMethod,
+      bankName: payment.bankName,
+      accountNumberMasked: payment.accountNumberMasked,
+      status: payment.status,
+      statusLabel: formatInvoicePaymentHistoryStatus(payment.status),
+      note: payment.note,
+    })),
     invoiceNumber: issued ? invoice.invoiceNumber : null,
     issueDate: invoice.issueDate,
     dueDate: invoice.dueDate,

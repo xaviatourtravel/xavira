@@ -137,6 +137,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     businessQuestion: "How prepared is your AI to assist customers?",
     items: [
       { title: "Business Brain", href: "/business-brain" },
+      { title: "AI Team Member", href: "/ai-team-member" },
       { title: "AI Actions", href: "/ai-actions" },
       { title: "Automation", comingSoon: true },
       { title: "Insights", comingSoon: true },
@@ -161,7 +162,7 @@ export const WORKSPACE_ROUTE_PREFIXES: Record<WorkspaceId, readonly string[]> = 
   operational: ["/operations", "/follow-ups"],
   finance: ["/finance", "/revenue"],
   performance: ["/performance", "/dashboard", "/campaigns", "/content", "/scripts"],
-  intelligence: ["/business-brain", "/ai-actions"],
+  intelligence: ["/business-brain", "/ai-team-member", "/ai-actions"],
   settings: ["/settings"],
 };
 

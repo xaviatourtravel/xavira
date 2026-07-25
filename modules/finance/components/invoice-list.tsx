@@ -22,6 +22,24 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function InvoiceTypeLabel({ invoice }: { invoice: InvoiceRecord }) {
+  const { tStrict } = useTranslation();
+  const isTicketing = invoice.invoiceType === "ticketing";
+  return (
+    <span
+      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+        isTicketing
+          ? "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+          : "bg-muted text-muted-foreground"
+      }`}
+    >
+      {isTicketing
+        ? tStrict("financeUi.typeLabelTicketing")
+        : tStrict("financeUi.typeLabelPackage")}
+    </span>
+  );
+}
+
 export function InvoiceList({ rows }: InvoiceListProps) {
   const { tStrict } = useTranslation();
 
@@ -49,12 +67,15 @@ export function InvoiceList({ rows }: InvoiceListProps) {
           <article key={invoice.id} className="rounded-2xl border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <Link
-                  href={`/finance/invoices/${invoice.id}`}
-                  className="block truncate font-semibold text-primary hover:underline"
-                >
-                  {invoice.invoiceNumber ?? tStrict("financeUi.noNumberYet")}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/finance/invoices/${invoice.id}`}
+                    className="block truncate font-semibold text-primary hover:underline"
+                  >
+                    {invoice.invoiceNumber ?? tStrict("financeUi.noNumberYet")}
+                  </Link>
+                  <InvoiceTypeLabel invoice={invoice} />
+                </div>
                 <p className="mt-1 truncate text-sm text-muted-foreground">
                   {invoice.recipientDisplayName ?? invoice.customerName ?? "—"}
                 </p>
@@ -119,12 +140,15 @@ export function InvoiceList({ rows }: InvoiceListProps) {
             {rows.map((invoice) => (
               <tr key={invoice.id} className="border-b last:border-0">
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/finance/invoices/${invoice.id}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {invoice.invoiceNumber ?? tStrict("financeUi.noNumberYet")}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/finance/invoices/${invoice.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {invoice.invoiceNumber ?? tStrict("financeUi.noNumberYet")}
+                    </Link>
+                    <InvoiceTypeLabel invoice={invoice} />
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   {invoice.recipientDisplayName ?? invoice.customerName ?? "—"}

@@ -119,12 +119,13 @@ export function PaymentInformation({
       {accounts.map((account, index) => {
         const holder = account.accountHolder || account.accountName || null;
         const swift = account.swiftCode || account.bankCode || null;
+        const stackGap = compact ? PDF_SPACE.sm : PDF_SPACE.md;
         return (
           <View
             key={account.id ?? `${index}-${account.accountNumber ?? ""}`}
             style={{
-              marginBottom: index < accounts.length - 1 ? PDF_SPACE.md : 0,
-              paddingBottom: index < accounts.length - 1 ? PDF_SPACE.md : 0,
+              marginBottom: index < accounts.length - 1 ? stackGap : 0,
+              paddingBottom: index < accounts.length - 1 ? stackGap : 0,
               borderBottomWidth: index < accounts.length - 1 ? 1 : 0,
               borderBottomColor: data.theme.divider ?? "#EEF2F7",
             }}
@@ -239,7 +240,13 @@ export function NotesAndTerms({ data }: { data: InvoicePdfData }) {
 }
 
 /** In-flow close — keeps thank-you visually connected on short invoices. */
-export function InvoiceDocumentClose({ data }: { data: InvoicePdfData }) {
+export function InvoiceDocumentClose({
+  data,
+  compact = false,
+}: {
+  data: InvoicePdfData;
+  compact?: boolean;
+}) {
   const muted = data.theme.muted ?? data.theme.secondaryColor;
   const thankYou =
     data.company.footerText?.trim() || INVOICE_PDF_LABELS.thankYou;
@@ -251,8 +258,8 @@ export function InvoiceDocumentClose({ data }: { data: InvoicePdfData }) {
     <View
       wrap={false}
       style={{
-        marginTop: PDF_SPACE.xl,
-        paddingTop: PDF_SPACE.md,
+        marginTop: compact ? PDF_SPACE.sm : PDF_SPACE.xl,
+        paddingTop: compact ? PDF_SPACE.sm : PDF_SPACE.md,
         borderTopWidth: 1,
         borderTopColor: data.theme.divider ?? "#EEF2F7",
       }}

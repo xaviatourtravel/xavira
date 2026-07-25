@@ -25,6 +25,8 @@ function baseInvoice(overrides: Partial<InvoiceRecord> = {}): InvoiceRecord {
   return {
     id: "11111111-1111-1111-1111-111111111111",
     organizationId: "22222222-2222-2222-2222-222222222222",
+    invoiceType: "package",
+    documentType: "invoice",
     recipientSource: "manual",
     customerId: null,
     bookingId: null,
@@ -140,7 +142,7 @@ describe("FIN-001.2D Indonesian PDF localization", () => {
   it("maps statuses without raw enums", () => {
     assert.equal(formatInvoicePdfLifecycleStatus("issued"), "Terbit");
     assert.equal(formatInvoicePdfLifecycleStatus("void"), "Dibatalkan");
-    assert.equal(formatInvoicePdfPaymentStatus("unpaid"), "Belum dibayar");
+    assert.equal(formatInvoicePdfPaymentStatus("unpaid"), "Menunggu pembayaran");
     assert.equal(formatInvoicePdfPaymentStatus("paid"), "Lunas");
     assert.equal(formatInvoicePdfPaymentStatus("partially_paid"), "Dibayar sebagian");
   });
@@ -148,7 +150,7 @@ describe("FIN-001.2D Indonesian PDF localization", () => {
   it("buildInvoicePdfData never returns raw English payment labels or enums", async () => {
     const data = await buildInvoicePdfData(baseInvoice(), { mode: "issued" });
     assert.equal(data.lifecycleStatusLabel, "Terbit");
-    assert.equal(data.paymentStatusLabel, "Belum dibayar");
+    assert.equal(data.paymentStatusLabel, "Menunggu pembayaran");
     assert.doesNotMatch(data.paymentStatusLabel, /unpaid|paid|overdue/i);
     assert.doesNotMatch(data.lifecycleStatusLabel, /issued|sent|void|draft/i);
   });

@@ -3571,6 +3571,10 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"]
       }
+      duplicate_invoice_as_draft: {
+        Args: { p_source_invoice_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
       build_invoice_customer_snapshot_from_invoice: {
         Args: { p_invoice_id: string }
         Returns: Json

@@ -1,3 +1,9 @@
+import type {
+  InvoiceDocumentType,
+  InvoiceTicketGroupRecord,
+  InvoiceType,
+} from "@/modules/finance/types/ticketing";
+
 export const INVOICE_TEMPLATE_KEYS = [
   "calm-standard",
   "corporate",
@@ -91,10 +97,40 @@ export type InvoicePdfCompany = {
     | null;
 };
 
+export type InvoicePdfTicketing = {
+  groups: InvoiceTicketGroupRecord[];
+};
+
+export type InvoicePdfPaymentHistoryItem = {
+  paymentCode: string;
+  amountMinor: number;
+  paidAt: string;
+  paymentMethod: string | null;
+  bankName: string | null;
+  accountNumberMasked: string | null;
+  status: string;
+  statusLabel: string;
+  note: string | null;
+};
+
+export type InvoicePdfDocumentOptions = {
+  /** Default false — billing PDF without full itinerary. */
+  includeItineraryDetail: boolean;
+};
+
 export type InvoicePdfData = {
   mode: "draft" | "issued";
   invoiceId: string;
   organizationId: string;
+  invoiceType: InvoiceType;
+  documentType: InvoiceDocumentType;
+  /** Customer-facing localized title (e.g. "INVOICE TIKET PESAWAT"). */
+  documentTitle: string;
+  ticketing: InvoicePdfTicketing | null;
+  documentOptions: InvoicePdfDocumentOptions;
+  /** Concise payment-request label (DP / Pelunasan / Full Payment). */
+  paymentRequestNote: string;
+  payments: InvoicePdfPaymentHistoryItem[];
   invoiceNumber: string | null;
   issueDate: string | null;
   dueDate: string | null;

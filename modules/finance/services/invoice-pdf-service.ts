@@ -22,8 +22,108 @@ import {
   uploadInvoicePdfToStorage,
 } from "@/modules/finance/pdf/invoice-pdf-storage";
 import * as repo from "@/modules/finance/repositories/invoice-repository";
+import { getTicketingData } from "@/modules/finance/repositories/ticketing-repository";
+import { listInvoicePayments } from "@/modules/finance/repositories/invoice-payment-repository";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import type { InvoiceRecord } from "@/modules/finance/types/invoices";
+import type { InvoiceTicketGroupRecord } from "@/modules/finance/types/ticketing";
+import type { InvoicePaymentRecord } from "@/modules/finance/types/invoice-payments";
+
+export type HydratedTicketingPdfBundle = {
+  invoice: InvoiceRecord;
+  ticketing: InvoiceTicketGroupRecord[] | undefined;
+  payments: InvoicePaymentRecord[];
+};
+
+/**
+ * Claim / freeze RPCs return invoice headers without children.
+ * Reload issued header + items + (for ticketing) frozen ticket rows before
+ * buildInvoicePdfData. Never trusts claim payload child arrays or browser JSON.
+ *
+ * Ticket groups/segments survive logo-freeze merges because callers pass the
+ * hydrated invoice object and only overlay logo asset fields.
+ */
+export async function hydrateTicketingInvoiceForPdf(
+  organizationId: string,
+  invoiceId: string,
+  overlay?: Partial<InvoiceRecord>,
+  options?: { requireCompleteTicketing?: boolean },
+): Promise<HydratedTicketingPdfBundle> {
+  const requireComplete = options?.requireCompleteTicketing ?? false;
+  const hydrated = await hydrateInvoiceWithItemsForPdf(
+    organizationId,
+    invoiceId,
+    overlay,
+  );
+
+  if (hydrated.invoiceType !== "ticketing") {
+    const payments = await listInvoicePaymentsSafe(organizationId, invoiceId);
+    return { invoice: hydrated, ticketing: undefined, payments };
+  }
+
+  let groups: InvoiceTicketGroupRecord[];
+  try {
+    groups = await getTicketingData(organizationId, invoiceId);
+  } catch (error) {
+    throw new InvoicePdfStageError(
+      "data_normalization",
+      "Failed to load issued ticketing data",
+      { cause: error, errorCode: "TICKETING_DATA_MISSING" },
+    );
+  }
+
+  if (requireComplete) {
+    if (groups.length === 0) {
+      throw new InvoicePdfStageError(
+        "data_normalization",
+        "Issued ticketing invoice has no ticket groups",
+        { errorCode: "TICKETING_DATA_MISSING" },
+      );
+    }
+
+    for (const group of groups) {
+      if (group.segments.length === 0) {
+        throw new InvoicePdfStageError(
+          "data_normalization",
+          "Issued ticket group has no flight segments",
+          { errorCode: "TICKETING_DATA_MISSING" },
+        );
+      }
+      if (
+        group.organizationId !== organizationId ||
+        group.invoiceId !== invoiceId
+      ) {
+        throw new InvoicePdfStageError(
+          "data_normalization",
+          "Issued ticketing data failed organization scoping",
+          { errorCode: "TICKETING_DATA_INVALID" },
+        );
+      }
+    }
+  }
+
+  // Deterministic ordering already applied by getTicketingData (sort_order /
+  // segment_order). Do not re-parse raw GDS or re-read live Customer/branding.
+  const payments = await listInvoicePaymentsSafe(organizationId, invoiceId);
+  return {
+    invoice: hydrated,
+    ticketing: groups.length > 0 ? groups : undefined,
+    payments,
+  };
+}
+
+async function listInvoicePaymentsSafe(
+  organizationId: string,
+  invoiceId: string,
+): Promise<InvoicePaymentRecord[]> {
+  try {
+    return await listInvoicePayments(organizationId, invoiceId);
+  } catch {
+    // Migration may not be applied yet in local/preview environments —
+    // billing PDF still renders from invoice aggregates without history.
+    return [];
+  }
+}
 
 export type InvoicePdfResult = {
   buffer: Buffer;
@@ -134,12 +234,20 @@ export async function renderDraftInvoicePdfPreview(
     throw new Error("Preview mode is only for draft invoices");
   }
 
-  const data = await buildInvoicePdfData(invoice, { mode: "draft" });
+  const organizationId = requireOrganizationId(profile);
+  const { invoice: hydrated, ticketing, payments } =
+    await hydrateTicketingInvoiceForPdf(organizationId, invoiceId);
+  const data = await buildInvoicePdfData(hydrated, {
+    mode: "draft",
+    ticketing,
+    payments,
+    includeItineraryDetail: hydrated.includeItineraryDetail === true,
+  });
   const buffer = await renderInvoicePdfBuffer(data);
   return {
     buffer,
     fileName: sanitizeInvoicePdfFileName(null, "draft"),
-    invoice,
+    invoice: hydrated,
     fromCache: false,
   };
 }
@@ -281,31 +389,49 @@ export async function generateIssuedInvoicePdf(
   }
 
   let working = claim.invoice;
+  let ticketingGroups: InvoiceTicketGroupRecord[] | undefined;
+  let paymentRows: InvoicePaymentRecord[] = [];
 
   try {
-    // Claim return is header-only — reload items before normalization/render.
-    working = await hydrateInvoiceWithItemsForPdf(organizationId, invoiceId, {
-      pdfStatus: claim.invoice.pdfStatus,
-      pdfGenerationToken: claim.invoice.pdfGenerationToken,
-      pdfGenerationClaimedAt: claim.invoice.pdfGenerationClaimedAt,
-      pdfErrorCode: claim.invoice.pdfErrorCode,
-    });
+    // Claim return is header-only — reload items + ticketing before render.
+    const hydrated = await hydrateTicketingInvoiceForPdf(
+      organizationId,
+      invoiceId,
+      {
+        pdfStatus: claim.invoice.pdfStatus,
+        pdfGenerationToken: claim.invoice.pdfGenerationToken,
+        pdfGenerationClaimedAt: claim.invoice.pdfGenerationClaimedAt,
+        pdfErrorCode: claim.invoice.pdfErrorCode,
+      },
+      { requireCompleteTicketing: true },
+    );
+    working = hydrated.invoice;
+    ticketingGroups = hydrated.ticketing;
+    paymentRows = hydrated.payments;
 
     logInvoicePdfStage("stage", {
       stage: "data_normalization",
       invoiceId: working.id,
       itemCount: working.items?.length ?? 0,
+      ticketGroupCount: ticketingGroups?.length ?? 0,
       lifecycleStatus: working.lifecycleStatus,
       pdfStatus: working.pdfStatus,
       templateKey: working.templateKey,
     });
 
+    // Logo freeze returns header-only — preserve items AND ticketing groups.
     working = await ensureFrozenLogoAsset(working);
 
     let data: InvoicePdfData;
     try {
-      data = await buildInvoicePdfData(working, { mode: "issued" });
+      data = await buildInvoicePdfData(working, {
+        mode: "issued",
+        ticketing: ticketingGroups,
+        payments: paymentRows,
+        includeItineraryDetail: working.includeItineraryDetail === true,
+      });
     } catch (error) {
+      if (error instanceof InvoicePdfStageError) throw error;
       throw new InvoicePdfStageError(
         "data_normalization",
         "Issued PDF data normalization failed",

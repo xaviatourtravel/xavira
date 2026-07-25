@@ -17,6 +17,7 @@ import {
   InvoicePaymentBadge,
 } from "@/modules/finance/components/invoice-status-badges";
 import { InvoicePdfPreview } from "@/modules/finance/components/invoice-pdf-preview";
+import { TicketingInvoiceDetail } from "@/modules/finance/components/ticketing-invoice-detail";
 import {
   canEditInvoices,
   canIssueInvoices,
@@ -25,6 +26,8 @@ import {
 } from "@/modules/finance/lib/invoice-access";
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { getOrganizationInvoice } from "@/modules/finance/services/invoice-service";
+import { getTicketingData } from "@/modules/finance/repositories/ticketing-repository";
+import type { InvoiceTicketGroupRecord } from "@/modules/finance/types/ticketing";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -82,6 +85,15 @@ export default async function InvoiceDetailPage({
     leadTraveller?: string | null;
   } | null;
 
+  let ticketingGroups: InvoiceTicketGroupRecord[] = [];
+  if (invoice.invoiceType === "ticketing") {
+    try {
+      ticketingGroups = await getTicketingData(invoice.organizationId, invoice.id);
+    } catch {
+      ticketingGroups = [];
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 md:px-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -99,6 +111,11 @@ export default async function InvoiceDetailPage({
             <InvoicePaymentBadge
               status={invoice.effectivePaymentStatus ?? invoice.paymentStatus}
             />
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide bg-muted text-muted-foreground">
+              {invoice.invoiceType === "ticketing"
+                ? t("financeUi.typeLabelTicketing")
+                : t("financeUi.typeLabelPackage")}
+            </span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -216,6 +233,10 @@ export default async function InvoiceDetailPage({
           <p className="mt-1">{formatDate(invoice.dueDate)}</p>
         </div>
       </section>
+
+      {invoice.invoiceType === "ticketing" && ticketingGroups.length > 0 ? (
+        <TicketingInvoiceDetail groups={ticketingGroups} />
+      ) : null}
 
       <section className="overflow-hidden rounded-2xl border bg-card">
         <table className="w-full text-left text-sm">

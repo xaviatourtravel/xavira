@@ -29,6 +29,12 @@ import {
   type InboxDictionary,
   type InboxKey,
 } from "@/lib/i18n/inbox-dictionary";
+import {
+  aiTeamMemberUiEn,
+  aiTeamMemberUiId,
+  type AiTeamMemberUiDictionary,
+  type AiTeamMemberUiKey,
+} from "@/lib/i18n/ai-team-member-dictionary";
 
 export type TestAiDictionary = {
   simulator: string;
@@ -235,6 +241,7 @@ export type Dictionary = {
   leadsUi: LeadsUiDictionary;
   financeUi: FinanceUiDictionary;
   orgBrandingUi: OrgBrandingUiDictionary;
+  aiTeamMemberUi: AiTeamMemberUiDictionary;
   ai: Record<string, never>;
 };
 
@@ -526,6 +533,7 @@ const id: Dictionary = {
   leadsUi: leadsUiId,
   financeUi: financeUiId,
   orgBrandingUi: orgBrandingUiId,
+  aiTeamMemberUi: aiTeamMemberUiId,
   ai: {},
 };
 
@@ -677,6 +685,7 @@ const en: Dictionary = {
   leadsUi: leadsUiEn,
   financeUi: financeUiEn,
   orgBrandingUi: orgBrandingUiEn,
+  aiTeamMemberUi: aiTeamMemberUiEn,
   ai: {},
 };
 
@@ -692,6 +701,7 @@ export type TranslationKey =
   | `leadsUi.${LeadsUiKey}`
   | `financeUi.${FinanceUiKey}`
   | `orgBrandingUi.${OrgBrandingUiKey}`
+  | `aiTeamMemberUi.${AiTeamMemberUiKey}`
   | `ai.${string}`;
 
 export type TranslateFn = (key: TranslationKey | string) => string;

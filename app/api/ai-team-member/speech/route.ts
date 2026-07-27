@@ -1,16 +1,16 @@
 import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
 import { NextResponse } from "next/server";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { requireOrganizationProfile } from "@/lib/auth/session";
-import { runMeetingAgent } from "@/modules/ai-team-member/lib/meeting-agent";
 import { requireOpenAiApiKey } from "@/modules/ai-team-member/lib/meeting-config";
 import {
-  isBrainId,
-  meetingAnalyzeBodySchema,
-  meetingCheckpointSchema,
-} from "@/modules/ai-team-member/lib/meeting-domain";
-import type { MeetingResponsesParseClient } from "@/modules/ai-team-member/lib/meeting-response";
+  synthesizeMeetingSpeech,
+  validateMeetingSpeechBody,
+  type MeetingTtsClient,
+} from "@/modules/ai-team-member/lib/meeting-tts";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   let organizationId = "";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const rate = checkAiRateLimit({
     organizationId,
     userId,
-    route: "analyze",
+    route: "speech",
   });
   if (!rate.ok) {
     return NextResponse.json(
@@ -39,12 +39,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = meetingAnalyzeBodySchema.safeParse(
+  const validated = validateMeetingSpeechBody(
     await request.json().catch(() => null),
   );
-  if (!parsed.success || !isBrainId(parsed.data.brainId)) {
+  if (!validated.ok) {
     return NextResponse.json(
-      { error: "Invalid meeting payload." },
+      { error: validated.message, code: validated.code },
       { status: 400 },
     );
   }
@@ -58,37 +58,32 @@ export async function POST(request: Request) {
   }
 
   const openai = new OpenAI({ apiKey: apiKeyResult.apiKey });
-  const client = openai as unknown as MeetingResponsesParseClient;
-  const result = await runMeetingAgent({
-    organizationId,
-    body: parsed.data,
+  const client = openai as unknown as MeetingTtsClient;
+  const result = await synthesizeMeetingSpeech({
     client,
-    textFormat: zodTextFormat(meetingCheckpointSchema, "meeting_checkpoint"),
+    text: validated.body.text,
   });
 
-  if (result.ok) {
-    return NextResponse.json({
-      insight: result.insight,
-      meta: {
-        usedWebSearch: result.usedWebSearch,
-        usedBrainContext: result.usedBrainContext,
-        brainId: parsed.data.brainId,
-        mode: parsed.data.mode,
-      },
-    });
-  }
-
-  const status =
-    result.code === "upstream"
-      ? 502
-      : result.code === "refused"
-        ? 422
+  if (!result.ok) {
+    const status =
+      result.code === "validation"
+        ? 400
         : result.code === "config"
           ? 503
           : 502;
+    return NextResponse.json(
+      { error: result.message, code: result.code },
+      { status },
+    );
+  }
 
-  return NextResponse.json(
-    { error: result.message, code: result.code },
-    { status },
-  );
+  return new NextResponse(Buffer.from(result.bytes), {
+    status: 200,
+    headers: {
+      "Content-Type": result.contentType,
+      "Cache-Control": "no-store",
+      "X-AI-Team-Member-TTS-Model": result.model,
+      "X-AI-Team-Member-TTS-Voice": result.voice,
+    },
+  });
 }

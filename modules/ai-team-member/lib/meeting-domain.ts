@@ -18,12 +18,26 @@ export const MEETING_LIMITS = {
   realtimeEventHistory: 40,
 } as const;
 
+export type TranscriptEvidenceKind =
+  | "business_brain"
+  | "web"
+  | "deep_analysis"
+  | "memory";
+
+export type TranscriptEntrySourceLink = {
+  title: string;
+  url?: string;
+  category?: string;
+};
+
 export type TranscriptEntry = {
   id: string;
   speaker: string;
   text: string;
   createdAt: string;
   source?: "manual" | "live_stt" | "realtime";
+  evidenceKinds?: TranscriptEvidenceKind[];
+  sources?: TranscriptEntrySourceLink[];
 };
 
 export type MeetingConversationTurn = {

@@ -1,5 +1,12 @@
 import type { MeetingMode } from "@/modules/ai-team-member/lib/meeting-domain";
 
+export type RealtimeReasoningEffort =
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh";
+
 export type MeetingModelConfig = {
   askModel: string;
   raiseHandModel: string;
@@ -10,6 +17,7 @@ export type MeetingModelConfig = {
   realtimeModel: string;
   realtimeVoice: string;
   realtimeMaxMinutes: number;
+  realtimeReasoningEffort: RealtimeReasoningEffort;
 };
 
 export type MeetingConfigError = {
@@ -49,6 +57,21 @@ export function resolveMeetingModelConfig(
     Number.isFinite(realtimeMaxMinutesRaw) && realtimeMaxMinutesRaw > 0
       ? Math.min(60, Math.floor(realtimeMaxMinutesRaw))
       : 20;
+  const reasoningRaw =
+    env.AI_TEAM_MEMBER_REALTIME_REASONING_EFFORT?.trim().toLowerCase() ||
+    "low";
+  const allowedEfforts: RealtimeReasoningEffort[] = [
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+  ];
+  const realtimeReasoningEffort = allowedEfforts.includes(
+    reasoningRaw as RealtimeReasoningEffort,
+  )
+    ? (reasoningRaw as RealtimeReasoningEffort)
+    : "low";
   const webSearchEnabled = env.AI_TEAM_MEMBER_WEB_SEARCH === "true";
 
   if (
@@ -79,6 +102,7 @@ export function resolveMeetingModelConfig(
       realtimeModel,
       realtimeVoice,
       realtimeMaxMinutes,
+      realtimeReasoningEffort,
     },
   };
 }

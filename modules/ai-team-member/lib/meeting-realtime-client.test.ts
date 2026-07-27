@@ -45,6 +45,8 @@ class FakePeerConnection {
   dataChannel: {
     close: () => void;
     onmessage: ((event: MessageEvent) => void) | null;
+    readyState: RTCDataChannelState;
+    send: (data: string) => void;
   } | null = null;
 
   addTrack(track: MediaStreamTrack) {
@@ -55,6 +57,8 @@ class FakePeerConnection {
     this.dataChannel = {
       close: () => undefined,
       onmessage: null,
+      readyState: "open",
+      send: () => undefined,
     };
     return this.dataChannel as unknown as RTCDataChannel;
   }

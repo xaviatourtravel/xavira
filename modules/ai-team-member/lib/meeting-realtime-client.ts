@@ -1,4 +1,7 @@
-import { REALTIME_CALLS_URL } from "@/modules/ai-team-member/lib/meeting-realtime-events";
+import {
+  extractCallIdFromLocation,
+  REALTIME_CALLS_URL,
+} from "@/modules/ai-team-member/lib/meeting-realtime-events";
 
 export type RealtimeCallPhase =
   | "idle"
@@ -23,6 +26,7 @@ export type RealtimeClientCallbacks = {
   onError?: (message: string) => void;
   onRemoteStream?: (stream: MediaStream | null) => void;
   onDataEvent?: (raw: string) => void;
+  onCallId?: (callId: string | null) => void;
   onEnded?: () => void;
   onWarningNearMax?: () => void;
 };
@@ -41,6 +45,11 @@ export type RealtimeVoiceClient = {
   end: () => void;
   getPhase: () => RealtimeCallPhase;
   isActive: () => boolean;
+  getCallId: () => string | null;
+  sendFunctionCallOutput: (params: {
+    callId: string;
+    output: string;
+  }) => boolean;
 };
 
 let activeClientToken: symbol | null = null;
@@ -69,6 +78,7 @@ export function createRealtimeVoiceClient(
   let maxTimer: ReturnType<typeof setTimeout> | null = null;
   let warnTimer: ReturnType<typeof setTimeout> | null = null;
   let ended = false;
+  let callId: string | null = null;
 
   function setPhase(next: RealtimeCallPhase) {
     phase = next;
@@ -128,6 +138,9 @@ export function createRealtimeVoiceClient(
       audioEl = null;
     }
 
+    callId = null;
+    callbacks.onCallId?.(null);
+
     if (activeClientToken === token) {
       activeClientToken = null;
     }
@@ -145,11 +158,31 @@ export function createRealtimeVoiceClient(
     getPhase: () => phase,
     isActive: () => activeClientToken === token && !ended,
     isMuted: () => muted,
+    getCallId: () => callId,
     setMuted(nextMuted: boolean) {
       muted = nextMuted;
       if (!localStream) return;
       for (const track of localStream.getAudioTracks()) {
         track.enabled = !nextMuted;
+      }
+    },
+    sendFunctionCallOutput(params) {
+      if (!dataChannel || dataChannel.readyState !== "open") return false;
+      try {
+        dataChannel.send(
+          JSON.stringify({
+            type: "conversation.item.create",
+            item: {
+              type: "function_call_output",
+              call_id: params.callId,
+              output: params.output,
+            },
+          }),
+        );
+        dataChannel.send(JSON.stringify({ type: "response.create" }));
+        return true;
+      } catch {
+        return false;
       }
     },
     end() {
@@ -225,11 +258,13 @@ export function createRealtimeVoiceClient(
 
       peer.onconnectionstatechange = () => {
         const state = peer?.connectionState;
-        if (state === "failed" || state === "disconnected" || state === "closed") {
+        if (
+          state === "failed" ||
+          state === "disconnected" ||
+          state === "closed"
+        ) {
           endInternal(
-            state === "failed"
-              ? "Koneksi Voice Call terputus."
-              : undefined,
+            state === "failed" ? "Koneksi Voice Call terputus." : undefined,
           );
         }
       };
@@ -253,6 +288,9 @@ export function createRealtimeVoiceClient(
         endInternal("Gagal menghubungkan Voice Call ke OpenAI.");
         throw new Error("Gagal menghubungkan Voice Call ke OpenAI.");
       }
+
+      callId = extractCallIdFromLocation(response.headers.get("Location"));
+      callbacks.onCallId?.(callId);
 
       const answerSdp = await response.text();
       await peer.setRemoteDescription({

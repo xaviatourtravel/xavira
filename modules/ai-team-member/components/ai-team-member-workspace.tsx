@@ -43,11 +43,17 @@ import {
   type RealtimeVoiceClient,
 } from "../lib/meeting-realtime-client";
 import {
+  extractRealtimeFunctionCall,
   extractRealtimeTranscriptEvent,
   mapRealtimeCallState,
+  mapToolNameToUiStatus,
   mergeFinalRealtimeTranscript,
   parseRealtimeDataChannelEvent,
 } from "../lib/meeting-realtime-events";
+import type {
+  TranscriptEvidenceKind,
+  TranscriptEntrySourceLink,
+} from "../lib/meeting-domain";
 
 const LABELS: Record<BrainId, string> = {
   desklabs: "Desklabs",
@@ -114,6 +120,14 @@ export function AiTeamMemberWorkspace({
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [callElapsedSec, setCallElapsedSec] = useState(0);
   const [callWarning, setCallWarning] = useState("");
+  const [toolStatus, setToolStatus] = useState<
+    "idle" | "checking_brain" | "searching_web" | "analyzing" | "checking_memory"
+  >("idle");
+  const pendingSourcesRef = useRef<{
+    sources: TranscriptEntrySourceLink[];
+    evidenceKinds: TranscriptEvidenceKind[];
+  }>({ sources: [], evidenceKinds: [] });
+  const handledToolCallsRef = useRef<Set<string>>(new Set());
   const recognitionRef = useRef<Recognition | null>(null);
   const speakerRef = useRef(speaker);
   const playbackRef = useRef<MeetingAudioPlayback | null>(null);
@@ -268,6 +282,9 @@ export function AiTeamMemberWorkspace({
     setCallWarning("");
     setError("");
     setCallElapsedSec(0);
+    setToolStatus("idle");
+    pendingSourcesRef.current = { sources: [], evidenceKinds: [] };
+    handledToolCallsRef.current = new Set();
 
     try {
       const response = await fetch("/api/ai-team-member/realtime/session", {
@@ -298,6 +315,7 @@ export function AiTeamMemberWorkspace({
           setCallWarning(tStrict("aiTeamMemberUi.callNearMax")),
         onEnded: () => {
           setCallStartedAt(null);
+          setToolStatus("idle");
           callClientRef.current = null;
         },
         onDataEvent: (raw) => {
@@ -305,14 +323,98 @@ export function AiTeamMemberWorkspace({
           if (!parsed) return;
           const nextPhase = mapRealtimeCallState(parsed.type);
           if (nextPhase) setCallPhase(nextPhase);
+
+          const toolCall = extractRealtimeFunctionCall(parsed);
+          if (toolCall && !handledToolCallsRef.current.has(toolCall.callId)) {
+            handledToolCallsRef.current.add(toolCall.callId);
+            setToolStatus(mapToolNameToUiStatus(toolCall.name));
+            void (async () => {
+              try {
+                const toolResponse = await fetch(
+                  "/api/ai-team-member/realtime/tools/execute",
+                  {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({
+                      brainId: brainIdRef.current,
+                      callId: toolCall.callId,
+                      name: toolCall.name,
+                      arguments: toolCall.arguments,
+                    }),
+                  },
+                );
+                const toolPayload = await toolResponse.json();
+                const output =
+                  typeof toolPayload.output === "string"
+                    ? toolPayload.output
+                    : JSON.stringify({
+                        message: "Tool gagal.",
+                      });
+                callClientRef.current?.sendFunctionCallOutput({
+                  callId: toolCall.callId,
+                  output,
+                });
+                const sources = Array.isArray(toolPayload.sources)
+                  ? (toolPayload.sources as TranscriptEntrySourceLink[]).map(
+                      (source) => ({
+                        title: String(source.title || "Sumber"),
+                        url: source.url,
+                        category: source.category,
+                      }),
+                    )
+                  : [];
+                const kind = toolPayload.sources?.[0]?.kind as
+                  | TranscriptEvidenceKind
+                  | undefined;
+                if (sources.length) {
+                  pendingSourcesRef.current = {
+                    sources: [
+                      ...pendingSourcesRef.current.sources,
+                      ...sources,
+                    ].slice(0, 8),
+                    evidenceKinds: kind
+                      ? [
+                          ...new Set([
+                            ...pendingSourcesRef.current.evidenceKinds,
+                            kind,
+                          ]),
+                        ]
+                      : pendingSourcesRef.current.evidenceKinds,
+                  };
+                }
+              } catch {
+                callClientRef.current?.sendFunctionCallOutput({
+                  callId: toolCall.callId,
+                  output: JSON.stringify({
+                    message:
+                      "Lookup gagal. Lanjut dengan pengetahuan yang tersedia.",
+                  }),
+                });
+              } finally {
+                setToolStatus("idle");
+              }
+            })();
+          }
+
           const transcriptEvent = extractRealtimeTranscriptEvent(parsed);
           if (!transcriptEvent || transcriptEvent.status !== "final") return;
+          const extras =
+            transcriptEvent.role === "assistant"
+              ? {
+                  sources: pendingSourcesRef.current.sources,
+                  evidenceKinds: pendingSourcesRef.current.evidenceKinds,
+                }
+              : undefined;
+          if (transcriptEvent.role === "assistant") {
+            pendingSourcesRef.current = { sources: [], evidenceKinds: [] };
+          }
           setTranscriptByBrain((current) => ({
             ...current,
             [brainIdRef.current]: mergeFinalRealtimeTranscript(
               current[brainIdRef.current] ?? [],
               transcriptEvent,
               speakerRef.current.trim() || "Speaker",
+              extras,
             ),
           }));
         },
@@ -345,6 +447,7 @@ export function AiTeamMemberWorkspace({
     setCallStartedAt(null);
     setCallPhase("idle");
     setCallMuted(false);
+    setToolStatus("idle");
   }
 
   function toggleCallMute() {
@@ -364,17 +467,26 @@ export function AiTeamMemberWorkspace({
   }
 
   const callStatusLabel =
-    callPhase === "listening"
-      ? tStrict("aiTeamMemberUi.callListening")
-      : callPhase === "thinking"
-        ? tStrict("aiTeamMemberUi.callThinking")
-        : callPhase === "speaking"
-          ? tStrict("aiTeamMemberUi.callSpeaking")
-          : callPhase === "connecting" || callPhase === "requesting_permission"
-            ? tStrict("aiTeamMemberUi.callConnecting")
-            : callPhase === "disconnected" || callPhase === "error"
-              ? tStrict("aiTeamMemberUi.callDisconnected")
-              : "";
+    toolStatus === "checking_brain"
+      ? tStrict("aiTeamMemberUi.callCheckingBrain")
+      : toolStatus === "searching_web"
+        ? tStrict("aiTeamMemberUi.callSearchingWeb")
+        : toolStatus === "analyzing"
+          ? tStrict("aiTeamMemberUi.callAnalyzing")
+          : toolStatus === "checking_memory"
+            ? tStrict("aiTeamMemberUi.callCheckingMemory")
+            : callPhase === "listening"
+              ? tStrict("aiTeamMemberUi.callListening")
+              : callPhase === "thinking"
+                ? tStrict("aiTeamMemberUi.callThinking")
+                : callPhase === "speaking"
+                  ? tStrict("aiTeamMemberUi.callSpeaking")
+                  : callPhase === "connecting" ||
+                      callPhase === "requesting_permission"
+                    ? tStrict("aiTeamMemberUi.callConnecting")
+                    : callPhase === "disconnected" || callPhase === "error"
+                      ? tStrict("aiTeamMemberUi.callDisconnected")
+                      : "";
 
   async function askAi(mode: MeetingMode) {
     if (loading) return;
@@ -560,7 +672,42 @@ export function AiTeamMemberWorkspace({
                     {item.source === "realtime" ? (
                       <p className="mt-1 text-[11px] text-muted-foreground">
                         {tStrict("aiTeamMemberUi.realtimeTranscriptSource")}
+                        {item.evidenceKinds?.length
+                          ? ` · ${item.evidenceKinds
+                              .map((kind) =>
+                                kind === "business_brain"
+                                  ? tStrict("aiTeamMemberUi.evidenceBrain")
+                                  : kind === "web"
+                                    ? tStrict("aiTeamMemberUi.evidenceWeb")
+                                    : kind === "deep_analysis"
+                                      ? tStrict(
+                                          "aiTeamMemberUi.evidenceAnalysis",
+                                        )
+                                      : tStrict("aiTeamMemberUi.evidenceMemory"),
+                              )
+                              .join(" / ")}`
+                          : ""}
                       </p>
+                    ) : null}
+                    {item.sources?.length ? (
+                      <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                        {item.sources.map((source) => (
+                          <li key={`${source.title}-${source.url || ""}`}>
+                            {source.url ? (
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline-offset-2 hover:underline"
+                              >
+                                {source.title || source.url}
+                              </a>
+                            ) : (
+                              source.title
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     ) : null}
                   </div>
                 </div>

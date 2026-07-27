@@ -86,6 +86,7 @@ test("TTS uses configured model and voice", async () => {
       realtimeModel: "gpt-realtime-2.1",
       realtimeVoice: "marin",
       realtimeMaxMinutes: 20,
+      realtimeReasoningEffort: "low",
     },
     client: {
       audio: {
@@ -127,6 +128,7 @@ test("TTS failure returns safe error", async () => {
       realtimeModel: "gpt-realtime-2.1",
       realtimeVoice: "marin",
       realtimeMaxMinutes: 20,
+      realtimeReasoningEffort: "low",
     },
     client: {
       audio: {

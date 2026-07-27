@@ -30,6 +30,7 @@ function testConfig() {
     realtimeModel: "gpt-realtime-2.1",
     realtimeVoice: "marin",
     realtimeMaxMinutes: 20,
+    realtimeReasoningEffort: "low" as const,
   };
 }
 
@@ -56,13 +57,14 @@ function mockClient(
   };
 }
 
-test("realtime env defaults for model, voice, and max minutes", () => {
+test("realtime env defaults for model, voice, max minutes, and reasoning", () => {
   const config = resolveMeetingModelConfig({});
   assert.equal(config.ok, true);
   if (!config.ok) return;
   assert.equal(config.config.realtimeModel, "gpt-realtime-2.1");
   assert.equal(config.config.realtimeVoice, "marin");
   assert.equal(config.config.realtimeMaxMinutes, 20);
+  assert.equal(config.config.realtimeReasoningEffort, "low");
   assert.equal(config.config.ttsModel, "gpt-4o-mini-tts-2025-12-15");
 });
 
@@ -80,11 +82,13 @@ test("realtime env overrides are respected without silent model fallback", () =>
   assert.equal(config.config.realtimeMaxMinutes, 15);
 });
 
-test("semantic VAD and interruption configuration matches verified session shape", () => {
+test("semantic VAD, interruption, tools, and reasoning configuration", () => {
   const session = buildRealtimeSessionConfig({
     model: "gpt-realtime-2.1",
     voice: "marin",
     instructions: "test",
+    reasoningEffort: "low",
+    webSearchEnabled: true,
   });
   assert.equal(session.type, "realtime");
   assert.equal(session.model, "gpt-realtime-2.1");
@@ -94,6 +98,17 @@ test("semantic VAD and interruption configuration matches verified session shape
   assert.equal(session.audio.input.turn_detection.eagerness, "auto");
   assert.equal(session.audio.input.turn_detection.create_response, true);
   assert.equal(session.audio.input.turn_detection.interrupt_response, true);
+  assert.equal(session.reasoning.effort, "low");
+  assert.equal(session.tools.length, 4);
+  assert.deepEqual(
+    session.tools.map((tool) => tool.name),
+    [
+      "search_business_brain",
+      "search_approved_memories",
+      "search_web",
+      "reason_deeply",
+    ],
+  );
   assert.equal(
     session.audio.input.transcription.model,
     "gpt-4o-mini-transcribe",
@@ -111,7 +126,7 @@ test("createRealtimeClientSecret rejects invalid brain ownership", async () => {
   if (!result.ok) assert.equal(result.code, "validation");
 });
 
-test("createRealtimeClientSecret isolates same-org same-brain memories", async () => {
+test("createRealtimeClientSecret uses compact context and registers tools", async () => {
   const capture: { createBody?: unknown } = {};
   const repo = createInMemoryApprovedMemoryRepository([
     {
@@ -128,13 +143,6 @@ test("createRealtimeClientSecret isolates same-org same-brain memories", async (
       text: "Should not leak across org",
       createdAt: "2026-07-27T00:00:00.000Z",
     },
-    {
-      id: "3",
-      organizationId: "org-a",
-      brainId: "founder",
-      text: "Should not leak across brain",
-      createdAt: "2026-07-27T00:00:00.000Z",
-    },
   ]);
 
   const result = await createRealtimeClientSecret({
@@ -146,16 +154,24 @@ test("createRealtimeClientSecret isolates same-org same-brain memories", async (
   });
   assert.equal(result.ok, true);
   const body = capture.createBody as {
-    session: { instructions: string; model: string };
+    session: {
+      instructions: string;
+      model: string;
+      tools: Array<{ name: string }>;
+      reasoning: { effort: string };
+    };
   };
-  assert.match(body.session.instructions, /Allowed memory for desklabs/);
-  assert.doesNotMatch(body.session.instructions, /Should not leak across org/);
-  assert.doesNotMatch(
-    body.session.instructions,
-    /Should not leak across brain/,
-  );
   assert.match(body.session.instructions, /UNTRUSTED CONTEXT/);
+  assert.match(body.session.instructions, /search_business_brain/);
+  assert.match(body.session.instructions, /anggota tim internal Desklabs/);
+  // Memories are on-demand via tools, not dumped into startup instructions.
+  assert.doesNotMatch(body.session.instructions, /Allowed memory for desklabs/);
+  assert.doesNotMatch(body.session.instructions, /Should not leak across org/);
   assert.equal(body.session.model, "gpt-realtime-2.1");
+  assert.equal(body.session.reasoning.effort, "low");
+  assert.ok(
+    body.session.tools.some((tool) => tool.name === "search_approved_memories"),
+  );
 });
 
 test("ephemeral credential response never includes permanent API key", async () => {
@@ -286,11 +302,22 @@ test("client production bundle must not contain server secret patterns in source
     ),
     "utf8",
   );
+  const toolsRoute = readFileSync(
+    path.join(
+      process.cwd(),
+      "app/api/ai-team-member/realtime/tools/execute/route.ts",
+    ),
+    "utf8",
+  );
   assert.doesNotMatch(client, /OPENAI_API_KEY/);
   assert.doesNotMatch(events, /OPENAI_API_KEY/);
   assert.doesNotMatch(workspace, /OPENAI_API_KEY/);
-  assert.doesNotMatch(workspace, /meeting-realtime"/);
   assert.doesNotMatch(workspace, /from ["'].*meeting-realtime["']/);
+  assert.doesNotMatch(workspace, /meeting-realtime-tools/);
+  assert.doesNotMatch(workspace, /executeRealtimeTool/);
   assert.doesNotMatch(client, /sk-[a-zA-Z0-9]{10,}/);
   assert.doesNotMatch(workspace, /sk-[a-zA-Z0-9]{10,}/);
+  assert.match(toolsRoute, /requireOrganizationProfile/);
+  assert.match(toolsRoute, /executeRealtimeTool/);
+  assert.match(toolsRoute, /server-mediated/);
 });

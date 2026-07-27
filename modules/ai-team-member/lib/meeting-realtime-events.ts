@@ -1,6 +1,8 @@
 import {
   MEETING_LIMITS,
   type TranscriptEntry,
+  type TranscriptEntrySourceLink,
+  type TranscriptEvidenceKind,
 } from "@/modules/ai-team-member/lib/meeting-domain";
 
 /** Browser WebRTC SDP exchange endpoint (ephemeral client secret auth). */
@@ -14,6 +16,12 @@ export type RealtimeTranscriptEvent = {
   itemId?: string;
 };
 
+export type RealtimeFunctionCallRequest = {
+  callId: string;
+  name: string;
+  arguments: string;
+};
+
 /**
  * Keep only final transcript turns and dedupe by item id / text.
  */
@@ -21,6 +29,10 @@ export function mergeFinalRealtimeTranscript(
   current: TranscriptEntry[],
   event: RealtimeTranscriptEvent,
   speaker: string,
+  extras?: {
+    sources?: TranscriptEntrySourceLink[];
+    evidenceKinds?: TranscriptEvidenceKind[];
+  },
 ): TranscriptEntry[] {
   if (event.status !== "final") return current;
   const text = event.text.trim();
@@ -43,9 +55,43 @@ export function mergeFinalRealtimeTranscript(
     text,
     createdAt: new Date().toISOString(),
     source: "realtime",
+    sources:
+      event.role === "assistant" && extras?.sources?.length
+        ? extras.sources
+        : undefined,
+    evidenceKinds:
+      event.role === "assistant" && extras?.evidenceKinds?.length
+        ? extras.evidenceKinds
+        : undefined,
   };
 
   return [...current, next].slice(-MEETING_LIMITS.transcriptEntries);
+}
+
+export function attachSourcesToLatestAssistantTurn(
+  current: TranscriptEntry[],
+  sources: TranscriptEntrySourceLink[],
+  evidenceKinds: TranscriptEvidenceKind[],
+): TranscriptEntry[] {
+  if (!sources.length && !evidenceKinds.length) return current;
+  for (let index = current.length - 1; index >= 0; index -= 1) {
+    const item = current[index];
+    if (item?.source === "realtime" && item.speaker === "AI Team Member") {
+      const next = [...current];
+      next[index] = {
+        ...item,
+        sources: [...(item.sources ?? []), ...sources].slice(
+          0,
+          MEETING_LIMITS.sourceMax,
+        ),
+        evidenceKinds: [
+          ...new Set([...(item.evidenceKinds ?? []), ...evidenceKinds]),
+        ],
+      };
+      return next;
+    }
+  }
+  return current;
 }
 
 export function parseRealtimeDataChannelEvent(
@@ -58,6 +104,43 @@ export function parseRealtimeDataChannelEvent(
   } catch {
     return null;
   }
+}
+
+export function extractRealtimeFunctionCall(
+  event: { type: string; payload: Record<string, unknown> },
+): RealtimeFunctionCallRequest | null {
+  if (event.type === "response.function_call_arguments.done") {
+    const callId =
+      typeof event.payload.call_id === "string" ? event.payload.call_id : "";
+    const name =
+      typeof event.payload.name === "string" ? event.payload.name : "";
+    const args =
+      typeof event.payload.arguments === "string"
+        ? event.payload.arguments
+        : JSON.stringify(event.payload.arguments ?? {});
+    if (!callId || !name) return null;
+    return { callId, name, arguments: args };
+  }
+
+  if (event.type === "response.done") {
+    const response = event.payload.response as
+      | { output?: Array<Record<string, unknown>> }
+      | undefined;
+    const item = response?.output?.find(
+      (entry) => entry.type === "function_call",
+    );
+    if (!item) return null;
+    const callId = typeof item.call_id === "string" ? item.call_id : "";
+    const name = typeof item.name === "string" ? item.name : "";
+    const args =
+      typeof item.arguments === "string"
+        ? item.arguments
+        : JSON.stringify(item.arguments ?? {});
+    if (!callId || !name) return null;
+    return { callId, name, arguments: args };
+  }
+
+  return null;
 }
 
 export function extractRealtimeTranscriptEvent(
@@ -143,6 +226,8 @@ export function mapRealtimeCallState(eventType: string):
       return "listening";
     case "input_audio_buffer.speech_stopped":
     case "response.created":
+    case "response.function_call_arguments.delta":
+    case "response.function_call_arguments.done":
       return "thinking";
     case "response.output_audio.delta":
     case "response.audio.delta":
@@ -155,5 +240,36 @@ export function mapRealtimeCallState(eventType: string):
       return "disconnected";
     default:
       return null;
+  }
+}
+
+export function extractCallIdFromLocation(
+  location: string | null,
+): string | null {
+  if (!location) return null;
+  const parts = location.split("/").filter(Boolean);
+  const last = parts[parts.length - 1];
+  return last || null;
+}
+
+export function mapToolNameToUiStatus(
+  name: string,
+):
+  | "checking_brain"
+  | "searching_web"
+  | "analyzing"
+  | "checking_memory"
+  | "idle" {
+  switch (name) {
+    case "search_web":
+      return "searching_web";
+    case "reason_deeply":
+      return "analyzing";
+    case "search_approved_memories":
+      return "checking_memory";
+    case "search_business_brain":
+      return "checking_brain";
+    default:
+      return "idle";
   }
 }

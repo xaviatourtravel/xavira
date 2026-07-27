@@ -376,6 +376,7 @@ test("brain and organization isolation for approved memories", async () => {
       realtimeModel: "gpt-realtime-2.1",
       realtimeVoice: "marin",
       realtimeMaxMinutes: 20,
+      realtimeReasoningEffort: "low",
     },
     textFormat: { type: "json_schema" },
     client: {
@@ -419,6 +420,7 @@ test("agent enables web_search tools only for ask when requested", async () => {
       realtimeModel: "gpt-realtime-2.1",
       realtimeVoice: "marin",
       realtimeMaxMinutes: 20,
+      realtimeReasoningEffort: "low",
     },
     textFormat: { type: "json_schema" },
     client: {
@@ -454,6 +456,7 @@ test("agent enables web_search tools only for ask when requested", async () => {
       realtimeModel: "gpt-realtime-2.1",
       realtimeVoice: "marin",
       realtimeMaxMinutes: 20,
+      realtimeReasoningEffort: "low",
     },
     textFormat: { type: "json_schema" },
     client: {

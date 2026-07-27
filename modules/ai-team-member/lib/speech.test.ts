@@ -14,24 +14,34 @@ test("speech chooses Indonesian voice when available", () => {
   assert.equal(pickIndonesianVoice([{ name: "EN", lang: "en-US" }]), null);
 });
 
-test("speech chooses relevant intervention for raise-hand intent", () => {
+test("responseText is used for speech", () => {
   const insight = {
+    responseText: "Saya angkat tangan: asumsi harga belum diuji.",
     summary: "Ada risiko biaya membengkak jika asumsi harga tidak diuji.",
     decisions: ["Lanjut uji asumsi harga hari ini."],
     actionItems: [{ task: "Validasi harga vendor", pic: "Irfan", deadline: null }],
-    unresolvedIssues: [],
+    unresolvedIssues: ["Margin belum final."],
     memoryCandidates: [],
   };
-  assert.match(
-    pickMeetingSpeechText(
-      insight,
-      "Angkat tangan hanya jika ada risiko material, kontradiksi, asumsi yang belum teruji, atau keputusan penting yang belum dibuat.",
-    ),
-    /risiko biaya membengkak/i,
+  assert.equal(
+    pickMeetingSpeechText(insight),
+    "Saya angkat tangan: asumsi harga belum diuji.",
   );
 });
 
-test("workspace uses Indonesian raise-hand instruction and id-ID utterance", () => {
+test("speech ignores summary when responseText is empty", () => {
+  const insight = {
+    responseText: "   ",
+    summary: "Ringkasan yang tidak boleh dibacakan.",
+    decisions: ["Keputusan yang tidak boleh dibacakan."],
+    actionItems: [],
+    unresolvedIssues: ["Isu yang tidak boleh dibacakan."],
+    memoryCandidates: [],
+  };
+  assert.equal(pickMeetingSpeechText(insight), "");
+});
+
+test("workspace speaks responseText with id-ID utterance and explicit modes", () => {
   const source = readFileSync(
     path.join(
       process.cwd(),
@@ -39,7 +49,11 @@ test("workspace uses Indonesian raise-hand instruction and id-ID utterance", () 
     ),
     "utf8",
   );
-  assert.match(source, /Angkat tangan hanya jika ada risiko material/i);
+  assert.match(source, /askAi\("ask"\)/);
+  assert.match(source, /askAi\("raise_hand"\)/);
+  assert.match(source, /mode,/);
+  assert.match(source, /pickMeetingSpeechText\(payload\.insight\)/);
   assert.match(source, /utterance\.lang\s*=\s*"id-ID"/);
   assert.match(source, /pickIndonesianVoice/);
+  assert.match(source, /insight\.responseText/);
 });

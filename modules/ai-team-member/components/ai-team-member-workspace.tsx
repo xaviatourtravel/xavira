@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Brain, Check, Hand, Mic, MicOff, Play, Plus, Sparkles, Volume2 } from "lucide-react";
-import { BRAIN_IDS, type BrainId, type MeetingInsight, type TranscriptEntry } from "../lib/meeting-domain";
+import {
+  BRAIN_IDS,
+  type BrainId,
+  type MeetingInsight,
+  type MeetingMode,
+  type TranscriptEntry,
+} from "../lib/meeting-domain";
 import { pickIndonesianVoice, pickMeetingSpeechText } from "../lib/speech";
 
 const LABELS: Record<BrainId, string> = {
@@ -86,7 +92,7 @@ export function AiTeamMemberWorkspace({ organizationId }: { organizationId: stri
     setListening(true);
   }
 
-  async function askAi(prompt = question) {
+  async function askAi(mode: MeetingMode) {
     if (!transcript.length) {
       setError("Tambahkan transcript dulu.");
       return;
@@ -97,13 +103,19 @@ export function AiTeamMemberWorkspace({ organizationId }: { organizationId: stri
       const response = await fetch("/api/ai-team-member/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ brainId, transcript, question: prompt || undefined, organizationId }),
+        body: JSON.stringify({
+          brainId,
+          transcript,
+          mode,
+          question: question.trim() || undefined,
+          organizationId,
+        }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "AI gagal merespons.");
       setInsight(payload.insight);
       setQuestion("");
-      const speakText = pickMeetingSpeechText(payload.insight, prompt);
+      const speakText = pickMeetingSpeechText(payload.insight);
       if ("speechSynthesis" in window && speakText) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(speakText);
@@ -174,13 +186,19 @@ export function AiTeamMemberWorkspace({ organizationId }: { organizationId: stri
             <h2 className="flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4 text-primary" /> Talk to AI</h2>
             <textarea value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Tanya pendapat AI tentang diskusi ini…" className="mt-4 min-h-24 w-full resize-none rounded-xl border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <button disabled={loading} onClick={() => askAi()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground disabled:opacity-50"><Play className="h-4 w-4" /> Ask AI</button>
-              <button disabled={loading} onClick={() => askAi("Angkat tangan hanya jika ada risiko material, kontradiksi, asumsi yang belum teruji, atau keputusan penting yang belum dibuat. Sampaikan intervensi secara singkat dan langsung.")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-medium disabled:opacity-50"><Hand className="h-4 w-4" /> Raise hand</button>
+              <button disabled={loading} onClick={() => askAi("ask")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground disabled:opacity-50"><Play className="h-4 w-4" /> Ask AI</button>
+              <button disabled={loading} onClick={() => askAi("raise_hand")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-medium disabled:opacity-50"><Hand className="h-4 w-4" /> Raise hand</button>
             </div>
             {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
           </div>
 
           {insight ? <div className="space-y-4 rounded-3xl border bg-card p-5 shadow-sm">
+            {insight.responseText ? (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Respons AI</h3>
+                <p className="mt-2 text-sm leading-6 font-medium text-foreground">{insight.responseText}</p>
+              </div>
+            ) : null}
             <InsightSection title="Summary" items={[insight.summary]} />
             <InsightSection title="Decisions" items={insight.decisions} />
             <InsightSection title="Action items" items={insight.actionItems.map((item) => `${item.task}${item.pic ? ` — ${item.pic}` : ""}${item.deadline ? ` · ${item.deadline}` : ""}`)} />

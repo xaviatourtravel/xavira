@@ -6,11 +6,6 @@ type BrowserSpeechSynthesisVoice = {
   default?: boolean;
 };
 
-function isRaiseHandIntent(question?: string): boolean {
-  if (!question) return false;
-  return /(angkat tangan|raise hand|raise your hand|intervensi)/i.test(question);
-}
-
 export function pickIndonesianVoice(
   voices: BrowserSpeechSynthesisVoice[],
 ): BrowserSpeechSynthesisVoice | null {
@@ -22,24 +17,7 @@ export function pickIndonesianVoice(
   return null;
 }
 
-export function pickMeetingSpeechText(
-  insight: MeetingInsight,
-  question?: string,
-): string {
-  if (isRaiseHandIntent(question)) {
-    return (
-      insight.summary.trim() ||
-      insight.unresolvedIssues[0]?.trim() ||
-      insight.actionItems[0]?.task.trim() ||
-      insight.decisions[0]?.trim() ||
-      ""
-    );
-  }
-  return (
-    insight.summary.trim() ||
-    insight.decisions[0]?.trim() ||
-    insight.actionItems[0]?.task.trim() ||
-    insight.unresolvedIssues[0]?.trim() ||
-    ""
-  );
+/** TTS always speaks the structured responseText field. */
+export function pickMeetingSpeechText(insight: MeetingInsight): string {
+  return insight.responseText.trim();
 }

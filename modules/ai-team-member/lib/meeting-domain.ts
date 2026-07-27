@@ -13,14 +13,26 @@ export function isBrainId(value: unknown): value is BrainId {
   return typeof value === "string" && BRAIN_IDS.includes(value as BrainId);
 }
 
+function isRaiseHandIntent(question?: string): boolean {
+  if (!question) return false;
+  return /(angkat tangan|raise hand|raise your hand|intervensi)/i.test(question);
+}
+
 export function buildMeetingPrompt(input: { brainId: BrainId; transcript: TranscriptEntry[]; question?: string }) {
   const transcript = input.transcript.map((item) => `[${item.speaker}] ${item.text}`).join("\n");
+  const raiseHand = isRaiseHandIntent(input.question);
   return [
-    `You are the isolated "${input.brainId}" AI team member.`,
-    "Never use knowledge or memory from another brain.",
-    "Separate confirmed decisions from proposals. Never promote a proposal into a decision.",
-    "Return strict JSON with: summary, decisions, actionItems[{task,pic,deadline}], unresolvedIssues, memoryCandidates.",
-    input.question ? `Current question: ${input.question}` : "Create the meeting checkpoint.",
+    `Anda adalah AI Team Member "${input.brainId}" yang terisolasi.`,
+    "Jangan pernah menggunakan pengetahuan, memori, atau konteks dari brain lain.",
+    "Pisahkan keputusan terkonfirmasi dari usulan. Jangan mengubah usulan menjadi keputusan final.",
+    "Keluaran WAJIB berupa JSON valid dengan properti persis: summary, decisions, actionItems[{task,pic,deadline}], unresolvedIssues, memoryCandidates.",
+    "Semua nilai teks WAJIB dalam Bahasa Indonesia yang natural untuk konteks rapat.",
+    "Jangan menerjemahkan nama orang, nama produk, merek, atau istilah teknis resmi.",
+    "Jangan tambahkan teks di luar JSON (tanpa markdown, tanpa code fence).",
+    raiseHand
+      ? "Mode Angkat Tangan: berikan intervensi singkat, langsung, dan actionable hanya jika ada risiko material, kontradiksi, asumsi belum teruji, atau keputusan penting belum dibuat."
+      : "Mode Checkpoint: berikan ringkasan rapat yang presisi, keputusan, tindak lanjut, isu belum selesai, dan kandidat memori.",
+    input.question ? `Pertanyaan saat ini: ${input.question}` : "Buat checkpoint rapat saat ini.",
     `Transcript:\n${transcript || "(empty)"}`,
   ].join("\n\n");
 }
@@ -44,4 +56,54 @@ export function normalizeMeetingInsight(value: unknown): MeetingInsight {
     unresolvedIssues: strings(data.unresolvedIssues),
     memoryCandidates: strings(data.memoryCandidates),
   };
+}
+
+function stripJsonFences(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenced?.[1]) return fenced[1].trim();
+  return trimmed;
+}
+
+/**
+ * Extract candidate JSON text from raw model output.
+ * Accepts:
+ * - strict JSON
+ * - fenced ```json blocks
+ * - text that wraps one JSON object
+ */
+export function extractMeetingInsightJson(raw: string): string | null {
+  const plain = stripJsonFences(raw);
+  if (plain.startsWith("{") && plain.endsWith("}")) return plain;
+  const start = plain.indexOf("{");
+  const end = plain.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  return plain.slice(start, end + 1);
+}
+
+function hasAnyInsightContent(insight: MeetingInsight): boolean {
+  return Boolean(
+    insight.summary.trim() ||
+      insight.decisions.length ||
+      insight.actionItems.length ||
+      insight.unresolvedIssues.length ||
+      insight.memoryCandidates.length,
+  );
+}
+
+/**
+ * Parse model output safely into a normalized insight.
+ * Returns null when output is missing/invalid so callers can fail clearly.
+ */
+export function parseMeetingInsightFromModelOutput(raw: string | null | undefined): MeetingInsight | null {
+  if (!raw || !raw.trim()) return null;
+  const candidate = extractMeetingInsightJson(raw);
+  if (!candidate) return null;
+  try {
+    const parsed = JSON.parse(candidate);
+    const normalized = normalizeMeetingInsight(parsed);
+    return hasAnyInsightContent(normalized) ? normalized : null;
+  } catch {
+    return null;
+  }
 }

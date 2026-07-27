@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Brain, Check, Hand, Mic, MicOff, Play, Plus, Sparkles, Volume2 } from "lucide-react";
 import { BRAIN_IDS, type BrainId, type MeetingInsight, type TranscriptEntry } from "../lib/meeting-domain";
+import { pickIndonesianVoice, pickMeetingSpeechText } from "../lib/speech";
 
 const LABELS: Record<BrainId, string> = {
   desklabs: "Desklabs",
@@ -102,9 +103,14 @@ export function AiTeamMemberWorkspace({ organizationId }: { organizationId: stri
       if (!response.ok) throw new Error(payload.error || "AI gagal merespons.");
       setInsight(payload.insight);
       setQuestion("");
-      if ("speechSynthesis" in window && payload.insight.summary) {
+      const speakText = pickMeetingSpeechText(payload.insight, prompt);
+      if ("speechSynthesis" in window && speakText) {
         window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(payload.insight.summary));
+        const utterance = new SpeechSynthesisUtterance(speakText);
+        utterance.lang = "id-ID";
+        const voice = pickIndonesianVoice(window.speechSynthesis.getVoices());
+        if (voice) utterance.voice = voice as SpeechSynthesisVoice;
+        window.speechSynthesis.speak(utterance);
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "AI gagal merespons.");
@@ -169,7 +175,7 @@ export function AiTeamMemberWorkspace({ organizationId }: { organizationId: stri
             <textarea value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Tanya pendapat AI tentang diskusi ini…" className="mt-4 min-h-24 w-full resize-none rounded-xl border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button disabled={loading} onClick={() => askAi()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground disabled:opacity-50"><Play className="h-4 w-4" /> Ask AI</button>
-              <button disabled={loading} onClick={() => askAi("Raise your hand only if there is a material risk, contradiction, or missing decision. Explain it.")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-medium disabled:opacity-50"><Hand className="h-4 w-4" /> Raise hand</button>
+              <button disabled={loading} onClick={() => askAi("Angkat tangan hanya jika ada risiko material, kontradiksi, asumsi yang belum teruji, atau keputusan penting yang belum dibuat. Sampaikan intervensi secara singkat dan langsung.")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-medium disabled:opacity-50"><Hand className="h-4 w-4" /> Raise hand</button>
             </div>
             {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
           </div>

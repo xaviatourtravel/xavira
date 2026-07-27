@@ -15,6 +15,7 @@ export const MEETING_LIMITS = {
   contextChars: 12_000,
   ttsInputChars: 2_000,
   sourceMax: 8,
+  realtimeEventHistory: 40,
 } as const;
 
 export type TranscriptEntry = {
@@ -22,6 +23,7 @@ export type TranscriptEntry = {
   speaker: string;
   text: string;
   createdAt: string;
+  source?: "manual" | "live_stt" | "realtime";
 };
 
 export type MeetingConversationTurn = {

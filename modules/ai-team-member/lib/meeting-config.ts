@@ -7,6 +7,9 @@ export type MeetingModelConfig = {
   webSearchEnabled: boolean;
   ttsModel: string;
   ttsVoice: string;
+  realtimeModel: string;
+  realtimeVoice: string;
+  realtimeMaxMinutes: number;
 };
 
 export type MeetingConfigError = {
@@ -30,12 +33,32 @@ export function resolveMeetingModelConfig(
     env.AI_TEAM_MEMBER_CHECKPOINT_MODEL?.trim() ||
     env.OPENAI_MODEL?.trim() ||
     "gpt-4.1-mini";
+  // Official replacement for shut-down snapshot gpt-4o-mini-tts-2025-03-20.
+  // Alias gpt-4o-mini-tts may still resolve, but pin the supported snapshot.
   const ttsModel =
-    env.AI_TEAM_MEMBER_TTS_MODEL?.trim() || "gpt-4o-mini-tts";
+    env.AI_TEAM_MEMBER_TTS_MODEL?.trim() || "gpt-4o-mini-tts-2025-12-15";
   const ttsVoice = env.AI_TEAM_MEMBER_TTS_VOICE?.trim() || "marin";
+  const realtimeModel =
+    env.AI_TEAM_MEMBER_REALTIME_MODEL?.trim() || "gpt-realtime-2.1";
+  const realtimeVoice =
+    env.AI_TEAM_MEMBER_REALTIME_VOICE?.trim() || "marin";
+  const realtimeMaxMinutesRaw = Number(
+    env.AI_TEAM_MEMBER_REALTIME_MAX_MINUTES?.trim() || "20",
+  );
+  const realtimeMaxMinutes =
+    Number.isFinite(realtimeMaxMinutesRaw) && realtimeMaxMinutesRaw > 0
+      ? Math.min(60, Math.floor(realtimeMaxMinutesRaw))
+      : 20;
   const webSearchEnabled = env.AI_TEAM_MEMBER_WEB_SEARCH === "true";
 
-  if (!askModel || !checkpointModel || !ttsModel || !ttsVoice) {
+  if (
+    !askModel ||
+    !checkpointModel ||
+    !ttsModel ||
+    !ttsVoice ||
+    !realtimeModel ||
+    !realtimeVoice
+  ) {
     return {
       ok: false,
       code: "config",
@@ -53,6 +76,9 @@ export function resolveMeetingModelConfig(
       webSearchEnabled,
       ttsModel,
       ttsVoice,
+      realtimeModel,
+      realtimeVoice,
+      realtimeMaxMinutes,
     },
   };
 }

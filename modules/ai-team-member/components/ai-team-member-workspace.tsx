@@ -7,6 +7,8 @@ import {
   Hand,
   Mic,
   MicOff,
+  Phone,
+  PhoneOff,
   Play,
   Plus,
   Sparkles,
@@ -35,6 +37,17 @@ import {
   stopMeetingAudio,
   type MeetingAudioPlayback,
 } from "../lib/speech";
+import {
+  createRealtimeVoiceClient,
+  type RealtimeCallPhase,
+  type RealtimeVoiceClient,
+} from "../lib/meeting-realtime-client";
+import {
+  extractRealtimeTranscriptEvent,
+  mapRealtimeCallState,
+  mergeFinalRealtimeTranscript,
+  parseRealtimeDataChannelEvent,
+} from "../lib/meeting-realtime-events";
 
 const LABELS: Record<BrainId, string> = {
   desklabs: "Desklabs",
@@ -96,32 +109,70 @@ export function AiTeamMemberWorkspace({
   const [voiceMuted, setVoiceMuted] = useState(false);
   const [lastSpeechText, setLastSpeechText] = useState("");
   const [error, setError] = useState("");
+  const [callPhase, setCallPhase] = useState<RealtimeCallPhase>("idle");
+  const [callMuted, setCallMuted] = useState(false);
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
+  const [callElapsedSec, setCallElapsedSec] = useState(0);
+  const [callWarning, setCallWarning] = useState("");
   const recognitionRef = useRef<Recognition | null>(null);
   const speakerRef = useRef(speaker);
   const playbackRef = useRef<MeetingAudioPlayback | null>(null);
+  const callClientRef = useRef<RealtimeVoiceClient | null>(null);
+  const brainIdRef = useRef(brainId);
 
   const transcript = transcriptByBrain[brainId] ?? [];
   const loading = loadingPhase !== "idle";
+  const callActive =
+    callPhase !== "idle" &&
+    callPhase !== "disconnected" &&
+    callPhase !== "error";
 
   useEffect(() => {
     speakerRef.current = speaker;
   }, [speaker]);
 
   useEffect(() => {
+    brainIdRef.current = brainId;
+  }, [brainId]);
+
+  useEffect(() => {
+    if (callActive) return;
     setInsight(null);
     setResponseMeta(null);
     setApprovedMemory([]);
     setError("");
     stopMeetingAudio(playbackRef.current);
     playbackRef.current = null;
-  }, [brainId]);
+  }, [brainId, callActive]);
 
   useEffect(() => {
     return () => {
       stopMeetingAudio(playbackRef.current);
       playbackRef.current = null;
+      callClientRef.current?.end();
+      callClientRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    function onPageHide() {
+      callClientRef.current?.end();
+      callClientRef.current = null;
+      setCallStartedAt(null);
+      setCallPhase("idle");
+      setCallMuted(false);
+    }
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, []);
+
+  useEffect(() => {
+    if (!callStartedAt || !callActive) return;
+    const timer = setInterval(() => {
+      setCallElapsedSec(Math.floor((Date.now() - callStartedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [callStartedAt, callActive]);
 
   function addTranscript(text = draft) {
     const clean = text.trim();
@@ -135,6 +186,7 @@ export function AiTeamMemberWorkspace({
           speaker: speakerRef.current.trim() || "Speaker",
           text: clean,
           createdAt: new Date().toISOString(),
+          source: "manual",
         },
       ],
     }));
@@ -202,6 +254,127 @@ export function AiTeamMemberWorkspace({
       speakWithBrowserFallback({ text });
     }
   }
+
+  async function startVoiceCall() {
+    if (callActive || callClientRef.current?.isActive()) {
+      setError(tStrict("aiTeamMemberUi.callFailed"));
+      return;
+    }
+
+    stopMeetingAudio(playbackRef.current);
+    playbackRef.current = null;
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+    setCallWarning("");
+    setError("");
+    setCallElapsedSec(0);
+
+    try {
+      const response = await fetch("/api/ai-team-member/realtime/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brainId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || tStrict("aiTeamMemberUi.callFailed"));
+      }
+      if (!payload.clientSecret || typeof payload.clientSecret !== "string") {
+        throw new Error(tStrict("aiTeamMemberUi.callFailed"));
+      }
+
+      const client = createRealtimeVoiceClient({
+        onPhase: (phase) => setCallPhase(phase),
+        onError: (message) => {
+          if (/mikrofon/i.test(message)) {
+            setError(tStrict("aiTeamMemberUi.callMicDenied"));
+          } else if (/Durasi maksimum|batas waktu/i.test(message)) {
+            setError(tStrict("aiTeamMemberUi.callEndedMax"));
+          } else {
+            setError(message);
+          }
+        },
+        onWarningNearMax: () =>
+          setCallWarning(tStrict("aiTeamMemberUi.callNearMax")),
+        onEnded: () => {
+          setCallStartedAt(null);
+          callClientRef.current = null;
+        },
+        onDataEvent: (raw) => {
+          const parsed = parseRealtimeDataChannelEvent(raw);
+          if (!parsed) return;
+          const nextPhase = mapRealtimeCallState(parsed.type);
+          if (nextPhase) setCallPhase(nextPhase);
+          const transcriptEvent = extractRealtimeTranscriptEvent(parsed);
+          if (!transcriptEvent || transcriptEvent.status !== "final") return;
+          setTranscriptByBrain((current) => ({
+            ...current,
+            [brainIdRef.current]: mergeFinalRealtimeTranscript(
+              current[brainIdRef.current] ?? [],
+              transcriptEvent,
+              speakerRef.current.trim() || "Speaker",
+            ),
+          }));
+        },
+      });
+
+      callClientRef.current = client;
+      setCallStartedAt(Date.now());
+      await client.start({
+        clientSecret: payload.clientSecret,
+        callsUrl: payload.callsUrl,
+        maxMinutes: Number(payload.maxMinutes) || 20,
+        warningAtMinutes: Number(payload.warningAtMinutes) || 18,
+      });
+    } catch (cause) {
+      callClientRef.current?.end();
+      callClientRef.current = null;
+      setCallStartedAt(null);
+      setCallPhase("error");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : tStrict("aiTeamMemberUi.callFailed"),
+      );
+    }
+  }
+
+  function endVoiceCall() {
+    callClientRef.current?.end();
+    callClientRef.current = null;
+    setCallStartedAt(null);
+    setCallPhase("idle");
+    setCallMuted(false);
+  }
+
+  function toggleCallMute() {
+    const next = !callMuted;
+    setCallMuted(next);
+    callClientRef.current?.setMuted(next);
+  }
+
+  function formatCallDuration(totalSec: number) {
+    const minutes = Math.floor(totalSec / 60)
+      .toString()
+      .padStart(2, "0");
+    const seconds = Math.floor(totalSec % 60)
+      .toString()
+      .padStart(2, "0");
+    return `${minutes}:${seconds}`;
+  }
+
+  const callStatusLabel =
+    callPhase === "listening"
+      ? tStrict("aiTeamMemberUi.callListening")
+      : callPhase === "thinking"
+        ? tStrict("aiTeamMemberUi.callThinking")
+        : callPhase === "speaking"
+          ? tStrict("aiTeamMemberUi.callSpeaking")
+          : callPhase === "connecting" || callPhase === "requesting_permission"
+            ? tStrict("aiTeamMemberUi.callConnecting")
+            : callPhase === "disconnected" || callPhase === "error"
+              ? tStrict("aiTeamMemberUi.callDisconnected")
+              : "";
 
   async function askAi(mode: MeetingMode) {
     if (loading) return;
@@ -314,8 +487,15 @@ export function AiTeamMemberWorkspace({
           </span>
           <select
             value={brainId}
-            onChange={(event) => setBrainId(event.target.value as BrainId)}
-            className="bg-transparent font-medium outline-none"
+            disabled={callActive}
+            onChange={(event) => {
+              if (callActive) {
+                setError(tStrict("aiTeamMemberUi.callActiveBrainLock"));
+                return;
+              }
+              setBrainId(event.target.value as BrainId);
+            }}
+            className="bg-transparent font-medium outline-none disabled:opacity-50"
           >
             {BRAIN_IDS.map((id) => (
               <option key={id} value={id}>
@@ -375,7 +555,14 @@ export function AiTeamMemberWorkspace({
                   <span className="font-semibold text-primary">
                     {item.speaker}
                   </span>
-                  <p className="leading-6 text-foreground/90">{item.text}</p>
+                  <div>
+                    <p className="leading-6 text-foreground/90">{item.text}</p>
+                    {item.source === "realtime" ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {tStrict("aiTeamMemberUi.realtimeTranscriptSource")}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               ))
             ) : (
@@ -410,6 +597,74 @@ export function AiTeamMemberWorkspace({
         <aside className="space-y-4">
           <div className="rounded-3xl border bg-card p-5 shadow-sm">
             <h2 className="flex items-center gap-2 font-semibold">
+              <Phone className="h-4 w-4 text-primary" />
+              {tStrict("aiTeamMemberUi.voiceCallTitle")}
+            </h2>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {tStrict("aiTeamMemberUi.selectedBrain")}: {LABELS[brainId]}
+            </p>
+            {!callActive ? (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void startVoiceCall()}
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground disabled:opacity-50"
+              >
+                <Phone className="h-4 w-4" />
+                {tStrict("aiTeamMemberUi.startVoiceCall")}
+              </button>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium" aria-live="polite">
+                    {callStatusLabel}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {tStrict("aiTeamMemberUi.callDuration")}:{" "}
+                    {formatCallDuration(callElapsedSec)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleCallMute}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-medium"
+                    aria-label={
+                      callMuted
+                        ? tStrict("aiTeamMemberUi.unmuteMic")
+                        : tStrict("aiTeamMemberUi.muteMic")
+                    }
+                  >
+                    {callMuted ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                    {callMuted
+                      ? tStrict("aiTeamMemberUi.unmuteMic")
+                      : tStrict("aiTeamMemberUi.muteMic")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={endVoiceCall}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-red-500 text-sm font-medium text-white"
+                  >
+                    <PhoneOff className="h-4 w-4" />
+                    {tStrict("aiTeamMemberUi.endVoiceCall")}
+                  </button>
+                </div>
+                {callWarning ? (
+                  <p className="text-xs text-amber-600">{callWarning}</p>
+                ) : null}
+              </div>
+            )}
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              {tStrict("aiTeamMemberUi.callRealtimeDisclosure")}
+            </p>
+          </div>
+
+          <div className="rounded-3xl border bg-card p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 font-semibold">
               <Sparkles className="h-4 w-4 text-primary" />
               {tStrict("aiTeamMemberUi.talkToAi")}
             </h2>
@@ -431,7 +686,7 @@ export function AiTeamMemberWorkspace({
             </label>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
-                disabled={loading}
+                disabled={loading || callActive}
                 onClick={() => askAi("ask")}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
@@ -439,7 +694,7 @@ export function AiTeamMemberWorkspace({
                 {tStrict("aiTeamMemberUi.askAi")}
               </button>
               <button
-                disabled={loading}
+                disabled={loading || callActive}
                 onClick={() => askAi("raise_hand")}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-medium disabled:opacity-50"
               >

@@ -83,6 +83,9 @@ test("TTS uses configured model and voice", async () => {
       webSearchEnabled: false,
       ttsModel: "gpt-4o-mini-tts",
       ttsVoice: "marin",
+      realtimeModel: "gpt-realtime-2.1",
+      realtimeVoice: "marin",
+      realtimeMaxMinutes: 20,
     },
     client: {
       audio: {
@@ -121,6 +124,9 @@ test("TTS failure returns safe error", async () => {
       webSearchEnabled: false,
       ttsModel: "gpt-4o-mini-tts",
       ttsVoice: "marin",
+      realtimeModel: "gpt-realtime-2.1",
+      realtimeVoice: "marin",
+      realtimeMaxMinutes: 20,
     },
     client: {
       audio: {

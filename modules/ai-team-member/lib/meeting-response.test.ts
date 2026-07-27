@@ -373,6 +373,9 @@ test("brain and organization isolation for approved memories", async () => {
       webSearchEnabled: false,
       ttsModel: "gpt-4o-mini-tts",
       ttsVoice: "marin",
+      realtimeModel: "gpt-realtime-2.1",
+      realtimeVoice: "marin",
+      realtimeMaxMinutes: 20,
     },
     textFormat: { type: "json_schema" },
     client: {
@@ -413,6 +416,9 @@ test("agent enables web_search tools only for ask when requested", async () => {
       webSearchEnabled: true,
       ttsModel: "gpt-4o-mini-tts",
       ttsVoice: "marin",
+      realtimeModel: "gpt-realtime-2.1",
+      realtimeVoice: "marin",
+      realtimeMaxMinutes: 20,
     },
     textFormat: { type: "json_schema" },
     client: {
@@ -445,6 +451,9 @@ test("agent enables web_search tools only for ask when requested", async () => {
       webSearchEnabled: true,
       ttsModel: "gpt-4o-mini-tts",
       ttsVoice: "marin",
+      realtimeModel: "gpt-realtime-2.1",
+      realtimeVoice: "marin",
+      realtimeMaxMinutes: 20,
     },
     textFormat: { type: "json_schema" },
     client: {

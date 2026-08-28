@@ -11,6 +11,7 @@ import { calculateInvoiceTotals } from "@/modules/finance/lib/invoice-calculator
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { loadBookingPrefillAction } from "@/modules/finance/actions/invoice-actions";
 import { InvoiceMoneyInput } from "@/modules/finance/components/invoice-money-input";
+import { suppressNumberInputWheel } from "@/modules/finance/lib/suppress-number-input-wheel";
 import { InvoiceTemplateBrandingFields } from "@/modules/finance/components/invoice-template-branding-fields";
 import { DEFAULT_INVOICE_TEMPLATE_KEY } from "@/modules/finance/pdf/invoice-pdf-types";
 
@@ -604,6 +605,7 @@ export function InvoiceDraftEditor({
                       quantity: Number(event.target.value),
                     })
                   }
+                  onWheel={suppressNumberInputWheel}
                 />
               </div>
               <div className="space-y-2">

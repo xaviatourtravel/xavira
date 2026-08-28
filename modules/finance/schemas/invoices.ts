@@ -2,6 +2,7 @@ import { z } from "zod";
 import { INVOICE_TEMPLATE_KEYS } from "@/modules/finance/pdf/invoice-pdf-types";
 import { isValidHexColor, normalizeHexColor } from "@/modules/finance/lib/invoice-theme-colors";
 import { parsePaymentAccountsStrict } from "@/modules/finance/lib/invoice-payment-accounts";
+import { normalizeInvoiceItemDetail } from "@/modules/finance/lib/invoice-item-detail";
 
 const hexColorSchema = z
   .string()
@@ -107,7 +108,13 @@ export const invoiceRecipientSourceSchema = z.enum([
 
 export const invoiceItemInputSchema = z.object({
   description: z.string().trim().min(1).max(500),
-  detail: z.string().trim().max(2000).nullable().optional(),
+  // Preserve internal newlines (\n). Only end-trim / empty → null via helper.
+  detail: z
+    .string()
+    .max(2000)
+    .nullable()
+    .optional()
+    .transform((value) => normalizeInvoiceItemDetail(value)),
   quantity: quantitySchema,
   unit: z.string().trim().min(1).max(40).default("unit"),
   unitPriceMinor: minorSchema,

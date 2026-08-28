@@ -274,7 +274,9 @@ export default async function InvoiceDetailPage({
                 <td className="px-4 py-3">
                   <p className="font-medium">{item.description}</p>
                   {item.detail ? (
-                    <p className="text-xs text-muted-foreground">{item.detail}</p>
+                    <p className="whitespace-pre-line text-xs text-muted-foreground">
+                      {item.detail}
+                    </p>
                   ) : null}
                 </td>
                 <td className="px-4 py-3">

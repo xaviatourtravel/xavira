@@ -572,12 +572,23 @@ export function InvoiceDraftEditor({
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label>{tStrict("financeUi.detail")}</Label>
-                <Input
+                <Label htmlFor={`invoice-item-detail-${index}`}>
+                  {tStrict("financeUi.detail")}
+                </Label>
+                <textarea
+                  id={`invoice-item-detail-${index}`}
+                  rows={2}
                   value={item.detail}
                   onChange={(event) =>
                     updateItem(index, { detail: event.target.value })
                   }
+                  onKeyDown={(event) => {
+                    // Keep Enter as newline — never bubble into form submit.
+                    if (event.key === "Enter") {
+                      event.stopPropagation();
+                    }
+                  }}
+                  className="flex min-h-[2.75rem] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:min-h-10 md:text-sm"
                 />
               </div>
               <div className="space-y-2">

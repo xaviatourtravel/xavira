@@ -17,12 +17,14 @@ import {
   InvoicePaymentBadge,
 } from "@/modules/finance/components/invoice-status-badges";
 import { InvoicePdfPreview } from "@/modules/finance/components/invoice-pdf-preview";
+import { InvoiceRemovePanel } from "@/modules/finance/components/invoice-remove-panel";
 import { TicketingInvoiceDetail } from "@/modules/finance/components/ticketing-invoice-detail";
 import {
   canEditInvoices,
   canIssueInvoices,
   canVoidInvoices,
   canCreateInvoices,
+  canRemoveInvoices,
 } from "@/modules/finance/lib/invoice-access";
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { getOrganizationInvoice } from "@/modules/finance/services/invoice-service";
@@ -31,7 +33,7 @@ import type { InvoiceTicketGroupRecord } from "@/modules/finance/types/ticketing
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; issued?: string }>;
+  searchParams: Promise<{ error?: string; issued?: string; restored?: string }>;
 };
 
 function formatDate(value: string | null) {
@@ -111,6 +113,11 @@ export default async function InvoiceDetailPage({
             <InvoicePaymentBadge
               status={invoice.effectivePaymentStatus ?? invoice.paymentStatus}
             />
+            {invoice.archivedAt ? (
+              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                {t("financeUi.statusArchived")}
+              </span>
+            ) : null}
             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide bg-muted text-muted-foreground">
               {invoice.invoiceType === "ticketing"
                 ? t("financeUi.typeLabelTicketing")
@@ -145,6 +152,18 @@ export default async function InvoiceDetailPage({
       {query.issued === "1" ? (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           {t("financeUi.issueSucceeded")}
+        </p>
+      ) : null}
+
+      {query.restored === "1" ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {t("financeUi.restoredBanner")}
+        </p>
+      ) : null}
+
+      {invoice.archivedAt ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+          {t("financeUi.archivedNotice")}
         </p>
       ) : null}
 
@@ -353,7 +372,7 @@ export default async function InvoiceDetailPage({
         ) : null}
       </div>
 
-      {isIssuedLike && canVoidInvoices(profile) ? (
+      {isIssuedLike && canVoidInvoices(profile) && !invoice.archivedAt ? (
         <form
           action={voidInvoiceFormAction}
           className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50/40 p-4"
@@ -376,6 +395,13 @@ export default async function InvoiceDetailPage({
           </Button>
         </form>
       ) : null}
+
+      <InvoiceRemovePanel
+        invoiceId={invoice.id}
+        lifecycleStatus={invoice.lifecycleStatus}
+        archivedAt={invoice.archivedAt}
+        canRemove={canRemoveInvoices(profile)}
+      />
 
       {invoice.lifecycleStatus === "void" && invoice.voidReason ? (
         <p className="text-sm text-rose-800">

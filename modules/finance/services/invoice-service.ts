@@ -31,9 +31,12 @@ import type {
   InvoiceThemeSnapshot,
 } from "@/modules/finance/types/invoices";
 import * as repo from "@/modules/finance/repositories/invoice-repository";
+import { cleanupDraftInvoiceStorageAssets } from "@/modules/finance/pdf/invoice-pdf-storage";
 import { tryGenerateInvoicePdfAfterIssue } from "@/modules/finance/services/invoice-pdf-service";
 import { resolveWorkspaceBranding } from "@/modules/organization/branding/lib/branding-settings";
 import * as brandingRepo from "@/modules/organization/branding/repositories/branding-repository";
+import { createClient } from "@/utils/supabase/server";
+import { auditFromProfile } from "@/lib/audit/create-audit-log";
 
 function asJson(value: unknown): Json {
   return value as Json;
@@ -479,6 +482,154 @@ export async function voidIssuedInvoice(
     invoiceId: existing.id,
     reason,
   });
+}
+
+export async function archiveIssuedInvoice(
+  profile: Profile,
+  params: { invoiceId: string; reason: string },
+): Promise<InvoiceRecord> {
+  assertInvoicePermission(profile, "invoices.edit");
+  const organizationId = requireOrganizationId(profile);
+  const existing = await repo.getInvoiceById(organizationId, params.invoiceId);
+  if (!existing) {
+    throw new Error("Invoice not found");
+  }
+  assertSameOrganization(existing.organizationId, organizationId);
+
+  if (existing.lifecycleStatus === "draft") {
+    throw new Error("Draft invoices must be permanently deleted, not archived");
+  }
+
+  const reason = params.reason.trim();
+  if (!reason) {
+    throw new Error("archive reason is required");
+  }
+
+  return repo.rpcArchiveInvoice({
+    invoiceId: existing.id,
+    reason,
+  });
+}
+
+export async function restoreArchivedInvoice(
+  profile: Profile,
+  invoiceId: string,
+): Promise<InvoiceRecord> {
+  assertInvoicePermission(profile, "invoices.edit");
+  const organizationId = requireOrganizationId(profile);
+  const existing = await repo.getInvoiceById(organizationId, invoiceId);
+  if (!existing) {
+    throw new Error("Invoice not found");
+  }
+  assertSameOrganization(existing.organizationId, organizationId);
+
+  return repo.rpcRestoreInvoice(existing.id);
+}
+
+export async function deleteDraftInvoice(
+  profile: Profile,
+  invoiceId: string,
+): Promise<{ invoiceId: string }> {
+  assertInvoicePermission(profile, "invoices.edit");
+  const organizationId = requireOrganizationId(profile);
+  const existing = await repo.getInvoiceById(organizationId, invoiceId);
+  if (!existing) {
+    throw new Error("Invoice not found");
+  }
+  assertSameOrganization(existing.organizationId, organizationId);
+
+  if (existing.lifecycleStatus !== "draft") {
+    throw new Error("Only draft invoices can be permanently deleted");
+  }
+
+  const result = await repo.rpcDeleteDraftInvoice(existing.id);
+
+  // Best-effort storage cleanup after DB commit. Failure must not roll back delete.
+  await cleanupDraftInvoiceStorageAssets({
+    organizationId: result.organizationId,
+    invoiceId: result.invoiceId,
+    pdfStoragePath: result.pdfStoragePath,
+    logoAssetPath: result.logoAssetPath,
+  });
+
+  try {
+    const supabase = await createClient();
+    await auditFromProfile(supabase, profile, {
+      action: "invoice_deleted",
+      entityType: "invoice",
+      entityId: result.invoiceId,
+      entityLabel: existing.invoiceNumber ?? "draft",
+      metadata: {
+        lifecycle_status: "draft",
+        had_pdf: Boolean(result.pdfStoragePath),
+      },
+    });
+  } catch {
+    // Org audit is best-effort; invoice_events cascade with the deleted row.
+  }
+
+  return { invoiceId: result.invoiceId };
+}
+
+export type BulkRemoveInvoicesResult = {
+  deletedIds: string[];
+  archivedIds: string[];
+  failed: Array<{ invoiceId: string; message: string }>;
+};
+
+export async function bulkRemoveInvoices(
+  profile: Profile,
+  params: { invoiceIds: string[]; archiveReason?: string | null },
+): Promise<BulkRemoveInvoicesResult> {
+  assertInvoicePermission(profile, "invoices.edit");
+  const organizationId = requireOrganizationId(profile);
+  const reason = (params.archiveReason ?? "").trim();
+
+  const deletedIds: string[] = [];
+  const archivedIds: string[] = [];
+  const failed: Array<{ invoiceId: string; message: string }> = [];
+
+  for (const invoiceId of params.invoiceIds) {
+    try {
+      const existing = await repo.getInvoiceById(organizationId, invoiceId);
+      if (!existing) {
+        failed.push({ invoiceId, message: "Invoice not found" });
+        continue;
+      }
+      assertSameOrganization(existing.organizationId, organizationId);
+
+      if (existing.lifecycleStatus === "draft") {
+        await deleteDraftInvoice(profile, existing.id);
+        deletedIds.push(existing.id);
+      } else if (
+        existing.lifecycleStatus === "issued" ||
+        existing.lifecycleStatus === "sent" ||
+        existing.lifecycleStatus === "void"
+      ) {
+        if (!reason) {
+          failed.push({
+            invoiceId,
+            message: "archive reason is required",
+          });
+          continue;
+        }
+        await archiveIssuedInvoice(profile, {
+          invoiceId: existing.id,
+          reason,
+        });
+        archivedIds.push(existing.id);
+      } else {
+        failed.push({ invoiceId, message: "Unsupported lifecycle status" });
+      }
+    } catch (error) {
+      failed.push({
+        invoiceId,
+        message: error instanceof Error ? error.message : "Failed",
+      });
+    }
+  }
+
+  return { deletedIds, archivedIds, failed };
 }
 
 export async function markInvoiceSent(

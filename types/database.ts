@@ -2661,6 +2661,9 @@ export type Database = {
           updated_by: string | null
           void_reason: string | null
           voided_at: string | null
+          archived_at: string | null
+          archived_by: string | null
+          archive_reason: string | null
         }
         Insert: {
           additional_fees_minor?: number
@@ -2713,6 +2716,9 @@ export type Database = {
           updated_by?: string | null
           void_reason?: string | null
           voided_at?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          archive_reason?: string | null
         }
         Update: {
           additional_fees_minor?: number
@@ -2765,6 +2771,9 @@ export type Database = {
           updated_by?: string | null
           void_reason?: string | null
           voided_at?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          archive_reason?: string | null
         }
         Relationships: [
           {
@@ -3618,6 +3627,18 @@ export type Database = {
       void_invoice: {
         Args: { p_invoice_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      archive_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      restore_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      delete_draft_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: Json
       }
     }
     Enums: {

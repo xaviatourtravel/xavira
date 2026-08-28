@@ -49,6 +49,11 @@ export function canVoidInvoices(profile: Profile) {
   return hasPermission(profile, "invoices.void");
 }
 
+/** Draft hard-delete + issued archive/restore — owner/admin/finance via edit. */
+export function canRemoveInvoices(profile: Profile) {
+  return hasPermission(profile, "invoices.edit");
+}
+
 export function isCommerciallyLockedLifecycle(
   lifecycleStatus: string,
 ): boolean {

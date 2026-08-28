@@ -107,3 +107,34 @@ export async function downloadInvoicePdfFromStorage(
 
   return Buffer.from(await data.arrayBuffer());
 }
+
+/**
+ * Best-effort cleanup of draft PDF/logo objects after hard delete.
+ * Never throws — DB delete already committed; orphan objects may be retried later.
+ */
+export async function cleanupDraftInvoiceStorageAssets(params: {
+  organizationId: string;
+  invoiceId: string;
+  pdfStoragePath: string | null;
+  logoAssetPath: string | null;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const paths = [params.pdfStoragePath, params.logoAssetPath].filter(
+      (path): path is string =>
+        typeof path === "string" &&
+        path.length > 0 &&
+        assertOrganizationScopedStoragePath(
+          path,
+          params.organizationId,
+          params.invoiceId,
+        ),
+    );
+
+    if (paths.length === 0) return;
+
+    await admin.storage.from(INVOICE_PDF_BUCKET).remove(paths);
+  } catch {
+    // Orphan cleanup may be retried; must not corrupt DB state.
+  }
+}

@@ -11,6 +11,7 @@ import { listOrganizationInvoices } from "@/modules/finance/services/invoice-ser
 import {
   canCreateInvoices,
   canEditInvoices,
+  canRemoveInvoices,
 } from "@/modules/finance/lib/invoice-access";
 
 type PageProps = {
@@ -18,6 +19,9 @@ type PageProps = {
     q?: string;
     lifecycle?: string;
     payment?: string;
+    archive?: string;
+    deleted?: string;
+    archived?: string;
   }>;
 };
 
@@ -27,24 +31,35 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
   const t = createTranslator(DEFAULT_LOCALE);
   const params = await searchParams;
 
+  const archiveRaw = params.archive || "active";
+  const archiveFilter =
+    archiveRaw === "archived" || archiveRaw === "all" ? archiveRaw : "active";
+
   const filters = invoiceListFiltersSchema.parse({
     q: params.q || undefined,
     lifecycleStatus: params.lifecycle || undefined,
     paymentStatus: params.payment || undefined,
+    archiveFilter,
   });
 
-  const invoices = await listOrganizationInvoices(profile, filters);
+  const [invoices, activeForSummary] = await Promise.all([
+    listOrganizationInvoices(profile, filters),
+    archiveFilter === "active"
+      ? Promise.resolve(null)
+      : listOrganizationInvoices(profile, { archiveFilter: "active" }),
+  ]);
 
+  const summarySource = activeForSummary ?? invoices;
   const summary = {
-    drafts: invoices.filter((row) => row.lifecycleStatus === "draft").length,
-    issued: invoices.filter(
+    drafts: summarySource.filter((row) => row.lifecycleStatus === "draft").length,
+    issued: summarySource.filter(
       (row) =>
         row.lifecycleStatus === "issued" || row.lifecycleStatus === "sent",
     ).length,
-    unpaid: invoices.filter(
+    unpaid: summarySource.filter(
       (row) => (row.effectivePaymentStatus ?? row.paymentStatus) === "unpaid",
     ).length,
-    overdue: invoices.filter(
+    overdue: summarySource.filter(
       (row) => row.effectivePaymentStatus === "overdue",
     ).length,
   };
@@ -84,6 +99,17 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
           </div>
         ) : null}
       </div>
+
+      {params.deleted === "1" ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {t("financeUi.deletedBanner")}
+        </p>
+      ) : null}
+      {params.archived === "1" ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {t("financeUi.archivedBanner")}
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
@@ -132,6 +158,16 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
           <option value="paid">{t("financeUi.paymentPaid")}</option>
           <option value="overdue">{t("financeUi.paymentOverdue")}</option>
         </select>
+        <select
+          name="archive"
+          defaultValue={archiveFilter}
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          aria-label={t("financeUi.filterArchive")}
+        >
+          <option value="active">{t("financeUi.filterArchiveActive")}</option>
+          <option value="archived">{t("financeUi.filterArchiveArchived")}</option>
+          <option value="all">{t("financeUi.filterArchiveAll")}</option>
+        </select>
         <button
           type="submit"
           className="inline-flex h-10 items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
@@ -140,7 +176,7 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      <InvoiceList rows={invoices} />
+      <InvoiceList rows={invoices} canRemove={canRemoveInvoices(profile)} />
 
       {invoices.length > 0 ? (
         <p className="text-xs text-muted-foreground">

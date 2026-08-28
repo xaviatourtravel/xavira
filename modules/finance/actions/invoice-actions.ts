@@ -5,22 +5,30 @@ import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth/session";
 import {
+  archiveInvoiceSchema,
+  bulkRemoveInvoicesSchema,
   createInvoiceDraftSchema,
+  deleteDraftInvoiceSchema,
   duplicateInvoiceSchema,
   invoiceBrandSettingsUpdateSchema,
   invoicePrefixSchema,
   issueInvoiceSchema,
   markInvoiceSentSchema,
+  restoreInvoiceSchema,
   updateInvoiceDraftSchema,
   voidInvoiceSchema,
 } from "@/modules/finance/schemas/invoices";
 import {
+  archiveIssuedInvoice,
+  bulkRemoveInvoices,
   createDraftInvoice,
+  deleteDraftInvoice,
   duplicateInvoiceAsDraft,
   issueDraftInvoice,
   loadInvoiceEditorOptions,
   markInvoiceSent,
   prefillFromBooking,
+  restoreArchivedInvoice,
   saveOrganizationInvoiceBrandSettings,
   saveOrganizationInvoicePrefix,
   updateDraftInvoice,
@@ -109,6 +117,95 @@ export async function voidInvoiceAction(
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to void invoice",
+    };
+  }
+}
+
+export async function deleteDraftInvoiceAction(
+  raw: unknown,
+): Promise<InvoiceActionResult> {
+  try {
+    const { profile } = await requireProfile();
+    const input = deleteDraftInvoiceSchema.parse(raw);
+    const result = await deleteDraftInvoice(profile, input.invoiceId);
+    revalidateInvoices(result.invoiceId);
+    return { success: true, invoiceId: result.invoiceId };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to delete draft invoice",
+    };
+  }
+}
+
+export async function archiveInvoiceAction(
+  raw: unknown,
+): Promise<InvoiceActionResult> {
+  try {
+    const { profile } = await requireProfile();
+    const input = archiveInvoiceSchema.parse(raw);
+    const invoice = await archiveIssuedInvoice(profile, input);
+    revalidateInvoices(invoice.id);
+    return { success: true, invoiceId: invoice.id };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to archive invoice",
+    };
+  }
+}
+
+export async function restoreInvoiceAction(
+  raw: unknown,
+): Promise<InvoiceActionResult> {
+  try {
+    const { profile } = await requireProfile();
+    const input = restoreInvoiceSchema.parse(raw);
+    const invoice = await restoreArchivedInvoice(profile, input.invoiceId);
+    revalidateInvoices(invoice.id);
+    return { success: true, invoiceId: invoice.id };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to restore invoice",
+    };
+  }
+}
+
+export type BulkRemoveActionResult =
+  | {
+      success: true;
+      deletedIds: string[];
+      archivedIds: string[];
+      failed: Array<{ invoiceId: string; message: string }>;
+    }
+  | { success: false; message: string };
+
+export async function bulkRemoveInvoicesAction(
+  raw: unknown,
+): Promise<BulkRemoveActionResult> {
+  try {
+    const { profile } = await requireProfile();
+    const input = bulkRemoveInvoicesSchema.parse(raw);
+    const result = await bulkRemoveInvoices(profile, input);
+    revalidateInvoices();
+    for (const id of [...result.deletedIds, ...result.archivedIds]) {
+      revalidatePath(`${INVOICES_PATH}/${id}`);
+    }
+    return {
+      success: true,
+      deletedIds: result.deletedIds,
+      archivedIds: result.archivedIds,
+      failed: result.failed,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to remove invoices",
     };
   }
 }
@@ -382,4 +479,46 @@ export async function markInvoiceSentFormAction(formData: FormData) {
   }
 
   redirect(`${INVOICES_PATH}/${invoiceId}`);
+}
+
+export async function deleteDraftInvoiceFormAction(formData: FormData) {
+  const invoiceId = String(formData.get("invoice_id") ?? "");
+  const result = await deleteDraftInvoiceAction({ invoiceId });
+
+  if (!result.success) {
+    redirect(
+      `${INVOICES_PATH}/${invoiceId}?error=${encodeURIComponent(result.message)}`,
+    );
+  }
+
+  redirect(`${INVOICES_PATH}?deleted=1`);
+}
+
+export async function archiveInvoiceFormAction(formData: FormData) {
+  const invoiceId = String(formData.get("invoice_id") ?? "");
+  const result = await archiveInvoiceAction({
+    invoiceId,
+    reason: String(formData.get("reason") ?? ""),
+  });
+
+  if (!result.success) {
+    redirect(
+      `${INVOICES_PATH}/${invoiceId}?error=${encodeURIComponent(result.message)}`,
+    );
+  }
+
+  redirect(`${INVOICES_PATH}?archived=1`);
+}
+
+export async function restoreInvoiceFormAction(formData: FormData) {
+  const invoiceId = String(formData.get("invoice_id") ?? "");
+  const result = await restoreInvoiceAction({ invoiceId });
+
+  if (!result.success) {
+    redirect(
+      `${INVOICES_PATH}/${invoiceId}?error=${encodeURIComponent(result.message)}`,
+    );
+  }
+
+  redirect(`${INVOICES_PATH}/${invoiceId}?restored=1`);
 }

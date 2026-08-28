@@ -228,6 +228,32 @@ export const voidInvoiceSchema = z.object({
   reason: z.string().trim().min(1, "void reason is required").max(1000),
 });
 
+export const archiveInvoiceSchema = z.object({
+  invoiceId: z.string().uuid(),
+  reason: z.string().trim().min(1, "archive reason is required").max(1000),
+});
+
+export const restoreInvoiceSchema = z.object({
+  invoiceId: z.string().uuid(),
+});
+
+export const deleteDraftInvoiceSchema = z.object({
+  invoiceId: z.string().uuid(),
+});
+
+export const bulkRemoveInvoicesSchema = z.object({
+  invoiceIds: z.array(z.string().uuid()).min(1).max(100),
+  archiveReason: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .transform((value) => {
+      if (value == null || value === "") return null;
+      return value;
+    }),
+});
+
 export const markInvoiceSentSchema = z.object({
   invoiceId: z.string().uuid(),
 });
@@ -235,6 +261,8 @@ export const markInvoiceSentSchema = z.object({
 export const duplicateInvoiceSchema = z.object({
   invoiceId: z.string().uuid(),
 });
+
+export const invoiceArchiveFilterSchema = z.enum(["active", "archived", "all"]);
 
 export const invoicePrefixSchema = z
   .object({
@@ -321,12 +349,17 @@ export const invoiceListFiltersSchema = z.object({
   paymentStatus: invoiceEffectivePaymentStatusSchema.optional(),
   invoiceType: z.enum(["package", "ticketing"]).optional(),
   customerId: z.string().uuid().optional(),
+  archiveFilter: invoiceArchiveFilterSchema.optional(),
 });
 
 export type CreateInvoiceDraftInput = z.infer<typeof createInvoiceDraftSchema>;
 export type UpdateInvoiceDraftInput = z.infer<typeof updateInvoiceDraftSchema>;
 export type IssueInvoiceInput = z.infer<typeof issueInvoiceSchema>;
 export type VoidInvoiceInput = z.infer<typeof voidInvoiceSchema>;
+export type ArchiveInvoiceInput = z.infer<typeof archiveInvoiceSchema>;
+export type RestoreInvoiceInput = z.infer<typeof restoreInvoiceSchema>;
+export type DeleteDraftInvoiceInput = z.infer<typeof deleteDraftInvoiceSchema>;
+export type BulkRemoveInvoicesInput = z.infer<typeof bulkRemoveInvoicesSchema>;
 export type InvoiceListFilters = z.infer<typeof invoiceListFiltersSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemInputSchema>;
 export type InvoiceRecipientSource = z.infer<typeof invoiceRecipientSourceSchema>;

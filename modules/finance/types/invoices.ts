@@ -138,6 +138,9 @@ export type InvoiceRecord = {
   sentAt: string | null;
   voidedAt: string | null;
   voidReason: string | null;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdBy: string | null;
   updatedBy: string | null;
   createdAt: string;

@@ -65,6 +65,9 @@ type InvoiceRow = {
   sent_at: string | null;
   voided_at: string | null;
   void_reason: string | null;
+  archived_at?: string | null;
+  archived_by?: string | null;
+  archive_reason?: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -191,6 +194,9 @@ export function mapInvoice(
     sentAt: row.sent_at,
     voidedAt: row.voided_at,
     voidReason: row.void_reason,
+    archivedAt: row.archived_at ?? null,
+    archivedBy: row.archived_by ?? null,
+    archiveReason: row.archive_reason ?? null,
     createdBy: row.created_by,
     updatedBy: row.updated_by,
     createdAt: row.created_at,
@@ -232,6 +238,8 @@ export async function listInvoices(
   filters: InvoiceListFilters = {},
 ): Promise<InvoiceRecord[]> {
   const supabase = await createClient();
+  const archiveFilter = filters.archiveFilter ?? "active";
+
   let query = supabase
     .from("invoices")
     .select(
@@ -243,6 +251,12 @@ export async function listInvoices(
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false });
+
+  if (archiveFilter === "active") {
+    query = query.is("archived_at", null);
+  } else if (archiveFilter === "archived") {
+    query = query.not("archived_at", "is", null);
+  }
 
   if (filters.lifecycleStatus) {
     query = query.eq("lifecycle_status", filters.lifecycleStatus);
@@ -1031,6 +1045,82 @@ export async function rpcVoidInvoice(params: {
     throw new Error("Void invoice returned no row");
   }
   return mapInvoice(row);
+}
+
+export async function rpcArchiveInvoice(params: {
+  invoiceId: string;
+  reason: string;
+}): Promise<InvoiceRecord> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("archive_invoice", {
+    p_invoice_id: params.invoiceId,
+    p_reason: params.reason,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as InvoiceRow | null;
+  if (!row) {
+    throw new Error("Archive invoice returned no row");
+  }
+  return mapInvoice(row);
+}
+
+export async function rpcRestoreInvoice(invoiceId: string): Promise<InvoiceRecord> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_invoice", {
+    p_invoice_id: invoiceId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as InvoiceRow | null;
+  if (!row) {
+    throw new Error("Restore invoice returned no row");
+  }
+  return mapInvoice(row);
+}
+
+export type DeleteDraftInvoiceResult = {
+  invoiceId: string;
+  organizationId: string;
+  pdfStoragePath: string | null;
+  logoAssetPath: string | null;
+};
+
+export async function rpcDeleteDraftInvoice(
+  invoiceId: string,
+): Promise<DeleteDraftInvoiceResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_draft_invoice", {
+    p_invoice_id: invoiceId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const payload = data as {
+    invoice_id?: string;
+    organization_id?: string;
+    pdf_storage_path?: string | null;
+    logo_asset_path?: string | null;
+  } | null;
+
+  if (!payload?.invoice_id || !payload.organization_id) {
+    throw new Error("Delete draft invoice returned no payload");
+  }
+
+  return {
+    invoiceId: payload.invoice_id,
+    organizationId: payload.organization_id,
+    pdfStoragePath: payload.pdf_storage_path ?? null,
+    logoAssetPath: payload.logo_asset_path ?? null,
+  };
 }
 
 export async function rpcMarkInvoiceSent(invoiceId: string): Promise<InvoiceRecord> {

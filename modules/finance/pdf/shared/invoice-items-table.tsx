@@ -9,6 +9,7 @@ import {
   PDF_SPACE,
   PDF_TYPE,
 } from "@/modules/finance/pdf/invoice-pdf-theme";
+import { splitInvoiceItemDetailLines } from "@/modules/finance/lib/invoice-item-detail";
 
 const COLS = {
   desc: "40%",
@@ -82,16 +83,20 @@ export function InvoiceItemsTable({ data }: { data: InvoicePdfData }) {
               {item.description}
             </Text>
             {item.detail ? (
-              <Text
-                style={{
-                  color: muted,
-                  marginTop: 3,
-                  fontSize: PDF_TYPE.caption,
-                  lineHeight: PDF_LINE.body,
-                }}
-              >
-                {item.detail}
-              </Text>
+              <View style={{ marginTop: 3 }}>
+                {splitInvoiceItemDetailLines(item.detail).map((line, lineIndex) => (
+                  <Text
+                    key={`detail-${index}-${lineIndex}`}
+                    style={{
+                      color: muted,
+                      fontSize: PDF_TYPE.caption,
+                      lineHeight: PDF_LINE.body,
+                    }}
+                  >
+                    {line.length > 0 ? line : " "}
+                  </Text>
+                ))}
+              </View>
             ) : null}
           </View>
           <Text

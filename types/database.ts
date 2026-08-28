@@ -3640,6 +3640,14 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: Json
       }
+      delete_archived_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: Json
+      }
+      can_permanently_delete_archived_invoices: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       activity_type:

@@ -7,6 +7,7 @@ import {
   assertBookingMatchesInvoiceCustomer,
   assertInvoicePermission,
   assertSameOrganization,
+  canPermanentlyDeleteArchivedInvoices,
   isCommerciallyLockedLifecycle,
   requireOrganizationId,
 } from "@/modules/finance/lib/invoice-access";
@@ -571,24 +572,136 @@ export async function deleteDraftInvoice(
   return { invoiceId: result.invoiceId };
 }
 
+export async function deleteArchivedInvoice(
+  profile: Profile,
+  invoiceId: string,
+): Promise<{ invoiceId: string }> {
+  if (!canPermanentlyDeleteArchivedInvoices(profile)) {
+    throw new Error("Not authorized to permanently delete archived invoices");
+  }
+  const organizationId = requireOrganizationId(profile);
+  const existing = await repo.getInvoiceById(organizationId, invoiceId);
+  if (!existing) {
+    throw new Error("Invoice not found");
+  }
+  assertSameOrganization(existing.organizationId, organizationId);
+
+  if (!existing.archivedAt) {
+    throw new Error(
+      "Only archived invoices can be permanently deleted with this operation",
+    );
+  }
+
+  const result = await repo.rpcDeleteArchivedInvoice(existing.id);
+
+  await cleanupDraftInvoiceStorageAssets({
+    organizationId: result.organizationId,
+    invoiceId: result.invoiceId,
+    pdfStoragePath: result.pdfStoragePath,
+    logoAssetPath: result.logoAssetPath,
+  });
+
+  try {
+    const supabase = await createClient();
+    await auditFromProfile(supabase, profile, {
+      action: "invoice_deleted",
+      entityType: "invoice",
+      entityId: result.invoiceId,
+      entityLabel: result.invoiceNumber ?? existing.invoiceNumber ?? "invoice",
+      metadata: {
+        lifecycle_status: result.lifecycleStatus ?? existing.lifecycleStatus,
+        archived: true,
+        had_pdf: Boolean(result.pdfStoragePath),
+      },
+    });
+  } catch {
+    // Org audit is best-effort.
+  }
+
+  return { invoiceId: result.invoiceId };
+}
+
 export type BulkRemoveInvoicesResult = {
   deletedIds: string[];
   archivedIds: string[];
+  restoredIds: string[];
   failed: Array<{ invoiceId: string; message: string }>;
 };
 
 export async function bulkRemoveInvoices(
   profile: Profile,
-  params: { invoiceIds: string[]; archiveReason?: string | null },
+  params: {
+    invoiceIds: string[];
+    archiveReason?: string | null;
+    mode?: "active" | "restore" | "permanent_delete";
+  },
 ): Promise<BulkRemoveInvoicesResult> {
-  assertInvoicePermission(profile, "invoices.edit");
   const organizationId = requireOrganizationId(profile);
   const reason = (params.archiveReason ?? "").trim();
+  const mode = params.mode ?? "active";
 
   const deletedIds: string[] = [];
   const archivedIds: string[] = [];
+  const restoredIds: string[] = [];
   const failed: Array<{ invoiceId: string; message: string }> = [];
 
+  if (mode === "restore") {
+    assertInvoicePermission(profile, "invoices.edit");
+    for (const invoiceId of params.invoiceIds) {
+      try {
+        const existing = await repo.getInvoiceById(organizationId, invoiceId);
+        if (!existing) {
+          failed.push({ invoiceId, message: "Invoice not found" });
+          continue;
+        }
+        if (!existing.archivedAt) {
+          failed.push({ invoiceId, message: "Invoice is not archived" });
+          continue;
+        }
+        await restoreArchivedInvoice(profile, existing.id);
+        restoredIds.push(existing.id);
+      } catch (error) {
+        failed.push({
+          invoiceId,
+          message: error instanceof Error ? error.message : "Failed",
+        });
+      }
+    }
+    return { deletedIds, archivedIds, restoredIds, failed };
+  }
+
+  if (mode === "permanent_delete") {
+    if (!canPermanentlyDeleteArchivedInvoices(profile)) {
+      throw new Error("Not authorized to permanently delete archived invoices");
+    }
+    for (const invoiceId of params.invoiceIds) {
+      try {
+        const existing = await repo.getInvoiceById(organizationId, invoiceId);
+        if (!existing) {
+          failed.push({ invoiceId, message: "Invoice not found" });
+          continue;
+        }
+        if (!existing.archivedAt) {
+          failed.push({
+            invoiceId,
+            message: "Only archived invoices can be permanently deleted with this operation",
+          });
+          continue;
+        }
+        await deleteArchivedInvoice(profile, existing.id);
+        deletedIds.push(existing.id);
+      } catch (error) {
+        failed.push({
+          invoiceId,
+          message: error instanceof Error ? error.message : "Failed",
+        });
+      }
+    }
+    return { deletedIds, archivedIds, restoredIds, failed };
+  }
+
+  // Active list: draft → delete, issued/sent/void → archive. Never archive_invoice on archived.
+  assertInvoicePermission(profile, "invoices.edit");
   for (const invoiceId of params.invoiceIds) {
     try {
       const existing = await repo.getInvoiceById(organizationId, invoiceId);
@@ -597,6 +710,15 @@ export async function bulkRemoveInvoices(
         continue;
       }
       assertSameOrganization(existing.organizationId, organizationId);
+
+      if (existing.archivedAt) {
+        failed.push({
+          invoiceId,
+          message:
+            "Archived invoices must be restored or permanently deleted from the archived list",
+        });
+        continue;
+      }
 
       if (existing.lifecycleStatus === "draft") {
         await deleteDraftInvoice(profile, existing.id);
@@ -629,7 +751,7 @@ export async function bulkRemoveInvoices(
     }
   }
 
-  return { deletedIds, archivedIds, failed };
+  return { deletedIds, archivedIds, restoredIds, failed };
 }
 
 export async function markInvoiceSent(

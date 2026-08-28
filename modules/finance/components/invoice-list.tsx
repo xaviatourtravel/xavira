@@ -11,7 +11,10 @@ import {
   InvoiceLifecycleBadge,
   InvoicePaymentBadge,
 } from "@/modules/finance/components/invoice-status-badges";
-import { summarizeBulkRemoval } from "@/modules/finance/lib/invoice-archive";
+import {
+  aggregateFailureMessages,
+  summarizeBulkRemoval,
+} from "@/modules/finance/lib/invoice-archive";
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import type { InvoiceRecord } from "@/modules/finance/types/invoices";
 import { restoreInvoiceFormAction } from "@/modules/finance/actions/invoice-actions";
@@ -19,6 +22,9 @@ import { restoreInvoiceFormAction } from "@/modules/finance/actions/invoice-acti
 type InvoiceListProps = {
   rows: InvoiceRecord[];
   canRemove?: boolean;
+  canPermanentlyDeleteArchived?: boolean;
+  /** When true, bulk actions are restore / permanent delete (never archive). */
+  archivedView?: boolean;
 };
 
 function formatDate(value: string | null) {
@@ -56,11 +62,19 @@ function ArchivedBadge() {
   );
 }
 
-export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
+export function InvoiceList({
+  rows,
+  canRemove = false,
+  canPermanentlyDeleteArchived = false,
+  archivedView = false,
+}: InvoiceListProps) {
   const { tStrict } = useTranslation();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMode, setConfirmMode] = useState<
+    "active" | "restore" | "permanent_delete"
+  >("active");
   const [archiveReason, setArchiveReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -70,6 +84,9 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
     [rows, selected],
   );
   const summary = summarizeBulkRemoval(selectedRows);
+  const showBulk = archivedView
+    ? canRemove || canPermanentlyDeleteArchived
+    : canRemove;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -88,12 +105,22 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
     setSelected(new Set(rows.map((row) => row.id)));
   }
 
+  function openConfirm(mode: "active" | "restore" | "permanent_delete") {
+    setConfirmMode(mode);
+    setConfirmOpen(true);
+    setError(null);
+  }
+
   function runBulk() {
     setError(null);
     startTransition(async () => {
       const result = await bulkRemoveInvoicesAction({
         invoiceIds: Array.from(selected),
-        archiveReason: archiveReason.trim() || undefined,
+        archiveReason:
+          confirmMode === "active"
+            ? archiveReason.trim() || undefined
+            : undefined,
+        mode: confirmMode,
       });
       if (!result.success) {
         setError(result.message);
@@ -101,9 +128,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
       }
       if (result.failed.length > 0) {
         setError(
-          `${tStrict("financeUi.bulkPartialFailure")} ${result.failed
-            .map((f) => f.message)
-            .join("; ")}`,
+          `${tStrict("financeUi.bulkPartialFailure")} ${aggregateFailureMessages(result.failed)}`,
         );
       } else {
         setConfirmOpen(false);
@@ -133,7 +158,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
 
   return (
     <div className="space-y-3">
-      {canRemove && selected.size > 0 ? (
+      {showBulk && selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card px-4 py-3">
           <p className="text-sm">
             {tStrict("financeUi.bulkSelectedCount").replace(
@@ -141,14 +166,39 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
               String(selected.size),
             )}
           </p>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={() => setConfirmOpen(true)}
-          >
-            {tStrict("financeUi.bulkDeleteArchive")}
-          </Button>
+          {archivedView ? (
+            <>
+              {canRemove ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openConfirm("restore")}
+                >
+                  {tStrict("financeUi.restoreInvoice")}
+                </Button>
+              ) : null}
+              {canPermanentlyDeleteArchived ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => openConfirm("permanent_delete")}
+                >
+                  {tStrict("financeUi.deletePermanently")}
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => openConfirm("active")}
+            >
+              {tStrict("financeUi.bulkDeleteArchive")}
+            </Button>
+          )}
         </div>
       ) : null}
 
@@ -166,7 +216,11 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
           className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50/50 p-4 dark:border-rose-900 dark:bg-rose-950/20"
         >
           <h2 id="bulk-remove-title" className="text-sm font-semibold">
-            {tStrict("financeUi.bulkConfirmTitle")}
+            {confirmMode === "permanent_delete"
+              ? tStrict("financeUi.bulkPermanentDeleteTitle")
+              : confirmMode === "restore"
+                ? tStrict("financeUi.bulkRestoreTitle")
+                : tStrict("financeUi.bulkConfirmTitle")}
           </h2>
           <p className="text-sm text-muted-foreground">
             {tStrict("financeUi.bulkSelectedCount").replace(
@@ -174,7 +228,12 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
               String(selected.size),
             )}
           </p>
-          {summary.deleteIds.length > 0 ? (
+          {confirmMode === "permanent_delete" ? (
+            <p className="text-sm">
+              {tStrict("financeUi.bulkPermanentDeleteDescription")}
+            </p>
+          ) : null}
+          {confirmMode === "active" && summary.deleteIds.length > 0 ? (
             <p className="text-sm">
               {tStrict("financeUi.bulkDeleteSummary").replace(
                 "{count}",
@@ -182,7 +241,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
               )}
             </p>
           ) : null}
-          {summary.archiveIds.length > 0 ? (
+          {confirmMode === "active" && summary.archiveIds.length > 0 ? (
             <p className="text-sm">
               {tStrict("financeUi.bulkArchiveSummary").replace(
                 "{count}",
@@ -190,7 +249,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
               )}
             </p>
           ) : null}
-          {summary.archiveIds.length > 0 ? (
+          {confirmMode === "active" && summary.archiveIds.length > 0 ? (
             <label className="block text-sm">
               <span className="mb-1 block">{tStrict("financeUi.archiveReason")}</span>
               <textarea
@@ -214,14 +273,22 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
             </Button>
             <Button
               type="button"
-              variant="destructive"
+              variant={confirmMode === "restore" ? "outline" : "destructive"}
               disabled={
                 pending ||
-                (summary.archiveIds.length > 0 && !archiveReason.trim())
+                (confirmMode === "active" &&
+                  summary.archiveIds.length > 0 &&
+                  !archiveReason.trim())
               }
               onClick={runBulk}
             >
-              {pending ? "…" : tStrict("financeUi.bulkConfirm")}
+              {pending
+                ? "…"
+                : confirmMode === "restore"
+                  ? tStrict("financeUi.restoreInvoice")
+                  : confirmMode === "permanent_delete"
+                    ? tStrict("financeUi.deletePermanently")
+                    : tStrict("financeUi.bulkConfirm")}
             </Button>
           </div>
         </div>
@@ -233,7 +300,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  {canRemove ? (
+                  {showBulk ? (
                     <input
                       type="checkbox"
                       checked={selected.has(invoice.id)}
@@ -308,7 +375,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
         <table className="w-full min-w-[920px] text-left text-sm">
           <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              {canRemove ? (
+              {showBulk ? (
                 <th className="px-3 py-3">
                   <input
                     type="checkbox"
@@ -328,7 +395,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
               <th className="px-4 py-3 font-medium">{tStrict("financeUi.paid")}</th>
               <th className="px-4 py-3 font-medium">{tStrict("financeUi.balance")}</th>
               <th className="px-4 py-3 font-medium">{tStrict("financeUi.dueDate")}</th>
-              {canRemove ? (
+              {showBulk ? (
                 <th className="px-4 py-3 font-medium">{tStrict("financeUi.viewInvoice")}</th>
               ) : null}
             </tr>
@@ -336,7 +403,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
           <tbody>
             {rows.map((invoice) => (
               <tr key={invoice.id} className="border-b last:border-0">
-                {canRemove ? (
+                {showBulk ? (
                   <td className="px-3 py-3">
                     <input
                       type="checkbox"
@@ -377,7 +444,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
                 <td className="px-4 py-3">{formatMinorAsIdr(invoice.amountPaidMinor)}</td>
                 <td className="px-4 py-3">{formatMinorAsIdr(invoice.balanceDueMinor)}</td>
                 <td className="px-4 py-3">{formatDate(invoice.dueDate)}</td>
-                {canRemove ? (
+                {showBulk ? (
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <Link
@@ -386,7 +453,7 @@ export function InvoiceList({ rows, canRemove = false }: InvoiceListProps) {
                       >
                         {tStrict("financeUi.viewInvoice")}
                       </Link>
-                      {invoice.archivedAt ? (
+                      {canRemove && invoice.archivedAt ? (
                         <form action={restoreInvoiceFormAction}>
                           <input type="hidden" name="invoice_id" value={invoice.id} />
                           <button

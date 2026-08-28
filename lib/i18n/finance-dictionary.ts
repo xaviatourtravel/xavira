@@ -245,6 +245,16 @@ export const financeUiEn = {
   restoredBanner: "Invoice restored.",
   archivedNotice:
     "This invoice is archived. It is hidden from the default invoice list.",
+  deletePermanently: "Delete permanently",
+  deleteArchivedTitle: "Permanently delete this invoice?",
+  deleteArchivedDescription:
+    "This invoice and related data will be deleted and cannot be restored.",
+  deleteArchivedBlockedPayments:
+    "This invoice has payment history and cannot be permanently deleted.",
+  bulkPermanentDeleteTitle: "Permanently delete selected invoices?",
+  bulkPermanentDeleteDescription:
+    "Invoices without payment history will be permanently deleted. Invoices with payment history cannot be deleted.",
+  bulkRestoreTitle: "Restore selected invoices?",
 } as const;
 
 export const financeUiId = {
@@ -495,6 +505,16 @@ export const financeUiId = {
   restoredBanner: "Invoice dipulihkan.",
   archivedNotice:
     "Invoice ini diarsipkan. Invoice tersembunyi dari daftar utama.",
+  deletePermanently: "Hapus Permanen",
+  deleteArchivedTitle: "Hapus invoice secara permanen?",
+  deleteArchivedDescription:
+    "Invoice ini akan dihapus beserta data terkait dan tidak dapat dipulihkan.",
+  deleteArchivedBlockedPayments:
+    "Invoice memiliki riwayat pembayaran dan tidak dapat dihapus permanen.",
+  bulkPermanentDeleteTitle: "Hapus permanen invoice yang dipilih?",
+  bulkPermanentDeleteDescription:
+    "Invoice tanpa riwayat pembayaran akan dihapus permanen. Invoice dengan riwayat pembayaran tidak dapat dihapus.",
+  bulkRestoreTitle: "Pulihkan invoice yang dipilih?",
 } as const;
 
 export type FinanceUiKey = keyof typeof financeUiEn;

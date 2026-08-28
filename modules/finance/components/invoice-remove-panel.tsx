@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import {
   archiveInvoiceFormAction,
+  deleteArchivedInvoiceFormAction,
   deleteDraftInvoiceFormAction,
   restoreInvoiceFormAction,
 } from "@/modules/finance/actions/invoice-actions";
@@ -16,6 +17,9 @@ type InvoiceRemovePanelProps = {
   lifecycleStatus: InvoiceLifecycleStatus;
   archivedAt: string | null;
   canRemove: boolean;
+  canPermanentlyDeleteArchived: boolean;
+  /** Soft UI hint; RPC is authoritative for payment history. */
+  likelyHasPayments?: boolean;
 };
 
 export function InvoiceRemovePanel({
@@ -23,29 +27,88 @@ export function InvoiceRemovePanel({
   lifecycleStatus,
   archivedAt,
   canRemove,
+  canPermanentlyDeleteArchived,
+  likelyHasPayments = false,
 }: InvoiceRemovePanelProps) {
   const { tStrict } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [permanentOpen, setPermanentOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  if (!canRemove) return null;
-
   if (archivedAt) {
+    if (!canRemove && !canPermanentlyDeleteArchived) return null;
+
     return (
-      <form
-        action={restoreInvoiceFormAction}
-        className="space-y-3 rounded-2xl border bg-card p-4"
-      >
-        <input type="hidden" name="invoice_id" value={invoiceId} />
-        <p className="text-sm text-muted-foreground">
-          {tStrict("financeUi.archivedNotice")}
-        </p>
-        <Button type="submit" variant="outline" disabled={pending}>
-          {tStrict("financeUi.restoreInvoice")}
-        </Button>
-      </form>
+      <div className="space-y-4">
+        <div className="space-y-3 rounded-2xl border bg-card p-4">
+          <p className="text-sm text-muted-foreground">
+            {tStrict("financeUi.archivedNotice")}
+          </p>
+          {canRemove ? (
+            <form action={restoreInvoiceFormAction}>
+              <input type="hidden" name="invoice_id" value={invoiceId} />
+              <Button type="submit" variant="outline" disabled={pending}>
+                {tStrict("financeUi.restoreInvoice")}
+              </Button>
+            </form>
+          ) : null}
+        </div>
+
+        {canPermanentlyDeleteArchived ? (
+          <div className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50/40 p-4 dark:border-rose-900 dark:bg-rose-950/20">
+            <h2 className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+              {tStrict("financeUi.deletePermanently")}
+            </h2>
+            {likelyHasPayments ? (
+              <p className="text-sm text-rose-800 dark:text-rose-200">
+                {tStrict("financeUi.deleteArchivedBlockedPayments")}
+              </p>
+            ) : !permanentOpen ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setPermanentOpen(true)}
+              >
+                {tStrict("financeUi.deletePermanently")}
+              </Button>
+            ) : (
+              <form
+                action={(formData) => {
+                  startTransition(() => {
+                    void deleteArchivedInvoiceFormAction(formData);
+                  });
+                }}
+                className="space-y-3"
+              >
+                <input type="hidden" name="invoice_id" value={invoiceId} />
+                <p className="text-sm font-medium">
+                  {tStrict("financeUi.deleteArchivedTitle")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {tStrict("financeUi.deleteArchivedDescription")}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPermanentOpen(false)}
+                    disabled={pending}
+                  >
+                    {tStrict("financeUi.cancelAction")}
+                  </Button>
+                  <Button type="submit" variant="destructive" disabled={pending}>
+                    {pending ? "…" : tStrict("financeUi.deletePermanently")}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        ) : null}
+      </div>
     );
   }
+
+  if (!canRemove) return null;
 
   const isDraft = lifecycleStatus === "draft";
   const canArchive =
@@ -93,9 +156,7 @@ export function InvoiceRemovePanel({
               {tStrict("financeUi.cancelAction")}
             </Button>
             <Button type="submit" variant="destructive" disabled={pending}>
-              {pending
-                ? "…"
-                : tStrict("financeUi.deleteDraftConfirm")}
+              {pending ? "…" : tStrict("financeUi.deleteDraftConfirm")}
             </Button>
           </div>
         </form>

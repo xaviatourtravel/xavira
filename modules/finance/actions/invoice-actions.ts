@@ -8,6 +8,7 @@ import {
   archiveInvoiceSchema,
   bulkRemoveInvoicesSchema,
   createInvoiceDraftSchema,
+  deleteArchivedInvoiceSchema,
   deleteDraftInvoiceSchema,
   duplicateInvoiceSchema,
   invoiceBrandSettingsUpdateSchema,
@@ -22,6 +23,7 @@ import {
   archiveIssuedInvoice,
   bulkRemoveInvoices,
   createDraftInvoice,
+  deleteArchivedInvoice,
   deleteDraftInvoice,
   duplicateInvoiceAsDraft,
   issueDraftInvoice,
@@ -139,6 +141,26 @@ export async function deleteDraftInvoiceAction(
   }
 }
 
+export async function deleteArchivedInvoiceAction(
+  raw: unknown,
+): Promise<InvoiceActionResult> {
+  try {
+    const { profile } = await requireProfile();
+    const input = deleteArchivedInvoiceSchema.parse(raw);
+    const result = await deleteArchivedInvoice(profile, input.invoiceId);
+    revalidateInvoices(result.invoiceId);
+    return { success: true, invoiceId: result.invoiceId };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to permanently delete invoice",
+    };
+  }
+}
+
 export async function archiveInvoiceAction(
   raw: unknown,
 ): Promise<InvoiceActionResult> {
@@ -180,6 +202,7 @@ export type BulkRemoveActionResult =
       success: true;
       deletedIds: string[];
       archivedIds: string[];
+      restoredIds: string[];
       failed: Array<{ invoiceId: string; message: string }>;
     }
   | { success: false; message: string };
@@ -192,13 +215,18 @@ export async function bulkRemoveInvoicesAction(
     const input = bulkRemoveInvoicesSchema.parse(raw);
     const result = await bulkRemoveInvoices(profile, input);
     revalidateInvoices();
-    for (const id of [...result.deletedIds, ...result.archivedIds]) {
+    for (const id of [
+      ...result.deletedIds,
+      ...result.archivedIds,
+      ...result.restoredIds,
+    ]) {
       revalidatePath(`${INVOICES_PATH}/${id}`);
     }
     return {
       success: true,
       deletedIds: result.deletedIds,
       archivedIds: result.archivedIds,
+      restoredIds: result.restoredIds,
       failed: result.failed,
     };
   } catch (error) {
@@ -492,6 +520,19 @@ export async function deleteDraftInvoiceFormAction(formData: FormData) {
   }
 
   redirect(`${INVOICES_PATH}?deleted=1`);
+}
+
+export async function deleteArchivedInvoiceFormAction(formData: FormData) {
+  const invoiceId = String(formData.get("invoice_id") ?? "");
+  const result = await deleteArchivedInvoiceAction({ invoiceId });
+
+  if (!result.success) {
+    redirect(
+      `${INVOICES_PATH}/${invoiceId}?error=${encodeURIComponent(result.message)}`,
+    );
+  }
+
+  redirect(`${INVOICES_PATH}?archive=archived&deleted=1`);
 }
 
 export async function archiveInvoiceFormAction(formData: FormData) {

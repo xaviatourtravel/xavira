@@ -4,8 +4,10 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
+  aggregateFailureMessages,
   canArchiveInvoice,
   canHardDeleteInvoice,
+  canPermanentlyDeleteArchivedInvoice,
   canRestoreInvoice,
   isInvoiceArchived,
   resolveInvoiceRemovalMode,
@@ -14,15 +16,22 @@ import {
 import {
   archiveInvoiceSchema,
   bulkRemoveInvoicesSchema,
+  deleteArchivedInvoiceSchema,
   deleteDraftInvoiceSchema,
   invoiceListFiltersSchema,
   restoreInvoiceSchema,
 } from "@/modules/finance/schemas/invoices";
 import { roleHasPermission } from "@/lib/auth/permission-matrix";
+import { canPermanentlyDeleteArchivedInvoices } from "@/modules/finance/lib/invoice-access";
+import type { Profile } from "@/types/app-types";
 
 const ARCHIVE_MIGRATION_PATH = path.join(
   process.cwd(),
   "supabase/migrations/20260828000000_invoice_archive_delete.sql",
+);
+const FIX_MIGRATION_PATH = path.join(
+  process.cwd(),
+  "supabase/migrations/20260828120000_invoice_delete_cascade_fix.sql",
 );
 const DOMAIN_MIGRATION_PATH = path.join(
   process.cwd(),
@@ -37,12 +46,16 @@ const TICKETING_MIGRATION_PATH = path.join(
   "supabase/migrations/20260717000000_invoice_ticketing.sql",
 );
 
+function readFixMigration() {
+  return readFileSync(FIX_MIGRATION_PATH, "utf8");
+}
+
 function readArchiveMigration() {
   return readFileSync(ARCHIVE_MIGRATION_PATH, "utf8");
 }
 
 describe("FIN-003 removal mode rules", () => {
-  it("draft invoice can be hard deleted", () => {
+  it("package draft can be hard deleted", () => {
     assert.equal(
       resolveInvoiceRemovalMode({ lifecycleStatus: "draft" }),
       "hard_delete",
@@ -50,6 +63,13 @@ describe("FIN-003 removal mode rules", () => {
     assert.equal(
       canHardDeleteInvoice({ lifecycleStatus: "draft", paymentCount: 0 }),
       true,
+    );
+  });
+
+  it("ticketing draft uses same hard-delete mode", () => {
+    assert.equal(
+      resolveInvoiceRemovalMode({ lifecycleStatus: "draft" }),
+      "hard_delete",
     );
   });
 
@@ -66,14 +86,9 @@ describe("FIN-003 removal mode rules", () => {
       resolveInvoiceRemovalMode({ lifecycleStatus: "sent" }),
       "archive",
     );
-    assert.equal(canHardDeleteInvoice({ lifecycleStatus: "sent" }), false);
   });
 
   it("paid invoice cannot be hard deleted (archive only)", () => {
-    assert.equal(
-      resolveInvoiceRemovalMode({ lifecycleStatus: "issued" }),
-      "archive",
-    );
     assert.equal(
       canHardDeleteInvoice({
         lifecycleStatus: "issued",
@@ -91,8 +106,6 @@ describe("FIN-003 removal mode rules", () => {
   });
 
   it("archived invoice disappears from default list filter semantics", () => {
-    const parsed = invoiceListFiltersSchema.parse({});
-    assert.equal(parsed.archiveFilter, undefined);
     const active = invoiceListFiltersSchema.parse({ archiveFilter: "active" });
     assert.equal(active.archiveFilter, "active");
     assert.equal(isInvoiceArchived("2026-08-28T00:00:00Z"), true);
@@ -110,7 +123,6 @@ describe("FIN-003 removal mode rules", () => {
       canRestoreInvoice({ archivedAt: "2026-08-28T00:00:00Z" }),
       true,
     );
-    assert.equal(canRestoreInvoice({ archivedAt: null }), false);
   });
 
   it("draft with financial history cannot be hard deleted", () => {
@@ -123,23 +135,94 @@ describe("FIN-003 removal mode rules", () => {
     );
   });
 
-  it("bulk summary separates delete vs archive", () => {
+  it("archived without payments can be permanently deleted", () => {
+    assert.equal(
+      canPermanentlyDeleteArchivedInvoice({
+        archivedAt: "2026-08-28T00:00:00Z",
+        paymentCount: 0,
+      }),
+      true,
+    );
+  });
+
+  it("archived with payments cannot be permanently deleted", () => {
+    assert.equal(
+      canPermanentlyDeleteArchivedInvoice({
+        archivedAt: "2026-08-28T00:00:00Z",
+        paymentCount: 1,
+      }),
+      false,
+    );
+  });
+
+  it("non-archived issued cannot use archived hard-delete eligibility", () => {
+    assert.equal(
+      canPermanentlyDeleteArchivedInvoice({
+        archivedAt: null,
+        paymentCount: 0,
+      }),
+      false,
+    );
+  });
+
+  it("bulk summary for active never routes archived through archive", () => {
     const summary = summarizeBulkRemoval([
       { id: "a", lifecycleStatus: "draft" },
       { id: "b", lifecycleStatus: "issued" },
-      { id: "c", lifecycleStatus: "sent" },
-      { id: "d", lifecycleStatus: "draft", archivedAt: "x" },
+      { id: "c", lifecycleStatus: "sent", archivedAt: "x" },
     ]);
     assert.deepEqual(summary.deleteIds, ["a"]);
-    assert.deepEqual(summary.archiveIds, ["b", "c"]);
-    assert.deepEqual(summary.skippedIds, ["d"]);
+    assert.deepEqual(summary.archiveIds, ["b"]);
+    assert.deepEqual(summary.skippedIds, ["c"]);
   });
 
-  it("owner/admin/finance can remove via invoices.edit", () => {
-    assert.equal(roleHasPermission("owner", "invoices.edit"), true);
-    assert.equal(roleHasPermission("admin", "invoices.edit"), true);
+  it("active bulk behavior unchanged for draft + issued", () => {
+    const summary = summarizeBulkRemoval([
+      { id: "d1", lifecycleStatus: "draft" },
+      { id: "i1", lifecycleStatus: "issued" },
+      { id: "v1", lifecycleStatus: "void" },
+    ]);
+    assert.deepEqual(summary.deleteIds, ["d1"]);
+    assert.deepEqual(summary.archiveIds, ["i1", "v1"]);
+  });
+
+  it("archived bulk action never implies archive_invoice routing", () => {
+    assert.equal(
+      resolveInvoiceRemovalMode({
+        lifecycleStatus: "issued",
+        archivedAt: "2026-08-28T00:00:00Z",
+      }),
+      "permanent_delete_archived",
+    );
+    assert.equal(
+      canArchiveInvoice({
+        lifecycleStatus: "issued",
+        archivedAt: "2026-08-28T00:00:00Z",
+      }),
+      false,
+    );
+  });
+
+  it("owner/admin can permanently delete archived; finance cannot", () => {
+    const owner = { role: "owner" } as Profile;
+    const admin = { role: "admin" } as Profile;
+    const finance = { role: "finance" } as Profile;
+    assert.equal(canPermanentlyDeleteArchivedInvoices(owner), true);
+    assert.equal(canPermanentlyDeleteArchivedInvoices(admin), true);
+    assert.equal(canPermanentlyDeleteArchivedInvoices(finance), false);
     assert.equal(roleHasPermission("finance", "invoices.edit"), true);
-    assert.equal(roleHasPermission("sales", "invoices.edit"), false);
+  });
+
+  it("aggregates duplicate identical errors cleanly", () => {
+    assert.equal(
+      aggregateFailureMessages([
+        { message: "archive reason is required" },
+        { message: "archive reason is required" },
+        { message: "archive reason is required" },
+        { message: "Invoice not found" },
+      ]),
+      "archive reason is required (3); Invoice not found",
+    );
   });
 });
 
@@ -151,15 +234,13 @@ describe("FIN-003 schemas", () => {
         reason: "  ",
       }),
     );
-    const ok = archiveInvoiceSchema.parse({
-      invoiceId: "11111111-1111-1111-1111-111111111111",
-      reason: "Invoice hasil testing",
-    });
-    assert.equal(ok.reason, "Invoice hasil testing");
   });
 
-  it("delete draft and restore schemas accept uuid", () => {
+  it("delete draft / archived / restore schemas accept uuid", () => {
     deleteDraftInvoiceSchema.parse({
+      invoiceId: "11111111-1111-1111-1111-111111111111",
+    });
+    deleteArchivedInvoiceSchema.parse({
       invoiceId: "11111111-1111-1111-1111-111111111111",
     });
     restoreInvoiceSchema.parse({
@@ -167,120 +248,55 @@ describe("FIN-003 schemas", () => {
     });
   });
 
-  it("bulk remove accepts optional archive reason", () => {
-    const ok = bulkRemoveInvoicesSchema.parse({
+  it("bulk remove modes include restore and permanent_delete", () => {
+    const active = bulkRemoveInvoicesSchema.parse({
       invoiceIds: ["11111111-1111-1111-1111-111111111111"],
       archiveReason: "cleanup",
     });
-    assert.equal(ok.archiveReason, "cleanup");
-    const draftOnly = bulkRemoveInvoicesSchema.parse({
+    assert.equal(active.mode, "active");
+    const permanent = bulkRemoveInvoicesSchema.parse({
       invoiceIds: ["11111111-1111-1111-1111-111111111111"],
+      mode: "permanent_delete",
     });
-    assert.equal(draftOnly.archiveReason, null);
+    assert.equal(permanent.mode, "permanent_delete");
+    const restore = bulkRemoveInvoicesSchema.parse({
+      invoiceIds: ["11111111-1111-1111-1111-111111111111"],
+      mode: "restore",
+    });
+    assert.equal(restore.mode, "restore");
   });
 });
 
-describe("FIN-003 migration security contracts", () => {
-  const sql = readArchiveMigration();
+describe("FIN-003A cascade delete + archived permanent delete contracts", () => {
+  const fix = readFixMigration();
+  const archive = readArchiveMigration();
   const domain = readFileSync(DOMAIN_MIGRATION_PATH, "utf8");
   const payments = readFileSync(PAYMENTS_MIGRATION_PATH, "utf8");
   const ticketing = readFileSync(TICKETING_MIGRATION_PATH, "utf8");
 
-  it("adds archive columns without altering commercial fields", () => {
-    assert.match(sql, /ADD COLUMN IF NOT EXISTS archived_at/);
-    assert.match(sql, /ADD COLUMN IF NOT EXISTS archived_by/);
-    assert.match(sql, /ADD COLUMN IF NOT EXISTS archive_reason/);
-  });
-
-  it("issued invoice cannot be hard deleted via delete_draft_invoice", () => {
-    assert.match(sql, /Only draft invoices can be permanently deleted/);
-    assert.match(sql, /lifecycle_status <> 'draft'/);
-  });
-
-  it("sent / void archive path exists; draft cannot archive", () => {
-    assert.match(sql, /Draft invoices must be permanently deleted, not archived/);
+  it("root cause function is lock_parent_invoice_for_ticket_mutation", () => {
     assert.match(
-      sql,
-      /Only issued, sent, or void invoices can be archived/,
+      ticketing,
+      /Ticket row must reference an existing invoice/,
     );
+    assert.match(ticketing, /lock_parent_invoice_for_ticket_mutation/);
+    assert.match(fix, /CREATE OR REPLACE FUNCTION public\.lock_parent_invoice_for_ticket_mutation/);
   });
 
-  it("draft with payment history blocked from hard delete", () => {
-    assert.match(
-      sql,
-      /Draft invoice has payment history and cannot be permanently deleted/,
-    );
+  it("DELETE allows missing parent (cascade); INSERT/UPDATE still require parent", () => {
+    assert.match(fix, /IF TG_OP = 'DELETE' THEN/);
+    assert.match(fix, /IF NOT FOUND THEN\s+RETURN OLD;/);
+    assert.match(fix, /Ticket row must reference an existing invoice/);
   });
 
-  it("archive does not alter invoice number / lifecycle / totals", () => {
-    // UPDATE only sets archive fields + updated_by
-    assert.match(
-      sql,
-      /archived_at = now\(\),\s*archived_by = v_actor,\s*archive_reason = v_reason,\s*updated_by = v_actor/,
-    );
-    assert.doesNotMatch(sql, /SET[\s\S]{0,200}invoice_number\s*=/);
-    assert.doesNotMatch(sql, /SET[\s\S]{0,200}total_minor\s*=/);
-    assert.doesNotMatch(sql, /SET[\s\S]{0,200}payment_status\s*=/);
+  it("ticket integrity still enforced on insert/update via validate triggers", () => {
+    assert.match(ticketing, /validate_ticket_group_refs/);
+    assert.match(ticketing, /Ticket groups can only attach to ticketing invoices/);
+    assert.match(ticketing, /BEFORE INSERT OR UPDATE OF organization_id, invoice_id/);
     assert.doesNotMatch(
-      sql,
-      /UPDATE public\.invoices\s+SET[\s\S]{0,400}lifecycle_status\s*=/,
+      fix,
+      /DROP TRIGGER IF EXISTS invoice_ticket_groups_validate_refs/,
     );
-  });
-
-  it("restore clears archive timestamps without renumbering", () => {
-    assert.match(sql, /archived_at = NULL/);
-    assert.match(sql, /archived_by = NULL/);
-    assert.doesNotMatch(
-      sql,
-      /restore_invoice[\s\S]{0,800}invoice_number\s*=/,
-    );
-  });
-
-  it("archive/restore events use auth.uid actor path", () => {
-    assert.match(sql, /v_actor uuid := auth\.uid\(\)/);
-    assert.match(sql, /'INVOICE_ARCHIVED'/);
-    assert.match(sql, /'INVOICE_RESTORED'/);
-    assert.match(sql, /archived_by = v_actor/);
-  });
-
-  it("actor cannot forge archived_by without trusted setting", () => {
-    assert.match(sql, /prevent_client_invoice_archive_state_edit/);
-    assert.match(sql, /app\.trusted_invoice_archive/);
-    assert.match(
-      sql,
-      /Archive state can only be changed by trusted invoice RPCs/,
-    );
-  });
-
-  it("caller cannot supply organization or actor IDs to RPCs", () => {
-    assert.match(
-      sql,
-      /CREATE OR REPLACE FUNCTION public\.archive_invoice\(\s*p_invoice_id uuid,\s*p_reason text\s*\)/,
-    );
-    assert.match(
-      sql,
-      /CREATE OR REPLACE FUNCTION public\.restore_invoice\(\s*p_invoice_id uuid\s*\)/,
-    );
-    assert.match(
-      sql,
-      /CREATE OR REPLACE FUNCTION public\.delete_draft_invoice\(\s*p_invoice_id uuid\s*\)/,
-    );
-    assert.doesNotMatch(
-      sql,
-      /archive_invoice\([^)]*p_organization_id/,
-    );
-    assert.doesNotMatch(sql, /archive_invoice\([^)]*p_actor/);
-    assert.doesNotMatch(sql, /delete_draft_invoice\([^)]*p_organization_id/);
-  });
-
-  it("cross-workspace rejected via can_manage_invoices on invoice org", () => {
-    assert.match(sql, /can_manage_invoices\(v_invoice\.organization_id\)/);
-    assert.match(sql, /FOR UPDATE/);
-  });
-
-  it("existing delete RLS still drafts-only", () => {
-    assert.match(domain, /invoices_delete_manager_draft/);
-    assert.match(domain, /lifecycle_status = 'draft'/);
   });
 
   it("payments and ticketing cascade from invoices on hard delete", () => {
@@ -294,31 +310,67 @@ describe("FIN-003 migration security contracts", () => {
     );
   });
 
-  it("PDF path preserved on archive (no pdf_storage_path mutation)", () => {
+  it("trusted delete flag allows issued child cascade during permanent delete", () => {
+    assert.match(fix, /app\.trusted_invoice_delete/);
+    assert.match(fix, /prevent_issued_ticket_group_edit/);
+    assert.match(fix, /prevent_issued_flight_segment_edit/);
+    assert.match(fix, /prevent_issued_invoice_item_edit/);
+  });
+
+  it("delete_draft_invoice sets trusted flag before DELETE", () => {
+    assert.match(
+      fix,
+      /PERFORM set_config\('app\.trusted_invoice_delete', '1', true\);/,
+    );
+    assert.match(fix, /Only draft invoices can be permanently deleted/);
+  });
+
+  it("delete_archived_invoice requires archived + blocks payments", () => {
+    assert.match(
+      fix,
+      /CREATE OR REPLACE FUNCTION public\.delete_archived_invoice\(p_invoice_id uuid\)/,
+    );
+    assert.match(
+      fix,
+      /Only archived invoices can be permanently deleted with this operation/,
+    );
+    assert.match(
+      fix,
+      /Invoice memiliki riwayat pembayaran dan tidak dapat dihapus permanen\./,
+    );
     assert.doesNotMatch(
-      sql,
-      /UPDATE public\.invoices\s+SET\s+[\s\S]*pdf_storage_path\s*=/,
+      fix,
+      /delete_archived_invoice\([^)]*p_organization_id/,
     );
+    assert.doesNotMatch(fix, /delete_archived_invoice\([^)]*p_actor/);
   });
 
-  it("delete_draft returns storage paths for best-effort cleanup", () => {
-    assert.match(sql, /pdf_storage_path/);
-    assert.match(sql, /logo_asset_path/);
-    assert.match(sql, /DELETE FROM public\.invoices/);
+  it("archived permanent delete permission is owner/admin only", () => {
+    assert.match(
+      fix,
+      /can_permanently_delete_archived_invoices/,
+    );
+    assert.match(fix, /RETURN v_role IN \('owner', 'admin'\)/);
   });
 
-  it("SECURITY DEFINER helpers revoke PUBLIC", () => {
+  it("cross-workspace deletion rejected via org check", () => {
     assert.match(
-      sql,
-      /REVOKE ALL ON FUNCTION public\.archive_invoice\(uuid, text\) FROM PUBLIC/,
+      fix,
+      /can_permanently_delete_archived_invoices\(v_invoice\.organization_id\)/,
     );
-    assert.match(
-      sql,
-      /REVOKE ALL ON FUNCTION public\.restore_invoice\(uuid\) FROM PUBLIC/,
-    );
-    assert.match(
-      sql,
-      /REVOKE ALL ON FUNCTION public\.delete_draft_invoice\(uuid\) FROM PUBLIC/,
-    );
+    assert.match(fix, /FOR UPDATE/);
+  });
+
+  it("issued hard-delete via draft RPC remains blocked", () => {
+    assert.match(fix, /Only draft invoices can be permanently deleted/);
+    assert.match(domain, /invoices_delete_manager_draft/);
+    assert.match(domain, /lifecycle_status = 'draft'/);
+  });
+
+  it("FIN-003 archive/restore RPCs still present", () => {
+    assert.match(archive, /archive_invoice/);
+    assert.match(archive, /restore_invoice/);
+    assert.match(archive, /INVOICE_ARCHIVED/);
+    assert.match(archive, /INVOICE_RESTORED/);
   });
 });

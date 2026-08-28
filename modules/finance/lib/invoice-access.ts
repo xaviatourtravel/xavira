@@ -54,6 +54,11 @@ export function canRemoveInvoices(profile: Profile) {
   return hasPermission(profile, "invoices.edit");
 }
 
+/** Permanent delete of archived invoices — owner/admin only. */
+export function canPermanentlyDeleteArchivedInvoices(profile: Profile) {
+  return profile.role === "owner" || profile.role === "admin";
+}
+
 export function isCommerciallyLockedLifecycle(
   lifecycleStatus: string,
 ): boolean {

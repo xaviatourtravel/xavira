@@ -529,6 +529,16 @@ export const inboxEn = {
   conversationNotFound: "Conversation not found",
   conversationNotFoundDesc:
     "This conversation may have been deleted or is not available for your account.",
+  conversationLoadFailed: "Conversation could not be loaded",
+  conversationLoadFailedDesc:
+    "Something went wrong while opening this conversation. Try again or pick another conversation.",
+  conversationLoadFailedReference: "Reference",
+  conversationLoadFailedRetry: "Try again",
+  conversationLoadFailedBack: "Back to Inbox",
+  inboxBoundaryTitle: "Inbox could not be loaded",
+  inboxBoundaryDesc:
+    "Something went wrong in Inbox. You can try again without leaving the workspace.",
+  inboxBoundaryRetry: "Try again",
   selectConversationEmpty: "Select a conversation",
   selectConversationEmptyDesc:
     "Choose a conversation from the left to start replying to your customers.",
@@ -1221,6 +1231,16 @@ export const inboxId: InboxDictionary = {
   conversationNotFound: "Percakapan tidak ditemukan",
   conversationNotFoundDesc:
     "Percakapan ini mungkin telah dihapus atau tidak tersedia untuk akun Anda.",
+  conversationLoadFailed: "Percakapan tidak dapat dimuat",
+  conversationLoadFailedDesc:
+    "Terjadi kendala saat membuka percakapan ini. Coba muat ulang atau pilih percakapan lain.",
+  conversationLoadFailedReference: "Referensi",
+  conversationLoadFailedRetry: "Coba Lagi",
+  conversationLoadFailedBack: "Kembali ke Inbox",
+  inboxBoundaryTitle: "Inbox tidak dapat dimuat",
+  inboxBoundaryDesc:
+    "Terjadi gangguan di Inbox. Anda bisa mencoba lagi tanpa meninggalkan workspace.",
+  inboxBoundaryRetry: "Coba Lagi",
   selectConversationEmpty: "Pilih percakapan",
   selectConversationEmptyDesc:
     "Pilih percakapan di kiri untuk mulai membalas customer Anda.",

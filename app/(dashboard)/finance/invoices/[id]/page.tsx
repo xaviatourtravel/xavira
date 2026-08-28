@@ -24,6 +24,7 @@ import {
   canIssueInvoices,
   canVoidInvoices,
   canCreateInvoices,
+  canPermanentlyDeleteArchivedInvoices,
   canRemoveInvoices,
 } from "@/modules/finance/lib/invoice-access";
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
@@ -401,6 +402,12 @@ export default async function InvoiceDetailPage({
         lifecycleStatus={invoice.lifecycleStatus}
         archivedAt={invoice.archivedAt}
         canRemove={canRemoveInvoices(profile)}
+        canPermanentlyDeleteArchived={canPermanentlyDeleteArchivedInvoices(
+          profile,
+        )}
+        likelyHasPayments={
+          invoice.amountPaidMinor > 0 || invoice.paymentStatus !== "unpaid"
+        }
       />
 
       {invoice.lifecycleStatus === "void" && invoice.voidReason ? (

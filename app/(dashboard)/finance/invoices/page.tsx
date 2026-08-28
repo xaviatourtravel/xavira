@@ -11,6 +11,7 @@ import { listOrganizationInvoices } from "@/modules/finance/services/invoice-ser
 import {
   canCreateInvoices,
   canEditInvoices,
+  canPermanentlyDeleteArchivedInvoices,
   canRemoveInvoices,
 } from "@/modules/finance/lib/invoice-access";
 
@@ -176,7 +177,14 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      <InvoiceList rows={invoices} canRemove={canRemoveInvoices(profile)} />
+      <InvoiceList
+        rows={invoices}
+        canRemove={canRemoveInvoices(profile)}
+        canPermanentlyDeleteArchived={canPermanentlyDeleteArchivedInvoices(
+          profile,
+        )}
+        archivedView={archiveFilter === "archived"}
+      />
 
       {invoices.length > 0 ? (
         <p className="text-xs text-muted-foreground">

@@ -1123,6 +1123,41 @@ export async function rpcDeleteDraftInvoice(
   };
 }
 
+export async function rpcDeleteArchivedInvoice(
+  invoiceId: string,
+): Promise<DeleteDraftInvoiceResult & { invoiceNumber: string | null; lifecycleStatus: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_archived_invoice", {
+    p_invoice_id: invoiceId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const payload = data as {
+    invoice_id?: string;
+    organization_id?: string;
+    pdf_storage_path?: string | null;
+    logo_asset_path?: string | null;
+    invoice_number?: string | null;
+    lifecycle_status?: string | null;
+  } | null;
+
+  if (!payload?.invoice_id || !payload.organization_id) {
+    throw new Error("Delete archived invoice returned no payload");
+  }
+
+  return {
+    invoiceId: payload.invoice_id,
+    organizationId: payload.organization_id,
+    pdfStoragePath: payload.pdf_storage_path ?? null,
+    logoAssetPath: payload.logo_asset_path ?? null,
+    invoiceNumber: payload.invoice_number ?? null,
+    lifecycleStatus: payload.lifecycle_status ?? null,
+  };
+}
+
 export async function rpcMarkInvoiceSent(invoiceId: string): Promise<InvoiceRecord> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("mark_invoice_sent", {

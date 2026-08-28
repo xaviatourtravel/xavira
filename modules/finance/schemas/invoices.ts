@@ -241,6 +241,10 @@ export const deleteDraftInvoiceSchema = z.object({
   invoiceId: z.string().uuid(),
 });
 
+export const deleteArchivedInvoiceSchema = z.object({
+  invoiceId: z.string().uuid(),
+});
+
 export const bulkRemoveInvoicesSchema = z.object({
   invoiceIds: z.array(z.string().uuid()).min(1).max(100),
   archiveReason: z
@@ -252,6 +256,8 @@ export const bulkRemoveInvoicesSchema = z.object({
       if (value == null || value === "") return null;
       return value;
     }),
+  /** active = draft delete + issued archive; never used for archived rows */
+  mode: z.enum(["active", "restore", "permanent_delete"]).default("active"),
 });
 
 export const markInvoiceSentSchema = z.object({
@@ -359,6 +365,7 @@ export type VoidInvoiceInput = z.infer<typeof voidInvoiceSchema>;
 export type ArchiveInvoiceInput = z.infer<typeof archiveInvoiceSchema>;
 export type RestoreInvoiceInput = z.infer<typeof restoreInvoiceSchema>;
 export type DeleteDraftInvoiceInput = z.infer<typeof deleteDraftInvoiceSchema>;
+export type DeleteArchivedInvoiceInput = z.infer<typeof deleteArchivedInvoiceSchema>;
 export type BulkRemoveInvoicesInput = z.infer<typeof bulkRemoveInvoicesSchema>;
 export type InvoiceListFilters = z.infer<typeof invoiceListFiltersSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemInputSchema>;

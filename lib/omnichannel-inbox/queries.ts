@@ -15,6 +15,10 @@ import {
 import { loadInboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
 import type { WhatsappAiAuditEvent } from "@/lib/whatsapp-inbox/ai/activity-events";
 import { loadWorkspaceAssignmentHistory } from "@/lib/workspace/assignment-events";
+import {
+  createInboxDiagnosticId,
+  logInboxWarning,
+} from "@/modules/inbox/lib/inbox-observability";
 import type { InboxLeadPanelContext } from "@/lib/omnichannel-inbox/lead-context";
 import type { LeadQualificationSnapshot } from "@/modules/ai/types/lead-qualification";
 import type { ConversationMemoryMap } from "@/modules/ai/types/memory";
@@ -312,11 +316,41 @@ export async function loadOmnichannelConversationDetail(
   organizationId: string,
   conversationId: string,
 ) {
+  const enrichmentDiagnosticId = createInboxDiagnosticId();
+
   const [conversation, messages, notes, assignmentHistory] = await Promise.all([
     findConversationById(supabase, organizationId, conversationId),
     findMessagesByConversationId(supabase, organizationId, conversationId),
-    loadConversationNotesWithAuthors(supabase, organizationId, conversationId),
-    loadWorkspaceAssignmentHistory(supabase, organizationId, conversationId),
+    loadConversationNotesWithAuthors(
+      supabase,
+      organizationId,
+      conversationId,
+    ).catch((error: unknown) => {
+      logInboxWarning({
+        operation: "load_conversation",
+        stage: "load_notes",
+        diagnosticId: enrichmentDiagnosticId,
+        conversationId,
+        organizationId,
+        error,
+        message: "Omnichannel notes enrichment failed",
+      });
+      return [] as Awaited<ReturnType<typeof loadConversationNotesWithAuthors>>;
+    }),
+    loadWorkspaceAssignmentHistory(supabase, organizationId, conversationId).catch(
+      (error: unknown) => {
+        logInboxWarning({
+          operation: "load_conversation",
+          stage: "load_assignment_history",
+          diagnosticId: enrichmentDiagnosticId,
+          conversationId,
+          organizationId,
+          error,
+          message: "Assignment history enrichment failed",
+        });
+        return [] as Awaited<ReturnType<typeof loadWorkspaceAssignmentHistory>>;
+      },
+    ),
   ]);
 
   if (!conversation || !messages) {
@@ -344,11 +378,24 @@ export async function loadOmnichannelConversationDetail(
     leadContext: null as OmnichannelConversationDetail["leadContext"],
   };
 
-  const leadContext = detailBase.leadId
-    ? await loadInboxLeadPanelContext(supabase, organizationId, {
+  let leadContext: OmnichannelConversationDetail["leadContext"] = null;
+  if (detailBase.leadId) {
+    try {
+      leadContext = await loadInboxLeadPanelContext(supabase, organizationId, {
         ...detailBase,
-      })
-    : null;
+      });
+    } catch (error) {
+      logInboxWarning({
+        operation: "load_conversation",
+        stage: "load_customer",
+        diagnosticId: enrichmentDiagnosticId,
+        conversationId,
+        organizationId,
+        error,
+        message: "Lead panel context enrichment failed",
+      });
+    }
+  }
 
   return {
     ...detailBase,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { AlertCircle, PanelRightOpen } from "lucide-react";
 
@@ -59,6 +60,7 @@ type CommunicationWorkspaceViewProps = {
   activeFilter: OmnichannelInboxFilter;
   selectedConversationId: string | null;
   conversationNotFound?: boolean;
+  conversationLoadError?: { diagnosticId: string } | null;
   currentUserId: string;
   organizationId: string;
   orgProfiles: Array<{ id: string; full_name: string }>;
@@ -95,6 +97,47 @@ function ConversationNotFoundState() {
       title={ti("conversationNotFound")}
       description={ti("conversationNotFoundDesc")}
       className="h-full bg-background"
+    />
+  );
+}
+
+function ConversationLoadErrorState({
+  diagnosticId,
+  selectedConversationId,
+  listHref,
+}: {
+  diagnosticId: string;
+  selectedConversationId: string | null;
+  listHref: string;
+}) {
+  const { ti } = useInboxTranslation();
+  const retryHref = selectedConversationId
+    ? `/inbox?c=${encodeURIComponent(selectedConversationId)}`
+    : listHref;
+
+  return (
+    <InboxEmptyState
+      icon={AlertCircle}
+      title={ti("conversationLoadFailed")}
+      description={ti("conversationLoadFailedDesc")}
+      hint={`${ti("conversationLoadFailedReference")}: ${diagnosticId}`}
+      className="h-full bg-background"
+      action={
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Link
+            href={retryHref}
+            className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+          >
+            {ti("conversationLoadFailedRetry")}
+          </Link>
+          <Link
+            href="/inbox"
+            className="inline-flex h-10 items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+          >
+            {ti("conversationLoadFailedBack")}
+          </Link>
+        </div>
+      }
     />
   );
 }
@@ -140,6 +183,7 @@ function CommunicationWorkspaceBody({
   activeFilter,
   selectedConversationId,
   conversationNotFound = false,
+  conversationLoadError = null,
   currentUserId: _currentUserId,
   organizationId,
   canReply,
@@ -157,6 +201,7 @@ function CommunicationWorkspaceBody({
   | "activeFilter"
   | "selectedConversationId"
   | "conversationNotFound"
+  | "conversationLoadError"
   | "currentUserId"
   | "organizationId"
   | "canReply"
@@ -373,6 +418,12 @@ function CommunicationWorkspaceBody({
               channel={liveDetail.channel}
               backHref={listHref}
               showBackButton
+            />
+          ) : conversationLoadError ? (
+            <ConversationLoadErrorState
+              diagnosticId={conversationLoadError.diagnosticId}
+              selectedConversationId={selectedConversationId}
+              listHref={listHref}
             />
           ) : conversationNotFound ? (
             <ConversationNotFoundState />

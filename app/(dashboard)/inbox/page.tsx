@@ -9,7 +9,6 @@ import {
   canUpdateOmnichannelConversationStatus,
 } from "@/lib/omnichannel-inbox/permissions";
 import {
-  loadOmnichannelConversationDetail,
   loadOmnichannelConversationList,
   parseOmnichannelInboxFilter,
   type OmnichannelConversationListItem,
@@ -20,7 +19,6 @@ import {
   parseOrganizationWorkspaceSettings,
 } from "@/lib/settings/organization-settings";
 import {
-  loadWhatsappConversationDetail,
   loadWhatsappConversationList,
 } from "@/lib/whatsapp-inbox/queries";
 import {
@@ -29,6 +27,11 @@ import {
   sortReadyForHumanConversations,
 } from "@/lib/omnichannel-inbox/inbox-ai-filters";
 import { createClient } from "@/utils/supabase/server";
+import {
+  createInboxDiagnosticId,
+  logInboxFailure,
+} from "@/modules/inbox/lib/inbox-observability";
+import { loadSelectedConversationSafely } from "@/modules/inbox/lib/load-selected-conversation-safely";
 
 function sortConversationsByLastMessage(
   conversations: OmnichannelConversationListItem[],
@@ -179,28 +182,6 @@ async function loadMergedConversationLists(
   };
 }
 
-async function loadWorkspaceConversationDetail(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  organizationId: string,
-  conversationId: string,
-) {
-  const whatsappDetail = await loadWhatsappConversationDetail(
-    supabase,
-    organizationId,
-    conversationId,
-  );
-
-  if (whatsappDetail) {
-    return whatsappDetail;
-  }
-
-  return loadOmnichannelConversationDetail(
-    supabase,
-    organizationId,
-    conversationId,
-  );
-}
-
 export default async function InboxPage({
   searchParams,
 }: {
@@ -219,34 +200,59 @@ export default async function InboxPage({
     params.filter ?? params.channel,
   );
   const selectedConversationId = params.c?.trim() || null;
+  const pageDiagnosticId = createInboxDiagnosticId();
 
-  const [listData, detail, orgProfilesResult, organizationResult] = await Promise.all([
-    loadMergedConversationLists(
-      supabase,
-      profile.organization_id,
-      profile.id,
-      activeFilter,
-    ),
-    selectedConversationId
-      ? loadWorkspaceConversationDetail(
-          supabase,
-          profile.organization_id,
-          selectedConversationId,
-        )
-      : Promise.resolve(null),
-    supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("organization_id", profile.organization_id)
-      .order("full_name"),
-    supabase
-      .from("organizations")
-      .select("settings")
-      .eq("id", profile.organization_id)
-      .maybeSingle(),
-  ]);
+  // Detail load is isolated: a selected-conversation failure must not crash the shell.
+  const [listResult, detailResult, orgProfilesResult, organizationResult] =
+    await Promise.all([
+      loadMergedConversationLists(
+        supabase,
+        profile.organization_id,
+        profile.id,
+        activeFilter,
+      ).then(
+        (data) => ({ ok: true as const, data }),
+        (error: unknown) => {
+          logInboxFailure({
+            operation: "load_conversation_list",
+            stage: "resolve_context",
+            diagnosticId: pageDiagnosticId,
+            organizationId: profile.organization_id,
+            conversationId: selectedConversationId,
+            error,
+            message: "Failed to load inbox conversation list",
+          });
+          throw error;
+        },
+      ),
+      loadSelectedConversationSafely({
+        supabase,
+        organizationId: profile.organization_id,
+        conversationId: selectedConversationId,
+      }),
+      supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("organization_id", profile.organization_id)
+        .order("full_name"),
+      supabase
+        .from("organizations")
+        .select("settings")
+        .eq("id", profile.organization_id)
+        .maybeSingle(),
+    ]);
 
-  const { conversations, allConversations } = listData;
+  const { conversations, allConversations } = listResult.data;
+  const detail =
+    detailResult.status === "ok" ? (detailResult.detail ?? null) : null;
+  const conversationNotFound =
+    detailResult.status === "not_found" ||
+    detailResult.status === "invalid_id";
+  const conversationLoadError =
+    detailResult.status === "error"
+      ? { diagnosticId: detailResult.diagnosticId }
+      : null;
+
   const orgProfiles = (orgProfilesResult.data ?? []).map((member) => ({
     id: member.id,
     full_name: member.full_name?.trim() || "Team member",
@@ -274,7 +280,8 @@ export default async function InboxPage({
       detail={detail}
       activeFilter={activeFilter}
       selectedConversationId={selectedConversationId}
-      conversationNotFound={Boolean(selectedConversationId && !detail)}
+      conversationNotFound={conversationNotFound}
+      conversationLoadError={conversationLoadError}
       currentUserId={profile.id}
       organizationId={profile.organization_id}
       orgProfiles={orgProfiles}

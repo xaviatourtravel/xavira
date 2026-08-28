@@ -30,6 +30,10 @@ import {
   shouldRefreshWhatsappProfilePicture,
   syncWhatsappConversationProfilePicture,
 } from "@/lib/whatsapp-inbox/profile-picture";
+import {
+  createInboxDiagnosticId,
+  logInboxWarning,
+} from "@/modules/inbox/lib/inbox-observability";
 import type { ConversationLabel, MessageRow } from "@/types/omnichannel-inbox";
 import type { WhatsappConversationRow, WhatsappMessageRow } from "@/types/whatsapp-inbox";
 
@@ -161,20 +165,35 @@ export async function loadWhatsappConversationDetail(
   }
 
   let activeConversation = conversation;
+  const enrichmentDiagnosticId = createInboxDiagnosticId();
 
   if (shouldRefreshWhatsappProfilePicture(conversation)) {
-    const syncResult = await syncWhatsappConversationProfilePicture(
-      supabase,
-      workspaceId,
-      conversationId,
-    );
+    try {
+      const syncResult = await syncWhatsappConversationProfilePicture(
+        supabase,
+        workspaceId,
+        conversationId,
+      );
 
-    if (syncResult.refreshed) {
-      activeConversation = {
-        ...conversation,
-        profile_picture_url: syncResult.profilePictureUrl,
-        profile_picture_updated_at: new Date().toISOString(),
-      };
+      if (syncResult.refreshed) {
+        activeConversation = {
+          ...conversation,
+          profile_picture_url: syncResult.profilePictureUrl,
+          profile_picture_updated_at: new Date().toISOString(),
+        };
+      }
+    } catch (error) {
+      // Avatar sync is optional enrichment — must not abort conversation load.
+      logInboxWarning({
+        operation: "load_conversation",
+        stage: "load_profile_picture",
+        diagnosticId: enrichmentDiagnosticId,
+        conversationId,
+        organizationId: workspaceId,
+        channel: "whatsapp",
+        error,
+        message: "WhatsApp profile picture sync failed",
+      });
     }
   }
 
@@ -193,9 +212,53 @@ export async function loadWhatsappConversationDetail(
       supabase,
       workspaceId,
       conversationId,
+    ).catch((error: unknown) => {
+      logInboxWarning({
+        operation: "load_conversation",
+        stage: "load_notes",
+        diagnosticId: enrichmentDiagnosticId,
+        conversationId,
+        organizationId: workspaceId,
+        channel: "whatsapp",
+        error,
+        message: "WhatsApp notes enrichment failed",
+      });
+      return [] as Awaited<
+        ReturnType<typeof loadWhatsappConversationNotesWithAuthors>
+      >;
+    }),
+    findWhatsappConversationTagsByConversationId(supabase, conversationId).catch(
+      (error: unknown) => {
+        logInboxWarning({
+          operation: "load_conversation",
+          stage: "load_tags",
+          diagnosticId: enrichmentDiagnosticId,
+          conversationId,
+          organizationId: workspaceId,
+          channel: "whatsapp",
+          error,
+          message: "WhatsApp tags enrichment failed",
+        });
+        return [] as Awaited<
+          ReturnType<typeof findWhatsappConversationTagsByConversationId>
+        >;
+      },
     ),
-    findWhatsappConversationTagsByConversationId(supabase, conversationId),
-    loadWorkspaceAssignmentHistory(supabase, workspaceId, conversationId),
+    loadWorkspaceAssignmentHistory(supabase, workspaceId, conversationId).catch(
+      (error: unknown) => {
+        logInboxWarning({
+          operation: "load_conversation",
+          stage: "load_assignment_history",
+          diagnosticId: enrichmentDiagnosticId,
+          conversationId,
+          organizationId: workspaceId,
+          channel: "whatsapp",
+          error,
+          message: "Assignment history enrichment failed",
+        });
+        return [] as Awaited<ReturnType<typeof loadWorkspaceAssignmentHistory>>;
+      },
+    ),
     loadWhatsappAiActivityEvents(supabase, conversationId),
     leadQualificationService.getQualification(supabase, conversationId),
     memoryService.getMemory(supabase, conversationId),
@@ -236,9 +299,27 @@ export async function loadWhatsappConversationDetail(
     leadContext: null as OmnichannelConversationDetail["leadContext"],
   };
 
-  const leadContext = detailBase.leadId
-    ? await loadInboxLeadPanelContext(supabase, workspaceId, detailBase)
-    : null;
+  let leadContext: OmnichannelConversationDetail["leadContext"] = null;
+  if (detailBase.leadId) {
+    try {
+      leadContext = await loadInboxLeadPanelContext(
+        supabase,
+        workspaceId,
+        detailBase,
+      );
+    } catch (error) {
+      logInboxWarning({
+        operation: "load_conversation",
+        stage: "load_customer",
+        diagnosticId: enrichmentDiagnosticId,
+        conversationId,
+        organizationId: workspaceId,
+        channel: "whatsapp",
+        error,
+        message: "Lead panel context enrichment failed",
+      });
+    }
+  }
 
   return {
     ...detailBase,

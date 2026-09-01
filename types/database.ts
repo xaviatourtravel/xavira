@@ -2473,6 +2473,98 @@ export type Database = {
           },
         ]
       }
+      invoice_brand_profiles: {
+        Row: {
+          accent_color: string
+          address: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          footer_text: string | null
+          id: string
+          invoice_prefix: string
+          invoice_title: string
+          is_active: boolean
+          is_default: boolean
+          key: string
+          legal_name: string | null
+          logo_content_hash: string | null
+          logo_path: string | null
+          logo_storage_ref: string | null
+          name: string
+          organization_id: string
+          payment_accounts_json: Json
+          phone: string | null
+          primary_color: string
+          secondary_color: string
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          accent_color?: string
+          address?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string
+          invoice_title?: string
+          is_active?: boolean
+          is_default?: boolean
+          key: string
+          legal_name?: string | null
+          logo_content_hash?: string | null
+          logo_path?: string | null
+          logo_storage_ref?: string | null
+          name: string
+          organization_id: string
+          payment_accounts_json?: Json
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          accent_color?: string
+          address?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string
+          invoice_title?: string
+          is_active?: boolean
+          is_default?: boolean
+          key?: string
+          legal_name?: string | null
+          logo_content_hash?: string | null
+          logo_path?: string | null
+          logo_storage_ref?: string | null
+          name?: string
+          organization_id?: string
+          payment_accounts_json?: Json
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_brand_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_events: {
         Row: {
           actor_user_id: string | null
@@ -2573,6 +2665,7 @@ export type Database = {
       }
       invoice_sequences: {
         Row: {
+          brand_profile_id: string
           created_at: string
           id: string
           last_number: number
@@ -2582,6 +2675,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          brand_profile_id: string
           created_at?: string
           id?: string
           last_number?: number
@@ -2591,6 +2685,7 @@ export type Database = {
           year: number
         }
         Update: {
+          brand_profile_id?: string
           created_at?: string
           id?: string
           last_number?: number
@@ -2600,6 +2695,13 @@ export type Database = {
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "invoice_sequences_brand_profile_id_fkey"
+            columns: ["brand_profile_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_brand_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoice_sequences_organization_id_fkey"
             columns: ["organization_id"]
@@ -2641,6 +2743,8 @@ export type Database = {
           additional_fees_minor: number
           booking_id: string | null
           booking_snapshot: Json | null
+          brand_profile_id: string | null
+          brand_snapshot: Json | null
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -2684,6 +2788,8 @@ export type Database = {
           additional_fees_minor?: number
           booking_id?: string | null
           booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -2727,6 +2833,8 @@ export type Database = {
           additional_fees_minor?: number
           booking_id?: string | null
           booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -2850,6 +2958,8 @@ export type Database = {
           balance_due_minor: number
           booking_id: string | null
           booking_snapshot: Json | null
+          brand_profile_id: string | null
+          brand_snapshot: Json | null
           company_snapshot: Json
           created_at: string
           created_by: string | null
@@ -2906,6 +3016,8 @@ export type Database = {
           balance_due_minor?: number
           booking_id?: string | null
           booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
           company_snapshot?: Json
           created_at?: string
           created_by?: string | null
@@ -2962,6 +3074,8 @@ export type Database = {
           balance_due_minor?: number
           booking_id?: string | null
           booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
           company_snapshot?: Json
           created_at?: string
           created_by?: string | null
@@ -3025,6 +3139,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_brand_profile_id_fkey"
+            columns: ["brand_profile_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_brand_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3816,6 +3937,26 @@ export type Database = {
       issue_invoice: {
         Args: { p_invoice_id: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      seed_invoice_brand_profiles_for_org: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
+      allocate_brand_invoice_number: {
+        Args: {
+          p_organization_id: string
+          p_brand_profile_id: string
+          p_year: number
+        }
+        Returns: string
+      }
+      freeze_invoice_brand_snapshot: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
+      build_invoice_company_snapshot_from_brand: {
+        Args: { p_profile_id: string }
+        Returns: Json
       }
       convert_proforma_to_invoice: {
         Args: { p_proforma_id: string }

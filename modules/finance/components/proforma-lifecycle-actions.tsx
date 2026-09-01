@@ -61,7 +61,7 @@ export function ProformaLifecycleActions({
           <p className="text-sm text-muted-foreground">
             {tStrict("financeUi.convertProformaDescription")}
           </p>
-          <form action={convertProformaFormAction} className="flex flex-wrap gap-2">
+          <form action={convertProformaFormAction} data-global-loading="" className="flex flex-wrap gap-2">
             <input type="hidden" name="proforma_id" value={proformaId} />
             <Button type="submit">{tStrict("financeUi.convertProforma")}</Button>
             <Button type="button" variant="ghost" onClick={() => setPanel("idle")}>
@@ -77,7 +77,7 @@ export function ProformaLifecycleActions({
           <p className="text-sm text-muted-foreground">
             {tStrict("financeUi.cancelProformaDescription")}
           </p>
-          <form action={cancelProformaFormAction} className="space-y-3">
+          <form action={cancelProformaFormAction} data-global-loading="" className="space-y-3">
             <input type="hidden" name="proforma_id" value={proformaId} />
             <div className="space-y-2">
               <Label htmlFor="proforma-cancel-reason">
@@ -108,7 +108,7 @@ export function ProformaLifecycleActions({
       ) : null}
 
       {panel === "delete" ? (
-        <form action={deleteDraftProformaFormAction} className="flex flex-wrap gap-2">
+        <form action={deleteDraftProformaFormAction} data-global-loading="" className="flex flex-wrap gap-2">
           <input type="hidden" name="proforma_id" value={proformaId} />
           <Button type="submit" variant="destructive">
             {tStrict("financeUi.deleteProforma")}

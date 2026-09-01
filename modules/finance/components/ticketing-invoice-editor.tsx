@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useGlobalLoading } from "@/components/loading/global-loading-provider";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import {
   resolveAirlineName,
@@ -28,8 +29,8 @@ import {
   buildTicketingInvoiceItems,
 } from "@/modules/finance/lib/ticketing-pricing";
 import { InvoiceMoneyInput } from "@/modules/finance/components/invoice-money-input";
-import { InvoiceTemplateBrandingFields } from "@/modules/finance/components/invoice-template-branding-fields";
-import { DEFAULT_INVOICE_TEMPLATE_KEY } from "@/modules/finance/pdf/invoice-pdf-types";
+import { InvoiceBrandSelector } from "@/modules/finance/components/invoice-brand-selector";
+import type { InvoiceBrandEditorOption } from "@/modules/finance/lib/invoice-brand-profiles";
 import type {
   FlightDirection,
   TicketTripType,
@@ -55,10 +56,7 @@ export type TicketingEditorInitial = {
   documentType?: "invoice" | "proforma";
   includeItineraryDetail?: boolean;
   paymentRequestNote?: string | null;
-  templateKey?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  accentColor?: string;
+  brandProfileId?: string | null;
   issueDate?: string | null;
   dueDate?: string | null;
   notes?: string | null;
@@ -84,12 +82,7 @@ type TicketingInvoiceEditorProps = {
   action: (formData: FormData) => void | Promise<void>;
   customers: InvoiceEditorCustomerOption[];
   bookings: InvoiceEditorBookingOption[];
-  workspaceBrand: {
-    templateKey: string;
-    primaryColor: string;
-    secondaryColor: string;
-    accentColor: string;
-  };
+  brands: InvoiceBrandEditorOption[];
   initial?: TicketingEditorInitial;
   errorMessage?: string | null;
 };
@@ -118,24 +111,18 @@ export function TicketingInvoiceEditor({
   action,
   customers,
   bookings,
-  workspaceBrand,
+  brands,
   initial,
   errorMessage,
 }: TicketingInvoiceEditorProps) {
   const { tStrict } = useTranslation();
+  const { withGlobalLoading } = useGlobalLoading();
   const [pending, startTransition] = useTransition();
 
-  const [templateKey, setTemplateKey] = useState(
-    initial?.templateKey ?? workspaceBrand.templateKey ?? DEFAULT_INVOICE_TEMPLATE_KEY,
-  );
-  const [primaryColor, setPrimaryColor] = useState(
-    initial?.primaryColor ?? workspaceBrand.primaryColor,
-  );
-  const [secondaryColor, setSecondaryColor] = useState(
-    initial?.secondaryColor ?? workspaceBrand.secondaryColor,
-  );
-  const [accentColor, setAccentColor] = useState(
-    initial?.accentColor ?? workspaceBrand.accentColor,
+  const defaultBrandId =
+    brands.find((brand) => brand.isDefault)?.id ?? brands[0]?.id ?? "";
+  const [brandProfileId, setBrandProfileId] = useState(
+    initial?.brandProfileId ?? defaultBrandId,
   );
 
   const [recipientSource, setRecipientSource] = useState<
@@ -308,10 +295,8 @@ export function TicketingInvoiceEditor({
       notes: null as string | null,
       paymentInstructions: null as string | null,
       terms: null as string | null,
-      templateKey,
-      primaryColor,
-      secondaryColor,
-      accentColor,
+      brandProfileId,
+      templateKey: "calm-standard",
       ticketGroup: {
         pnrCode,
         passengerCount,
@@ -358,10 +343,7 @@ export function TicketingInvoiceEditor({
     documentType,
     includeItineraryDetail,
     paymentRequestNote,
-    templateKey,
-    primaryColor,
-    secondaryColor,
-    accentColor,
+    brandProfileId,
     pnrCode,
     passengerCount,
     tripType,
@@ -486,7 +468,9 @@ export function TicketingInvoiceEditor({
     formData.set("payload_json", JSON.stringify(nextPayload));
 
     startTransition(() => {
-      void action(formData);
+      void withGlobalLoading(async () => {
+        await action(formData);
+      });
     });
   }
 
@@ -515,18 +499,10 @@ export function TicketingInvoiceEditor({
         </p>
       ) : null}
 
-      <InvoiceTemplateBrandingFields
-        templateKey={templateKey}
-        primaryColor={primaryColor}
-        secondaryColor={secondaryColor}
-        accentColor={accentColor}
-        workspaceDefaults={workspaceBrand}
-        onChange={(next) => {
-          setTemplateKey(next.templateKey);
-          setPrimaryColor(next.primaryColor);
-          setSecondaryColor(next.secondaryColor);
-          setAccentColor(next.accentColor);
-        }}
+      <InvoiceBrandSelector
+        brands={brands}
+        selectedBrandId={brandProfileId}
+        onChange={setBrandProfileId}
       />
 
       {/* Recipient */}

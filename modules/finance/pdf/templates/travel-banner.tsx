@@ -1,7 +1,12 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
-import { INVOICE_PDF_LABELS, invoicePdfVisibleHeading } from "@/modules/finance/pdf/invoice-pdf-labels";
+import {
+  INVOICE_PDF_LABELS,
+  invoicePdfVisibleHeading,
+  isFin005ProformaPdf,
+  neverHyphenatePdfWord,
+} from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   createInvoicePdfStyles,
@@ -108,6 +113,10 @@ export function TravelBannerTemplate({ data }: { data: InvoicePdfData }) {
             </View>
             <View style={{ alignItems: "flex-end" }}>
               <Text
+                wrap={!isFin005ProformaPdf(data)}
+                hyphenationCallback={
+                  isFin005ProformaPdf(data) ? neverHyphenatePdfWord : undefined
+                }
                 style={{
                   fontSize: PDF_TYPE.sectionTitle,
                   fontFamily: "Helvetica-Bold",

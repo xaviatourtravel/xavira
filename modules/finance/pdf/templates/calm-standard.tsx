@@ -1,7 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
-import { INVOICE_PDF_LABELS, invoicePdfVisibleHeading } from "@/modules/finance/pdf/invoice-pdf-labels";
+import { INVOICE_PDF_LABELS } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   createInvoicePdfStyles,
@@ -17,6 +17,7 @@ import {
   NotesAndTerms,
 } from "@/modules/finance/pdf/shared/payment-information";
 import { PaymentTotalsBlock } from "@/modules/finance/pdf/shared/payment-totals-block";
+import { DocumentHeading } from "@/modules/finance/pdf/shared/document-heading";
 import {
   InvoiceMetaBlock,
   RecipientBlock,
@@ -43,17 +44,13 @@ export function CalmStandardTemplate({ data }: { data: InvoicePdfData }) {
 
         <CompanyHeader data={data} variant="compact" />
 
-        <Text
-          style={{
-            marginTop: PDF_SPACE.xxl,
-            fontSize: PDF_TYPE.documentTitle + 2,
-            fontFamily: "Helvetica-Bold",
-            color: text,
-            letterSpacing: -0.5,
-          }}
-        >
-          {invoicePdfVisibleHeading(data)}
-        </Text>
+        <DocumentHeading
+          data={data}
+          color={text}
+          invoiceFontSize={PDF_TYPE.documentTitle + 2}
+          letterSpacing={-0.5}
+          style={{ marginTop: PDF_SPACE.xxl }}
+        />
 
         <View
           style={{

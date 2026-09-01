@@ -395,16 +395,83 @@ describe("invoice PDF data and rendering", () => {
 });
 
 describe("draft branding persistence schemas", () => {
-  it("configured workspace default / per-invoice template override persists in draft schema", () => {
+  it("new package invoice defaults to a brand id field, not a selectable template", () => {
     const draft = createInvoiceDraftSchema.parse({
       recipientSource: "manual",
       manualRecipientName: "Budi",
-      templateKey: "travel-banner",
-      primaryColor: "#112233",
+      brandProfileId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
       items: [{ description: "x", quantity: 1, unitPriceMinor: 1000 }],
     });
-    assert.equal(draft.templateKey, "travel-banner");
-    assert.equal(draft.primaryColor, "#112233");
+    assert.equal(draft.brandProfileId, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    assert.equal(draft.templateKey, "calm-standard");
+  });
+
+  it("brand-backed issued PDFs use the fixed layout and frozen company identity", async () => {
+    const data = await buildInvoicePdfData(
+      baseInvoice({
+        lifecycleStatus: "issued",
+        invoiceNumber: "INV/XAVIA/2026/0009",
+        templateKey: "corporate",
+        themeSnapshot: {
+          templateKey: "corporate",
+          templateVersion: 1,
+          primaryColor: "#111111",
+          secondaryColor: "#222222",
+          accentColor: "#333333",
+        },
+        companySnapshot: {
+          legalName: "PT Frozen Xavia",
+          logoUrl: null,
+          address: "Jakarta",
+          email: "finance@xavia.test",
+          phone: null,
+          website: null,
+          taxId: "10.0.1.3-000",
+          paymentAccounts: [
+            {
+              bankName: "BCA",
+              accountNumber: "1234567890",
+              accountHolder: "PT Frozen Xavia",
+            },
+          ],
+          primaryColor: "#0F172A",
+          secondaryColor: "#64748B",
+          accentColor: "#0EA5E9",
+          footerText: "Frozen Xavia footer",
+        },
+        brandSnapshot: {
+          id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          key: "xavia",
+          name: "Xavia",
+          displayName: "Xavia",
+          legalName: "PT Frozen Xavia",
+          logoUrl: null,
+          logoPath: null,
+          primaryColor: "#0F172A",
+          secondaryColor: "#64748B",
+          accentColor: "#0EA5E9",
+          address: "Jakarta",
+          email: "finance@xavia.test",
+          phone: null,
+          website: null,
+          taxId: "10.0.1.3-000",
+          footerText: "Frozen Xavia footer",
+          paymentAccounts: [],
+          invoiceTitle: "INVOICE",
+          invoicePrefix: "INV/XAV",
+          fixedLayout: true,
+          layoutKey: "calm-standard",
+          snapshotAt: "2026-09-01T01:00:00.000Z",
+        },
+      }),
+      { mode: "issued" },
+    );
+    assert.equal(data.brandKey, "xavia");
+    assert.equal(data.theme.templateKey, "calm-standard");
+    assert.equal(data.company.legalName, "PT Frozen Xavia");
+    assert.equal(data.company.footerText, "Frozen Xavia footer");
+    assert.equal(data.company.paymentAccounts[0]?.bankName, "BCA");
+    assert.equal(data.documentTitle, "INVOICE");
   });
 
   it("invoice brand settings accept invoice-only fields", () => {

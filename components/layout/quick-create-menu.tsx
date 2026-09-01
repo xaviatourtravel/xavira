@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useGlobalLoading } from "@/components/loading/global-loading-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 
@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function QuickCreateMenu() {
-  const router = useRouter();
+  const { navigate: navigateWithLoading } = useGlobalLoading();
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -27,9 +27,9 @@ export function QuickCreateMenu() {
   const navigate = useCallback(
     (item: QuickCreateItem) => {
       close();
-      router.push(item.href);
+      navigateWithLoading(item.href);
     },
-    [close, router],
+    [close, navigateWithLoading],
   );
 
   useEffect(() => {

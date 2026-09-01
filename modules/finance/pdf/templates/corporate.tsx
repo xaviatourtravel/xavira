@@ -1,7 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
-import { INVOICE_PDF_LABELS, invoicePdfVisibleHeading } from "@/modules/finance/pdf/invoice-pdf-labels";
+import { INVOICE_PDF_LABELS } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   createInvoicePdfStyles,

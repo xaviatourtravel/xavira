@@ -343,7 +343,7 @@ describe("FIN-001.3A migration contracts", () => {
     assert.match(service, /rpcUpdateWorkspaceBranding/);
   });
 
-  it("invoice settings no longer own editable company identity fields", () => {
+  it("finance brand settings own invoice identity; workspace branding stays separate", () => {
     const form = readFileSync(
       path.join(
         process.cwd(),
@@ -351,8 +351,16 @@ describe("FIN-001.3A migration contracts", () => {
       ),
       "utf8",
     );
-    assert.match(form, /manageWorkspaceBranding/);
-    assert.doesNotMatch(form, /name="legal_name"/);
-    assert.doesNotMatch(form, /name="primary_color"/);
+    // FIN-006: each finance brand is a commercial identity (logo, legal name,
+    // colors, footer, bank accounts). This is not the workspace branding record.
+    assert.match(form, /saveInvoiceBrandProfileAction/);
+    assert.match(form, /name="legal_name"/);
+    assert.match(form, /name="primary_color"/);
+    assert.match(form, /brandNumberingHint/);
+    assert.doesNotMatch(form, /listInvoiceTemplates/);
+    assert.doesNotMatch(form, /default_template_key/);
+    assert.doesNotMatch(form, /min-h-screen/);
+    assert.doesNotMatch(form, /h-screen/);
+    assert.doesNotMatch(form, /overflow-y-auto/);
   });
 });

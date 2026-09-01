@@ -1,3 +1,4 @@
+import type { InvoiceBrandSnapshot } from "@/modules/finance/lib/invoice-brand-profiles";
 import type {
   InvoiceDocumentType,
   InvoiceType,
@@ -119,6 +120,8 @@ export type InvoiceRecord = {
   includeItineraryDetail?: boolean;
   templateKey: string;
   templateVersion: number;
+  brandProfileId?: string | null;
+  brandSnapshot?: InvoiceBrandSnapshot | Record<string, unknown> | null;
   themeSnapshot: InvoiceThemeSnapshot | Record<string, unknown>;
   companySnapshot: InvoiceCompanySnapshot | Record<string, unknown>;
   customerSnapshot: InvoiceCustomerSnapshot | Record<string, unknown>;

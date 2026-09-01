@@ -37,6 +37,8 @@ type ProformaRow = {
   total_minor: number;
   template_key: string;
   template_version: number;
+  brand_profile_id?: string | null;
+  brand_snapshot?: Json | null;
   theme_snapshot: Json;
   company_snapshot: Json;
   customer_snapshot: Json;
@@ -118,6 +120,8 @@ function mapProforma(
     totalMinor: Number(row.total_minor),
     templateKey: row.template_key,
     templateVersion: row.template_version,
+    brandProfileId: row.brand_profile_id ?? null,
+    brandSnapshot: (row.brand_snapshot as Record<string, unknown> | null) ?? null,
     themeSnapshot: row.theme_snapshot as ProformaRecord["themeSnapshot"],
     companySnapshot: row.company_snapshot as ProformaRecord["companySnapshot"],
     customerSnapshot: customerSnapshot as ProformaRecord["customerSnapshot"],
@@ -235,6 +239,8 @@ export async function insertProformaDraft(params: {
   additionalFeesMinor: number;
   totalMinor: number;
   templateKey: string;
+  brandProfileId?: string | null;
+  brandSnapshot?: Json | null;
   themeSnapshot: Json;
   companySnapshot: Json;
   customerSnapshot: Json;
@@ -280,6 +286,8 @@ export async function insertProformaDraft(params: {
       total_minor: params.totalMinor,
       template_key: params.templateKey,
       template_version: 1,
+      brand_profile_id: params.brandProfileId ?? null,
+      brand_snapshot: params.brandSnapshot ?? null,
       theme_snapshot: params.themeSnapshot,
       company_snapshot: params.companySnapshot,
       customer_snapshot: params.customerSnapshot,
@@ -417,6 +425,8 @@ export async function updateProformaDraftRow(params: {
   additionalFeesMinor: number;
   totalMinor: number;
   templateKey: string;
+  brandProfileId?: string | null;
+  brandSnapshot?: Json | null;
   themeSnapshot: Json;
   companySnapshot: Json;
   customerSnapshot: Json;
@@ -449,6 +459,8 @@ export async function updateProformaDraftRow(params: {
       additional_fees_minor: params.additionalFeesMinor,
       total_minor: params.totalMinor,
       template_key: params.templateKey,
+      brand_profile_id: params.brandProfileId ?? null,
+      brand_snapshot: params.brandSnapshot ?? null,
       theme_snapshot: params.themeSnapshot,
       company_snapshot: params.companySnapshot,
       customer_snapshot: params.customerSnapshot,

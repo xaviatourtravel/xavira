@@ -4,7 +4,6 @@ import { Text, View } from "@react-pdf/renderer";
 import {
   formatInvoicePdfLifecycleStatus,
   INVOICE_PDF_LABELS,
-  invoicePdfVisibleHeading,
 } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
@@ -13,6 +12,7 @@ import {
   PDF_SPACE,
   PDF_TYPE,
 } from "@/modules/finance/pdf/invoice-pdf-theme";
+import { DocumentHeading } from "@/modules/finance/pdf/shared/document-heading";
 
 function paymentBadgeColors(status: string): {
   backgroundColor: string;
@@ -172,17 +172,13 @@ export function InvoiceMetaBlock({
   return (
     <View style={{ width: 196 }}>
       {showTitle ? (
-        <Text
-          style={{
-            fontSize: PDF_TYPE.documentTitle,
-            fontFamily: "Helvetica-Bold",
-            color: text,
-            letterSpacing: -0.4,
-            marginBottom: PDF_SPACE.md,
-          }}
-        >
-          {invoicePdfVisibleHeading(data)}
-        </Text>
+        <DocumentHeading
+          data={data}
+          color={text}
+          invoiceFontSize={PDF_TYPE.documentTitle}
+          letterSpacing={-0.4}
+          style={{ marginBottom: PDF_SPACE.md }}
+        />
       ) : null}
       <MetaRow
         label={
@@ -208,15 +204,17 @@ export function InvoiceMetaBlock({
           text={text}
         />
       ) : null}
-      <StatusBadge
-        label={
-          data.lifecycleStatus === "void"
-            ? lifecycleLabel
-            : data.paymentStatusLabel
-        }
-        backgroundColor={badge.backgroundColor}
-        color={badge.color}
-      />
+      {data.showDocumentStatusBadge === false ? null : (
+        <StatusBadge
+          label={
+            data.lifecycleStatus === "void"
+              ? lifecycleLabel
+              : data.paymentStatusLabel
+          }
+          backgroundColor={badge.backgroundColor}
+          color={badge.color}
+        />
+      )}
     </View>
   );
 }

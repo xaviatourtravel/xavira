@@ -122,9 +122,25 @@ export function invoicePdfVisibleHeading(data: {
   documentType: "invoice" | "proforma";
   documentTitle: string;
 }): string {
+  const title = data.documentTitle?.trim();
+  if (title) return title;
   return data.documentType === "proforma"
-    ? data.documentTitle
+    ? INVOICE_PDF_LABELS.proforma
     : INVOICE_PDF_LABELS.invoice;
+}
+
+/** Fits "PROFORMA INVOICE" on one line in the 196pt invoice meta column. */
+export const PROFORMA_PDF_HEADING_SIZE = 16;
+
+export function neverHyphenatePdfWord(word: string): string[] {
+  return [word];
+}
+
+export function isFin005ProformaPdf(data: {
+  documentType: "invoice" | "proforma";
+  invoiceType?: "package" | "ticketing";
+}): boolean {
+  return data.documentType === "proforma" && data.invoiceType !== "ticketing";
 }
 
 const PAYMENT_HISTORY_STATUS_LABELS: Record<string, string> = {

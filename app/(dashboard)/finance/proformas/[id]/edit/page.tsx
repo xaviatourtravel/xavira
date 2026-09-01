@@ -10,9 +10,9 @@ import { InvoiceDraftEditor } from "@/modules/finance/components/invoice-draft-e
 import { canEditInvoices } from "@/modules/finance/lib/invoice-access";
 import { isProformaEditable } from "@/modules/finance/lib/proforma-lifecycle";
 import {
-  getOrganizationInvoiceBrandSettings,
   loadInvoiceEditorOptions,
 } from "@/modules/finance/services/invoice-service";
+import { listInvoiceBrandEditorOptions } from "@/modules/finance/services/invoice-brand-service";
 import { getOrganizationProforma } from "@/modules/finance/services/proforma-service";
 
 type PageProps = {
@@ -46,13 +46,7 @@ export default async function EditProformaPage({
   }
 
   const options = await loadInvoiceEditorOptions(profile, proforma.customerId);
-  const brandSettings = await getOrganizationInvoiceBrandSettings(profile);
-  const theme = proforma.themeSnapshot as {
-    templateKey?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
-  };
+  const brands = await listInvoiceBrandEditorOptions(proforma.organizationId);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 md:px-6">
@@ -72,12 +66,7 @@ export default async function EditProformaPage({
         action={updateProformaDraftAndRedirectAction}
         customers={options.customers}
         bookings={options.bookings}
-        workspaceBrand={{
-          templateKey: brandSettings.brand.defaultTemplateKey,
-          primaryColor: brandSettings.workspace.primaryColor,
-          secondaryColor: brandSettings.workspace.secondaryColor,
-          accentColor: brandSettings.workspace.accentColor,
-        }}
+        brands={brands}
         errorMessage={query.error ?? null}
         initial={{
           invoiceId: proforma.id,
@@ -90,10 +79,7 @@ export default async function EditProformaPage({
           manualRecipientEmail: proforma.manualRecipientEmail,
           manualRecipientAddress: proforma.manualRecipientAddress,
           manualRecipientTaxId: proforma.manualRecipientTaxId,
-          templateKey: theme.templateKey ?? proforma.templateKey,
-          primaryColor: theme.primaryColor,
-          secondaryColor: theme.secondaryColor,
-          accentColor: theme.accentColor,
+          brandProfileId: proforma.brandProfileId ?? null,
           issueDate: proforma.issueDate,
           dueDate: proforma.dueDate,
           notes: proforma.notes,

@@ -25,16 +25,10 @@ export function parseDraftPayloadFromFormData(formData: FormData, items: unknown
       ? String(formData.get("payment_instructions"))
       : null,
     terms: formData.get("terms") ? String(formData.get("terms")) : null,
-    templateKey: String(formData.get("template_key") ?? "calm-standard"),
-    primaryColor: formData.get("primary_color")
-      ? String(formData.get("primary_color"))
-      : undefined,
-    secondaryColor: formData.get("secondary_color")
-      ? String(formData.get("secondary_color"))
-      : undefined,
-    accentColor: formData.get("accent_color")
-      ? String(formData.get("accent_color"))
-      : undefined,
+    brandProfileId: formData.get("brand_profile_id")
+      ? String(formData.get("brand_profile_id"))
+      : null,
+    templateKey: "calm-standard",
     items,
     totals,
   };

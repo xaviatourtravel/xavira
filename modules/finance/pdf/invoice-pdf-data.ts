@@ -10,6 +10,11 @@ import {
   enabledPaymentAccountsForDocuments,
 } from "@/modules/finance/lib/invoice-payment-accounts";
 import { calculateInvoiceTotals } from "@/modules/finance/lib/invoice-calculator";
+import {
+  FIXED_PACKAGE_INVOICE_LAYOUT_KEY,
+  readBrandSnapshot,
+  usesFixedPackageInvoiceLayout,
+} from "@/modules/finance/lib/invoice-brand-profiles";
 import { getDocumentSafePdfTheme } from "@/modules/finance/pdf/invoice-pdf-document-colors";
 import { resolveRecipientDisplayName } from "@/modules/finance/lib/invoice-recipient";
 import {
@@ -44,6 +49,15 @@ function readString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function resolvePackageInvoiceDocumentTitle(invoice: InvoiceRecord): string {
+  if (invoice.documentType === "proforma" || invoice.invoiceType === "ticketing") {
+    return invoiceDocumentTitle(invoice.invoiceType, invoice.documentType);
+  }
+  const brandTitle = readBrandSnapshot(invoice.brandSnapshot)?.invoiceTitle?.trim();
+  if (brandTitle) return brandTitle;
+  return invoiceDocumentTitle(invoice.invoiceType, invoice.documentType);
 }
 
 function parsePaymentAccounts(raw: unknown): InvoicePdfPaymentAccount[] {
@@ -184,11 +198,21 @@ export async function buildInvoicePdfData(
     };
   }
 
-  const templateKey = normalizeInvoiceTemplateKey(
+  const brandSnapshot = readBrandSnapshot(invoice.brandSnapshot);
+  const brandKey = brandSnapshot?.key ?? null;
+  let templateKey = normalizeInvoiceTemplateKey(
     issued
       ? String(themeSnap.templateKey ?? invoice.templateKey)
       : invoice.templateKey,
   );
+  if (
+    usesFixedPackageInvoiceLayout({
+      brandKey,
+      invoiceType: invoice.invoiceType,
+    })
+  ) {
+    templateKey = FIXED_PACKAGE_INVOICE_LAYOUT_KEY;
+  }
   const colors = getDocumentSafePdfTheme({
     primaryColor: String(themeSnap.primaryColor ?? ""),
     secondaryColor: String(themeSnap.secondaryColor ?? ""),
@@ -260,7 +284,7 @@ export async function buildInvoicePdfData(
     organizationId: invoice.organizationId,
     invoiceType: invoice.invoiceType,
     documentType: invoice.documentType,
-    documentTitle: invoiceDocumentTitle(invoice.invoiceType, invoice.documentType),
+    documentTitle: resolvePackageInvoiceDocumentTitle(invoice),
     ticketing:
       invoice.invoiceType === "ticketing" && ticketingGroups && ticketingGroups.length > 0
         ? { groups: ticketingGroups }
@@ -333,5 +357,7 @@ export async function buildInvoicePdfData(
       ...colors,
     },
     showDraftWatermark: !issued,
+    showDocumentStatusBadge: true,
+    brandKey,
   };
 }

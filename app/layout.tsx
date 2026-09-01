@@ -7,6 +7,7 @@ import {
 } from "@/components/theme/theme-provider";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { GlobalLoadingProvider } from "@/components/loading/global-loading-provider";
 import { branding } from "@/config/branding";
 import { siteConfig } from "@/config/site";
 
@@ -60,7 +61,9 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <I18nProvider>
+            <GlobalLoadingProvider>{children}</GlobalLoadingProvider>
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

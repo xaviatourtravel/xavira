@@ -1,7 +1,6 @@
 import type { Profile } from "@/types/app-types";
 import type { Json } from "@/types/database";
 
-import { parseOrganizationWorkspaceSettings } from "@/lib/settings/organization-settings";
 import { calculateInvoiceTotals } from "@/modules/finance/lib/invoice-calculator";
 import {
   assertBookingMatchesInvoiceCustomer,
@@ -10,20 +9,11 @@ import {
   requireOrganizationId,
 } from "@/modules/finance/lib/invoice-access";
 import {
-  coercePaymentAccounts,
-  enabledPaymentAccountsForDocuments,
-} from "@/modules/finance/lib/invoice-payment-accounts";
-import { getSafeInvoiceTheme } from "@/modules/finance/lib/invoice-theme-colors";
-import {
   canCancelProforma,
   canConvertProforma,
   canDeleteProforma,
   isProformaEditable,
 } from "@/modules/finance/lib/proforma-lifecycle";
-import {
-  getInvoiceTemplateVersion,
-  normalizeInvoiceTemplateKey,
-} from "@/modules/finance/pdf/invoice-template-registry";
 import type {
   CreateProformaDraftInput,
   ProformaListFilters,
@@ -31,17 +21,13 @@ import type {
 } from "@/modules/finance/schemas/proforma";
 import type {
   InvoiceBookingSnapshot,
-  InvoiceBrandSettings,
-  InvoiceCompanySnapshot,
   InvoiceCustomerSnapshot,
-  InvoiceThemeSnapshot,
 } from "@/modules/finance/types/invoices";
 import type { ProformaRecord } from "@/modules/finance/types/proforma";
 import * as invoiceRepo from "@/modules/finance/repositories/invoice-repository";
 import * as repo from "@/modules/finance/repositories/proforma-repository";
+import { resolveDocumentBrand } from "@/modules/finance/services/invoice-brand-service";
 import { tryGenerateInvoicePdfAfterIssue } from "@/modules/finance/services/invoice-pdf-service";
-import { resolveWorkspaceBranding } from "@/modules/organization/branding/lib/branding-settings";
-import * as brandingRepo from "@/modules/organization/branding/repositories/branding-repository";
 
 function asJson(value: unknown): Json {
   return value as Json;
@@ -49,87 +35,9 @@ function asJson(value: unknown): Json {
 
 async function resolveBrandAndCompany(
   organizationId: string,
-  override?: {
-    templateKey?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
-  },
-): Promise<{
-  companySnapshot: InvoiceCompanySnapshot;
-  themeSnapshot: InvoiceThemeSnapshot;
-}> {
-  const orgRow = await brandingRepo.getOrganizationBrandingRow(organizationId);
-  const org = await invoiceRepo.getOrganizationSlug(organizationId);
-  const settings = parseOrganizationWorkspaceSettings(org.settings);
-  const brand: InvoiceBrandSettings =
-    await invoiceRepo.ensureBrandSettingsDefaults({
-      organizationId,
-      legalName: org.name,
-      email: settings.businessEmail || null,
-      phone: org.phone,
-      website: settings.website || null,
-      logoUrl: settings.logoUrl,
-    });
-
-  const workspace = resolveWorkspaceBranding({
-    organizationId,
-    organizationName: orgRow?.name ?? org.name,
-    organizationPhone: orgRow?.phone ?? org.phone,
-    settings: orgRow?.settings ?? org.settings,
-    legacy: {
-      legalName: brand.legalName,
-      address: brand.address,
-      email: brand.email,
-      phone: brand.phone,
-      website: brand.website,
-      taxId: brand.taxId,
-      primaryColor: brand.primaryColor,
-      secondaryColor: brand.secondaryColor,
-      accentColor: brand.accentColor,
-      logoUrl: brand.logoUrl,
-    },
-  });
-
-  const templateKey = normalizeInvoiceTemplateKey(
-    override?.templateKey ?? brand.defaultTemplateKey,
-  );
-  const colors = getSafeInvoiceTheme({
-    primaryColor:
-      override?.primaryColor ?? workspace.primaryColor ?? brand.primaryColor,
-    secondaryColor:
-      override?.secondaryColor ??
-      workspace.secondaryColor ??
-      brand.secondaryColor,
-    accentColor:
-      override?.accentColor ?? workspace.accentColor ?? brand.accentColor,
-  });
-
-  return {
-    companySnapshot: {
-      legalName: workspace.legalName || brand.legalName || org.name,
-      logoUrl: workspace.logoStorageRef ?? brand.logoUrl ?? settings.logoUrl,
-      address: workspace.address ?? brand.address,
-      email: workspace.email ?? brand.email,
-      phone: workspace.phone ?? brand.phone,
-      website: workspace.website ?? brand.website,
-      taxId: workspace.taxId ?? brand.taxId,
-      paymentAccounts: enabledPaymentAccountsForDocuments(
-        coercePaymentAccounts(brand.paymentAccountsJson),
-      ),
-      primaryColor: colors.primaryColor,
-      secondaryColor: colors.secondaryColor,
-      accentColor: colors.accentColor,
-      footerText: brand.footerText,
-    },
-    themeSnapshot: {
-      templateKey,
-      templateVersion: getInvoiceTemplateVersion(templateKey),
-      primaryColor: colors.primaryColor,
-      secondaryColor: colors.secondaryColor,
-      accentColor: colors.accentColor,
-    },
-  };
+  brandProfileId?: string | null,
+) {
+  return resolveDocumentBrand(organizationId, brandProfileId);
 }
 
 async function buildCustomerSnapshot(
@@ -274,15 +182,8 @@ export async function createDraftProforma(
   assertInvoicePermission(profile, "invoices.create");
   const organizationId = requireOrganizationId(profile);
   const totals = computeTotals(input);
-  const { companySnapshot, themeSnapshot } = await resolveBrandAndCompany(
-    organizationId,
-    {
-      templateKey: input.templateKey,
-      primaryColor: input.primaryColor,
-      secondaryColor: input.secondaryColor,
-      accentColor: input.accentColor,
-    },
-  );
+  const { companySnapshot, themeSnapshot, brandSnapshot, profile: brandProfile } =
+    await resolveBrandAndCompany(organizationId, input.brandProfileId);
   const recipient = draftRecipientFields(input);
   const customerSnapshot = await buildCustomerSnapshot(organizationId, input);
   const bookingSnapshot =
@@ -307,6 +208,8 @@ export async function createDraftProforma(
     additionalFeesMinor: totals.additionalFeesMinor,
     totalMinor: totals.totalMinor,
     templateKey: themeSnapshot.templateKey,
+    brandProfileId: brandProfile.id,
+    brandSnapshot: asJson(brandSnapshot),
     themeSnapshot: asJson(themeSnapshot),
     companySnapshot: asJson(companySnapshot),
     customerSnapshot: asJson(customerSnapshot),
@@ -344,15 +247,8 @@ export async function updateDraftProforma(
   }
 
   const totals = computeTotals(input);
-  const { companySnapshot, themeSnapshot } = await resolveBrandAndCompany(
-    organizationId,
-    {
-      templateKey: input.templateKey,
-      primaryColor: input.primaryColor,
-      secondaryColor: input.secondaryColor,
-      accentColor: input.accentColor,
-    },
-  );
+  const { companySnapshot, themeSnapshot, brandSnapshot, profile: brandProfile } =
+    await resolveBrandAndCompany(organizationId, input.brandProfileId);
   const recipient = draftRecipientFields(input);
   const customerSnapshot = await buildCustomerSnapshot(organizationId, input);
   const bookingSnapshot =
@@ -393,6 +289,8 @@ export async function updateDraftProforma(
     additionalFeesMinor: totals.additionalFeesMinor,
     totalMinor: totals.totalMinor,
     templateKey: themeSnapshot.templateKey,
+    brandProfileId: brandProfile.id,
+    brandSnapshot: asJson(brandSnapshot),
     themeSnapshot: asJson(themeSnapshot),
     companySnapshot: asJson(companySnapshot),
     customerSnapshot: asJson(customerSnapshot),

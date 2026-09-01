@@ -7,23 +7,41 @@ import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/dictionary";
 import { InvoiceBrandSettingsForm } from "@/modules/finance/components/invoice-brand-settings-form";
 import { canEditInvoices } from "@/modules/finance/lib/invoice-access";
-import { getOrganizationInvoiceBrandSettings } from "@/modules/finance/services/invoice-service";
+import {
+  invoiceBrandWorkspacePath,
+  parseInvoiceBrandKey,
+} from "@/modules/finance/lib/invoice-brand-workspaces";
+import { getOrganizationFinanceBrands } from "@/modules/finance/services/invoice-brand-service";
 
-export default async function InvoiceBrandSettingsPage() {
+type PageProps = {
+  searchParams: Promise<{ brand?: string }>;
+};
+
+export default async function InvoiceBrandSettingsPage({
+  searchParams,
+}: PageProps) {
   const { profile } = await requireProfile();
   assertRoutePermission(profile, "invoices.view");
   if (!canEditInvoices(profile)) {
-    redirect("/finance/invoices");
+    redirect("/finance/invoices/xavia");
   }
 
   const t = createTranslator(DEFAULT_LOCALE);
-  const { brand, workspace } = await getOrganizationInvoiceBrandSettings(profile);
+  const params = await searchParams;
+  const brandKey = parseInvoiceBrandKey(params.brand);
+  const { profiles, editorOptions } = await getOrganizationFinanceBrands(profile);
+  const logoPreviewById = Object.fromEntries(
+    editorOptions.map((option) => [option.id, option.logoPreviewUrl]),
+  );
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 md:px-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
-          <Link href="/finance/invoices" className="hover:underline">
+          <Link
+            href={invoiceBrandWorkspacePath(brandKey)}
+            className="hover:underline"
+          >
             {t("financeUi.backToList")}
           </Link>
         </p>
@@ -36,13 +54,9 @@ export default async function InvoiceBrandSettingsPage() {
       </div>
 
       <InvoiceBrandSettingsForm
-        initial={{
-          defaultTemplateKey: brand.defaultTemplateKey,
-          footerText: brand.footerText,
-          invoicePrefix: brand.invoicePrefix,
-          paymentAccountsJson: brand.paymentAccountsJson,
-          workspace,
-        }}
+        profiles={profiles}
+        logoPreviewById={logoPreviewById}
+        initialBrandKey={brandKey}
       />
     </div>
   );

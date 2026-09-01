@@ -134,6 +134,7 @@ const ticketingBaseSchema = z.object({
   notes: optionalText(5000),
   paymentInstructions: optionalText(5000),
   terms: optionalText(5000),
+  brandProfileId: z.string().uuid().nullable().optional(),
   templateKey: templateKeySchema,
   primaryColor: hexColor,
   secondaryColor: hexColor,

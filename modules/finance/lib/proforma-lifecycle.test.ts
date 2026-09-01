@@ -343,7 +343,10 @@ describe("FIN-005 Proforma lifecycle", () => {
       "utf8",
     );
     const listPage = readFileSync(
-      path.join(process.cwd(), "app/(dashboard)/finance/invoices/page.tsx"),
+      path.join(
+        process.cwd(),
+        "modules/finance/components/invoice-workspace-page.tsx",
+      ),
       "utf8",
     );
     const outstanding = readFileSync(

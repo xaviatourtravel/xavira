@@ -12,8 +12,8 @@ import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { loadBookingPrefillAction } from "@/modules/finance/actions/invoice-actions";
 import { InvoiceMoneyInput } from "@/modules/finance/components/invoice-money-input";
 import { suppressNumberInputWheel } from "@/modules/finance/lib/suppress-number-input-wheel";
-import { InvoiceTemplateBrandingFields } from "@/modules/finance/components/invoice-template-branding-fields";
-import { DEFAULT_INVOICE_TEMPLATE_KEY } from "@/modules/finance/pdf/invoice-pdf-types";
+import { InvoiceBrandSelector } from "@/modules/finance/components/invoice-brand-selector";
+import type { InvoiceBrandEditorOption } from "@/modules/finance/lib/invoice-brand-profiles";
 
 export type InvoiceEditorCustomerOption = {
   id: string;
@@ -47,12 +47,7 @@ type InvoiceDraftEditorProps = {
   action: (formData: FormData) => void | Promise<void>;
   customers: InvoiceEditorCustomerOption[];
   bookings: InvoiceEditorBookingOption[];
-  workspaceBrand: {
-    templateKey: string;
-    primaryColor: string;
-    secondaryColor: string;
-    accentColor: string;
-  };
+  brands: InvoiceBrandEditorOption[];
   initial?: {
     invoiceId?: string;
     recipientSource?: "linked_customer" | "manual";
@@ -64,10 +59,7 @@ type InvoiceDraftEditorProps = {
     manualRecipientEmail?: string | null;
     manualRecipientAddress?: string | null;
     manualRecipientTaxId?: string | null;
-    templateKey?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
+    brandProfileId?: string | null;
     issueDate?: string | null;
     dueDate?: string | null;
     notes?: string | null;
@@ -98,23 +90,16 @@ export function InvoiceDraftEditor({
   action,
   customers,
   bookings,
-  workspaceBrand,
+  brands,
   initial,
   errorMessage,
 }: InvoiceDraftEditorProps) {
   const { tStrict } = useTranslation();
   const [pending, startTransition] = useTransition();
-  const [templateKey, setTemplateKey] = useState(
-    initial?.templateKey ?? workspaceBrand.templateKey ?? DEFAULT_INVOICE_TEMPLATE_KEY,
-  );
-  const [primaryColor, setPrimaryColor] = useState(
-    initial?.primaryColor ?? workspaceBrand.primaryColor,
-  );
-  const [secondaryColor, setSecondaryColor] = useState(
-    initial?.secondaryColor ?? workspaceBrand.secondaryColor,
-  );
-  const [accentColor, setAccentColor] = useState(
-    initial?.accentColor ?? workspaceBrand.accentColor,
+  const defaultBrandId =
+    brands.find((brand) => brand.isDefault)?.id ?? brands[0]?.id ?? "";
+  const [brandProfileId, setBrandProfileId] = useState(
+    initial?.brandProfileId ?? defaultBrandId,
   );
   const [recipientSource, setRecipientSource] = useState<
     "linked_customer" | "manual"
@@ -260,6 +245,7 @@ export function InvoiceDraftEditor({
           void action(formData);
         });
       }}
+      data-global-loading=""
       className="space-y-8"
     >
       {initial?.invoiceId ? (
@@ -310,18 +296,10 @@ export function InvoiceDraftEditor({
         </p>
       )}
 
-      <InvoiceTemplateBrandingFields
-        templateKey={templateKey}
-        primaryColor={primaryColor}
-        secondaryColor={secondaryColor}
-        accentColor={accentColor}
-        workspaceDefaults={workspaceBrand}
-        onChange={(next) => {
-          setTemplateKey(next.templateKey);
-          setPrimaryColor(next.primaryColor);
-          setSecondaryColor(next.secondaryColor);
-          setAccentColor(next.accentColor);
-        }}
+      <InvoiceBrandSelector
+        brands={brands}
+        selectedBrandId={brandProfileId}
+        onChange={setBrandProfileId}
       />
 
       <section className="space-y-4">

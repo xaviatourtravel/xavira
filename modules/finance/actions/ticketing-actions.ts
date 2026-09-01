@@ -25,6 +25,8 @@ export async function createTicketingDraftAction(
     const input = createTicketingDraftSchema.parse(raw);
     const invoice = await createTicketingDraft(profile, input);
     revalidatePath(INVOICES_PATH);
+    revalidatePath("/finance/invoices/xavia");
+    revalidatePath("/finance/invoices/consortium");
     revalidatePath(`${INVOICES_PATH}/${invoice.id}`);
     return { success: true, invoiceId: invoice.id };
   } catch (error) {
@@ -45,6 +47,8 @@ export async function updateTicketingDraftAction(
     const input = updateTicketingDraftSchema.parse(raw);
     const invoice = await updateTicketingDraft(profile, input);
     revalidatePath(INVOICES_PATH);
+    revalidatePath("/finance/invoices/xavia");
+    revalidatePath("/finance/invoices/consortium");
     revalidatePath(`${INVOICES_PATH}/${invoice.id}`);
     revalidatePath(`${INVOICES_PATH}/${invoice.id}/edit`);
     return { success: true, invoiceId: invoice.id };

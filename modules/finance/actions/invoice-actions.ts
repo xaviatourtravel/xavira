@@ -11,6 +11,7 @@ import {
   deleteArchivedInvoiceSchema,
   deleteDraftInvoiceSchema,
   duplicateInvoiceSchema,
+  invoiceBrandProfileUpdateSchema,
   invoiceBrandSettingsUpdateSchema,
   invoicePrefixSchema,
   issueInvoiceSchema,
@@ -36,12 +37,20 @@ import {
   updateDraftInvoice,
   voidIssuedInvoice,
 } from "@/modules/finance/services/invoice-service";
+import {
+  finalizeInvoiceBrandLogoUpload,
+  prepareInvoiceBrandLogoUpload,
+  removeInvoiceBrandLogo,
+  saveInvoiceBrandProfile,
+} from "@/modules/finance/services/invoice-brand-service";
 import { parseDraftPayloadFromFormData } from "@/modules/finance/lib/parse-invoice-draft-form";
 
 const INVOICES_PATH = "/finance/invoices";
 
 function revalidateInvoices(invoiceId?: string) {
   revalidatePath(INVOICES_PATH);
+  revalidatePath("/finance/invoices/xavia");
+  revalidatePath("/finance/invoices/consortium");
   if (invoiceId) {
     revalidatePath(`${INVOICES_PATH}/${invoiceId}`);
     revalidatePath(`${INVOICES_PATH}/${invoiceId}/edit`);
@@ -325,6 +334,85 @@ export async function saveInvoiceBrandSettingsAction(
         error instanceof Error
           ? error.message
           : "Failed to save brand settings",
+    };
+  }
+}
+
+export async function saveInvoiceBrandProfileAction(
+  raw: unknown,
+): Promise<{ success: true } | { success: false; message: string }> {
+  try {
+    const { profile } = await requireProfile();
+    const input = invoiceBrandProfileUpdateSchema.parse(raw);
+    await saveInvoiceBrandProfile(profile, input);
+    revalidateInvoices();
+    revalidatePath("/finance/invoices/settings");
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to save finance brand",
+    };
+  }
+}
+
+export async function prepareInvoiceBrandLogoUploadAction(input: {
+  profileId: string;
+  originalFilename: string;
+  declaredMimeType: string;
+  declaredSize: number;
+  contentHash: string;
+}) {
+  try {
+    const { profile } = await requireProfile();
+    const prepared = await prepareInvoiceBrandLogoUpload(profile, input);
+    return { ok: true as const, ...prepared };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to prepare logo upload.";
+    const [code, ...rest] = message.split(": ");
+    return {
+      ok: false as const,
+      code: rest.length ? code : "UPLOAD_PREPARATION_FAILED",
+      message: rest.length ? rest.join(": ") : message,
+    };
+  }
+}
+
+export async function finalizeInvoiceBrandLogoUploadAction(input: {
+  profileId: string;
+  storagePath: string;
+  contentHash: string;
+  mimeType: "image/png" | "image/jpeg";
+}) {
+  try {
+    const { profile } = await requireProfile();
+    await finalizeInvoiceBrandLogoUpload(profile, input);
+    revalidatePath("/finance/invoices/settings");
+    return { ok: true as const };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to finalize logo upload.";
+    const [code, ...rest] = message.split(": ");
+    return {
+      ok: false as const,
+      code: rest.length ? code : "UPLOAD_FINALIZATION_FAILED",
+      message: rest.length ? rest.join(": ") : message,
+    };
+  }
+}
+
+export async function removeInvoiceBrandLogoAction(profileId: string) {
+  try {
+    const { profile } = await requireProfile();
+    await removeInvoiceBrandLogo(profile, profileId);
+    revalidatePath("/finance/invoices/settings");
+    return { success: true as const };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Failed to remove logo",
     };
   }
 }

@@ -45,6 +45,8 @@ export type ProformaRecord = {
   totalMinor: number;
   templateKey: string;
   templateVersion: number;
+  brandProfileId?: string | null;
+  brandSnapshot?: Record<string, unknown> | null;
   themeSnapshot: InvoiceThemeSnapshot | Record<string, unknown>;
   companySnapshot: InvoiceCompanySnapshot | Record<string, unknown>;
   customerSnapshot: InvoiceCustomerSnapshot | Record<string, unknown>;

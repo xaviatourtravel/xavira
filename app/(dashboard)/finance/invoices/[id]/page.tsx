@@ -27,6 +27,8 @@ import {
   canPermanentlyDeleteArchivedInvoices,
   canRemoveInvoices,
 } from "@/modules/finance/lib/invoice-access";
+import { invoiceWorkspacePathFromDocument } from "@/modules/finance/lib/invoice-brand-workspaces";
+import { readBrandSnapshot } from "@/modules/finance/lib/invoice-brand-profiles";
 import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { getOrganizationInvoice } from "@/modules/finance/services/invoice-service";
 import { getTicketingData } from "@/modules/finance/repositories/ticketing-repository";
@@ -102,7 +104,7 @@ export default async function InvoiceDetailPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">
-            <Link href="/finance/invoices" className="hover:underline">
+            <Link href={invoiceWorkspacePathFromDocument(invoice)} className="hover:underline">
               {t("financeUi.backToList")}
             </Link>
           </p>
@@ -124,6 +126,11 @@ export default async function InvoiceDetailPage({
                 ? t("financeUi.typeLabelTicketing")
                 : t("financeUi.typeLabelPackage")}
             </span>
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide bg-muted text-muted-foreground">
+              {readBrandSnapshot(invoice.brandSnapshot)?.key === "consortium"
+                ? "Consortium"
+                : "Xavia"}
+            </span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -136,7 +143,7 @@ export default async function InvoiceDetailPage({
             </Link>
           ) : null}
           {isDraft && canIssueInvoices(profile) ? (
-            <form action={issueInvoiceFormAction}>
+            <form action={issueInvoiceFormAction} data-global-loading="">
               <input type="hidden" name="invoice_id" value={invoice.id} />
               <Button type="submit">{t("financeUi.issueInvoice")}</Button>
             </form>
@@ -370,7 +377,7 @@ export default async function InvoiceDetailPage({
 
       <div className="flex flex-wrap gap-3">
         {canCreateInvoices(profile) ? (
-          <form action={duplicateInvoiceFormAction}>
+          <form action={duplicateInvoiceFormAction} data-global-loading="">
             <input type="hidden" name="invoice_id" value={invoice.id} />
             <Button type="submit" variant="outline">
               {t("financeUi.duplicateAsDraft")}
@@ -378,7 +385,7 @@ export default async function InvoiceDetailPage({
           </form>
         ) : null}
         {invoice.lifecycleStatus === "issued" && canIssueInvoices(profile) ? (
-          <form action={markInvoiceSentFormAction}>
+          <form action={markInvoiceSentFormAction} data-global-loading="">
             <input type="hidden" name="invoice_id" value={invoice.id} />
             <Button type="submit" variant="outline">
               {t("financeUi.markSent")}
@@ -390,6 +397,7 @@ export default async function InvoiceDetailPage({
       {isIssuedLike && canVoidInvoices(profile) && !invoice.archivedAt ? (
         <form
           action={voidInvoiceFormAction}
+          data-global-loading=""
           className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50/40 p-4"
         >
           <input type="hidden" name="invoice_id" value={invoice.id} />

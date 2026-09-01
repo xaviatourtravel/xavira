@@ -1,8 +1,5 @@
 import { buildInvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-data";
-import {
-  formatInvoicePdfLifecycleStatus,
-  invoiceDocumentTitle,
-} from "@/modules/finance/pdf/invoice-pdf-labels";
+import { invoiceDocumentTitle } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import { looksLikeOfficialInvoiceNumber } from "@/modules/finance/lib/proforma-lifecycle";
 import type { InvoiceRecord } from "@/modules/finance/types/invoices";
@@ -42,6 +39,8 @@ function asInvoiceSource(proforma: ProformaRecord): InvoiceRecord {
     balanceDueMinor: proforma.totalMinor,
     templateKey: proforma.templateKey,
     templateVersion: proforma.templateVersion,
+    brandProfileId: proforma.brandProfileId ?? null,
+    brandSnapshot: proforma.brandSnapshot ?? null,
     themeSnapshot: proforma.themeSnapshot,
     companySnapshot: proforma.companySnapshot,
     customerSnapshot: proforma.customerSnapshot,
@@ -95,14 +94,8 @@ export async function buildProformaPdfData(
     documentType: "proforma",
     documentTitle: PROFORMA_PDF_TITLE,
     invoiceNumber: proforma.proformaNumber,
-    showDraftWatermark: proforma.lifecycleStatus === "draft",
-    paymentStatusLabel: formatInvoicePdfLifecycleStatus(
-      proforma.lifecycleStatus === "cancelled"
-        ? "void"
-        : proforma.lifecycleStatus === "converted"
-          ? "issued"
-          : "draft",
-    ),
+    showDraftWatermark: false,
+    showDocumentStatusBadge: false,
     amountPaidMinor: 0,
     balanceDueMinor: data.totalMinor,
     payments: [],

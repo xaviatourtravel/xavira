@@ -26,6 +26,13 @@ export default async function FinancePage() {
           icon: FileText,
         },
         {
+          id: "proforma",
+          title: "Proforma",
+          description: "Proforma Invoice sebelum nomor invoice resmi diterbitkan.",
+          href: "/finance/proformas",
+          icon: FileText,
+        },
+        {
           id: "ringkasan-keuangan",
           title: "Ringkasan Keuangan",
           description: "Ringkasan pendapatan dan performa keuangan.",

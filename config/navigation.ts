@@ -108,6 +108,7 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     items: [
       { title: "Pembayaran", href: "/revenue" },
       { title: "Invoice", href: "/finance/invoices", permission: "invoices.view" },
+      { title: "Proforma", href: "/finance/proformas", permission: "invoices.view" },
     ],
   },
   {

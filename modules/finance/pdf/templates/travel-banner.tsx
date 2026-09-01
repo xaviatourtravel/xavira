@@ -1,7 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
-import { INVOICE_PDF_LABELS } from "@/modules/finance/pdf/invoice-pdf-labels";
+import { INVOICE_PDF_LABELS, invoicePdfVisibleHeading } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   createInvoicePdfStyles,
@@ -43,7 +43,13 @@ export function TravelBannerTemplate({ data }: { data: InvoicePdfData }) {
       : data.invoiceNumber;
 
   return (
-    <Document title={data.invoiceNumber ?? "Invoice draft"}>
+    <Document
+      title={
+        data.documentType === "proforma"
+          ? data.documentTitle
+          : (data.invoiceNumber ?? "Invoice draft")
+      }
+    >
       <Page size="A4" style={{ ...styles.page, paddingTop: 0 }} wrap>
         {data.showDraftWatermark ? (
           <Text style={styles.watermark}>{INVOICE_PDF_LABELS.draftWatermark}</Text>
@@ -110,7 +116,7 @@ export function TravelBannerTemplate({ data }: { data: InvoicePdfData }) {
                   letterSpacing: 0.7,
                 }}
               >
-                {INVOICE_PDF_LABELS.invoice}
+                {invoicePdfVisibleHeading(data)}
               </Text>
               <Text
                 style={{

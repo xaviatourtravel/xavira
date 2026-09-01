@@ -4,6 +4,7 @@ import { Text, View } from "@react-pdf/renderer";
 import {
   formatInvoicePdfLifecycleStatus,
   INVOICE_PDF_LABELS,
+  invoicePdfVisibleHeading,
 } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
@@ -180,11 +181,15 @@ export function InvoiceMetaBlock({
             marginBottom: PDF_SPACE.md,
           }}
         >
-          {INVOICE_PDF_LABELS.invoice}
+          {invoicePdfVisibleHeading(data)}
         </Text>
       ) : null}
       <MetaRow
-        label={INVOICE_PDF_LABELS.number}
+        label={
+          data.documentType === "proforma"
+            ? INVOICE_PDF_LABELS.proformaNumber
+            : INVOICE_PDF_LABELS.number
+        }
         value={numberLabel}
         muted={muted}
         text={text}

@@ -310,7 +310,7 @@ export async function createDraftInvoice(
   return repo.insertInvoiceDraft({
     organizationId,
     invoiceType: input.invoiceType,
-    documentType: input.documentType,
+    documentType: "invoice",
     includeItineraryDetail: input.includeItineraryDetail === true,
     paymentRequestNote: input.paymentRequestNote ?? null,
     ...recipient,
@@ -396,7 +396,7 @@ export async function updateDraftInvoice(
   const updated = await repo.updateInvoiceDraftRow({
     organizationId,
     invoiceId: input.invoiceId,
-    documentType: input.documentType,
+    documentType: existing.documentType,
     includeItineraryDetail: input.includeItineraryDetail === true,
     paymentRequestNote: input.paymentRequestNote ?? null,
     ...recipient,
@@ -801,6 +801,16 @@ export async function duplicateInvoiceAsDraft(
   }
   if (draft.invoiceType !== existing.invoiceType) {
     throw new Error("Duplicated invoice must preserve invoice type");
+  }
+  if (existing.documentType === "proforma") {
+    if (draft.documentType === "proforma") {
+      await repo.coerceDraftDocumentTypeToInvoice(organizationId, draft.id);
+    }
+    const official = await repo.getInvoiceById(organizationId, draft.id);
+    if (!official || official.documentType !== "invoice") {
+      throw new Error("Duplicated historical Proforma must become an Invoice");
+    }
+    return official;
   }
   if (draft.documentType !== existing.documentType) {
     throw new Error("Duplicated invoice must preserve document type");

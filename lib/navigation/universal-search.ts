@@ -216,6 +216,16 @@ const FINANCE_ITEMS: UniversalSearchItem[] = [
     icon: FileText,
   },
   {
+    id: "finance-proforma",
+    category: "finance",
+    rankGroup: 4,
+    title: "Proforma",
+    subtitle: "Proforma Invoice sebelum invoice resmi",
+    href: "/finance/proformas",
+    keywords: ["proforma", "pi", "quotation", "penawaran", "finance", "keuangan"],
+    icon: FileText,
+  },
+  {
     id: "finance-konfirmasi",
     category: "finance",
     rankGroup: 4,

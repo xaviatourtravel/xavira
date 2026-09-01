@@ -154,9 +154,11 @@ export function TicketingInvoiceEditor({
   );
   const [manualTaxId, setManualTaxId] = useState(initial?.manualRecipientTaxId ?? "");
 
-  const [documentType, setDocumentType] = useState<"invoice" | "proforma">(
+  const [documentType] = useState<"invoice" | "proforma">(
     initial?.documentType ?? "invoice",
   );
+  const isHistoricalTicketingProforma =
+    mode === "edit" && documentType === "proforma";
   const [includeItineraryDetail, setIncludeItineraryDetail] = useState(
     initial?.includeItineraryDetail === true,
   );
@@ -297,7 +299,7 @@ export function TicketingInvoiceEditor({
       return trimmed === "" ? null : trimmed;
     };
     const base = {
-      documentType,
+      documentType: isHistoricalTicketingProforma ? "proforma" : "invoice",
       includeItineraryDetail,
       paymentRequestNote: cleanText(paymentRequestNote),
       currency: "IDR",
@@ -682,26 +684,26 @@ export function TicketingInvoiceEditor({
           {tStrict("financeUi.sectionDates")}
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="document_type">
-              {tStrict("financeUi.documentType")}
-            </Label>
-            <select
-              id="document_type"
-              value={documentType}
-              onChange={(event) =>
-                setDocumentType(event.target.value as "invoice" | "proforma")
-              }
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="invoice">
-                {tStrict("financeUi.documentInvoice")}
-              </option>
-              <option value="proforma">
-                {tStrict("financeUi.documentProforma")}
-              </option>
-            </select>
-          </div>
+          {isHistoricalTicketingProforma ? (
+            <div className="space-y-2">
+              <Label htmlFor="document_type">
+                {tStrict("financeUi.documentType")}
+              </Label>
+              <Input
+                id="document_type"
+                value={tStrict("financeUi.legacyTicketingProformaLabel")}
+                readOnly
+                aria-readonly="true"
+                aria-describedby="legacy_ticketing_proforma_hint"
+              />
+              <p
+                id="legacy_ticketing_proforma_hint"
+                className="text-xs text-muted-foreground"
+              >
+                {tStrict("financeUi.legacyTicketingProformaHint")}
+              </p>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="payment_request_note">
               {tStrict("financeUi.paymentRequestNote")}

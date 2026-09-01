@@ -68,6 +68,7 @@ type InvoiceRow = {
   archived_at?: string | null;
   archived_by?: string | null;
   archive_reason?: string | null;
+  source_proforma_id?: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -152,6 +153,7 @@ export function mapInvoice(
     manualRecipientAddress: row.manual_recipient_address ?? null,
     manualRecipientTaxId: row.manual_recipient_tax_id ?? null,
     invoiceNumber: row.invoice_number,
+    sourceProformaId: row.source_proforma_id ?? null,
     lifecycleStatus,
     paymentStatus,
     effectivePaymentStatus: deriveEffectivePaymentStatus({
@@ -552,6 +554,26 @@ export async function replaceDraftItems(
   }
 
   return (inserted ?? []).map((row) => mapInvoiceItem(row as InvoiceItemRow));
+}
+
+/** FIN-005A: duplicated historical ticketing Proforma must become an Invoice. */
+export async function coerceDraftDocumentTypeToInvoice(
+  organizationId: string,
+  invoiceId: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("invoices")
+    .update({ document_type: "invoice" })
+    .eq("organization_id", organizationId)
+    .eq("id", invoiceId)
+    .eq("lifecycle_status", "draft")
+    .is("invoice_number", null)
+    .eq("document_type", "proforma");
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 export async function updateInvoiceDraftRow(params: {

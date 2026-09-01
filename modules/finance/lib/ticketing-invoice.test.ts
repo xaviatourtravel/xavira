@@ -74,7 +74,7 @@ describe("FIN-002 invoice & document type", () => {
 
   it("maps customer-facing document titles", () => {
     assert.equal(invoiceDocumentTitle("package", "invoice"), "Invoice");
-    assert.equal(invoiceDocumentTitle("package", "proforma"), "Proforma Invoice");
+    assert.equal(invoiceDocumentTitle("package", "proforma"), "PROFORMA INVOICE");
     assert.equal(
       invoiceDocumentTitle("ticketing", "invoice"),
       "INVOICE TIKET PESAWAT",
@@ -93,6 +93,24 @@ describe("FIN-002 ticketing validation", () => {
   it("accepts a well-formed ticketing draft", () => {
     assert.doesNotThrow(() =>
       createTicketingDraftSchema.parse(baseTicketingPayload()),
+    );
+  });
+
+  it("rejects creating a new ticketing Proforma", () => {
+    assert.throws(() =>
+      createTicketingDraftSchema.parse(
+        baseTicketingPayload({ documentType: "proforma" }),
+      ),
+    );
+    assert.throws(() =>
+      createInvoiceDraftSchema.parse({
+        recipientSource: "manual",
+        manualRecipientName: "Budi",
+        documentType: "proforma",
+        items: [
+          { description: "Jasa", quantity: 1, unit: "unit", unitPriceMinor: 100 },
+        ],
+      }),
     );
   });
 
@@ -292,5 +310,20 @@ describe("FIN-002 static guarantees", () => {
     // invoice_type / document_type columns
     assert.match(sql, /invoice_type/);
     assert.match(sql, /document_type/);
+  });
+
+  it("createTicketingDraft always writes an official invoice document type", () => {
+    const service = readFileSync(
+      path.join(process.cwd(), "modules/finance/services/ticketing-service.ts"),
+      "utf8",
+    );
+    const start = service.indexOf("export async function createTicketingDraft");
+    const end = service.indexOf("export async function updateTicketingDraft");
+    const createBody = service.slice(start, end);
+    assert.match(createBody, /documentType: "invoice"/);
+    assert.doesNotMatch(createBody, /documentType: input\.documentType/);
+
+    const updateBody = service.slice(end);
+    assert.match(updateBody, /documentType: existing\.documentType/);
   });
 });

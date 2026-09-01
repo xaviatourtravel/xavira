@@ -156,6 +156,9 @@ export const financeUiEn = {
   documentType: "Document type",
   documentInvoice: "Invoice",
   documentProforma: "Proforma Invoice",
+  legacyTicketingProformaLabel: "Historical Proforma Invoice",
+  legacyTicketingProformaHint:
+    "This document was created before Proforma became a separate document. New Proforma invoices are created from Finance → Proforma.",
   ticketingEditorTitle: "Ticketing invoice draft",
   ticketingEditTitle: "Edit ticketing invoice",
   sectionTicketGroup: "Ticket group",
@@ -255,6 +258,37 @@ export const financeUiEn = {
   bulkPermanentDeleteDescription:
     "Invoices without payment history will be permanently deleted. Invoices with payment history cannot be deleted.",
   bulkRestoreTitle: "Restore selected invoices?",
+  proformasTitle: "Proforma",
+  proformasSubtitle:
+    "Create a Proforma Invoice, then convert it to an official Invoice when ready.",
+  createProforma: "Create Proforma",
+  proformaEmptyTitle: "No Proforma yet",
+  proformaEmptyDescription: "Create a Proforma Invoice to send before issuing.",
+  proformaDraftTitle: "Proforma Invoice",
+  editProformaTitle: "Edit Proforma",
+  backToProformas: "Back to Proforma",
+  statusProformaDraft: "Draft",
+  statusProformaConverted: "Issued",
+  statusProformaCancelled: "Cancelled",
+  proformaNumber: "Proforma number",
+  convertProforma: "Issue as Invoice",
+  convertProformaTitle: "Issue this Proforma as an Invoice?",
+  convertProformaDescription:
+    "An official Invoice will be created and an invoice number will be issued. This Proforma cannot be edited after that.",
+  cancelProforma: "Cancel Proforma",
+  cancelProformaTitle: "Cancel this Proforma?",
+  cancelProformaDescription:
+    "This Proforma will not be issued as an Invoice.",
+  cancelReason: "Cancel reason",
+  convertedToInvoice: "Issued as Invoice",
+  previewProforma: "Preview Proforma",
+  viewProforma: "View Proforma",
+  deleteProforma: "Delete Proforma",
+  proformaDeletedBanner: "Proforma deleted.",
+  summaryProformaDrafts: "Draft",
+  summaryProformaConverted: "Issued",
+  summaryProformaCancelled: "Cancelled",
+  dismiss: "Close",
 } as const;
 
 export const financeUiId = {
@@ -416,6 +450,9 @@ export const financeUiId = {
   documentType: "Jenis dokumen",
   documentInvoice: "Invoice",
   documentProforma: "Proforma Invoice",
+  legacyTicketingProformaLabel: "Proforma Invoice lama",
+  legacyTicketingProformaHint:
+    "Dokumen ini dibuat sebelum Proforma menjadi dokumen terpisah. Proforma baru dibuat dari Keuangan → Proforma.",
   ticketingEditorTitle: "Draft invoice ticketing",
   ticketingEditTitle: "Edit invoice ticketing",
   sectionTicketGroup: "Grup tiket",
@@ -515,6 +552,37 @@ export const financeUiId = {
   bulkPermanentDeleteDescription:
     "Invoice tanpa riwayat pembayaran akan dihapus permanen. Invoice dengan riwayat pembayaran tidak dapat dihapus.",
   bulkRestoreTitle: "Pulihkan invoice yang dipilih?",
+  proformasTitle: "Proforma",
+  proformasSubtitle:
+    "Buat Proforma Invoice, lalu terbitkan menjadi Invoice resmi saat siap.",
+  createProforma: "Buat Proforma",
+  proformaEmptyTitle: "Belum ada Proforma",
+  proformaEmptyDescription: "Buat Proforma Invoice untuk dikirim sebelum invoice resmi.",
+  proformaDraftTitle: "Proforma Invoice",
+  editProformaTitle: "Edit Proforma",
+  backToProformas: "Kembali ke Proforma",
+  statusProformaDraft: "Draft",
+  statusProformaConverted: "Diterbitkan",
+  statusProformaCancelled: "Dibatalkan",
+  proformaNumber: "Nomor proforma",
+  convertProforma: "Terbitkan",
+  convertProformaTitle: "Terbitkan Proforma menjadi Invoice?",
+  convertProformaDescription:
+    "Invoice resmi akan dibuat dan nomor invoice akan diterbitkan. Proforma tidak dapat diedit setelah proses ini.",
+  cancelProforma: "Batalkan",
+  cancelProformaTitle: "Batalkan Proforma?",
+  cancelProformaDescription:
+    "Proforma ini tidak akan diterbitkan menjadi Invoice.",
+  cancelReason: "Alasan pembatalan",
+  convertedToInvoice: "Telah diterbitkan menjadi Invoice",
+  previewProforma: "Pratinjau Proforma",
+  viewProforma: "Lihat Proforma",
+  deleteProforma: "Hapus Proforma",
+  proformaDeletedBanner: "Proforma dihapus.",
+  summaryProformaDrafts: "Draft",
+  summaryProformaConverted: "Diterbitkan",
+  summaryProformaCancelled: "Dibatalkan",
+  dismiss: "Tutup",
 } as const;
 
 export type FinanceUiKey = keyof typeof financeUiEn;

@@ -162,10 +162,20 @@ const manualRecipientTicketing = ticketingBaseSchema.extend({
   manualRecipientTaxId: optionalText(64),
 });
 
-export const createTicketingDraftSchema = z.discriminatedUnion("recipientSource", [
-  linkedCustomerTicketing,
-  manualRecipientTicketing,
-]);
+export const createTicketingDraftSchema = z
+  .discriminatedUnion("recipientSource", [
+    linkedCustomerTicketing,
+    manualRecipientTicketing,
+  ])
+  .superRefine((value, ctx) => {
+    if (value.documentType === "proforma") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New ticketing documents must be invoices",
+        path: ["documentType"],
+      });
+    }
+  });
 
 export const updateTicketingDraftSchema = z.discriminatedUnion("recipientSource", [
   linkedCustomerTicketing.extend({ invoiceId: z.string().uuid() }),

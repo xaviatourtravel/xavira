@@ -201,7 +201,7 @@ describe("FIN-001.2D layout polish", () => {
     assert.match(src, /taxMinor > 0/);
     assert.match(src, /additionalFeesMinor > 0/);
     assert.match(src, /amountPaidMinor > 0/);
-    assert.match(src, /INVOICE_PDF_LABELS\.total/);
+    assert.match(src, /invoicePdfTotalLabel/);
     assert.match(src, /INVOICE_PDF_LABELS\.balanceDue/);
     // Distinct layout blocks
     assert.match(src, /borderTopWidth: 1/);

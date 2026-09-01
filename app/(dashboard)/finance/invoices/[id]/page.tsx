@@ -144,6 +144,18 @@ export default async function InvoiceDetailPage({
         </div>
       </div>
 
+      {invoice.sourceProformaId ? (
+        <p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          {t("financeUi.proformaDraftTitle")}{" "}
+          <Link
+            href={`/finance/proformas/${invoice.sourceProformaId}`}
+            className="font-medium text-foreground underline"
+          >
+            {t("financeUi.viewProforma")}
+          </Link>
+        </p>
+      ) : null}
+
       {query.error ? (
         <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
           {query.error}

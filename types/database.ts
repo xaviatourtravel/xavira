@@ -2609,6 +2609,240 @@ export type Database = {
           },
         ]
       }
+      proforma_sequences: {
+        Row: {
+          created_at: string
+          id: string
+          last_number: number
+          organization_id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_number?: number
+          organization_id: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_number?: number
+          organization_id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      proforma_invoices: {
+        Row: {
+          additional_fees_minor: number
+          booking_id: string | null
+          booking_snapshot: Json | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_snapshot: Json
+          converted_at: string | null
+          converted_invoice_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          customer_snapshot: Json
+          discount_minor: number
+          due_date: string | null
+          id: string
+          invoice_type: string
+          issue_date: string | null
+          lifecycle_status: string
+          manual_recipient_address: string | null
+          manual_recipient_company: string | null
+          manual_recipient_email: string | null
+          manual_recipient_name: string | null
+          manual_recipient_phone: string | null
+          manual_recipient_tax_id: string | null
+          notes: string | null
+          organization_id: string
+          payment_instructions: string | null
+          proforma_number: string
+          recipient_source: string
+          subtotal_minor: number
+          tax_minor: number
+          tax_rate_bps: number
+          template_key: string
+          template_version: number
+          terms: string | null
+          theme_snapshot: Json
+          total_minor: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          additional_fees_minor?: number
+          booking_id?: string | null
+          booking_snapshot?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_snapshot?: Json
+          converted_at?: string | null
+          converted_invoice_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_snapshot?: Json
+          discount_minor?: number
+          due_date?: string | null
+          id?: string
+          invoice_type?: string
+          issue_date?: string | null
+          lifecycle_status?: string
+          manual_recipient_address?: string | null
+          manual_recipient_company?: string | null
+          manual_recipient_email?: string | null
+          manual_recipient_name?: string | null
+          manual_recipient_phone?: string | null
+          manual_recipient_tax_id?: string | null
+          notes?: string | null
+          organization_id: string
+          payment_instructions?: string | null
+          proforma_number?: string
+          recipient_source?: string
+          subtotal_minor?: number
+          tax_minor?: number
+          tax_rate_bps?: number
+          template_key?: string
+          template_version?: number
+          terms?: string | null
+          theme_snapshot?: Json
+          total_minor?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          additional_fees_minor?: number
+          booking_id?: string | null
+          booking_snapshot?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_snapshot?: Json
+          converted_at?: string | null
+          converted_invoice_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_snapshot?: Json
+          discount_minor?: number
+          due_date?: string | null
+          id?: string
+          invoice_type?: string
+          issue_date?: string | null
+          lifecycle_status?: string
+          manual_recipient_address?: string | null
+          manual_recipient_company?: string | null
+          manual_recipient_email?: string | null
+          manual_recipient_name?: string | null
+          manual_recipient_phone?: string | null
+          manual_recipient_tax_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          payment_instructions?: string | null
+          proforma_number?: string
+          recipient_source?: string
+          subtotal_minor?: number
+          tax_minor?: number
+          tax_rate_bps?: number
+          template_key?: string
+          template_version?: number
+          terms?: string | null
+          theme_snapshot?: Json
+          total_minor?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      proforma_items: {
+        Row: {
+          created_at: string
+          description: string
+          detail: string | null
+          discount_minor: number
+          id: string
+          line_total_minor: number
+          proforma_id: string
+          quantity: number
+          sort_order: number
+          unit: string
+          unit_price_minor: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          detail?: string | null
+          discount_minor?: number
+          id?: string
+          line_total_minor?: number
+          proforma_id: string
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          detail?: string | null
+          discount_minor?: number
+          id?: string
+          line_total_minor?: number
+          proforma_id?: string
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      proforma_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          organization_id: string
+          proforma_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          proforma_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          proforma_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           additional_fees_minor: number
@@ -2664,6 +2898,7 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           archive_reason: string | null
+          source_proforma_id: string | null
         }
         Insert: {
           additional_fees_minor?: number
@@ -2719,6 +2954,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           archive_reason?: string | null
+          source_proforma_id?: string | null
         }
         Update: {
           additional_fees_minor?: number
@@ -2774,6 +3010,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           archive_reason?: string | null
+          source_proforma_id?: string | null
         }
         Relationships: [
           {
@@ -3579,6 +3816,18 @@ export type Database = {
       issue_invoice: {
         Args: { p_invoice_id: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      convert_proforma_to_invoice: {
+        Args: { p_proforma_id: string }
+        Returns: Json
+      }
+      cancel_proforma: {
+        Args: { p_proforma_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["proforma_invoices"]["Row"]
+      }
+      delete_draft_proforma: {
+        Args: { p_proforma_id: string }
+        Returns: Json
       }
       duplicate_invoice_as_draft: {
         Args: { p_source_invoice_id: string }

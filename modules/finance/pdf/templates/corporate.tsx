@@ -1,7 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
-import { INVOICE_PDF_LABELS } from "@/modules/finance/pdf/invoice-pdf-labels";
+import { INVOICE_PDF_LABELS, invoicePdfVisibleHeading } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   createInvoicePdfStyles,
@@ -35,7 +35,13 @@ export function CorporateTemplate({ data }: { data: InvoicePdfData }) {
   const divider = data.theme.divider ?? "#E2E8F0";
 
   return (
-    <Document title={data.invoiceNumber ?? "Invoice draft"}>
+    <Document
+      title={
+        data.documentType === "proforma"
+          ? data.documentTitle
+          : (data.invoiceNumber ?? "Invoice draft")
+      }
+    >
       <Page size="A4" style={styles.page} wrap>
         {data.showDraftWatermark ? (
           <Text style={styles.watermark}>{INVOICE_PDF_LABELS.draftWatermark}</Text>

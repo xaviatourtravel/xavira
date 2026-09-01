@@ -97,6 +97,7 @@ export type InvoiceRecord = {
   manualRecipientAddress: string | null;
   manualRecipientTaxId: string | null;
   invoiceNumber: string | null;
+  sourceProformaId?: string | null;
   lifecycleStatus: InvoiceLifecycleStatus;
   paymentStatus: InvoicePaymentStatus;
   /** Derived at read time from due_date + balance + lifecycle. */

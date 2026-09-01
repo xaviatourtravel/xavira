@@ -133,7 +133,7 @@ export async function createTicketingDraft(
   const { items, totals } = buildDraftItemsAndTotals(input);
   const draftInput = createInvoiceDraftSchema.parse({
     invoiceType: "ticketing",
-    documentType: input.documentType,
+    documentType: "invoice",
     includeItineraryDetail: input.includeItineraryDetail === true,
     paymentRequestNote: input.paymentRequestNote ?? null,
     currency: input.currency,
@@ -179,7 +179,7 @@ export async function updateTicketingDraft(
   const draftInput = updateInvoiceDraftSchema.parse({
     invoiceId: input.invoiceId,
     invoiceType: "ticketing",
-    documentType: input.documentType,
+    documentType: existing.documentType,
     includeItineraryDetail: input.includeItineraryDetail === true,
     paymentRequestNote: input.paymentRequestNote ?? null,
     currency: input.currency,

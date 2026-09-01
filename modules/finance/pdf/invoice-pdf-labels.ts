@@ -7,6 +7,8 @@ export const INVOICE_PDF_LABELS = {
   billTo: "Ditagihkan kepada",
   invoice: "Invoice",
   number: "Nomor invoice",
+  proforma: "PROFORMA INVOICE",
+  proformaNumber: "Nomor proforma",
   issueDate: "Tanggal terbit",
   dueDate: "Jatuh tempo",
   status: "Status invoice",
@@ -107,7 +109,22 @@ export function invoiceDocumentTitle(
       ? INVOICE_PDF_LABELS.proformaTicketTitle
       : INVOICE_PDF_LABELS.invoiceTicketTitle;
   }
-  return documentType === "proforma" ? "Proforma Invoice" : "Invoice";
+  return documentType === "proforma" ? INVOICE_PDF_LABELS.proforma : "Invoice";
+}
+
+export function invoicePdfTotalLabel(
+  documentType: "invoice" | "proforma",
+): string {
+  return documentType === "proforma" ? "Total" : INVOICE_PDF_LABELS.total;
+}
+
+export function invoicePdfVisibleHeading(data: {
+  documentType: "invoice" | "proforma";
+  documentTitle: string;
+}): string {
+  return data.documentType === "proforma"
+    ? data.documentTitle
+    : INVOICE_PDF_LABELS.invoice;
 }
 
 const PAYMENT_HISTORY_STATUS_LABELS: Record<string, string> = {

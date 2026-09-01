@@ -178,6 +178,14 @@ export const createInvoiceDraftSchema = z
     manualRecipientDraftSchema,
   ])
   .superRefine((value, ctx) => {
+    if (value.documentType === "proforma") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New invoices cannot use the legacy Proforma document type",
+        path: ["documentType"],
+      });
+    }
+
     if (value.recipientSource === "linked_customer") {
       return;
     }

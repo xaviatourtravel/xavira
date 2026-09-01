@@ -124,7 +124,7 @@ describe("FIN-001.3D Apple-level invoice PDF polish", () => {
   it("Total and balance hierarchy remains correct; paid shows Rp0", async () => {
     const summary = readPdfSource("shared/payment-summary.tsx");
     assert.match(summary, /data-totals-hierarchy="true"/);
-    assert.match(summary, /INVOICE_PDF_LABELS\.total/);
+    assert.match(summary, /invoicePdfTotalLabel/);
     assert.match(summary, /INVOICE_PDF_LABELS\.balanceDue/);
     assert.match(summary, /amountEmphasis/);
 

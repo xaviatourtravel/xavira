@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useGlobalLoading } from "@/components/loading/global-loading-provider";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import {
   resolveAirlineName,
@@ -28,8 +29,8 @@ import {
   buildTicketingInvoiceItems,
 } from "@/modules/finance/lib/ticketing-pricing";
 import { InvoiceMoneyInput } from "@/modules/finance/components/invoice-money-input";
-import { InvoiceTemplateBrandingFields } from "@/modules/finance/components/invoice-template-branding-fields";
-import { DEFAULT_INVOICE_TEMPLATE_KEY } from "@/modules/finance/pdf/invoice-pdf-types";
+import { InvoiceBrandSelector } from "@/modules/finance/components/invoice-brand-selector";
+import type { InvoiceBrandEditorOption } from "@/modules/finance/lib/invoice-brand-profiles";
 import type {
   FlightDirection,
   TicketTripType,
@@ -55,10 +56,7 @@ export type TicketingEditorInitial = {
   documentType?: "invoice" | "proforma";
   includeItineraryDetail?: boolean;
   paymentRequestNote?: string | null;
-  templateKey?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  accentColor?: string;
+  brandProfileId?: string | null;
   issueDate?: string | null;
   dueDate?: string | null;
   notes?: string | null;
@@ -84,12 +82,7 @@ type TicketingInvoiceEditorProps = {
   action: (formData: FormData) => void | Promise<void>;
   customers: InvoiceEditorCustomerOption[];
   bookings: InvoiceEditorBookingOption[];
-  workspaceBrand: {
-    templateKey: string;
-    primaryColor: string;
-    secondaryColor: string;
-    accentColor: string;
-  };
+  brands: InvoiceBrandEditorOption[];
   initial?: TicketingEditorInitial;
   errorMessage?: string | null;
 };
@@ -118,24 +111,18 @@ export function TicketingInvoiceEditor({
   action,
   customers,
   bookings,
-  workspaceBrand,
+  brands,
   initial,
   errorMessage,
 }: TicketingInvoiceEditorProps) {
   const { tStrict } = useTranslation();
+  const { withGlobalLoading } = useGlobalLoading();
   const [pending, startTransition] = useTransition();
 
-  const [templateKey, setTemplateKey] = useState(
-    initial?.templateKey ?? workspaceBrand.templateKey ?? DEFAULT_INVOICE_TEMPLATE_KEY,
-  );
-  const [primaryColor, setPrimaryColor] = useState(
-    initial?.primaryColor ?? workspaceBrand.primaryColor,
-  );
-  const [secondaryColor, setSecondaryColor] = useState(
-    initial?.secondaryColor ?? workspaceBrand.secondaryColor,
-  );
-  const [accentColor, setAccentColor] = useState(
-    initial?.accentColor ?? workspaceBrand.accentColor,
+  const defaultBrandId =
+    brands.find((brand) => brand.isDefault)?.id ?? brands[0]?.id ?? "";
+  const [brandProfileId, setBrandProfileId] = useState(
+    initial?.brandProfileId ?? defaultBrandId,
   );
 
   const [recipientSource, setRecipientSource] = useState<
@@ -154,9 +141,11 @@ export function TicketingInvoiceEditor({
   );
   const [manualTaxId, setManualTaxId] = useState(initial?.manualRecipientTaxId ?? "");
 
-  const [documentType, setDocumentType] = useState<"invoice" | "proforma">(
+  const [documentType] = useState<"invoice" | "proforma">(
     initial?.documentType ?? "invoice",
   );
+  const isHistoricalTicketingProforma =
+    mode === "edit" && documentType === "proforma";
   const [includeItineraryDetail, setIncludeItineraryDetail] = useState(
     initial?.includeItineraryDetail === true,
   );
@@ -297,7 +286,7 @@ export function TicketingInvoiceEditor({
       return trimmed === "" ? null : trimmed;
     };
     const base = {
-      documentType,
+      documentType: isHistoricalTicketingProforma ? "proforma" : "invoice",
       includeItineraryDetail,
       paymentRequestNote: cleanText(paymentRequestNote),
       currency: "IDR",
@@ -306,10 +295,8 @@ export function TicketingInvoiceEditor({
       notes: null as string | null,
       paymentInstructions: null as string | null,
       terms: null as string | null,
-      templateKey,
-      primaryColor,
-      secondaryColor,
-      accentColor,
+      brandProfileId,
+      templateKey: "calm-standard",
       ticketGroup: {
         pnrCode,
         passengerCount,
@@ -356,10 +343,7 @@ export function TicketingInvoiceEditor({
     documentType,
     includeItineraryDetail,
     paymentRequestNote,
-    templateKey,
-    primaryColor,
-    secondaryColor,
-    accentColor,
+    brandProfileId,
     pnrCode,
     passengerCount,
     tripType,
@@ -484,7 +468,9 @@ export function TicketingInvoiceEditor({
     formData.set("payload_json", JSON.stringify(nextPayload));
 
     startTransition(() => {
-      void action(formData);
+      void withGlobalLoading(async () => {
+        await action(formData);
+      });
     });
   }
 
@@ -513,18 +499,10 @@ export function TicketingInvoiceEditor({
         </p>
       ) : null}
 
-      <InvoiceTemplateBrandingFields
-        templateKey={templateKey}
-        primaryColor={primaryColor}
-        secondaryColor={secondaryColor}
-        accentColor={accentColor}
-        workspaceDefaults={workspaceBrand}
-        onChange={(next) => {
-          setTemplateKey(next.templateKey);
-          setPrimaryColor(next.primaryColor);
-          setSecondaryColor(next.secondaryColor);
-          setAccentColor(next.accentColor);
-        }}
+      <InvoiceBrandSelector
+        brands={brands}
+        selectedBrandId={brandProfileId}
+        onChange={setBrandProfileId}
       />
 
       {/* Recipient */}
@@ -682,26 +660,26 @@ export function TicketingInvoiceEditor({
           {tStrict("financeUi.sectionDates")}
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="document_type">
-              {tStrict("financeUi.documentType")}
-            </Label>
-            <select
-              id="document_type"
-              value={documentType}
-              onChange={(event) =>
-                setDocumentType(event.target.value as "invoice" | "proforma")
-              }
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="invoice">
-                {tStrict("financeUi.documentInvoice")}
-              </option>
-              <option value="proforma">
-                {tStrict("financeUi.documentProforma")}
-              </option>
-            </select>
-          </div>
+          {isHistoricalTicketingProforma ? (
+            <div className="space-y-2">
+              <Label htmlFor="document_type">
+                {tStrict("financeUi.documentType")}
+              </Label>
+              <Input
+                id="document_type"
+                value={tStrict("financeUi.legacyTicketingProformaLabel")}
+                readOnly
+                aria-readonly="true"
+                aria-describedby="legacy_ticketing_proforma_hint"
+              />
+              <p
+                id="legacy_ticketing_proforma_hint"
+                className="text-xs text-muted-foreground"
+              >
+                {tStrict("financeUi.legacyTicketingProformaHint")}
+              </p>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="payment_request_note">
               {tStrict("financeUi.paymentRequestNote")}

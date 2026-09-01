@@ -35,7 +35,13 @@ export function CorporateTemplate({ data }: { data: InvoicePdfData }) {
   const divider = data.theme.divider ?? "#E2E8F0";
 
   return (
-    <Document title={data.invoiceNumber ?? "Invoice draft"}>
+    <Document
+      title={
+        data.documentType === "proforma"
+          ? data.documentTitle
+          : (data.invoiceNumber ?? "Invoice draft")
+      }
+    >
       <Page size="A4" style={styles.page} wrap>
         {data.showDraftWatermark ? (
           <Text style={styles.watermark}>{INVOICE_PDF_LABELS.draftWatermark}</Text>

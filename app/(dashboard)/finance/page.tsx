@@ -20,9 +20,23 @@ export default async function FinancePage() {
         },
         {
           id: "invoice",
-          title: "Invoice",
-          description: "Invoice outstanding dan riwayat tagihan.",
-          href: "/finance/invoices",
+          title: "Xavia",
+          description: "Invoice Xavia.",
+          href: "/finance/invoices/xavia",
+          icon: FileText,
+        },
+        {
+          id: "invoice-consortium",
+          title: "Consortium",
+          description: "Invoice Consortium terpisah dari Xavia.",
+          href: "/finance/invoices/consortium",
+          icon: FileText,
+        },
+        {
+          id: "proforma",
+          title: "Proforma",
+          description: "Proforma Invoice sebelum nomor invoice resmi diterbitkan.",
+          href: "/finance/proformas",
           icon: FileText,
         },
         {

@@ -31,6 +31,7 @@ export type WorkspaceNavChild = {
   permission?: Permission;
   /** Shown disabled in sidebar until the route is available. */
   comingSoon?: boolean;
+  items?: readonly WorkspaceNavChild[];
 };
 
 export type WorkspaceNavItem = {
@@ -107,7 +108,15 @@ export const WORKSPACE_NAV: readonly WorkspaceNavItem[] = [
     badgeKey: "finance",
     items: [
       { title: "Pembayaran", href: "/revenue" },
-      { title: "Invoice", href: "/finance/invoices", permission: "invoices.view" },
+      {
+        title: "Invoice",
+        permission: "invoices.view",
+        items: [
+          { title: "Xavia", href: "/finance/invoices/xavia" },
+          { title: "Consortium", href: "/finance/invoices/consortium" },
+          { title: "Proforma", href: "/finance/proformas" },
+        ],
+      },
     ],
   },
   {

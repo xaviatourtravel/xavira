@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useGlobalLoading } from "@/components/loading/global-loading-provider";
 import { Search } from "lucide-react";
 
 import { SearchResultsList } from "@/components/layout/search-results-list";
@@ -60,7 +60,7 @@ function useUniversalSearchContext() {
 }
 
 export function UniversalSearchScope({ children }: { children: ReactNode }) {
-  const router = useRouter();
+  const { navigate: navigateWithLoading } = useGlobalLoading();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -94,9 +94,9 @@ export function UniversalSearchScope({ children }: { children: ReactNode }) {
       });
       setRecentSearches(readRecentSearches());
       close();
-      router.push(item.href);
+      navigateWithLoading(item.href);
     },
-    [close, router],
+    [close, navigateWithLoading],
   );
 
   const openDropdown = useCallback(() => {

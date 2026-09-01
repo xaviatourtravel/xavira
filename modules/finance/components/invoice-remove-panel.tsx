@@ -45,7 +45,7 @@ export function InvoiceRemovePanel({
             {tStrict("financeUi.archivedNotice")}
           </p>
           {canRemove ? (
-            <form action={restoreInvoiceFormAction}>
+            <form action={restoreInvoiceFormAction} data-global-loading="">
               <input type="hidden" name="invoice_id" value={invoiceId} />
               <Button type="submit" variant="outline" disabled={pending}>
                 {tStrict("financeUi.restoreInvoice")}
@@ -78,6 +78,7 @@ export function InvoiceRemovePanel({
                     void deleteArchivedInvoiceFormAction(formData);
                   });
                 }}
+                data-global-loading=""
                 className="space-y-3"
               >
                 <input type="hidden" name="invoice_id" value={invoiceId} />
@@ -96,8 +97,8 @@ export function InvoiceRemovePanel({
                   >
                     {tStrict("financeUi.cancelAction")}
                   </Button>
-                  <Button type="submit" variant="destructive" disabled={pending}>
-                    {pending ? "…" : tStrict("financeUi.deletePermanently")}
+                    <Button type="submit" variant="destructive" disabled={pending}>
+                    {tStrict("financeUi.deletePermanently")}
                   </Button>
                 </div>
               </form>
@@ -139,6 +140,7 @@ export function InvoiceRemovePanel({
               void deleteDraftInvoiceFormAction(formData);
             });
           }}
+          data-global-loading=""
           className="space-y-3"
         >
           <input type="hidden" name="invoice_id" value={invoiceId} />
@@ -156,7 +158,7 @@ export function InvoiceRemovePanel({
               {tStrict("financeUi.cancelAction")}
             </Button>
             <Button type="submit" variant="destructive" disabled={pending}>
-              {pending ? "…" : tStrict("financeUi.deleteDraftConfirm")}
+              {tStrict("financeUi.deleteDraftConfirm")}
             </Button>
           </div>
         </form>
@@ -167,6 +169,7 @@ export function InvoiceRemovePanel({
               void archiveInvoiceFormAction(formData);
             });
           }}
+          data-global-loading=""
           className="space-y-3"
         >
           <input type="hidden" name="invoice_id" value={invoiceId} />
@@ -196,7 +199,7 @@ export function InvoiceRemovePanel({
               {tStrict("financeUi.cancelAction")}
             </Button>
             <Button type="submit" variant="destructive" disabled={pending}>
-              {pending ? "…" : tStrict("financeUi.archiveConfirm")}
+              {tStrict("financeUi.archiveConfirm")}
             </Button>
           </div>
         </form>

@@ -156,6 +156,10 @@ export type InvoicePdfData = {
   company: InvoicePdfCompany;
   theme: InvoicePdfTheme;
   showDraftWatermark: boolean;
+  /** Internal lifecycle/payment pill. Off for FIN-005 customer Proforma PDFs. */
+  showDocumentStatusBadge?: boolean;
+  /** Present on FIN-006 brand-backed documents. Forces the fixed package layout. */
+  brandKey?: string | null;
 };
 
 export type InvoiceTemplateDefinition = {

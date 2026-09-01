@@ -211,6 +211,43 @@ function WorkspaceNavSection({
               );
             }
 
+            if (item.items && item.items.length > 0) {
+              return (
+                <li key={item.title} className="space-y-0.5">
+                  <p className="px-3 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {translateNavChildTitle(t, item.href, item.title)}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {item.items.map((nested) => {
+                      if (!nested.href) return null;
+                      const nestedActive = isChildNavActive(
+                        pathname,
+                        searchParams,
+                        nested.href,
+                      );
+                      return (
+                        <li key={`${nested.title}-${nested.href}`}>
+                          <Link
+                            href={nested.href}
+                            onClick={onNavigate}
+                            className={cn(
+                              SIDEBAR_ROW_BASE,
+                              SIDEBAR_ROW_HOVER,
+                              nestedActive
+                                ? SIDEBAR_ROW_ACTIVE
+                                : "text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {translateNavChildTitle(t, nested.href, nested.title)}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            }
+
             if (!item.href) {
               return null;
             }

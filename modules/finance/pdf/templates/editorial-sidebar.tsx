@@ -17,6 +17,7 @@ import {
   NotesAndTerms,
 } from "@/modules/finance/pdf/shared/payment-information";
 import { PaymentTotalsBlock } from "@/modules/finance/pdf/shared/payment-totals-block";
+import { DocumentHeading } from "@/modules/finance/pdf/shared/document-heading";
 import {
   InvoiceMetaBlock,
   RecipientBlock,
@@ -29,7 +30,13 @@ export function EditorialSidebarTemplate({ data }: { data: InvoicePdfData }) {
   const muted = data.theme.muted ?? data.theme.secondaryColor;
 
   return (
-    <Document title={data.invoiceNumber ?? "Invoice draft"}>
+    <Document
+      title={
+        data.documentType === "proforma"
+          ? data.documentTitle
+          : (data.invoiceNumber ?? "Invoice draft")
+      }
+    >
       <Page size="A4" style={styles.pageWithSidebar} wrap>
         {data.showDraftWatermark ? (
           <Text style={styles.watermark}>{INVOICE_PDF_LABELS.draftWatermark}</Text>
@@ -47,16 +54,12 @@ export function EditorialSidebarTemplate({ data }: { data: InvoicePdfData }) {
           }}
         >
           <View style={{ flex: 1, paddingRight: PDF_SPACE.sm }}>
-            <Text
-              style={{
-                fontSize: PDF_TYPE.documentTitle,
-                fontFamily: "Helvetica-Bold",
-                color: text,
-                letterSpacing: -0.4,
-              }}
-            >
-              {INVOICE_PDF_LABELS.invoice}
-            </Text>
+            <DocumentHeading
+              data={data}
+              color={text}
+              invoiceFontSize={PDF_TYPE.documentTitle}
+              letterSpacing={-0.4}
+            />
             <Text
               style={{
                 marginTop: PDF_SPACE.xs,

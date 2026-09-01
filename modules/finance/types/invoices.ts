@@ -1,3 +1,4 @@
+import type { InvoiceBrandSnapshot } from "@/modules/finance/lib/invoice-brand-profiles";
 import type {
   InvoiceDocumentType,
   InvoiceType,
@@ -97,6 +98,7 @@ export type InvoiceRecord = {
   manualRecipientAddress: string | null;
   manualRecipientTaxId: string | null;
   invoiceNumber: string | null;
+  sourceProformaId?: string | null;
   lifecycleStatus: InvoiceLifecycleStatus;
   paymentStatus: InvoicePaymentStatus;
   /** Derived at read time from due_date + balance + lifecycle. */
@@ -118,6 +120,8 @@ export type InvoiceRecord = {
   includeItineraryDetail?: boolean;
   templateKey: string;
   templateVersion: number;
+  brandProfileId?: string | null;
+  brandSnapshot?: InvoiceBrandSnapshot | Record<string, unknown> | null;
   themeSnapshot: InvoiceThemeSnapshot | Record<string, unknown>;
   companySnapshot: InvoiceCompanySnapshot | Record<string, unknown>;
   customerSnapshot: InvoiceCustomerSnapshot | Record<string, unknown>;

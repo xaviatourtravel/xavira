@@ -12,6 +12,7 @@ import {
   PDF_SPACE,
   PDF_TYPE,
 } from "@/modules/finance/pdf/invoice-pdf-theme";
+import { DocumentHeading } from "@/modules/finance/pdf/shared/document-heading";
 
 function paymentBadgeColors(status: string): {
   backgroundColor: string;
@@ -171,20 +172,20 @@ export function InvoiceMetaBlock({
   return (
     <View style={{ width: 196 }}>
       {showTitle ? (
-        <Text
-          style={{
-            fontSize: PDF_TYPE.documentTitle,
-            fontFamily: "Helvetica-Bold",
-            color: text,
-            letterSpacing: -0.4,
-            marginBottom: PDF_SPACE.md,
-          }}
-        >
-          {INVOICE_PDF_LABELS.invoice}
-        </Text>
+        <DocumentHeading
+          data={data}
+          color={text}
+          invoiceFontSize={PDF_TYPE.documentTitle}
+          letterSpacing={-0.4}
+          style={{ marginBottom: PDF_SPACE.md }}
+        />
       ) : null}
       <MetaRow
-        label={INVOICE_PDF_LABELS.number}
+        label={
+          data.documentType === "proforma"
+            ? INVOICE_PDF_LABELS.proformaNumber
+            : INVOICE_PDF_LABELS.number
+        }
         value={numberLabel}
         muted={muted}
         text={text}
@@ -203,15 +204,17 @@ export function InvoiceMetaBlock({
           text={text}
         />
       ) : null}
-      <StatusBadge
-        label={
-          data.lifecycleStatus === "void"
-            ? lifecycleLabel
-            : data.paymentStatusLabel
-        }
-        backgroundColor={badge.backgroundColor}
-        color={badge.color}
-      />
+      {data.showDocumentStatusBadge === false ? null : (
+        <StatusBadge
+          label={
+            data.lifecycleStatus === "void"
+              ? lifecycleLabel
+              : data.paymentStatusLabel
+          }
+          backgroundColor={badge.backgroundColor}
+          color={badge.color}
+        />
+      )}
     </View>
   );
 }

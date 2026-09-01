@@ -17,6 +17,7 @@ import {
   NotesAndTerms,
 } from "@/modules/finance/pdf/shared/payment-information";
 import { PaymentTotalsBlock } from "@/modules/finance/pdf/shared/payment-totals-block";
+import { DocumentHeading } from "@/modules/finance/pdf/shared/document-heading";
 import {
   InvoiceMetaBlock,
   RecipientBlock,
@@ -29,7 +30,13 @@ export function CalmStandardTemplate({ data }: { data: InvoicePdfData }) {
   const text = data.theme.text ?? "#0F172A";
 
   return (
-    <Document title={data.invoiceNumber ?? "Invoice draft"}>
+    <Document
+      title={
+        data.documentType === "proforma"
+          ? data.documentTitle
+          : (data.invoiceNumber ?? "Invoice draft")
+      }
+    >
       <Page size="A4" style={styles.page} wrap>
         {data.showDraftWatermark ? (
           <Text style={styles.watermark}>{INVOICE_PDF_LABELS.draftWatermark}</Text>
@@ -37,17 +44,13 @@ export function CalmStandardTemplate({ data }: { data: InvoicePdfData }) {
 
         <CompanyHeader data={data} variant="compact" />
 
-        <Text
-          style={{
-            marginTop: PDF_SPACE.xxl,
-            fontSize: PDF_TYPE.documentTitle + 2,
-            fontFamily: "Helvetica-Bold",
-            color: text,
-            letterSpacing: -0.5,
-          }}
-        >
-          {INVOICE_PDF_LABELS.invoice}
-        </Text>
+        <DocumentHeading
+          data={data}
+          color={text}
+          invoiceFontSize={PDF_TYPE.documentTitle + 2}
+          letterSpacing={-0.5}
+          style={{ marginTop: PDF_SPACE.xxl }}
+        />
 
         <View
           style={{

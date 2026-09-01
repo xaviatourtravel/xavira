@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 
-import { INVOICE_PDF_LABELS } from "@/modules/finance/pdf/invoice-pdf-labels";
+import { INVOICE_PDF_LABELS, invoicePdfTotalLabel } from "@/modules/finance/pdf/invoice-pdf-labels";
 import type { InvoicePdfData } from "@/modules/finance/pdf/invoice-pdf-types";
 import {
   formatPdfIdr,
@@ -93,7 +93,7 @@ export function PaymentSummary({
             color: text,
           }}
         >
-          {INVOICE_PDF_LABELS.total}
+          {invoicePdfTotalLabel(data.documentType)}
         </Text>
         <Text
           style={{

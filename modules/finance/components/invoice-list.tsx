@@ -25,6 +25,7 @@ type InvoiceListProps = {
   canPermanentlyDeleteArchived?: boolean;
   /** When true, bulk actions are restore / permanent delete (never archive). */
   archivedView?: boolean;
+  createHref?: string;
 };
 
 function formatDate(value: string | null) {
@@ -67,6 +68,7 @@ export function InvoiceList({
   canRemove = false,
   canPermanentlyDeleteArchived = false,
   archivedView = false,
+  createHref = "/finance/invoices/new",
 }: InvoiceListProps) {
   const { tStrict } = useTranslation();
   const router = useRouter();
@@ -147,7 +149,7 @@ export function InvoiceList({
           {tStrict("financeUi.emptyDescription")}
         </p>
         <Link
-          href="/finance/invoices/new"
+          href={createHref}
           className="mt-4 inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
         >
           {tStrict("financeUi.createInvoice")}
@@ -360,7 +362,7 @@ export function InvoiceList({
               </div>
             </dl>
             {canRemove && invoice.archivedAt ? (
-              <form action={restoreInvoiceFormAction} className="mt-3">
+              <form action={restoreInvoiceFormAction} data-global-loading="" className="mt-3">
                 <input type="hidden" name="invoice_id" value={invoice.id} />
                 <Button type="submit" variant="outline" size="sm">
                   {tStrict("financeUi.restoreInvoice")}
@@ -454,7 +456,7 @@ export function InvoiceList({
                         {tStrict("financeUi.viewInvoice")}
                       </Link>
                       {canRemove && invoice.archivedAt ? (
-                        <form action={restoreInvoiceFormAction}>
+                        <form action={restoreInvoiceFormAction} data-global-loading="">
                           <input type="hidden" name="invoice_id" value={invoice.id} />
                           <button
                             type="submit"

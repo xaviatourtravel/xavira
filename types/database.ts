@@ -2473,6 +2473,98 @@ export type Database = {
           },
         ]
       }
+      invoice_brand_profiles: {
+        Row: {
+          accent_color: string
+          address: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          footer_text: string | null
+          id: string
+          invoice_prefix: string
+          invoice_title: string
+          is_active: boolean
+          is_default: boolean
+          key: string
+          legal_name: string | null
+          logo_content_hash: string | null
+          logo_path: string | null
+          logo_storage_ref: string | null
+          name: string
+          organization_id: string
+          payment_accounts_json: Json
+          phone: string | null
+          primary_color: string
+          secondary_color: string
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          accent_color?: string
+          address?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string
+          invoice_title?: string
+          is_active?: boolean
+          is_default?: boolean
+          key: string
+          legal_name?: string | null
+          logo_content_hash?: string | null
+          logo_path?: string | null
+          logo_storage_ref?: string | null
+          name: string
+          organization_id: string
+          payment_accounts_json?: Json
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          accent_color?: string
+          address?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          footer_text?: string | null
+          id?: string
+          invoice_prefix?: string
+          invoice_title?: string
+          is_active?: boolean
+          is_default?: boolean
+          key?: string
+          legal_name?: string | null
+          logo_content_hash?: string | null
+          logo_path?: string | null
+          logo_storage_ref?: string | null
+          name?: string
+          organization_id?: string
+          payment_accounts_json?: Json
+          phone?: string | null
+          primary_color?: string
+          secondary_color?: string
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_brand_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_events: {
         Row: {
           actor_user_id: string | null
@@ -2573,6 +2665,7 @@ export type Database = {
       }
       invoice_sequences: {
         Row: {
+          brand_profile_id: string
           created_at: string
           id: string
           last_number: number
@@ -2582,6 +2675,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          brand_profile_id: string
           created_at?: string
           id?: string
           last_number?: number
@@ -2591,6 +2685,7 @@ export type Database = {
           year: number
         }
         Update: {
+          brand_profile_id?: string
           created_at?: string
           id?: string
           last_number?: number
@@ -2601,6 +2696,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "invoice_sequences_brand_profile_id_fkey"
+            columns: ["brand_profile_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_brand_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoice_sequences_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -2609,6 +2711,246 @@ export type Database = {
           },
         ]
       }
+      proforma_sequences: {
+        Row: {
+          created_at: string
+          id: string
+          last_number: number
+          organization_id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_number?: number
+          organization_id: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_number?: number
+          organization_id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      proforma_invoices: {
+        Row: {
+          additional_fees_minor: number
+          booking_id: string | null
+          booking_snapshot: Json | null
+          brand_profile_id: string | null
+          brand_snapshot: Json | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_snapshot: Json
+          converted_at: string | null
+          converted_invoice_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          customer_snapshot: Json
+          discount_minor: number
+          due_date: string | null
+          id: string
+          invoice_type: string
+          issue_date: string | null
+          lifecycle_status: string
+          manual_recipient_address: string | null
+          manual_recipient_company: string | null
+          manual_recipient_email: string | null
+          manual_recipient_name: string | null
+          manual_recipient_phone: string | null
+          manual_recipient_tax_id: string | null
+          notes: string | null
+          organization_id: string
+          payment_instructions: string | null
+          proforma_number: string
+          recipient_source: string
+          subtotal_minor: number
+          tax_minor: number
+          tax_rate_bps: number
+          template_key: string
+          template_version: number
+          terms: string | null
+          theme_snapshot: Json
+          total_minor: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          additional_fees_minor?: number
+          booking_id?: string | null
+          booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_snapshot?: Json
+          converted_at?: string | null
+          converted_invoice_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_snapshot?: Json
+          discount_minor?: number
+          due_date?: string | null
+          id?: string
+          invoice_type?: string
+          issue_date?: string | null
+          lifecycle_status?: string
+          manual_recipient_address?: string | null
+          manual_recipient_company?: string | null
+          manual_recipient_email?: string | null
+          manual_recipient_name?: string | null
+          manual_recipient_phone?: string | null
+          manual_recipient_tax_id?: string | null
+          notes?: string | null
+          organization_id: string
+          payment_instructions?: string | null
+          proforma_number?: string
+          recipient_source?: string
+          subtotal_minor?: number
+          tax_minor?: number
+          tax_rate_bps?: number
+          template_key?: string
+          template_version?: number
+          terms?: string | null
+          theme_snapshot?: Json
+          total_minor?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          additional_fees_minor?: number
+          booking_id?: string | null
+          booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_snapshot?: Json
+          converted_at?: string | null
+          converted_invoice_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_snapshot?: Json
+          discount_minor?: number
+          due_date?: string | null
+          id?: string
+          invoice_type?: string
+          issue_date?: string | null
+          lifecycle_status?: string
+          manual_recipient_address?: string | null
+          manual_recipient_company?: string | null
+          manual_recipient_email?: string | null
+          manual_recipient_name?: string | null
+          manual_recipient_phone?: string | null
+          manual_recipient_tax_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          payment_instructions?: string | null
+          proforma_number?: string
+          recipient_source?: string
+          subtotal_minor?: number
+          tax_minor?: number
+          tax_rate_bps?: number
+          template_key?: string
+          template_version?: number
+          terms?: string | null
+          theme_snapshot?: Json
+          total_minor?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      proforma_items: {
+        Row: {
+          created_at: string
+          description: string
+          detail: string | null
+          discount_minor: number
+          id: string
+          line_total_minor: number
+          proforma_id: string
+          quantity: number
+          sort_order: number
+          unit: string
+          unit_price_minor: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          detail?: string | null
+          discount_minor?: number
+          id?: string
+          line_total_minor?: number
+          proforma_id: string
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          detail?: string | null
+          discount_minor?: number
+          id?: string
+          line_total_minor?: number
+          proforma_id?: string
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      proforma_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          organization_id: string
+          proforma_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          proforma_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          proforma_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           additional_fees_minor: number
@@ -2616,6 +2958,8 @@ export type Database = {
           balance_due_minor: number
           booking_id: string | null
           booking_snapshot: Json | null
+          brand_profile_id: string | null
+          brand_snapshot: Json | null
           company_snapshot: Json
           created_at: string
           created_by: string | null
@@ -2664,6 +3008,7 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           archive_reason: string | null
+          source_proforma_id: string | null
         }
         Insert: {
           additional_fees_minor?: number
@@ -2671,6 +3016,8 @@ export type Database = {
           balance_due_minor?: number
           booking_id?: string | null
           booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
           company_snapshot?: Json
           created_at?: string
           created_by?: string | null
@@ -2719,6 +3066,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           archive_reason?: string | null
+          source_proforma_id?: string | null
         }
         Update: {
           additional_fees_minor?: number
@@ -2726,6 +3074,8 @@ export type Database = {
           balance_due_minor?: number
           booking_id?: string | null
           booking_snapshot?: Json | null
+          brand_profile_id?: string | null
+          brand_snapshot?: Json | null
           company_snapshot?: Json
           created_at?: string
           created_by?: string | null
@@ -2774,6 +3124,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           archive_reason?: string | null
+          source_proforma_id?: string | null
         }
         Relationships: [
           {
@@ -2788,6 +3139,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_brand_profile_id_fkey"
+            columns: ["brand_profile_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_brand_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3579,6 +3937,38 @@ export type Database = {
       issue_invoice: {
         Args: { p_invoice_id: string }
         Returns: Database["public"]["Tables"]["invoices"]["Row"]
+      }
+      seed_invoice_brand_profiles_for_org: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
+      allocate_brand_invoice_number: {
+        Args: {
+          p_organization_id: string
+          p_brand_profile_id: string
+          p_year: number
+        }
+        Returns: string
+      }
+      freeze_invoice_brand_snapshot: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
+      build_invoice_company_snapshot_from_brand: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
+      convert_proforma_to_invoice: {
+        Args: { p_proforma_id: string }
+        Returns: Json
+      }
+      cancel_proforma: {
+        Args: { p_proforma_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["proforma_invoices"]["Row"]
+      }
+      delete_draft_proforma: {
+        Args: { p_proforma_id: string }
+        Returns: Json
       }
       duplicate_invoice_as_draft: {
         Args: { p_source_invoice_id: string }

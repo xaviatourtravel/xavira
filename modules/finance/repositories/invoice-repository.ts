@@ -14,6 +14,11 @@ import type {
 } from "@/modules/finance/types/invoices";
 import type { InvoiceListFilters } from "@/modules/finance/schemas/invoices";
 
+export type InvoiceListQuery = InvoiceListFilters & {
+  brandProfileId?: string | null;
+  includeUnbranded?: boolean;
+};
+
 type InvoiceRow = {
   id: string;
   organization_id: string;
@@ -46,6 +51,8 @@ type InvoiceRow = {
   include_itinerary_detail?: boolean | null;
   template_key: string;
   template_version: number;
+  brand_profile_id?: string | null;
+  brand_snapshot?: Json | null;
   theme_snapshot: Json;
   company_snapshot: Json;
   customer_snapshot: Json;
@@ -68,6 +75,7 @@ type InvoiceRow = {
   archived_at?: string | null;
   archived_by?: string | null;
   archive_reason?: string | null;
+  source_proforma_id?: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -152,6 +160,7 @@ export function mapInvoice(
     manualRecipientAddress: row.manual_recipient_address ?? null,
     manualRecipientTaxId: row.manual_recipient_tax_id ?? null,
     invoiceNumber: row.invoice_number,
+    sourceProformaId: row.source_proforma_id ?? null,
     lifecycleStatus,
     paymentStatus,
     effectivePaymentStatus: deriveEffectivePaymentStatus({
@@ -175,6 +184,8 @@ export function mapInvoice(
     includeItineraryDetail: row.include_itinerary_detail === true,
     templateKey: row.template_key,
     templateVersion: row.template_version,
+    brandProfileId: row.brand_profile_id ?? null,
+    brandSnapshot: (row.brand_snapshot as Record<string, unknown> | null) ?? null,
     themeSnapshot: (row.theme_snapshot as Record<string, unknown>) ?? {},
     companySnapshot: (row.company_snapshot as Record<string, unknown>) ?? {},
     customerSnapshot,
@@ -235,7 +246,7 @@ export function mapBrandSettings(row: BrandSettingsRow): InvoiceBrandSettings {
 
 export async function listInvoices(
   organizationId: string,
-  filters: InvoiceListFilters = {},
+  filters: InvoiceListQuery = {},
 ): Promise<InvoiceRecord[]> {
   const supabase = await createClient();
   const archiveFilter = filters.archiveFilter ?? "active";
@@ -266,6 +277,15 @@ export async function listInvoices(
   }
   if (filters.invoiceType) {
     query = query.eq("invoice_type", filters.invoiceType);
+  }
+  if (filters.brandProfileId && filters.includeUnbranded) {
+    query = query.or(
+      `brand_profile_id.eq.${filters.brandProfileId},brand_profile_id.is.null`,
+    );
+  } else if (filters.brandProfileId) {
+    query = query.eq("brand_profile_id", filters.brandProfileId);
+  } else if (filters.includeUnbranded === false) {
+    query = query.not("brand_profile_id", "is", null);
   }
   if (filters.customerId) {
     query = query.eq("customer_id", filters.customerId);
@@ -383,6 +403,8 @@ export async function insertInvoiceDraft(params: {
   balanceDueMinor: number;
   paymentStatus: InvoicePaymentStatus;
   templateKey: string;
+  brandProfileId?: string | null;
+  brandSnapshot?: Json | null;
   themeSnapshot: Json;
   companySnapshot: Json;
   customerSnapshot: Json;
@@ -436,6 +458,8 @@ export async function insertInvoiceDraft(params: {
       invoice_number: null,
       template_key: params.templateKey,
       template_version: 1,
+      brand_profile_id: params.brandProfileId ?? null,
+      brand_snapshot: params.brandSnapshot ?? null,
       theme_snapshot: params.themeSnapshot,
       company_snapshot: params.companySnapshot,
       customer_snapshot: params.customerSnapshot,
@@ -554,6 +578,26 @@ export async function replaceDraftItems(
   return (inserted ?? []).map((row) => mapInvoiceItem(row as InvoiceItemRow));
 }
 
+/** FIN-005A: duplicated historical ticketing Proforma must become an Invoice. */
+export async function coerceDraftDocumentTypeToInvoice(
+  organizationId: string,
+  invoiceId: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("invoices")
+    .update({ document_type: "invoice" })
+    .eq("organization_id", organizationId)
+    .eq("id", invoiceId)
+    .eq("lifecycle_status", "draft")
+    .is("invoice_number", null)
+    .eq("document_type", "proforma");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function updateInvoiceDraftRow(params: {
   organizationId: string;
   invoiceId: string;
@@ -582,6 +626,8 @@ export async function updateInvoiceDraftRow(params: {
   balanceDueMinor: number;
   paymentStatus: InvoicePaymentStatus;
   templateKey: string;
+  brandProfileId?: string | null;
+  brandSnapshot?: Json | null;
   themeSnapshot: Json;
   companySnapshot: Json;
   customerSnapshot: Json;
@@ -624,6 +670,8 @@ export async function updateInvoiceDraftRow(params: {
       balance_due_minor: params.balanceDueMinor,
       payment_status: params.paymentStatus,
       template_key: params.templateKey,
+      brand_profile_id: params.brandProfileId ?? null,
+      brand_snapshot: params.brandSnapshot ?? null,
       theme_snapshot: params.themeSnapshot,
       company_snapshot: params.companySnapshot,
       customer_snapshot: params.customerSnapshot,

@@ -14,9 +14,9 @@ import { TicketingInvoiceEditor } from "@/modules/finance/components/ticketing-i
 import { canEditInvoices } from "@/modules/finance/lib/invoice-access";
 import {
   getOrganizationInvoice,
-  getOrganizationInvoiceBrandSettings,
   loadInvoiceEditorOptions,
 } from "@/modules/finance/services/invoice-service";
+import { listInvoiceBrandEditorOptions } from "@/modules/finance/services/invoice-brand-service";
 import { getTicketingData } from "@/modules/finance/repositories/ticketing-repository";
 
 type PageProps = {
@@ -31,7 +31,7 @@ export default async function EditInvoicePage({
   const { profile } = await requireProfile();
   assertRoutePermission(profile, "invoices.view");
   if (!canEditInvoices(profile)) {
-    redirect("/finance/invoices");
+    redirect("/finance/invoices/xavia");
   }
 
   const t = createTranslator(DEFAULT_LOCALE);
@@ -50,19 +50,7 @@ export default async function EditInvoicePage({
   }
 
   const options = await loadInvoiceEditorOptions(profile, invoice.customerId);
-  const brandSettings = await getOrganizationInvoiceBrandSettings(profile);
-  const theme = invoice.themeSnapshot as {
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
-    templateKey?: string;
-  };
-  const workspaceBrand = {
-    templateKey: brandSettings.brand.defaultTemplateKey,
-    primaryColor: brandSettings.workspace.primaryColor,
-    secondaryColor: brandSettings.workspace.secondaryColor,
-    accentColor: brandSettings.workspace.accentColor,
-  };
+  const brands = await listInvoiceBrandEditorOptions(invoice.organizationId);
 
   if (invoice.invoiceType === "ticketing") {
     const groups = await getTicketingData(invoice.organizationId, invoice.id);
@@ -89,7 +77,7 @@ export default async function EditInvoicePage({
           action={updateTicketingDraftAndRedirectAction}
           customers={options.customers}
           bookings={options.bookings}
-          workspaceBrand={workspaceBrand}
+          brands={brands}
           errorMessage={query.error ?? null}
           initial={{
             invoiceId: invoice.id,
@@ -105,13 +93,7 @@ export default async function EditInvoicePage({
             documentType: invoice.documentType,
             includeItineraryDetail: invoice.includeItineraryDetail === true,
             paymentRequestNote: invoice.paymentRequestNote ?? null,
-            templateKey: theme.templateKey ?? invoice.templateKey,
-            primaryColor:
-              theme.primaryColor ?? brandSettings.workspace.primaryColor,
-            secondaryColor:
-              theme.secondaryColor ?? brandSettings.workspace.secondaryColor,
-            accentColor:
-              theme.accentColor ?? brandSettings.workspace.accentColor,
+            brandProfileId: invoice.brandProfileId ?? null,
             issueDate: invoice.issueDate,
             dueDate: invoice.dueDate,
             notes: invoice.notes,
@@ -169,12 +151,7 @@ export default async function EditInvoicePage({
         action={updateInvoiceDraftAndRedirectAction}
         customers={options.customers}
         bookings={options.bookings}
-        workspaceBrand={{
-          templateKey: brandSettings.brand.defaultTemplateKey,
-          primaryColor: brandSettings.workspace.primaryColor,
-          secondaryColor: brandSettings.workspace.secondaryColor,
-          accentColor: brandSettings.workspace.accentColor,
-        }}
+        brands={brands}
         errorMessage={query.error ?? null}
         initial={{
           invoiceId: invoice.id,
@@ -187,12 +164,7 @@ export default async function EditInvoicePage({
           manualRecipientEmail: invoice.manualRecipientEmail,
           manualRecipientAddress: invoice.manualRecipientAddress,
           manualRecipientTaxId: invoice.manualRecipientTaxId,
-          templateKey: theme.templateKey ?? invoice.templateKey,
-          primaryColor:
-            theme.primaryColor ?? brandSettings.workspace.primaryColor,
-          secondaryColor:
-            theme.secondaryColor ?? brandSettings.workspace.secondaryColor,
-          accentColor: theme.accentColor ?? brandSettings.workspace.accentColor,
+          brandProfileId: invoice.brandProfileId ?? null,
           issueDate: invoice.issueDate,
           dueDate: invoice.dueDate,
           notes: invoice.notes,

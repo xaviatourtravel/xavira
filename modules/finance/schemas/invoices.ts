@@ -3,6 +3,7 @@ import { INVOICE_TEMPLATE_KEYS } from "@/modules/finance/pdf/invoice-pdf-types";
 import { isValidHexColor, normalizeHexColor } from "@/modules/finance/lib/invoice-theme-colors";
 import { parsePaymentAccountsStrict } from "@/modules/finance/lib/invoice-payment-accounts";
 import { normalizeInvoiceItemDetail } from "@/modules/finance/lib/invoice-item-detail";
+import { normalizeBrandInvoicePrefix } from "@/modules/finance/lib/invoice-brand-profiles";
 
 const hexColorSchema = z
   .string()
@@ -146,6 +147,7 @@ const draftBaseSchema = z.object({
   notes: z.string().trim().max(5000).nullable().optional(),
   paymentInstructions: z.string().trim().max(5000).nullable().optional(),
   terms: z.string().trim().max(5000).nullable().optional(),
+  brandProfileId: z.string().uuid().nullable().optional(),
   templateKey: invoiceTemplateKeySchema.default("calm-standard"),
   primaryColor: hexColorSchema.optional(),
   secondaryColor: hexColorSchema.optional(),
@@ -178,6 +180,14 @@ export const createInvoiceDraftSchema = z
     manualRecipientDraftSchema,
   ])
   .superRefine((value, ctx) => {
+    if (value.documentType === "proforma") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New invoices cannot use the legacy Proforma document type",
+        path: ["documentType"],
+      });
+    }
+
     if (value.recipientSource === "linked_customer") {
       return;
     }
@@ -314,6 +324,51 @@ export const invoicePrefixSchema = z
       value.invoicePrefix == null ? null : value.invoicePrefix.toUpperCase(),
   }));
 
+export const invoiceBrandProfileUpdateSchema = z.object({
+  profileId: z.string().uuid(),
+  displayName: z.string().trim().min(1).max(80),
+  legalName: optionalTrimmed(200),
+  address: optionalTrimmed(1000),
+  email: optionalEmailSchema,
+  phone: optionalPhoneSchema,
+  website: optionalTrimmed(200),
+  taxId: optionalTrimmed(64),
+  footerText: optionalTrimmed(2000),
+  invoiceTitle: z.string().trim().min(1).max(80),
+  invoicePrefix: z.string().trim().transform((value, ctx) => {
+    try {
+      return normalizeBrandInvoicePrefix(value);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          error instanceof Error ? error.message : "Invoice prefix is invalid",
+      });
+      return z.NEVER;
+    }
+  }),
+  primaryColor: hexColorSchema,
+  secondaryColor: hexColorSchema,
+  accentColor: hexColorSchema,
+  isDefault: z.boolean().optional(),
+  paymentAccountsJson: z
+    .unknown()
+    .superRefine((value, ctx) => {
+      try {
+        parsePaymentAccountsStrict(value);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Payment accounts are invalid",
+        });
+      }
+    })
+    .transform((value) => parsePaymentAccountsStrict(value)),
+});
+
 export const invoiceBrandSettingsUpdateSchema = z.object({
   defaultTemplateKey: invoiceTemplateKeySchema.optional(),
   footerText: optionalTrimmed(2000),
@@ -363,6 +418,7 @@ export const invoiceListFiltersSchema = z.object({
   invoiceType: z.enum(["package", "ticketing"]).optional(),
   customerId: z.string().uuid().optional(),
   archiveFilter: invoiceArchiveFilterSchema.optional(),
+  brandKey: z.enum(["xavia", "consortium"]).optional(),
 });
 
 export type CreateInvoiceDraftInput = z.infer<typeof createInvoiceDraftSchema>;
@@ -378,3 +434,9 @@ export type InvoiceListFilters = z.infer<typeof invoiceListFiltersSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemInputSchema>;
 export type InvoiceRecipientSource = z.infer<typeof invoiceRecipientSourceSchema>;
 export type InvoicePrefixInput = z.infer<typeof invoicePrefixSchema>;
+export type InvoiceBrandSettingsUpdateInput = z.infer<
+  typeof invoiceBrandSettingsUpdateSchema
+>;
+export type InvoiceBrandProfileUpdateInput = z.infer<
+  typeof invoiceBrandProfileUpdateSchema
+>;

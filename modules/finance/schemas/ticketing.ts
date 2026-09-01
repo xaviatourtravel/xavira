@@ -134,6 +134,7 @@ const ticketingBaseSchema = z.object({
   notes: optionalText(5000),
   paymentInstructions: optionalText(5000),
   terms: optionalText(5000),
+  brandProfileId: z.string().uuid().nullable().optional(),
   templateKey: templateKeySchema,
   primaryColor: hexColor,
   secondaryColor: hexColor,
@@ -162,10 +163,20 @@ const manualRecipientTicketing = ticketingBaseSchema.extend({
   manualRecipientTaxId: optionalText(64),
 });
 
-export const createTicketingDraftSchema = z.discriminatedUnion("recipientSource", [
-  linkedCustomerTicketing,
-  manualRecipientTicketing,
-]);
+export const createTicketingDraftSchema = z
+  .discriminatedUnion("recipientSource", [
+    linkedCustomerTicketing,
+    manualRecipientTicketing,
+  ])
+  .superRefine((value, ctx) => {
+    if (value.documentType === "proforma") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New ticketing documents must be invoices",
+        path: ["documentType"],
+      });
+    }
+  });
 
 export const updateTicketingDraftSchema = z.discriminatedUnion("recipientSource", [
   linkedCustomerTicketing.extend({ invoiceId: z.string().uuid() }),

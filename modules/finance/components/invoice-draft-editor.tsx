@@ -12,8 +12,8 @@ import { formatMinorAsIdr } from "@/modules/finance/lib/invoice-money";
 import { loadBookingPrefillAction } from "@/modules/finance/actions/invoice-actions";
 import { InvoiceMoneyInput } from "@/modules/finance/components/invoice-money-input";
 import { suppressNumberInputWheel } from "@/modules/finance/lib/suppress-number-input-wheel";
-import { InvoiceTemplateBrandingFields } from "@/modules/finance/components/invoice-template-branding-fields";
-import { DEFAULT_INVOICE_TEMPLATE_KEY } from "@/modules/finance/pdf/invoice-pdf-types";
+import { InvoiceBrandSelector } from "@/modules/finance/components/invoice-brand-selector";
+import type { InvoiceBrandEditorOption } from "@/modules/finance/lib/invoice-brand-profiles";
 
 export type InvoiceEditorCustomerOption = {
   id: string;
@@ -43,15 +43,11 @@ export type InvoiceEditorItem = {
 
 type InvoiceDraftEditorProps = {
   mode: "create" | "edit";
+  variant?: "invoice" | "proforma";
   action: (formData: FormData) => void | Promise<void>;
   customers: InvoiceEditorCustomerOption[];
   bookings: InvoiceEditorBookingOption[];
-  workspaceBrand: {
-    templateKey: string;
-    primaryColor: string;
-    secondaryColor: string;
-    accentColor: string;
-  };
+  brands: InvoiceBrandEditorOption[];
   initial?: {
     invoiceId?: string;
     recipientSource?: "linked_customer" | "manual";
@@ -63,10 +59,7 @@ type InvoiceDraftEditorProps = {
     manualRecipientEmail?: string | null;
     manualRecipientAddress?: string | null;
     manualRecipientTaxId?: string | null;
-    templateKey?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
+    brandProfileId?: string | null;
     issueDate?: string | null;
     dueDate?: string | null;
     notes?: string | null;
@@ -93,26 +86,20 @@ const emptyItem = (): InvoiceEditorItem => ({
 
 export function InvoiceDraftEditor({
   mode,
+  variant = "invoice",
   action,
   customers,
   bookings,
-  workspaceBrand,
+  brands,
   initial,
   errorMessage,
 }: InvoiceDraftEditorProps) {
   const { tStrict } = useTranslation();
   const [pending, startTransition] = useTransition();
-  const [templateKey, setTemplateKey] = useState(
-    initial?.templateKey ?? workspaceBrand.templateKey ?? DEFAULT_INVOICE_TEMPLATE_KEY,
-  );
-  const [primaryColor, setPrimaryColor] = useState(
-    initial?.primaryColor ?? workspaceBrand.primaryColor,
-  );
-  const [secondaryColor, setSecondaryColor] = useState(
-    initial?.secondaryColor ?? workspaceBrand.secondaryColor,
-  );
-  const [accentColor, setAccentColor] = useState(
-    initial?.accentColor ?? workspaceBrand.accentColor,
+  const defaultBrandId =
+    brands.find((brand) => brand.isDefault)?.id ?? brands[0]?.id ?? "";
+  const [brandProfileId, setBrandProfileId] = useState(
+    initial?.brandProfileId ?? defaultBrandId,
   );
   const [recipientSource, setRecipientSource] = useState<
     "linked_customer" | "manual"
@@ -258,10 +245,15 @@ export function InvoiceDraftEditor({
           void action(formData);
         });
       }}
+      data-global-loading=""
       className="space-y-8"
     >
       {initial?.invoiceId ? (
-        <input type="hidden" name="invoice_id" value={initial.invoiceId} />
+        <input
+          type="hidden"
+          name={variant === "proforma" ? "proforma_id" : "invoice_id"}
+          value={initial.invoiceId}
+        />
       ) : null}
       <input type="hidden" name="recipient_source" value={recipientSource} />
       <input
@@ -291,7 +283,11 @@ export function InvoiceDraftEditor({
         name="additional_fees_minor"
         value={additionalFeesMinor}
       />
-      <input type="hidden" name="amount_paid_minor" value={amountPaidMinor} />
+      <input
+        type="hidden"
+        name="amount_paid_minor"
+        value={variant === "proforma" ? 0 : amountPaidMinor}
+      />
       <input type="hidden" name="currency" value="IDR" />
 
       {(errorMessage || prefillError) && (
@@ -300,18 +296,10 @@ export function InvoiceDraftEditor({
         </p>
       )}
 
-      <InvoiceTemplateBrandingFields
-        templateKey={templateKey}
-        primaryColor={primaryColor}
-        secondaryColor={secondaryColor}
-        accentColor={accentColor}
-        workspaceDefaults={workspaceBrand}
-        onChange={(next) => {
-          setTemplateKey(next.templateKey);
-          setPrimaryColor(next.primaryColor);
-          setSecondaryColor(next.secondaryColor);
-          setAccentColor(next.accentColor);
-        }}
+      <InvoiceBrandSelector
+        brands={brands}
+        selectedBrandId={brandProfileId}
+        onChange={setBrandProfileId}
       />
 
       <section className="space-y-4">
@@ -712,6 +700,7 @@ export function InvoiceDraftEditor({
                   onValueChange={(next) => setAdditionalFeesMinor(next ?? 0)}
                 />
               </div>
+              {variant === "invoice" ? (
               <div className="space-y-2">
                 <Label>{tStrict("financeUi.amountPaid")}</Label>
                 <InvoiceMoneyInput
@@ -720,6 +709,7 @@ export function InvoiceDraftEditor({
                   onValueChange={(next) => setAmountPaidMinor(next ?? 0)}
                 />
               </div>
+              ) : null}
             </div>
           </section>
 
@@ -814,6 +804,8 @@ export function InvoiceDraftEditor({
                 {formatMinorAsIdr(preview.totalMinor)}
               </dd>
             </div>
+            {variant === "invoice" ? (
+            <>
             <div className="flex justify-between gap-4">
               <dt>{tStrict("financeUi.paid")}</dt>
               <dd>{formatMinorAsIdr(preview.amountPaidMinor)}</dd>
@@ -822,6 +814,8 @@ export function InvoiceDraftEditor({
               <dt>{tStrict("financeUi.balance")}</dt>
               <dd>{formatMinorAsIdr(preview.balanceDueMinor)}</dd>
             </div>
+            </>
+            ) : null}
           </dl>
         ) : (
           <p className="text-sm text-muted-foreground">—</p>
@@ -834,12 +828,20 @@ export function InvoiceDraftEditor({
         </Button>
         {initial?.invoiceId ? (
           <a
-            href={`/api/finance/invoices/${initial.invoiceId}/pdf?preview=1`}
+            href={
+              variant === "proforma"
+                ? `/api/finance/proformas/${initial.invoiceId}/pdf?preview=1`
+                : `/api/finance/invoices/${initial.invoiceId}/pdf?preview=1`
+            }
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-10 items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
           >
-            {tStrict("financeUi.previewInvoice")}
+            {tStrict(
+              variant === "proforma"
+                ? "financeUi.previewProforma"
+                : "financeUi.previewInvoice",
+            )}
           </a>
         ) : (
           <p className="self-center text-sm text-muted-foreground">
@@ -848,10 +850,18 @@ export function InvoiceDraftEditor({
         )}
         {mode === "edit" && initial?.invoiceId ? (
           <Link
-            href={`/finance/invoices/${initial.invoiceId}`}
+            href={
+              variant === "proforma"
+                ? `/finance/proformas/${initial.invoiceId}`
+                : `/finance/invoices/${initial.invoiceId}`
+            }
             className="inline-flex h-10 items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
           >
-            {tStrict("financeUi.viewInvoice")}
+            {tStrict(
+              variant === "proforma"
+                ? "financeUi.viewProforma"
+                : "financeUi.viewInvoice",
+            )}
           </Link>
         ) : null}
       </div>

@@ -116,6 +116,7 @@ export type Dictionary = {
     discardChanges: string;
     cancel: string;
     save: string;
+    loading: string;
   };
   workspaceHeader: {
     searchLabel: string;
@@ -395,6 +396,7 @@ const id: Dictionary = {
     discardChanges: "Buang Perubahan",
     cancel: "Batal",
     save: "Simpan",
+    loading: "Memuat",
   },
   workspaceHeader: {
     searchLabel: "Cari",
@@ -551,6 +553,7 @@ const en: Dictionary = {
     discardChanges: "Discard Changes",
     cancel: "Cancel",
     save: "Save",
+    loading: "Loading",
   },
   workspaceHeader: {
     searchLabel: "Search",
